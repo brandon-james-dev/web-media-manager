@@ -5,13 +5,14 @@ import { Music } from 'lucide-react'
 import { useState } from 'react'
 import useFileSystemAccess from "use-fs-access"
 import { showDirectoryPicker, type FileOrDirectoryInfo } from "use-fs-access/core"
-import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny';
+import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
 import type { Song } from '../models/Song'
 import { toast } from 'sonner'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Link } from 'react-router'
+import { resizePicture } from '@/lib/utils'
 
 'use client'
-
 
 export default function Main() {
     const [songs, setSongs] = useState<Song[]>([])
@@ -111,6 +112,13 @@ export default function Main() {
                 continue;
             }
 
+            const pic = metaData.images?.[0];
+            let albumArtB64: string | undefined;
+1
+            if (pic != null) {
+                albumArtB64 = await resizePicture(new Uint8Array(pic.data), pic.mimeType);
+            }
+
             songs.push({
                 id: file.name,
                 title: metaData?.title || file.name,
@@ -118,6 +126,7 @@ export default function Main() {
                 album: metaData?.album || "Unknown Album",
                 duration: await input?.computeDuration() || 0,
                 bitrate: Math.ceil(bitrate / 1000) || 0,
+                albumArt: albumArtB64,
             } as Song);
         }
 
@@ -143,7 +152,12 @@ export default function Main() {
                     <div className="flex justify-between items-center gap-2 mb-4">
                         <Music className="w-6 h-6 inline pr-1" />
                         <h1 className="text-3xl font-bold">Song Library</h1>
-                        <Button onClick={setSongsFromDirectory}>Open Directory</Button>
+                        <div>
+                            <Button onClick={setSongsFromDirectory}>Open Directory</Button>
+                            <Link to="/settings">
+                                <Button variant="outline" className="ml-2">Settings</Button>
+                            </Link>
+                        </div>
                     </div>
                     <div className='flex justify-center'>
                         <Input
@@ -166,6 +180,7 @@ export default function Main() {
                                 <Table>
                                     <TableHeader className='sticky top-0'>
                                         <TableRow>
+                                            <TableHead>Album Art</TableHead>
                                             <TableHead>Title</TableHead>
                                             <TableHead>Artist</TableHead>
                                             <TableHead>Album</TableHead>
@@ -176,6 +191,15 @@ export default function Main() {
                                     <TableBody>
                                         {filteredSongs.map(song => (
                                             <TableRow key={song.id}>
+                                                <TableCell>
+                                                    {song.albumArt ? (
+                                                        <img src={song.albumArt} alt={`${song.title} Album Art`} className="w-12 h-12 object-cover rounded" />
+                                                    ) : (
+                                                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                                            <Music className="w-6 h-6 text-gray-500" />
+                                                        </div>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="font-medium">{song.title}</TableCell>
                                                 <TableCell>{song.artist}</TableCell>
                                                 <TableCell>{song.album}</TableCell>

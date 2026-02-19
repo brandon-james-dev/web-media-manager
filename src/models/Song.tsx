@@ -5,4 +5,5 @@ export interface Song {
     album: string;
     duration: number;
     bitrate: number;
+    albumArt: string | undefined;
 }
