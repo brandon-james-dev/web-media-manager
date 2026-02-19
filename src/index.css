@@ -126,6 +126,18 @@ body, #root {
   height: 100%;
 }
 
+.container-type-size {
+  container-type: size;
+}
+
+.container-height {
+  height: 100cqh;
+}
+
+.container-width {
+  width: 100cqw;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
