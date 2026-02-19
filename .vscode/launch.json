@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Edge: Debug Vite",
+      "type": "chrome",
+      "request": "launch",
+      "runtimeExecutable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+      "runtimeArgs": [
+        "--remote-debugging-port=9222",
+        "--user-data-dir=${workspaceFolder}/.vscode/vscode-edge-profile",
+        "http://localhost:5173"
+      ],
+      "preLaunchTask": "vite-dev",
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "vite:///*": "${workspaceFolder}/*"
+      }
+    }
+  ]
+}

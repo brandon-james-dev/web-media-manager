@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+# Build outputs
+/build
+/dist
+/dist-ssr
+# TypeScript build info
+*.tsbuildinfo
+# Testing coverage
+/coverage
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+# Environment variables
+env
+env.local
+env.development.local
+env.test.local
+env.production.local
+# Editor directories and files
+vscode/*
+!.vscode/extensions.json
+.vscode/vscode-edge-profile
+.vscode/vscode-edge-profile/**
+idea/
+DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Optional npm cache directory
+npm/
+# ESLint cache
+eslintcache
+# Output of 'npm pack'
+*.tgz
+# REPL history
+node_repl_history
+# Parcel cache
+cache/
+# Storybook build outputs
+out/
+storybook-static/
+# Miscellaneous temporary files
+*.local
