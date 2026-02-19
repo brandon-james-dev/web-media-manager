@@ -5,14 +5,7 @@
       "label": "vite-dev",
       "type": "shell",
       "command": "npm run dev",
-      "isBackground": true,
-      "problemMatcher": {
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "VITE",
-          "endsPattern": "ready in"
-        }
-      }
+      "isBackground": true
     }
   ]
 }
