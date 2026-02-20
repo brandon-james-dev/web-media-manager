@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import Resizer from "react-image-file-resizer"
+import useFileSystemAccess from "use-fs-access";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

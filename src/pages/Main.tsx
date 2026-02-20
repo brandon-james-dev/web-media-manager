@@ -14,6 +14,8 @@ import { showDirectoryPicker, type FileOrDirectoryInfo } from "use-fs-access/cor
 import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
 import { resizePicture } from '@/lib/utils'
 import { get, set } from 'idb-keyval'
+import { upsertSongToDb } from '@/hooks/songUpdateHooks'
+import { mediaDb } from '@/data'
 
 'use client'
 
@@ -88,10 +90,10 @@ export default function Main() {
             toast.error("No directory selected");
             return;
         }
-        
+
         const filesInDirectory = Array.from(filesMap.values()).filter(fd => fd.kind === "file");
         setTotalSongs(filesInDirectory.length);
-
+        
         for (const file of filesInDirectory) {
             const blob = await dir.getFileHandle(file.name).then(handle => handle.getFile());
 
@@ -138,7 +140,7 @@ export default function Main() {
                 albumArtB64 = await resizePicture(new Uint8Array(pic.data), pic.mimeType);
             }
 
-            addSong({
+            const newSong = {
                 id: file.name,
                 title: metaData?.title || file.name,
                 artist: metaData?.artist || "Unknown Artist",
@@ -146,7 +148,11 @@ export default function Main() {
                 duration: await input?.computeDuration() || 0,
                 bitrate: Math.ceil(bitrate / 1000) || 0,
                 albumArt: albumArtB64,
-            } as Song);
+            } as Song;
+            
+            upsertSongToDb(newSong);
+            addSong(newSong);
+            
             console.log(`Loaded ${filesMap.size} songs from directory: ${dir.name}`);
         }
 
@@ -176,7 +182,8 @@ export default function Main() {
                 return;
             }
 
-            await loadSongsFromDirectory(directoryHandle);
+            const songs = await mediaDb.songs.toArray();
+            setSongs(songs);
         };
 
         init();
