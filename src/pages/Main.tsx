@@ -5,12 +5,12 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
-import { ArrowUpRightIcon, Music, FileMusicIcon, CogIcon } from 'lucide-react'
+import { Music, FileMusicIcon, CogIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import useFileSystemAccess from "use-fs-access"
 import type { Song } from '../models/Song'
 import { Link } from 'react-router'
-import { showDirectoryPicker, type FileOrDirectoryInfo, type FileSystemFiles } from "use-fs-access/core"
+import { showDirectoryPicker, type FileOrDirectoryInfo } from "use-fs-access/core"
 import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
 import { resizePicture } from '@/lib/utils'
 

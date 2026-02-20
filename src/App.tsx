@@ -1,20 +1,22 @@
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import type { ReactNode } from "react";
+import { Provider as BusProvider } from 'react-bus';
 
-function App() {
+interface AppProps {
+  children: ReactNode;
+}
+
+const App: React.FC<AppProps> = ({ children }) => {
   return (
     <>
-      <div className="flex justify-center">
-        <a href="https://vite.dev" target="_blank" rel='noopener'>
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel='noopener'>
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
+      <BusProvider>
+        <main className="h-full">
+          {children}
+        </main>
+      </BusProvider>
     </>
-  )
-}
+  );
+};
+
 
 export default App
