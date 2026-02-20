@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
@@ -12,8 +11,10 @@ import type { Song } from '../models/Song'
 import { Link } from 'react-router'
 import { showDirectoryPicker, type FileOrDirectoryInfo } from "use-fs-access/core"
 import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
-import { resizePicture } from '@/lib/utils'
 import { get, set } from 'idb-keyval'
+import { upsertSongToDb } from '@/hooks/songUpdateHooks'
+import { mediaDb } from '@/data'
+import { SongTable } from '@/components/song-table'
 
 'use client'
 
@@ -74,13 +75,13 @@ export default function Main() {
         try {
             set('root-directory', dir);
 
-            await loadSongsFromDirectory(dir);
+            await importSongsFromDirectory(dir);
         } catch (error) {
             console.log(error);
         }
     }
 
-    const loadSongsFromDirectory = async (dir: FileSystemDirectoryHandle) => {
+    const importSongsFromDirectory = async (dir: FileSystemDirectoryHandle) => {
         const files = await openDirectory(dir);
         const filesMap = new Map(files?.entries());
 
@@ -88,10 +89,10 @@ export default function Main() {
             toast.error("No directory selected");
             return;
         }
-        
+
         const filesInDirectory = Array.from(filesMap.values()).filter(fd => fd.kind === "file");
         setTotalSongs(filesInDirectory.length);
-
+        
         for (const file of filesInDirectory) {
             const blob = await dir.getFileHandle(file.name).then(handle => handle.getFile());
 
@@ -132,35 +133,27 @@ export default function Main() {
             }
 
             const pic = metaData.images?.[0];
-            let albumArtB64: string | undefined;
+            let albumArtBlob: Blob | null = null;
 
             if (pic != null) {
-                albumArtB64 = await resizePicture(new Uint8Array(pic.data), pic.mimeType);
+                albumArtBlob = new Blob([new Uint8Array(pic.data)] as BlobPart[], { type: pic.mimeType });
             }
 
-            addSong({
+            const newSong = {
                 id: file.name,
                 title: metaData?.title || file.name,
                 artist: metaData?.artist || "Unknown Artist",
                 album: metaData?.album || "Unknown Album",
                 duration: await input?.computeDuration() || 0,
                 bitrate: Math.ceil(bitrate / 1000) || 0,
-                albumArt: albumArtB64,
-            } as Song);
-            console.log(`Loaded ${filesMap.size} songs from directory: ${dir.name}`);
+                albumArt: albumArtBlob,
+            } as Song;
+            
+            upsertSongToDb(newSong);
+            addSong(newSong);
         }
 
         toast.success(`Loaded ${filesMap.size} songs from directory: ${dir.name}`);
-    }
-
-    const formatBitRate = (song: Song) => {
-        return `${Math.floor(song.bitrate)} kbps`
-    }
-
-    const formatDuration = (duration: number) => {
-        const minutes = Math.floor(duration / 60);
-        const seconds = `${Math.floor(duration % 60)}`.padStart(2, '0');
-        return `${minutes}:${seconds}`;
     }
 
     const didRun = useRef(false);
@@ -176,7 +169,8 @@ export default function Main() {
                 return;
             }
 
-            await loadSongsFromDirectory(directoryHandle);
+            const songs = await mediaDb.songs.toArray();
+            setSongs(songs);
         };
 
         init();
@@ -207,7 +201,7 @@ export default function Main() {
                     </div>
                 </div>
                 <div className='flex-1 overflow-auto'>
-                    <div className='h-full container-type-size'>
+                    <div className={`h-full container-type-size${didRun.current ? '' : ' hidden'}`}>
                         <ScrollArea className='container-height'>
                             {filteredSongs.length === 0 && (
                                 <Empty>
@@ -226,40 +220,7 @@ export default function Main() {
                                     </EmptyContent>
                                 </Empty>
                             )}
-                            {filteredSongs.length > 0 && (
-                                <Table stickyHeader={true}>
-                                    <TableHeader>
-                                        <TableRow className='sticky top-0 z-10 bg-background hover:bg-background'>
-                                            <TableHead>Album Art</TableHead>
-                                            <TableHead>Title</TableHead>
-                                            <TableHead>Artist</TableHead>
-                                            <TableHead>Album</TableHead>
-                                            <TableHead>Bit Rate</TableHead>
-                                            <TableHead>Duration</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredSongs.map(song => (
-                                            <TableRow key={song.id}>
-                                                <TableCell>
-                                                    {song.albumArt ? (
-                                                        <img src={song.albumArt} alt={`${song.title} Album Art`} className="w-12 h-12 object-cover rounded" />
-                                                    ) : (
-                                                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                                                            <Music className="w-6 h-6 text-gray-500" />
-                                                        </div>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="font-medium">{song.title}</TableCell>
-                                                <TableCell>{song.artist}</TableCell>
-                                                <TableCell>{song.album}</TableCell>
-                                                <TableCell>{formatBitRate(song)}</TableCell>
-                                                <TableCell>{formatDuration(song.duration)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            )}
+                            {filteredSongs.length > 0 && (<SongTable />)}
                             <ScrollBar orientation="horizontal" />
                             <ScrollBar orientation="vertical" />
                         </ScrollArea>
