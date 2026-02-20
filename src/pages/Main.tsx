@@ -1,17 +1,18 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Music } from 'lucide-react'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import { Progress } from '@/components/ui/progress'
+import { toast } from 'sonner'
+import { ArrowUpRightIcon, Music, FileMusicIcon, CogIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import useFileSystemAccess from "use-fs-access"
+import type { Song } from '../models/Song'
+import { Link } from 'react-router'
 import { showDirectoryPicker, type FileOrDirectoryInfo, type FileSystemFiles } from "use-fs-access/core"
 import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
-import type { Song } from '../models/Song'
-import { toast } from 'sonner'
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
-import { Link } from 'react-router'
 import { resizePicture } from '@/lib/utils'
-import { Progress } from '@/components/ui/progress'
 
 'use client'
 
@@ -173,9 +174,10 @@ export default function Main() {
                         <Music className="w-6 h-6 inline pr-1" />
                         <h1 className="text-3xl font-bold">Song Library</h1>
                         <div>
-                            <Button onClick={selectDirectory}>Open Directory</Button>
                             <Link to="/settings">
-                                <Button variant="outline" className="ml-2">Settings</Button>
+                                <Button variant="outline" className="ml-2">
+                                    <CogIcon />
+                                </Button>
                             </Link>
                         </div>
                     </div>
@@ -192,9 +194,21 @@ export default function Main() {
                     <div className='h-full container-type-size'>
                         <ScrollArea className='container-height'>
                             {filteredSongs.length === 0 && (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    No songs found
-                                </div>
+                                <Empty>
+                                    <EmptyHeader>
+                                        <EmptyMedia variant="icon">
+                                            <FileMusicIcon />
+                                        </EmptyMedia>
+                                        <EmptyTitle>No Songs Yet</EmptyTitle>
+                                        <EmptyDescription>
+                                            You haven&apos;t imported any songs yet. Get started by importing
+                                            your songs from your chosen directory.
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                    <EmptyContent className="flex-row justify-center gap-2">
+                                        <Button onClick={selectDirectory}>Import Songs</Button>
+                                    </EmptyContent>
+                                </Empty>
                             )}
                             {filteredSongs.length > 0 && (
                                 <Table stickyHeader={true}>
