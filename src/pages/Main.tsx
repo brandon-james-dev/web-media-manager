@@ -6,13 +6,14 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { Music, FileMusicIcon, CogIcon } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useFileSystemAccess from "use-fs-access"
 import type { Song } from '../models/Song'
 import { Link } from 'react-router'
 import { showDirectoryPicker, type FileOrDirectoryInfo } from "use-fs-access/core"
 import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
 import { resizePicture } from '@/lib/utils'
+import { get, set } from 'idb-keyval'
 
 'use client'
 
@@ -20,6 +21,7 @@ export default function Main() {
     const [songs, setSongs] = useState<Song[]>([]);
     const [totalSongs, setTotalSongs] = useState<number>(0);
     const [search, setSearch] = useState('');
+
     const buffer = useRef<Song[]>([]);
 
     const filteredSongs = songs.filter(song =>
@@ -38,18 +40,7 @@ export default function Main() {
         }
     }
 
-    const {
-        files,
-        openDirectory,
-        expandDirectory,
-        openFile,
-        closeFile,
-        deleteFile,
-        writeFile,
-        createDirectory,
-        renameFile,
-        copyFile,
-    } = useFileSystemAccess({
+    const { openDirectory } = useFileSystemAccess({
         filters: [
         // - gitIgnoreFilter, (apply .gitignore rules)
         // - gitFolderFilter, (excludes .git folder)
@@ -80,7 +71,13 @@ export default function Main() {
             return;
         }
 
-        await loadSongsFromDirectory(dir);
+        try {
+            set('root-directory', dir);
+
+            await loadSongsFromDirectory(dir);
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     const loadSongsFromDirectory = async (dir: FileSystemDirectoryHandle) => {
@@ -165,6 +162,25 @@ export default function Main() {
         const seconds = `${Math.floor(duration % 60)}`.padStart(2, '0');
         return `${minutes}:${seconds}`;
     }
+
+    const didRun = useRef(false);
+
+    useEffect(() => {
+        if (didRun.current) return;
+        didRun.current = true;
+
+        const init = async () => {
+            const directoryHandle = await get<FileSystemDirectoryHandle>('root-directory');
+
+            if (directoryHandle == null) {
+                return;
+            }
+
+            await loadSongsFromDirectory(directoryHandle);
+        };
+
+        init();
+    }, []);
 
     return (
         <div className="w-full h-full mx-auto px-6 pt-4 pb-2">

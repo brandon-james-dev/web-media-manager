@@ -1,6 +1,5 @@
 import './App.css'
 import type { ReactNode } from "react";
-import { Provider as BusProvider } from 'react-bus';
 
 interface AppProps {
   children: ReactNode;
@@ -9,11 +8,9 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ children }) => {
   return (
     <>
-      <BusProvider>
-        <main className="h-full">
-          {children}
-        </main>
-      </BusProvider>
+      <main className="h-full">
+        {children}
+      </main>
     </>
   );
 };
