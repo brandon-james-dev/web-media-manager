@@ -2,26 +2,40 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Music } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import useFileSystemAccess from "use-fs-access"
-import { showDirectoryPicker, type FileOrDirectoryInfo } from "use-fs-access/core"
+import { showDirectoryPicker, type FileOrDirectoryInfo, type FileSystemFiles } from "use-fs-access/core"
 import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
 import type { Song } from '../models/Song'
 import { toast } from 'sonner'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Link } from 'react-router'
 import { resizePicture } from '@/lib/utils'
+import { Progress } from '@/components/ui/progress'
 
 'use client'
 
 export default function Main() {
-    const [songs, setSongs] = useState<Song[]>([])
-    const [search, setSearch] = useState('')
+    const [songs, setSongs] = useState<Song[]>([]);
+    const [totalSongs, setTotalSongs] = useState<number>(0);
+    const [search, setSearch] = useState('');
+    const buffer = useRef<Song[]>([]);
 
     const filteredSongs = songs.filter(song =>
         song.title.toLowerCase().includes(search.toLowerCase()) ||
         song.artist.toLowerCase().includes(search.toLowerCase())
-    )
+    );
+
+    const addSong = (song: Song) => {
+        buffer.current.push(song);
+
+        if (buffer.current.length === 1) {
+            requestAnimationFrame(() => {
+                setSongs(prev => [...prev, ...buffer.current]);
+                buffer.current = [];
+            });
+        }
+    }
 
     const {
         files,
@@ -43,10 +57,10 @@ export default function Main() {
         ],
         enableFileWatcher: true,
         fileWatcherOptions: {
-        debug: true,
-        pollInterval: 250, // [ms]
-        // batchSize: 50, [ms]
-        // cacheTime: 5000, [ms]
+            debug: true,
+            pollInterval: 250, // [ms]
+            // batchSize: 50, [ms]
+            // cacheTime: 5000, [ms]
         },
         // FILE WATCHER CALLBACKS
         onFilesAdded: (newFiles: Map<string, FileOrDirectoryInfo>) => {}, // - Track when new files are added
@@ -54,8 +68,9 @@ export default function Main() {
         onFilesModified: (modifiledFiles: Map<string, FileOrDirectoryInfo>) => {}, // - Track when files are modified
     });
 
-    const setSongsFromDirectory = async () => {
+    const selectDirectory = async () => {
         const dir = await showDirectoryPicker();
+
         if (dir instanceof Error) {
             console.error("Directory access error:", dir);
             return;
@@ -63,17 +78,23 @@ export default function Main() {
         if (dir == null) {
             return;
         }
-        const fileDirectoryHandler = await openDirectory(dir);
-        const filesMap = new Map(fileDirectoryHandler?.entries());
-        let songs: Song[] = [];
-        
-        for (const [_, file] of filesMap) {
-            if (file.kind === "directory") {
-                toast.info(`Began process files in directory: ${file.name}`);
 
-                continue;
-            }
-            
+        await loadSongsFromDirectory(dir);
+    }
+
+    const loadSongsFromDirectory = async (dir: FileSystemDirectoryHandle) => {
+        const files = await openDirectory(dir);
+        const filesMap = new Map(files?.entries());
+
+        if (dir == null) {
+            toast.error("No directory selected");
+            return;
+        }
+        
+        const filesInDirectory = Array.from(filesMap.values()).filter(fd => fd.kind === "file");
+        setTotalSongs(filesInDirectory.length);
+
+        for (const file of filesInDirectory) {
             const blob = await dir.getFileHandle(file.name).then(handle => handle.getFile());
 
             const input = new MbInput({
@@ -114,12 +135,12 @@ export default function Main() {
 
             const pic = metaData.images?.[0];
             let albumArtB64: string | undefined;
-1
+
             if (pic != null) {
                 albumArtB64 = await resizePicture(new Uint8Array(pic.data), pic.mimeType);
             }
 
-            songs.push({
+            addSong({
                 id: file.name,
                 title: metaData?.title || file.name,
                 artist: metaData?.artist || "Unknown Artist",
@@ -128,11 +149,10 @@ export default function Main() {
                 bitrate: Math.ceil(bitrate / 1000) || 0,
                 albumArt: albumArtB64,
             } as Song);
+            console.log(`Loaded ${filesMap.size} songs from directory: ${dir.name}`);
         }
 
-        toast.success(`Loaded ${songs.length} songs from directory: ${dir.name}`);
-
-        setSongs(songs);
+        toast.success(`Loaded ${filesMap.size} songs from directory: ${dir.name}`);
     }
 
     const formatBitRate = (song: Song) => {
@@ -146,14 +166,14 @@ export default function Main() {
     }
 
     return (
-        <div className="w-full h-full mx-auto p-6">
+        <div className="w-full h-full mx-auto px-6 pt-4 pb-2">
             <div className='h-full flex flex-col gap-2'>
                 <div className='shrink-0'>
                     <div className="flex justify-between items-center gap-2 mb-4">
                         <Music className="w-6 h-6 inline pr-1" />
                         <h1 className="text-3xl font-bold">Song Library</h1>
                         <div>
-                            <Button onClick={setSongsFromDirectory}>Open Directory</Button>
+                            <Button onClick={selectDirectory}>Open Directory</Button>
                             <Link to="/settings">
                                 <Button variant="outline" className="ml-2">Settings</Button>
                             </Link>
@@ -177,9 +197,9 @@ export default function Main() {
                                 </div>
                             )}
                             {filteredSongs.length > 0 && (
-                                <Table>
-                                    <TableHeader className='sticky top-0'>
-                                        <TableRow>
+                                <Table stickyHeader={true}>
+                                    <TableHeader>
+                                        <TableRow className='sticky top-0 z-10 bg-background hover:bg-background'>
                                             <TableHead>Album Art</TableHead>
                                             <TableHead>Title</TableHead>
                                             <TableHead>Artist</TableHead>
@@ -210,7 +230,15 @@ export default function Main() {
                                     </TableBody>
                                 </Table>
                             )}
+                            <ScrollBar orientation="horizontal" />
+                            <ScrollBar orientation="vertical" />
                         </ScrollArea>
+                    </div>
+                </div>
+                <div className='shrink-0'>
+                    <div className='flex items-center gap-2'>
+                        <Progress value={songs.length / totalSongs * 100} max={100} className="w-30" />
+                        <label className="text-sm text-muted-foreground">Loaded {songs.length} of {totalSongs} items</label>
                     </div>
                 </div>
             </div>
