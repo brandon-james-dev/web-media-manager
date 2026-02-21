@@ -90,8 +90,10 @@ export default function Main() {
             return;
         }
 
+
         const filesInDirectory = Array.from(filesMap.values()).filter(fd => fd.kind === "file");
         setTotalSongs(filesInDirectory.length);
+        
         
         for (const file of filesInDirectory) {
             const blob = await dir.getFileHandle(file.name).then(handle => handle.getFile());
