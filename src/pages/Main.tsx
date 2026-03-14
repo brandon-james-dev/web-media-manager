@@ -9,8 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Song } from '../models/Song'
 import { Link } from 'react-router'
 import useFileSystemAccess, { showDirectoryPicker } from "use-fs-access"
-import { parseStream } from 'music-metadata'
-import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
+import { parseBlob } from 'music-metadata'
 import { get, set } from 'idb-keyval'
 import { upsertSongToDb } from '@/hooks/songUpdateHooks'
 import { mediaDb } from '@/data'
@@ -82,63 +81,15 @@ export default function Main() {
         
         for (const file of filesInDirectory) {
             const blob = await file.handle.getFile();
-
-            const input = new MbInput({
-                formats: ALL_FORMATS,
-                source: new BlobSource(blob),
-            });
-            
-            try {
-                const format = await input.getFormat();
-                
-                if (!format?.mimeType.startsWith("audio/")) {
-                    continue;
-                }
-            } catch (error) {
-                console.warn(`Failed to determine format for ${file.name}:`, error);
-                continue;
-            }
-
-            let metaData: MetadataTags | null = null;
-
-            try {
-                metaData = await input.getMetadataTags();
-            } catch (error) {
-                console.warn(`Failed to read metadata for ${file.name}:`, error);
-                continue;
-            }
-
-            let bitrate = 0;
-
-            try {
-                const audioTrack = await input?.getPrimaryAudioTrack();
-                const packetStats = await audioTrack?.computePacketStats(320 * 10);
-                bitrate = packetStats?.averageBitrate || 0;
-            } catch (error) {
-                console.warn(`Failed to compute bitrate for ${file.name}:`, error);
-                continue;
-            }
-
-            let tags = { ...metaData }
-            delete tags.raw;
+            const { format, common } = await parseBlob(blob);
+            const tags = mapCommonTagsToId3FormValues(common);
 
             const newSong = {
                 id: file.name,
-                duration: await input?.computeDuration() || 0,
-                bitrate: Math.ceil(bitrate / 1000) || 0,
+                duration: format.duration || 0,
+                bitrate: format.bitrate || 0,
                 tags
             } as Song;
-
-            // Parse the metadata from the stream
-            // const { format, common } = await parseStream(blob, { mimeType: 'audio/mpeg'});
-            // const tags = mapCommonTagsToId3FormValues(common);
-
-            // const newSong = {
-            //     id: file.name,
-            //     duration: format.duration || 0,
-            //     bitrate: format.bitrate || 0,
-            //     tags
-            // } as Song;
 
             upsertSongToDb(newSong);
             addSong(newSong);

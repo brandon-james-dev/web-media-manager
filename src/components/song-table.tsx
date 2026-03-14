@@ -75,7 +75,7 @@ export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void
     // Formatting helpers inside component
     //
     const formatBitRate = (bitrate: number) => {
-        return `${Math.floor(bitrate)} kbps`;
+        return `${Math.floor(bitrate / 1000)} kbps`;
     };
 
     const formatDuration = (duration: number) => {

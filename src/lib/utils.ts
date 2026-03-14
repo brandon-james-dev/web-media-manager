@@ -47,13 +47,12 @@ export function mapCommonTagsToId3FormValues(
     const formKey = key as keyof Id3FormValues;
     const tagKey = TAG_MAP[formKey];
 
-    if (!tagKey) continue; // handled manually or intentionally skipped
+    if (!tagKey) continue;
 
     const value = tags[tagKey];
 
     if (value == null) continue;
 
-    // Normalize arrays → first element
     if (Array.isArray(value)) {
       result[formKey] = String(value[0] ?? "");
     } else {
@@ -61,13 +60,11 @@ export function mapCommonTagsToId3FormValues(
     }
   }
 
-  // Track number (e.g., { no: 3, of: 12 })
   if (tags.track) {
     const { no, of } = tags.track;
     result.track = [no, of].filter(Boolean).join("/") || "";
   }
 
-  // Disc number (e.g., { no: 1, of: 2 })
   if (tags.disk) {
     const { no, of } = tags.disk;
     result.disc = [no, of].filter(Boolean).join("/") || "";
