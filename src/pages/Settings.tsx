@@ -18,26 +18,6 @@ export default function Settings() {
     theme: theme || 'system',
   });
 
-  const onThemeChange = (callback: (theme: "dark" | "light") => void): void => {
-      if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-        return;
-      }
-
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-      callback(mediaQuery.matches ? "dark" : "light");
-
-      const listener = (event: MediaQueryListEvent) => {
-        callback(event.matches ? "dark" : "light");
-      };
-
-      if (typeof mediaQuery.addEventListener === "function") {
-        mediaQuery.addEventListener("change", listener);
-      } else {
-        mediaQuery.addListener(listener);
-      }
-  }
-
   const getUserThemePreference = (): "dark" | "light" => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
       return "light";
@@ -73,14 +53,14 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto p-8">
       <div className="flex gap-3">
         <Link to="/">
-            <Button variant="outline" className="ml-2">
-                <ArrowLeft />
-            </Button>
+          <Button variant="outline">
+            <ArrowLeft />
+          </Button>
         </Link>
-        <h1 className="text-3xl font-bold mb-8">Settings and Data</h1>
+        <h1 className="text-3xl font-bold mb-8 pointer-events-none">Settings and Data</h1>
       </div>
       <Card className="mb-6">
-          <CardHeader>
+          <CardHeader className='pointer-events-none'>
             <CardTitle>Settings and Data</CardTitle>
             <CardDescription>Manage your application preferences and data</CardDescription>
           </CardHeader>
@@ -88,7 +68,7 @@ export default function Settings() {
             <div className='flex items-center justify-between'>
               <Label htmlFor='clearDb'>Clear Song Database</Label>
               <Dialog open={clearSongsDialogOpen} onOpenChange={setClearSongsDialogOpen}>
-                <DialogTrigger>
+                <DialogTrigger asChild>
                   <Button id='clearDb'>Clear</Button> 
                 </DialogTrigger>
                 <DialogContent>

@@ -1,20 +1,10 @@
-export interface Song {
+import type { Id3FormValues } from "./Id3FormValues";
+
+export type Song = {
     /**
      * Unique identifier
      */
     id: string;
-    /**
-     * Song title
-     */
-    title: string;
-    /**
-     * Artist name
-     */
-    artist: string;
-    /**
-     * Album name
-     */
-    album: string;
     /**
      * Duration in seconds
      */
@@ -27,4 +17,10 @@ export interface Song {
      * Base64-encoded album art
      */
     albumArt?: Blob | undefined;
+
+    updatedAt?: number;
+
+    tags?: Partial<Id3FormValues>;
+} & {
+    [K in keyof Id3FormValues]: string;
 }

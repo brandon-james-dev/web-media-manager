@@ -1,17 +1,17 @@
 import {
     type ColumnDef,
+    type Row,
+    type SortingState,
     flexRender,
     getCoreRowModel,
-    type SortingState,
     useReactTable,
 } from "@tanstack/react-table";
-import { useState, type MouseEvent } from "react";
+import { memo, useState, type MouseEvent } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { mediaDb } from "@/data";
 import type { Song } from "@/models";
-import { resizePicture } from "@/lib/utils";
 
-export function SongTable() {
+export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void }) {
     //
     // Sorting + selection state
     //
@@ -31,23 +31,45 @@ export function SongTable() {
 
         // Only allow sorting by indexed fields
         const sortable = [
-            "title",
-            "artist",
-            "album",
+            "tags.title",
+            "tags.artist",
+            "tags.album",
+            "tags.genre",
             "duration",
             "bitrate",
             "mtime",
         ];
 
-        if (!sortable.includes(id)) {
+        const idDotAccessor = id.replaceAll('_', '.');
+
+        if (!sortable.includes(idDotAccessor)) {
             return mediaDb.songs.toArray();
         }
 
-        let query = mediaDb.songs.orderBy(id as keyof Song);
+        let query = mediaDb.songs.orderBy(idDotAccessor as keyof Song);
         if (desc) query = query.reverse();
 
         return query.toArray();
     }, [sorting]) ?? [];
+
+    const SongRow = memo(({ row, index }: { row: Row<Song>, index: number }) => {
+        return <tr 
+                    key={row.id}
+                    className={`
+                        border-b border-zinc-300 dark:border-zinc-700
+                        cursor-pointer transition-colors
+                        hover:bg-zinc-100 dark:hover:bg-zinc-700
+                        ${row.getIsSelected() ? "bg-blue-100 dark:bg-blue-900/40" : ""}
+                    `}
+                    onClick={(e) => handleRowClick(index, row, e)}
+                >
+                    {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="p-2 whitespace-nowrap">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                    ))}
+                </tr>
+    });
 
     //
     // Formatting helpers inside component
@@ -103,49 +125,56 @@ export function SongTable() {
             cell: ({ row }) => (
                 <input
                     type="checkbox"
-                    aria-label={`Select song: ${row.original.title}`}
+                    aria-label={`Select song: ${row.original?.tags?.title}`}
                     checked={row.getIsSelected()}
                     ref={(el) => {
                         if (el) el.indeterminate = row.getIsSomeSelected();
                     }}
                     onChange={row.getToggleSelectedHandler()}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                        onSelectSong?.(row.original);
+                        e.stopPropagation();
+                    }}
                 />
             ),
         },
-        {
-            accessorKey: "albumArt",
-            header: "Art",
-            cell: ({ getValue }) => {
-                // const art = getValue<Blob | undefined>();
-                // const artBinary = await art?.bytes();
-                
-                // const thumbnail = artBinary != null ? await resizePicture(artBinary, 'image/jpeg') : null;
-                
-                const thumbnail: string | null = null;
+        // {
+        //     accessorKey: "albumArt",
+        //     header: "Art",
+        //     cell: ({ getValue }) => {
+        //         const art = getValue<Blob | undefined>();
+        //         const artBinary = await art?.bytes();
+                                
+        //         const thumbnail: string | null = null;
 
-                return thumbnail ? (
-                    <img
-                        src={thumbnail}
-                        alt="Album Art"
-                        className="w-10 h-10 object-cover rounded"
-                    />
-                ) : (
-                    <div className="w-10 h-10 rounded bg-zinc-300 dark:bg-zinc-700" />
-                );
-            },
-        },
+        //         return thumbnail ? (
+        //             <img
+        //                 src={thumbnail}
+        //                 alt="Album Art"
+        //                 className="w-10 h-10 object-cover rounded"
+        //             />
+        //         ) : (
+        //             <div className="w-10 h-10 rounded bg-zinc-300 dark:bg-zinc-700 flex items-center justify-center">
+        //                 <Music />
+        //             </div>
+        //         );
+        //     },
+        // },
         {
-            accessorKey: "title",
+            accessorKey: "tags.title",
             header: "Title",
         },
         {
-            accessorKey: "artist",
+            accessorKey: "tags.artist",
             header: "Artist",
         },
         {
-            accessorKey: "album",
+            accessorKey: "tags.album",
             header: "Album",
+        },
+        {
+            accessorKey: "tags.genre",
+            header: "Genre",
         },
         {
             accessorKey: "duration",
@@ -175,8 +204,6 @@ export function SongTable() {
         enableRowSelection: true,
     });
 
-    const selectedCount = table.getSelectedRowModel().rows.length;
-
     //
     // Row click handler with Ctrl + Shift support
     //
@@ -191,6 +218,7 @@ export function SongTable() {
             row.toggleSelected();
         } else {
             setRowSelection({ [rowIndex]: true });
+            onSelectSong?.(row.original);
         }
 
         setLastClickedIndex(rowIndex);
@@ -200,7 +228,7 @@ export function SongTable() {
         <div className="space-y-4">
             <div className="rounded border border-zinc-300 dark:border-zinc-700">
                 <table className="w-full select-none border-collapse text-sm">
-                    <thead className="sticky top-0 z-20 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100">
+                    <thead className="sticky top-0 z-1 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100">
                         {table.getHeaderGroups().map((hg) => (
                             <tr key={hg.id} className="border-b border-zinc-300 dark:border-zinc-700">
                                 {hg.headers.map((header) => (
@@ -222,22 +250,7 @@ export function SongTable() {
 
                     <tbody>
                         {table.getRowModel().rows.map((row, index) => (
-                            <tr
-                                key={row.id}
-                                className={`
-                                    border-b border-zinc-300 dark:border-zinc-700
-                                    cursor-pointer transition-colors
-                                    hover:bg-zinc-100 dark:hover:bg-zinc-700
-                                    ${row.getIsSelected() ? "bg-blue-100 dark:bg-blue-900/40" : ""}
-                                `}
-                                onClick={(e) => handleRowClick(index, row, e)}
-                            >
-                                {row.getVisibleCells().map((cell) => (
-                                    <td key={cell.id} className="p-2 whitespace-nowrap">
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </td>
-                                ))}
-                            </tr>
+                            <SongRow row={row} index={index} />
                         ))}
                     </tbody>
                 </table>

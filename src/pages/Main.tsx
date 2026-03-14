@@ -6,28 +6,33 @@ import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { Music, FileMusicIcon, CogIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import useFileSystemAccess from "use-fs-access"
 import type { Song } from '../models/Song'
 import { Link } from 'react-router'
-import { showDirectoryPicker, type FileOrDirectoryInfo } from "use-fs-access/core"
+import useFileSystemAccess, { showDirectoryPicker } from "use-fs-access"
+import { parseStream } from 'music-metadata'
 import { Input as MbInput, ALL_FORMATS, BlobSource, type MetadataTags } from 'mediabunny'
 import { get, set } from 'idb-keyval'
 import { upsertSongToDb } from '@/hooks/songUpdateHooks'
 import { mediaDb } from '@/data'
 import { SongTable } from '@/components/song-table'
+import { Id3Drawer } from '@/components/id3-drawer'
+import { processPendingWrites } from '@/lib/processPendingWrites'
+import { mapCommonTagsToId3FormValues } from '@/lib/utils'
 
 'use client'
 
 export default function Main() {
     const [songs, setSongs] = useState<Song[]>([]);
+    const [selectedSongs, setSelectedSongs] = useState<Song[]>();
     const [totalSongs, setTotalSongs] = useState<number>(0);
     const [search, setSearch] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
 
     const buffer = useRef<Song[]>([]);
 
     const filteredSongs = songs.filter(song =>
-        song.title.toLowerCase().includes(search.toLowerCase()) ||
-        song.artist.toLowerCase().includes(search.toLowerCase())
+        song.tags?.title?.toLowerCase().includes(search.toLowerCase()) ||
+        song.tags?.artist?.toLowerCase().includes(search.toLowerCase())
     );
 
     const addSong = (song: Song) => {
@@ -41,25 +46,7 @@ export default function Main() {
         }
     }
 
-    const { openDirectory } = useFileSystemAccess({
-        filters: [
-        // - gitIgnoreFilter, (apply .gitignore rules)
-        // - gitFolderFilter, (excludes .git folder)
-        // - distFilter       (excludes node_modules, dist, ...)
-        // - defaultFilters,  (includes .git folder and .gitignore filters by default)
-        ],
-        enableFileWatcher: true,
-        fileWatcherOptions: {
-            debug: true,
-            pollInterval: 250, // [ms]
-            // batchSize: 50, [ms]
-            // cacheTime: 5000, [ms]
-        },
-        // FILE WATCHER CALLBACKS
-        onFilesAdded: (newFiles: Map<string, FileOrDirectoryInfo>) => {}, // - Track when new files are added
-        onFilesDeleted: (deletedFiles: Map<string, FileOrDirectoryInfo>) => {}, // - Track when files are deleted
-        onFilesModified: (modifiledFiles: Map<string, FileOrDirectoryInfo>) => {}, // - Track when files are modified
-    });
+    const { openDirectory } = useFileSystemAccess();
 
     const selectDirectory = async () => {
         const dir = await showDirectoryPicker();
@@ -77,7 +64,7 @@ export default function Main() {
 
             await importSongsFromDirectory(dir);
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
     }
 
@@ -90,13 +77,11 @@ export default function Main() {
             return;
         }
 
-
         const filesInDirectory = Array.from(filesMap.values()).filter(fd => fd.kind === "file");
         setTotalSongs(filesInDirectory.length);
         
-        
         for (const file of filesInDirectory) {
-            const blob = await dir.getFileHandle(file.name).then(handle => handle.getFile());
+            const blob = await file.handle.getFile();
 
             const input = new MbInput({
                 formats: ALL_FORMATS,
@@ -127,35 +112,48 @@ export default function Main() {
 
             try {
                 const audioTrack = await input?.getPrimaryAudioTrack();
-                const packetStats = await audioTrack?.computePacketStats();
+                const packetStats = await audioTrack?.computePacketStats(320 * 10);
                 bitrate = packetStats?.averageBitrate || 0;
             } catch (error) {
                 console.warn(`Failed to compute bitrate for ${file.name}:`, error);
                 continue;
             }
 
-            const pic = metaData.images?.[0];
-            let albumArtBlob: Blob | null = null;
-
-            if (pic != null) {
-                albumArtBlob = new Blob([new Uint8Array(pic.data)] as BlobPart[], { type: pic.mimeType });
-            }
+            let tags = { ...metaData }
+            delete tags.raw;
 
             const newSong = {
                 id: file.name,
-                title: metaData?.title || file.name,
-                artist: metaData?.artist || "Unknown Artist",
-                album: metaData?.album || "Unknown Album",
                 duration: await input?.computeDuration() || 0,
                 bitrate: Math.ceil(bitrate / 1000) || 0,
-                albumArt: albumArtBlob,
+                tags
             } as Song;
-            
+
+            // Parse the metadata from the stream
+            // const { format, common } = await parseStream(blob, { mimeType: 'audio/mpeg'});
+            // const tags = mapCommonTagsToId3FormValues(common);
+
+            // const newSong = {
+            //     id: file.name,
+            //     duration: format.duration || 0,
+            //     bitrate: format.bitrate || 0,
+            //     tags
+            // } as Song;
+
             upsertSongToDb(newSong);
             addSong(newSong);
         }
 
         toast.success(`Loaded ${filesMap.size} songs from directory: ${dir.name}`);
+    }
+
+    const onSelectSong = (song: Song): void => {
+        setSelectedSongs([song]);
+        setDrawerOpen(true);
+    }
+
+    const onOpenChange = (openState: boolean) => {
+        setDrawerOpen(openState);
     }
 
     const didRun = useRef(false);
@@ -179,62 +177,80 @@ export default function Main() {
     }, []);
 
     return (
-        <div className="w-full h-full mx-auto px-6 pt-4 pb-2">
-            <div className='h-full flex flex-col gap-2'>
-                <div className='shrink-0'>
-                    <div className="flex justify-between items-center gap-2 mb-4">
-                        <Music className="w-6 h-6 inline pr-1" />
-                        <h1 className="text-3xl font-bold">Song Library</h1>
-                        <div>
-                            <Link to="/settings">
-                                <Button variant="outline" className="ml-2">
-                                    <CogIcon />
-                                </Button>
-                            </Link>
+        <>
+            <div className="w-full h-full mx-auto px-6 pt-4 pb-2">
+                <div className='h-full flex flex-col gap-2'>
+                    <div className='shrink-0'>
+                        <div className="flex justify-between items-center gap-2 mb-4">
+                            <Music className="w-6 h-6 inline pr-1" />
+                            <h1 className="text-3xl font-bold pointer-events-none">Song Library</h1>
+                            <div>
+                                <Link to="/settings">
+                                    <Button variant="outline">
+                                        <CogIcon />
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                        <div className={filteredSongs.length == 0 ? 'hidden' : 'flex justify-center'}>
+                            <Input
+                                placeholder="Search songs or artists..."
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                className="w-sm-full max-w-4xl"
+                            />
                         </div>
                     </div>
-                    <div className='flex justify-center'>
-                        <Input
-                            placeholder="Search songs or artists..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-sm-full max-w-4xl"
-                        />
+                    <div className='flex-1 overflow-auto'>
+                        <div className={`h-full container-type-size${didRun.current ? '' : ' hidden'}`}>
+                            <ScrollArea className='container-height'>
+                                {filteredSongs.length == 0 && (
+                                    <Empty>
+                                        <EmptyHeader className='pointer-events-none'>
+                                            <EmptyMedia variant="icon">
+                                                <FileMusicIcon />
+                                            </EmptyMedia>
+                                            <EmptyTitle>No Songs Yet</EmptyTitle>
+                                            <EmptyDescription>
+                                                You haven&apos;t imported any songs yet. Get started by importing
+                                                your songs from your chosen directory.
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                        <EmptyContent className="flex-row justify-center gap-2">
+                                            <Button onClick={selectDirectory}>Import Songs</Button>
+                                        </EmptyContent>
+                                    </Empty>
+                                )}
+                                {filteredSongs.length > 0 && (<SongTable onSelectSong={onSelectSong} />)}
+                                <ScrollBar orientation="horizontal" />
+                                <ScrollBar orientation="vertical" />
+                            </ScrollArea>
+                        </div>
                     </div>
-                </div>
-                <div className='flex-1 overflow-auto'>
-                    <div className={`h-full container-type-size${didRun.current ? '' : ' hidden'}`}>
-                        <ScrollArea className='container-height'>
-                            {filteredSongs.length === 0 && (
-                                <Empty>
-                                    <EmptyHeader>
-                                        <EmptyMedia variant="icon">
-                                            <FileMusicIcon />
-                                        </EmptyMedia>
-                                        <EmptyTitle>No Songs Yet</EmptyTitle>
-                                        <EmptyDescription>
-                                            You haven&apos;t imported any songs yet. Get started by importing
-                                            your songs from your chosen directory.
-                                        </EmptyDescription>
-                                    </EmptyHeader>
-                                    <EmptyContent className="flex-row justify-center gap-2">
-                                        <Button onClick={selectDirectory}>Import Songs</Button>
-                                    </EmptyContent>
-                                </Empty>
-                            )}
-                            {filteredSongs.length > 0 && (<SongTable />)}
-                            <ScrollBar orientation="horizontal" />
-                            <ScrollBar orientation="vertical" />
-                        </ScrollArea>
-                    </div>
-                </div>
-                <div className='shrink-0'>
-                    <div className='flex items-center gap-2'>
-                        <Progress value={songs.length / totalSongs * 100} max={100} className="w-30" />
-                        <label className="text-sm text-muted-foreground">Loaded {songs.length} of {totalSongs} items</label>
+                    <div className='shrink-0'>
+                        <div className='flex items-center gap-2'>
+                            <Progress value={songs.length / totalSongs * 100} max={100} className="w-30" />
+                            <label className="text-sm text-muted-foreground">Loaded {songs.length} of {totalSongs} items</label>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+            <Id3Drawer
+                isOpen={drawerOpen}
+                selectedSong={selectedSongs?.at(0)}
+                onOpenChange={onOpenChange}
+                onSave={async (songId, tags) => {
+                    await mediaDb.pendingWrites.add({
+                        songId,
+                        tags,
+                        createdAt: Date.now()
+                    });
+
+                    await processPendingWrites();
+
+                    setDrawerOpen(false);
+                }}
+            />
+        </>
     )
 }
