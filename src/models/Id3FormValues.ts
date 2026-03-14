@@ -5,11 +5,11 @@ export interface Id3FormValues {
     albumArtist: string;
     track: string;
     disc: string;
-    year: string;
+    year: number;
     genre: string;
     comment: string;
     composer: string;
-    bpm: string;
+    bpm: number;
     lyrics: string;
     copyright: string;
     encoder: string;
