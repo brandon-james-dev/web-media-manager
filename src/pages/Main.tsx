@@ -18,7 +18,6 @@ import { useEffect, useRef, useState } from "react";
 import type { Song } from "../models/Song";
 import { Link } from "react-router";
 import useFileSystemAccess, { showDirectoryPicker } from "use-fs-access";
-import { mediaDb } from "@/data";
 import { SongTable } from "@/components/song-table";
 import { Id3Drawer } from "@/components/id3-drawer";
 import {
@@ -26,24 +25,42 @@ import {
   subscribeToWriteEvents,
 } from "@/lib/pendingWriteWorkerClient";
 import type { PendingImportFile } from "@/models";
-import { enqueueImportJob, subscribeToImportEvents } from "@/lib/pendingImportWorkerClient";
+import {
+  enqueueImportJob,
+  subscribeToImportEvents,
+} from "@/lib/pendingImportWorkerClient";
+import {
+  sortPendingImportsByCol,
+  useInsertPendingImport,
+} from "@/hooks/pendingImportHooks";
+import {
+  useCountPendingWrites,
+  useInsertPendingWrite,
+} from "@/hooks/pendingWriteHooks";
+import { useSongsInDbStatic } from "@/hooks/songQueryHooks";
 
 export default function Main() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [totalSongs, setTotalSongs] = useState<number>(0);
-  const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const searchRef = useRef("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const didRun = useRef(false);
 
   const buffer = useRef<Song[]>([]);
 
-  const filteredSongs = songs.filter(
-    (song) =>
-      song.tags?.title?.toLowerCase().includes(search.toLowerCase()) ||
-      song.tags?.artist?.toLowerCase().includes(search.toLowerCase()) ||
-      song.tags?.album?.toLowerCase().includes(search.toLowerCase()) ||
-      song.tags?.albumArtist?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const debounceTimer = useRef<number | null>(null);
+
+  const triggerDebounce = () => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(searchRef.current);
+    }, 250);
+  };
 
   const addSong = (song: Song) => {
     buffer.current.push(song);
@@ -57,7 +74,7 @@ export default function Main() {
   };
 
   const { openDirectory } = useFileSystemAccess();
-  
+
   const selectDirectory = async () => {
     const dir = await showDirectoryPicker();
     if (!dir || dir instanceof Error) return;
@@ -76,24 +93,10 @@ export default function Main() {
       });
     }
 
-    const jobId = await mediaDb.pendingImports.add({
-      directoryHandle: dir,
-      files,
-      createdAt: Date.now(),
-    });
-    
+    const jobId = await useInsertPendingImport(dir, files);
+
     enqueueImportJob(jobId);
   };
-
-  const onSelectSong = (song: Song): void => {
-    setSelectedSong(song);
-  };
-
-  const onOpenChange = (openState: boolean) => {
-    setDrawerOpen(openState);
-  };
-
-  const didRun = useRef(false);
 
   //#region Event listeners
   useEffect(() => {
@@ -101,13 +104,20 @@ export default function Main() {
     didRun.current = true;
 
     const init = async () => {
-      // Resume pending writes
-      mediaDb.pendingWrites.count().then((count) => {
-        if (count > 0) startWriteLoop();
-      });
+      // Resume pending writes if any
 
-      const lastJob = await mediaDb.pendingImports.orderBy("createdAt").last();
-      if (lastJob && lastJob.files.some(f => f.status !== "done")) {
+      const pendingWriteCount = await useCountPendingWrites();
+      if (pendingWriteCount > 0) {
+        startWriteLoop();
+      }
+
+      const pendingWriteJobs = await sortPendingImportsByCol(
+        "createdAt",
+        "desc",
+      );
+      const lastJob = pendingWriteJobs[0];
+
+      if (lastJob && lastJob.files.some((f) => f.status !== "done")) {
         enqueueImportJob(lastJob.id!);
       }
 
@@ -140,7 +150,7 @@ export default function Main() {
       });
 
       // Load songs into UI
-      const songs = await mediaDb.songs.toArray();
+      const songs = await useSongsInDbStatic();
       setSongs(songs);
     };
 
@@ -167,14 +177,15 @@ export default function Main() {
               </div>
             </div>
             <div
-              className={
-                filteredSongs.length == 0 ? "hidden" : "flex justify-center"
-              }
+              className={songs.length == 0 ? "hidden" : "flex justify-center"}
             >
               <Input
                 placeholder="Search songs or artists..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                defaultValue=""
+                onChange={(e) => {
+                  searchRef.current = e.target.value;
+                  triggerDebounce();
+                }}
                 className="w-sm-full max-w-4xl"
               />
             </div>
@@ -225,7 +236,7 @@ export default function Main() {
               )}
               <div className="flex-1 w-full container-type-size">
                 <ScrollArea className="container-height">
-                  {filteredSongs.length === 0 && (
+                  {songs.length == 0 && (
                     <Empty>
                       <EmptyHeader className="pointer-events-none">
                         <EmptyMedia variant="icon">
@@ -242,9 +253,9 @@ export default function Main() {
                       </EmptyContent>
                     </Empty>
                   )}
-                  {filteredSongs.length > 0 && (
+                  {songs.length > 0 && (
                     <SongTable
-                      onSelectSong={onSelectSong}
+                      onSelectSong={setSelectedSong}
                       selectedSong={selectedSong}
                     />
                   )}
@@ -274,15 +285,11 @@ export default function Main() {
       <Id3Drawer
         isOpen={drawerOpen}
         selectedSong={selectedSong}
-        onOpenChange={onOpenChange}
+        onOpenChange={setDrawerOpen}
         onSave={async (songId, tags) => {
-          await mediaDb.pendingWrites.add({
-            songId,
-            tags,
-            createdAt: Date.now(),
-          });
-
+          await useInsertPendingWrite(songId, tags);
           startWriteLoop();
+
           setDrawerOpen(false);
         }}
       />

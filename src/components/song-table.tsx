@@ -18,15 +18,9 @@ export function SongTable({
   onSelectSong: (song: Song) => void;
   selectedSong: Song | null;
 }) {
-  //
-  // Sorting state only
-  //
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  //
-  // Dexie-powered sorting
-  //
   const songs =
     useLiveQuery(async () => {
       if (sorting.length === 0) {
