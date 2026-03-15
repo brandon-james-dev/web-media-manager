@@ -6,12 +6,18 @@ import {
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { mediaDb } from "@/data";
 import type { Song } from "@/models";
 
-export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void }) {
+export function SongTable({
+    onSelectSong,
+    selectedSong,
+}: {
+    onSelectSong: (song: Song) => void;
+    selectedSong: Song | null;
+}) {
     //
     // Sorting state only
     //
@@ -49,6 +55,12 @@ export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void
 
         return query.toArray();
     }, [sorting]) ?? [];
+    
+    useEffect(() => {
+        if (!selectedSong) {
+            setSelectedIndex(null);
+        }
+    }, [selectedSong]);
 
     //
     // Row component (single-select highlight)

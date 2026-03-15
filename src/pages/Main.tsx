@@ -6,7 +6,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
-import { Music, FileMusicIcon, CogIcon } from 'lucide-react'
+import { Music, FileMusicIcon, CogIcon, XIcon, PenIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Song } from '../models/Song'
 import { Link } from 'react-router'
@@ -31,7 +31,9 @@ export default function Main() {
 
     const filteredSongs = songs.filter(song =>
         song.tags?.title?.toLowerCase().includes(search.toLowerCase()) ||
-        song.tags?.artist?.toLowerCase().includes(search.toLowerCase())
+        song.tags?.artist?.toLowerCase().includes(search.toLowerCase()) ||
+        song.tags?.album?.toLowerCase().includes(search.toLowerCase()) ||
+        song.tags?.albumArtist?.toLowerCase().includes(search.toLowerCase())
     );
 
     const addSong = (song: Song) => {
@@ -97,7 +99,6 @@ export default function Main() {
 
     const onSelectSong = (song: Song): void => {
         setSelectedSong(song);
-        setDrawerOpen(true);
     }
 
     const onOpenChange = (openState: boolean) => {
@@ -148,37 +149,70 @@ export default function Main() {
                     </div>
 
                     <div className='flex-1 overflow-auto'>
-                        <div className={`h-full container-type-size${didRun.current ? '' : ' hidden'}`}>
-                            <ScrollArea className='container-height'>
-                                {filteredSongs.length == 0 && (
-                                    <Empty>
-                                        <EmptyHeader className='pointer-events-none'>
-                                            <EmptyMedia variant="icon">
-                                                <FileMusicIcon />
-                                            </EmptyMedia>
-                                            <EmptyTitle>No Songs Yet</EmptyTitle>
-                                            <EmptyDescription>
-                                                You haven&apos;t imported any songs yet. Get started by importing
-                                                your songs from your chosen directory.
-                                            </EmptyDescription>
-                                        </EmptyHeader>
-                                        <EmptyContent className="flex-row justify-center gap-2">
-                                            <Button onClick={selectDirectory}>Import Songs</Button>
-                                        </EmptyContent>
-                                    </Empty>
-                                )}
+                        <div className={`h-full flex flex-col${didRun.current ? '' : ' hidden'}`}>
+                            {selectedSong && (
+                                <div
+                                    className="
+                                        sticky top-0 z-20
+                                        w-full shrink-0
+                                        flex items-center gap-2 mb-3 p-2
+                                        border-b bg-background
+                                    "
+                                >
+                                    <Button className='w-[160px]' variant="outline" onClick={() => setSelectedSong(null)}>
+                                        <XIcon />
+                                        Deselect
+                                    </Button>
+                                    <Button className='w-[160px]' onClick={() => setDrawerOpen(true)}>
+                                        <PenIcon />
+                                        Edit
+                                    </Button>
 
-                                {filteredSongs.length > 0 && (
-                                    <SongTable onSelectSong={onSelectSong} />
-                                )}
+                                    <div className="ml-auto text-sm text-muted-foreground select-none">
+                                        <div className='flex gap-2'>
+                                            <span hidden={!selectedSong.tags?.artist}
+                                                  className="after:content-['-'] after:ml-2 last:after:content-none">{selectedSong.tags?.artist}</span>
+                                            <span hidden={!selectedSong.tags?.album}
+                                                  className="after:content-['-'] after:ml-2 last:after:content-none">{selectedSong.tags?.album}</span>
+                                            <span>{selectedSong.tags?.title ?? selectedSong.id}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <div className='flex-1 w-full container-type-size'>
+                                <ScrollArea className='container-height'>
+                                    {filteredSongs.length == 0 && (
+                                        <Empty>
+                                            <EmptyHeader className='pointer-events-none'>
+                                                <EmptyMedia variant="icon">
+                                                    <FileMusicIcon />
+                                                </EmptyMedia>
+                                                <EmptyTitle>No Songs Yet</EmptyTitle>
+                                                <EmptyDescription>
+                                                    You haven&apos;t imported any songs yet. Get started by importing
+                                                    your songs from your chosen directory.
+                                                </EmptyDescription>
+                                            </EmptyHeader>
+                                            <EmptyContent className="flex-row justify-center gap-2">
+                                                <Button onClick={selectDirectory}>Import Songs</Button>
+                                            </EmptyContent>
+                                        </Empty>
+                                    )}
+                                    {filteredSongs.length > 0 && (
+                                        <SongTable
+                                            onSelectSong={onSelectSong}
+                                            selectedSong={selectedSong}
+                                        />
+                                    )}
 
-                                <ScrollBar orientation="horizontal" />
-                                <ScrollBar orientation="vertical" />
-                            </ScrollArea>
+                                    <ScrollBar orientation="horizontal" />
+                                    <ScrollBar orientation="vertical" />
+                                </ScrollArea>
+                            </div>
                         </div>
                     </div>
 
-                    <div className='shrink-0'>
+                    <div className={`shrink-0${totalSongs === 0 ? " hidden" : ""}`}>
                         <div className='flex items-center gap-2'>
                             <Progress value={songs.length / totalSongs * 100} max={100} className="w-30" />
                             <label className="text-sm text-muted-foreground">
