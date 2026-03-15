@@ -18,14 +18,15 @@ import { useEffect, useRef, useState } from "react";
 import type { Song } from "../models/Song";
 import { Link } from "react-router";
 import useFileSystemAccess, { showDirectoryPicker } from "use-fs-access";
-import { parseBlob } from "music-metadata";
-import { get, set } from "idb-keyval";
-import { upsertSongToDb } from "@/hooks/songUpdateHooks";
 import { mediaDb } from "@/data";
 import { SongTable } from "@/components/song-table";
 import { Id3Drawer } from "@/components/id3-drawer";
-import { processPendingWrites } from "@/lib/processPendingWrites";
-import { mapCommonTagsToId3FormValues } from "@/lib/utils";
+import {
+  startWriteLoop,
+  subscribeToWriteEvents,
+} from "@/lib/pendingWriteWorkerClient";
+import type { PendingImportFile } from "@/models";
+import { enqueueImportJob, subscribeToImportEvents } from "@/lib/pendingImportWorkerClient";
 
 export default function Main() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -56,55 +57,32 @@ export default function Main() {
   };
 
   const { openDirectory } = useFileSystemAccess();
-
+  
   const selectDirectory = async () => {
     const dir = await showDirectoryPicker();
+    if (!dir || dir instanceof Error) return;
 
-    if (dir instanceof Error) {
-      console.error("Directory access error:", dir);
-      return;
-    }
-    if (dir == null) return;
-
-    try {
-      set("root-directory", dir);
-      await importSongsFromDirectory(dir);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const importSongsFromDirectory = async (dir: FileSystemDirectoryHandle) => {
-    const files = await openDirectory(dir);
-    const filesMap = new Map(files?.entries());
-
-    if (dir == null) {
-      toast.error("No directory selected");
-      return;
-    }
-
+    const files: PendingImportFile[] = [];
+    const directoryEntries = await openDirectory(dir);
+    const filesMap = new Map(directoryEntries?.entries());
     const filesInDirectory = Array.from(filesMap.values()).filter(
       (fd) => fd.kind === "file",
     );
-    setTotalSongs(filesInDirectory.length);
 
-    for (const file of filesInDirectory) {
-      const blob = await file.handle.getFile();
-      const { format, common } = await parseBlob(blob);
-      const tags = mapCommonTagsToId3FormValues(common);
-
-      const newSong = {
-        id: file.name,
-        duration: format.duration || 0,
-        bitrate: format.bitrate || 0,
-        tags,
-      } as Song;
-
-      upsertSongToDb(newSong);
-      addSong(newSong);
+    for (const entry of filesInDirectory) {
+      files.push({
+        name: entry.name,
+        status: "pending",
+      });
     }
 
-    toast.success(`Loaded ${filesMap.size} songs from directory: ${dir.name}`);
+    const jobId = await mediaDb.pendingImports.add({
+      directoryHandle: dir,
+      files,
+      createdAt: Date.now(),
+    });
+    
+    enqueueImportJob(jobId);
   };
 
   const onSelectSong = (song: Song): void => {
@@ -117,21 +95,58 @@ export default function Main() {
 
   const didRun = useRef(false);
 
+  //#region Event listeners
   useEffect(() => {
     if (didRun.current) return;
     didRun.current = true;
 
     const init = async () => {
-      const directoryHandle =
-        await get<FileSystemDirectoryHandle>("root-directory");
-      if (directoryHandle == null) return;
+      // Resume pending writes
+      mediaDb.pendingWrites.count().then((count) => {
+        if (count > 0) startWriteLoop();
+      });
 
+      const lastJob = await mediaDb.pendingImports.orderBy("createdAt").last();
+      if (lastJob && lastJob.files.some(f => f.status !== "done")) {
+        enqueueImportJob(lastJob.id!);
+      }
+
+      subscribeToWriteEvents((msg) => {
+        if (msg.type === "write-complete") {
+          toast.success(`Saved changes`);
+        }
+
+        if (msg.type === "write-error") {
+          toast.error(`Failed to save ${msg.job.songId}`);
+        }
+      });
+
+      subscribeToImportEvents(async (msg) => {
+        switch (msg.type) {
+          case "progress":
+            setTotalSongs(msg.total);
+            break;
+
+          case "song-imported": {
+            const song = msg.payload;
+            addSong(song);
+            break;
+          }
+
+          case "file-error":
+            toast.error(`Error importing ${msg.file}: ${msg.error}`);
+            break;
+        }
+      });
+
+      // Load songs into UI
       const songs = await mediaDb.songs.toArray();
       setSongs(songs);
     };
 
     init();
   }, []);
+  //#endregion
 
   return (
     <>
@@ -171,25 +186,20 @@ export default function Main() {
             >
               {selectedSong && (
                 <div
-                  className="
-                                        sticky top-0 z-20
-                                        w-full shrink-0
-                                        flex items-center gap-2 mb-3 p-2
-                                        border-b bg-background
-                                    "
+                  className="sticky top-0 z-20
+                             w-full shrink-0
+                             flex items-center gap-2 mb-3 p-2
+                             border-b bg-background"
                 >
                   <Button
-                    className="w-[160px]"
+                    className="w-40"
                     variant="outline"
                     onClick={() => setSelectedSong(null)}
                   >
                     <XIcon />
                     Deselect
                   </Button>
-                  <Button
-                    className="w-[160px]"
-                    onClick={() => setDrawerOpen(true)}
-                  >
+                  <Button className="w-40" onClick={() => setDrawerOpen(true)}>
                     <PenIcon />
                     Edit
                   </Button>
@@ -215,7 +225,7 @@ export default function Main() {
               )}
               <div className="flex-1 w-full container-type-size">
                 <ScrollArea className="container-height">
-                  {filteredSongs.length == 0 && (
+                  {filteredSongs.length === 0 && (
                     <Empty>
                       <EmptyHeader className="pointer-events-none">
                         <EmptyMedia variant="icon">
@@ -272,7 +282,7 @@ export default function Main() {
             createdAt: Date.now(),
           });
 
-          await processPendingWrites();
+          startWriteLoop();
           setDrawerOpen(false);
         }}
       />

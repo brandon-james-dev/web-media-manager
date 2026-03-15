@@ -1,12 +1,9 @@
-import { mediaDb } from '@/data';
-import type { Song } from '@/models/Song';
-
-async function upsertSongToDb(song: Song) {
-  await mediaDb.songs.put(song);
-}
+import { mediaDb } from "@/data";
 
 async function clearDb() {
   await mediaDb.songs.clear();
+  await mediaDb.pendingImports.clear();
+  await mediaDb.pendingWrites.clear();
 }
 
-export { upsertSongToDb, clearDb };
+export { clearDb };
