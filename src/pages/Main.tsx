@@ -1,3 +1,5 @@
+'use client'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -18,11 +20,9 @@ import { Id3Drawer } from '@/components/id3-drawer'
 import { processPendingWrites } from '@/lib/processPendingWrites'
 import { mapCommonTagsToId3FormValues } from '@/lib/utils'
 
-'use client'
-
 export default function Main() {
     const [songs, setSongs] = useState<Song[]>([]);
-    const [selectedSongs, setSelectedSongs] = useState<Song[]>();
+    const [selectedSong, setSelectedSong] = useState<Song | null>(null);
     const [totalSongs, setTotalSongs] = useState<number>(0);
     const [search, setSearch] = useState('');
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -54,13 +54,10 @@ export default function Main() {
             console.error("Directory access error:", dir);
             return;
         }
-        if (dir == null) {
-            return;
-        }
+        if (dir == null) return;
 
         try {
             set('root-directory', dir);
-
             await importSongsFromDirectory(dir);
         } catch (error) {
             console.error(error);
@@ -78,7 +75,7 @@ export default function Main() {
 
         const filesInDirectory = Array.from(filesMap.values()).filter(fd => fd.kind === "file");
         setTotalSongs(filesInDirectory.length);
-        
+
         for (const file of filesInDirectory) {
             const blob = await file.handle.getFile();
             const { format, common } = await parseBlob(blob);
@@ -99,7 +96,7 @@ export default function Main() {
     }
 
     const onSelectSong = (song: Song): void => {
-        setSelectedSongs([song]);
+        setSelectedSong(song);
         setDrawerOpen(true);
     }
 
@@ -115,10 +112,7 @@ export default function Main() {
 
         const init = async () => {
             const directoryHandle = await get<FileSystemDirectoryHandle>('root-directory');
-
-            if (directoryHandle == null) {
-                return;
-            }
+            if (directoryHandle == null) return;
 
             const songs = await mediaDb.songs.toArray();
             setSongs(songs);
@@ -152,6 +146,7 @@ export default function Main() {
                             />
                         </div>
                     </div>
+
                     <div className='flex-1 overflow-auto'>
                         <div className={`h-full container-type-size${didRun.current ? '' : ' hidden'}`}>
                             <ScrollArea className='container-height'>
@@ -172,23 +167,31 @@ export default function Main() {
                                         </EmptyContent>
                                     </Empty>
                                 )}
-                                {filteredSongs.length > 0 && (<SongTable onSelectSong={onSelectSong} />)}
+
+                                {filteredSongs.length > 0 && (
+                                    <SongTable onSelectSong={onSelectSong} />
+                                )}
+
                                 <ScrollBar orientation="horizontal" />
                                 <ScrollBar orientation="vertical" />
                             </ScrollArea>
                         </div>
                     </div>
+
                     <div className='shrink-0'>
                         <div className='flex items-center gap-2'>
                             <Progress value={songs.length / totalSongs * 100} max={100} className="w-30" />
-                            <label className="text-sm text-muted-foreground">Loaded {songs.length} of {totalSongs} items</label>
+                            <label className="text-sm text-muted-foreground">
+                                Loaded {songs.length} of {totalSongs} items
+                            </label>
                         </div>
                     </div>
                 </div>
             </div>
+
             <Id3Drawer
                 isOpen={drawerOpen}
-                selectedSong={selectedSongs?.at(0)}
+                selectedSong={selectedSong}
                 onOpenChange={onOpenChange}
                 onSave={async (songId, tags) => {
                     await mediaDb.pendingWrites.add({
@@ -198,7 +201,6 @@ export default function Main() {
                     });
 
                     await processPendingWrites();
-
                     setDrawerOpen(false);
                 }}
             />

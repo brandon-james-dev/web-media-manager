@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import {
@@ -24,19 +25,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+
 import type { Id3FormValues, Song } from "@/models";
 
 type Id3DrawerProps = {
     isOpen: boolean;
     onOpenChange?: (open: boolean) => void;
-    selectedSong?: Song | null;
+    selectedSong: Song | null;
     className?: string | null;
     onSave?: (songId: string, values: Id3FormValues) => void;
 };
 
-export function Id3Drawer(props: Id3DrawerProps) {
-    const { isOpen, selectedSong, onOpenChange, onSave } = props;
-
+export function Id3Drawer({
+    isOpen,
+    selectedSong,
+    onOpenChange,
+    onSave,
+    className,
+}: Id3DrawerProps) {
     const form = useForm<Id3FormValues>({
         defaultValues: {
             title: "",
@@ -45,34 +51,37 @@ export function Id3Drawer(props: Id3DrawerProps) {
             albumArtist: "",
             track: "",
             disc: "",
-            year: "",
+            year: undefined,
             genre: "",
             comment: "",
             composer: "",
-            bpm: "",
+            bpm: undefined,
             lyrics: "",
             copyright: "",
             encoder: "",
         },
-        values: selectedSong?.tags
-            ? {
-                  title: selectedSong.tags.title ?? "",
-                  artist: selectedSong.tags.artist ?? "",
-                  album: selectedSong.tags.album ?? "",
-                  albumArtist: selectedSong.tags.albumArtist ?? "",
-                  track: selectedSong.tags.track ?? "",
-                  disc: selectedSong.tags.disc ?? "",
-                  year: selectedSong.tags.year ?? "",
-                  genre: selectedSong.tags.genre ?? "",
-                  comment: selectedSong.tags.comment ?? "",
-                  composer: selectedSong.tags.composer ?? "",
-                  bpm: selectedSong.tags.bpm ?? "",
-                  lyrics: selectedSong.tags.lyrics ?? "",
-                  copyright: selectedSong.tags.copyright ?? "",
-                  encoder: selectedSong.tags.encoder ?? "",
-              }
-            : undefined,
     });
+
+    useEffect(() => {
+        if (isOpen && selectedSong) {
+            form.reset({
+                title: selectedSong.tags?.title,
+                artist: selectedSong.tags?.artist,
+                album: selectedSong.tags?.album,
+                albumArtist: selectedSong.tags?.albumArtist,
+                track: selectedSong.tags?.track,
+                disc: selectedSong.tags?.disc,
+                year: selectedSong.tags?.year,
+                genre: selectedSong.tags?.genre,
+                comment: selectedSong.tags?.comment,
+                composer: selectedSong.tags?.composer,
+                bpm: selectedSong.tags?.bpm,
+                lyrics: selectedSong.tags?.lyrics,
+                copyright: selectedSong.tags?.copyright,
+                encoder: selectedSong.tags?.encoder,
+            });
+        }
+    }, [isOpen, selectedSong, form]);
 
     function handleSubmit(values: Id3FormValues) {
         if (!selectedSong) return;
@@ -82,7 +91,7 @@ export function Id3Drawer(props: Id3DrawerProps) {
 
     return (
         <Drawer open={isOpen} onOpenChange={onOpenChange}>
-            <DrawerContent className="id3-drawer max-h-[90vh] overflow-y-auto after:hidden">
+            <DrawerContent className={`id3-drawer max-h-[90vh] overflow-y-auto after:hidden ${className ?? ""}`}>
                 <DrawerHeader>
                     <DrawerTitle>Edit ID3 tags</DrawerTitle>
                     <DrawerDescription>
@@ -90,7 +99,7 @@ export function Id3Drawer(props: Id3DrawerProps) {
                     </DrawerDescription>
                 </DrawerHeader>
 
-                <div className={`px-4 pb-4 ${props.className ?? ''}`}>
+                <div className="px-4 pb-4">
                     <Form {...form}>
                         <form
                             onSubmit={form.handleSubmit(handleSubmit)}

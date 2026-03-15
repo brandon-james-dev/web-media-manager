@@ -6,18 +6,17 @@ import {
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { memo, useState, type MouseEvent } from "react";
+import { memo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { mediaDb } from "@/data";
 import type { Song } from "@/models";
 
 export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void }) {
     //
-    // Sorting + selection state
+    // Sorting state only
     //
     const [sorting, setSorting] = useState<SortingState>([]);
-    const [rowSelection, setRowSelection] = useState<Record<number, boolean>>({});
-    const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null);
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
     //
     // Dexie-powered sorting
@@ -29,7 +28,6 @@ export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void
 
         const { id, desc } = sorting[0];
 
-        // Only allow sorting by indexed fields
         const sortable = [
             "tags.title",
             "tags.artist",
@@ -40,7 +38,7 @@ export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void
             "mtime",
         ];
 
-        const idDotAccessor = id.replaceAll('_', '.');
+        const idDotAccessor = id.replaceAll("_", ".");
 
         if (!sortable.includes(idDotAccessor)) {
             return mediaDb.songs.toArray();
@@ -52,31 +50,33 @@ export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void
         return query.toArray();
     }, [sorting]) ?? [];
 
+    //
+    // Row component (single-select highlight)
+    //
     const SongRow = memo(({ row, index }: { row: Row<Song>, index: number }) => {
-        return <tr 
-                    key={row.id}
-                    className={`
-                        border-b border-zinc-300 dark:border-zinc-700
-                        cursor-pointer transition-colors
-                        hover:bg-zinc-100 dark:hover:bg-zinc-700
-                        ${row.getIsSelected() ? "bg-blue-100 dark:bg-blue-900/40" : ""}
-                    `}
-                    onClick={(e) => handleRowClick(index, row, e)}
-                >
-                    {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="p-2 whitespace-nowrap">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                    ))}
-                </tr>
+        const isSelected = selectedIndex === index;
+
+        return (
+            <tr
+                key={row.id}
+                className={`
+                    border-b border-zinc-300 dark:border-zinc-700
+                    cursor-pointer transition-colors
+                    hover:bg-zinc-100 dark:hover:bg-zinc-700
+                    ${isSelected ? "bg-blue-100 dark:bg-blue-900/40" : ""}
+                `}
+                onClick={() => handleRowClick(index, row)}
+            >
+                {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="p-2 whitespace-nowrap">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                ))}
+            </tr>
+        );
     });
 
-    //
-    // Formatting helpers inside component
-    //
-    const formatBitRate = (bitrate: number) => {
-        return `${Math.floor(bitrate / 1000)} kbps`;
-    };
+    const formatBitRate = (bitrate: number) => `${Math.floor(bitrate / 1000)} kbps`;
 
     const formatDuration = (duration: number) => {
         const minutes = Math.floor(duration / 60);
@@ -84,98 +84,11 @@ export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void
         return `${minutes}:${seconds}`;
     };
 
-    //
-    // Shift-click range selection
-    //
-    const applyRangeSelection = (currentIndex: number) => {
-        if (lastClickedIndex === null) {
-            setRowSelection({ [currentIndex]: true });
-            return;
-        }
-
-        const start = Math.min(lastClickedIndex, currentIndex);
-        const end = Math.max(lastClickedIndex, currentIndex);
-
-        const newSelection: Record<number, boolean> = {};
-        for (let i = start; i <= end; i++) {
-            newSelection[i] = true;
-        }
-
-        setRowSelection(newSelection);
-    };
-
-    //
-    // Table columns
-    //
     const columns: ColumnDef<Song>[] = [
-        {
-            id: "select",
-            header: ({ table }) => (
-                <input
-                    type="checkbox"
-                    aria-label="Select all songs"
-                    checked={table.getIsAllRowsSelected()}
-                    ref={(el) => {
-                        if (el) el.indeterminate = table.getIsSomeRowsSelected();
-                    }}
-                    onChange={table.getToggleAllRowsSelectedHandler()}
-                    onClick={(e) => e.stopPropagation()}
-                />
-            ),
-            cell: ({ row }) => (
-                <input
-                    type="checkbox"
-                    aria-label={`Select song: ${row.original?.tags?.title}`}
-                    checked={row.getIsSelected()}
-                    ref={(el) => {
-                        if (el) el.indeterminate = row.getIsSomeSelected();
-                    }}
-                    onChange={row.getToggleSelectedHandler()}
-                    onClick={(e) => {
-                        onSelectSong?.(row.original);
-                        e.stopPropagation();
-                    }}
-                />
-            ),
-        },
-        // {
-        //     accessorKey: "albumArt",
-        //     header: "Art",
-        //     cell: ({ getValue }) => {
-        //         const art = getValue<Blob | undefined>();
-        //         const artBinary = await art?.bytes();
-                                
-        //         const thumbnail: string | null = null;
-
-        //         return thumbnail ? (
-        //             <img
-        //                 src={thumbnail}
-        //                 alt="Album Art"
-        //                 className="w-10 h-10 object-cover rounded"
-        //             />
-        //         ) : (
-        //             <div className="w-10 h-10 rounded bg-zinc-300 dark:bg-zinc-700 flex items-center justify-center">
-        //                 <Music />
-        //             </div>
-        //         );
-        //     },
-        // },
-        {
-            accessorKey: "tags.title",
-            header: "Title",
-        },
-        {
-            accessorKey: "tags.artist",
-            header: "Artist",
-        },
-        {
-            accessorKey: "tags.album",
-            header: "Album",
-        },
-        {
-            accessorKey: "tags.genre",
-            header: "Genre",
-        },
+        { accessorKey: "tags.title", header: "Title" },
+        { accessorKey: "tags.artist", header: "Artist" },
+        { accessorKey: "tags.album", header: "Album" },
+        { accessorKey: "tags.genre", header: "Genre" },
         {
             accessorKey: "duration",
             header: "Duration",
@@ -188,40 +101,17 @@ export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void
         },
     ];
 
-    //
-    // Table instance
-    //
     const table = useReactTable({
         data: songs,
         columns,
-        state: {
-            sorting,
-            rowSelection,
-        },
+        state: { sorting },
         onSortingChange: setSorting,
-        onRowSelectionChange: setRowSelection,
         getCoreRowModel: getCoreRowModel(),
-        enableRowSelection: true,
     });
 
-    //
-    // Row click handler with Ctrl + Shift support
-    //
-    const handleRowClick = (
-        rowIndex: number,
-        row: any,
-        event: MouseEvent<HTMLTableRowElement>
-    ) => {
-        if (event.shiftKey) {
-            applyRangeSelection(rowIndex);
-        } else if (event.metaKey || event.ctrlKey) {
-            row.toggleSelected();
-        } else {
-            setRowSelection({ [rowIndex]: true });
-            onSelectSong?.(row.original);
-        }
-
-        setLastClickedIndex(rowIndex);
+    const handleRowClick = (rowIndex: number, row: Row<Song>) => {
+        setSelectedIndex(rowIndex);
+        onSelectSong?.(row.original);
     };
 
     return (
@@ -250,7 +140,7 @@ export function SongTable({ onSelectSong }: { onSelectSong: (song: Song) => void
 
                     <tbody>
                         {table.getRowModel().rows.map((row, index) => (
-                            <SongRow row={row} index={index} />
+                            <SongRow key={row.id} row={row} index={index} />
                         ))}
                     </tbody>
                 </table>
