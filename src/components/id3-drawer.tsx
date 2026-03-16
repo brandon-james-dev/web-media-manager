@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
 import type { Id3FormValues, Song } from "@/models";
+import { ImagePlusIcon } from "lucide-react";
 
 type Id3DrawerProps = {
   isOpen: boolean;
@@ -59,6 +60,7 @@ export function Id3Drawer({
       lyrics: "",
       copyright: "",
       encoder: "",
+      picture: undefined,
     },
   });
 
@@ -79,6 +81,7 @@ export function Id3Drawer({
         lyrics: selectedSong.tags?.lyrics,
         copyright: selectedSong.tags?.copyright,
         encoder: selectedSong.tags?.encoder,
+        picture: undefined,
       });
     }
   }, [isOpen, selectedSong, form]);
@@ -105,67 +108,181 @@ export function Id3Drawer({
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
-              className="space-y-4 lg:w-4xl mx-auto"
+              className="space-y-8 lg:w-4xl mx-auto"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  ["title", "Title"],
-                  ["artist", "Artist"],
-                  ["album", "Album"],
-                  ["albumArtist", "Album Artist"],
-                  ["track", "Track Number"],
-                  ["disc", "Disc Number"],
-                  ["year", "Year"],
-                  ["genre", "Genre"],
-                  ["composer", "Composer"],
-                  ["bpm", "BPM"],
-                  ["copyright", "Copyright"],
-                  ["encoder", "Encoder"],
-                ].map(([name, label]) => (
-                  <FormField
-                    key={name}
-                    control={form.control}
-                    name={name as keyof Id3FormValues}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{label}</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ))}
+              {/* Core Info */}
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {/* Album Art (spans multiple rows) */}
+                  <div className="md:row-span-3 lg:row-span-3 flex flex-col items-start">
+                    <FormField
+                      control={form.control}
+                      name="picture"
+                      render={({ field }) => (
+                        <FormItem className="w-full">
+                          <label
+                            htmlFor="album-art-input"
+                            className="
+                              relative w-32 h-32 rounded border bg-muted 
+                              flex items-center justify-center overflow-hidden 
+                              cursor-pointer group
+                            "
+                          >
+                            {form.watch("picture") ? (
+                              <img
+                                src={form.watch("picture")}
+                                alt="Album Art"
+                                className="object-cover w-full h-full"
+                              />
+                            ) : (
+                              <div className="flex flex-col gap-0.5 items-center">
+                                <div className="text-sm text-muted-foreground">
+                                  No Album Art
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Click to Select
+                                </div>
+                              </div>
+                            )}
+
+                            <div
+                              className="
+                                absolute inset-0 bg-black/40 opacity-0 
+                                group-hover:opacity-100 transition-opacity 
+                                flex items-center justify-center text-white text-sm
+                              "
+                            >
+                              <ImagePlusIcon />
+                            </div>
+                          </label>
+
+                          <input
+                            id="album-art-input"
+                            type="file"
+                            accept="image/png, image/jpeg"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              field.onChange(URL.createObjectURL(file));
+                            }}
+                          />
+
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {[
+                    ["title", "Title"],
+                    ["artist", "Artist"],
+                    ["album", "Album"],
+                    ["albumArtist", "Album Artist"],
+                    ["year", "Year"],
+                    ["genre", "Genre"],
+                  ].map(([name, label]) => (
+                    <FormField
+                      key={name}
+                      control={form.control}
+                      name={name as keyof Id3FormValues}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{label}</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
               </div>
 
-              <FormField
-                control={form.control}
-                name="comment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Comment</FormLabel>
-                    <FormControl>
-                      <Textarea rows={2} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Track Position</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    ["track", "Track Number"],
+                    ["disc", "Disc Number"],
+                  ].map(([name, label]) => (
+                    <FormField
+                      key={name}
+                      control={form.control}
+                      name={name as keyof Id3FormValues}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{label}</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
 
-              <FormField
-                control={form.control}
-                name="lyrics"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lyrics</FormLabel>
-                    <FormControl>
-                      <Textarea rows={4} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Credits</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    ["composer", "Composer"],
+                    ["bpm", "BPM"],
+                    ["copyright", "Copyright"],
+                    ["encoder", "Encoder"],
+                  ].map(([name, label]) => (
+                    <FormField
+                      key={name}
+                      control={form.control}
+                      name={name as keyof Id3FormValues}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{label}</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Extended</h3>
+
+                <FormField
+                  control={form.control}
+                  name="comment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Comment</FormLabel>
+                      <FormControl>
+                        <Textarea rows={2} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lyrics"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Lyrics</FormLabel>
+                      <FormControl>
+                        <Textarea rows={4} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <DrawerFooter className="px-0">
                 <Button type="submit">Save</Button>
