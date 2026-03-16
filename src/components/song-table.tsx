@@ -1,96 +1,36 @@
 import {
   type ColumnDef,
-  type Row,
+  type OnChangeFn,
   type SortingState,
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { memo, useEffect, useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { mediaDb } from "@/data";
 import type { Song } from "@/models";
 
 export function SongTable({
-  onSelectSong,
-  selectedSong,
+  songs,
+  sorting,
+  onSortingChange,
+  rowSelection,
+  onRowSelectionChange,
 }: {
-  onSelectSong: (song: Song) => void;
-  selectedSong: Song | null;
+  songs: Song[];
+  sorting: SortingState;
+  onSortingChange: OnChangeFn<SortingState>;
+  rowSelection?: Record<string, boolean>;
+  onRowSelectionChange?: (updater: any) => void;
 }) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  function formatBitRate(bitrate: number) {
+    return `${Math.floor(bitrate / 1000)} kbps`;
+  }
 
-  const songs =
-    useLiveQuery(async () => {
-      if (sorting.length === 0) {
-        return mediaDb.songs.toArray();
-      }
-
-      const { id, desc } = sorting[0];
-
-      const sortable = [
-        "tags.title",
-        "tags.artist",
-        "tags.album",
-        "tags.genre",
-        "duration",
-        "bitrate",
-        "mtime",
-      ];
-
-      const idDotAccessor = id.replaceAll("_", ".");
-
-      if (!sortable.includes(idDotAccessor)) {
-        return mediaDb.songs.toArray();
-      }
-
-      let query = mediaDb.songs.orderBy(idDotAccessor as keyof Song);
-      if (desc) query = query.reverse();
-
-      return query.toArray();
-    }, [sorting]) ?? [];
-
-  useEffect(() => {
-    if (!selectedSong) {
-      setSelectedIndex(null);
-    }
-  }, [selectedSong]);
-
-  //
-  // Row component (single-select highlight)
-  //
-  const SongRow = memo(({ row, index }: { row: Row<Song>; index: number }) => {
-    const isSelected = selectedIndex === index;
-
-    return (
-      <tr
-        key={row.id}
-        className={`
-                    border-b border-zinc-300 dark:border-zinc-700
-                    cursor-pointer transition-colors
-                    hover:bg-zinc-100 dark:hover:bg-zinc-700
-                    ${isSelected ? "bg-blue-100 dark:bg-blue-900/40" : ""}
-                `}
-        onClick={() => handleRowClick(index, row)}
-      >
-        {row.getVisibleCells().map((cell) => (
-          <td key={cell.id} className="p-2 whitespace-nowrap">
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </td>
-        ))}
-      </tr>
-    );
-  });
-
-  const formatBitRate = (bitrate: number) =>
-    `${Math.floor(bitrate / 1000)} kbps`;
-
-  const formatDuration = (duration: number) => {
+  function formatDuration(duration: number) {
     const minutes = Math.floor(duration / 60);
     const seconds = `${Math.floor(duration % 60)}`.padStart(2, "0");
     return `${minutes}:${seconds}`;
-  };
+  }
 
   const columns: ColumnDef<Song>[] = [
     { accessorKey: "tags.title", header: "Title" },
@@ -113,14 +53,12 @@ export function SongTable({
     data: songs,
     columns,
     state: { sorting },
-    onSortingChange: setSorting,
+    enableRowSelection: true,
+    enableMultiRowSelection: false,
+    onSortingChange,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
-
-  const handleRowClick = (rowIndex: number, row: Row<Song>) => {
-    setSelectedIndex(rowIndex);
-    onSelectSong?.(row.original);
-  };
 
   return (
     <div className="space-y-4">
@@ -153,8 +91,26 @@ export function SongTable({
           </thead>
 
           <tbody>
-            {table.getRowModel().rows.map((row, index) => (
-              <SongRow key={row.id} row={row} index={index} />
+            {table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                className={`
+                  border-b border-zinc-300 dark:border-zinc-700
+                  cursor-pointer transition-colors
+                  hover:bg-zinc-100 dark:hover:bg-zinc-700
+                  ${row.getIsSelected() ? "bg-blue-100 dark:bg-blue-900/40" : ""}
+                `}
+                onClick={() => {
+                  row.toggleSelected();
+                  return onRowSelectionChange?.(row);
+                }}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="p-2 whitespace-nowrap">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
             ))}
           </tbody>
         </table>

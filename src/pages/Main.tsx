@@ -37,21 +37,51 @@ import {
   useCountPendingWrites,
   useInsertPendingWrite,
 } from "@/hooks/pendingWriteHooks";
-import { useSongsInDbStatic } from "@/hooks/songQueryHooks";
+import { useSongsInDb } from "@/hooks/songQueryHooks";
+import { type SortingState } from "@tanstack/react-table";
 
 export default function Main() {
-  const [songs, setSongs] = useState<Song[]>([]);
+  const songs = useSongsInDb() || [];
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [totalSongs, setTotalSongs] = useState<number>(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const searchRef = useRef("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "tags.title", desc: false },
+  ]);
+
+  const filteredSongs = songs.filter((song) => {
+    const q = debouncedSearch.toLowerCase();
+    if (!q) return song;
+
+    const title = song.tags?.title?.toLowerCase() ?? "";
+    const artist = song.tags?.artist?.toLowerCase() ?? "";
+    const album = song.tags?.album?.toLowerCase() ?? "";
+    const albumArtist = song.tags?.albumArtist?.toLowerCase() ?? "";
+    return (
+      title.includes(q) ||
+      artist.includes(q) ||
+      album.includes(q) ||
+      albumArtist.includes(q)
+    );
+  });
+
+  const sortedSongs = (() => {
+    if (sorting.length === 0) return filteredSongs;
+    const { id, desc } = sorting[0];
+    const key = id.replaceAll("_", ".");
+    return [...filteredSongs].sort((a, b) => {
+      const aVal = key.split(".").reduce((o: any, k) => o?.[k], a);
+      const bVal = key.split(".").reduce((o: any, k) => o?.[k], b);
+      if (aVal < bVal) return desc ? 1 : -1;
+      if (aVal > bVal) return desc ? -1 : 1;
+      return 0;
+    });
+  })();
 
   const didRun = useRef(false);
-
-  const buffer = useRef<Song[]>([]);
-
   const debounceTimer = useRef<number | null>(null);
 
   const triggerDebounce = () => {
@@ -60,17 +90,6 @@ export default function Main() {
     debounceTimer.current = setTimeout(() => {
       setDebouncedSearch(searchRef.current);
     }, 250);
-  };
-
-  const addSong = (song: Song) => {
-    buffer.current.push(song);
-
-    if (buffer.current.length === 1) {
-      requestAnimationFrame(() => {
-        setSongs((prev) => [...prev, ...buffer.current]);
-        buffer.current = [];
-      });
-    }
   };
 
   const { openDirectory } = useFileSystemAccess();
@@ -137,21 +156,11 @@ export default function Main() {
             setTotalSongs(msg.total);
             break;
 
-          case "song-imported": {
-            const song = msg.payload;
-            addSong(song);
-            break;
-          }
-
           case "file-error":
             toast.error(`Error importing ${msg.file}: ${msg.error}`);
             break;
         }
       });
-
-      // Load songs into UI
-      const songs = await useSongsInDbStatic();
-      setSongs(songs);
     };
 
     init();
@@ -255,8 +264,12 @@ export default function Main() {
                   )}
                   {songs.length > 0 && (
                     <SongTable
-                      onSelectSong={setSelectedSong}
-                      selectedSong={selectedSong}
+                      songs={sortedSongs}
+                      sorting={sorting}
+                      onSortingChange={setSorting}
+                      onRowSelectionChange={(row) => {
+                        setSelectedSong(row.original);
+                      }}
                     />
                   )}
 
