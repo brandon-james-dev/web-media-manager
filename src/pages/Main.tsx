@@ -39,6 +39,8 @@ import {
 } from "@/hooks/pendingWriteHooks";
 import { useSongsInDb } from "@/hooks/songQueryHooks";
 import { type SortingState } from "@tanstack/react-table";
+import { useCountPendingArtwork } from "@/hooks/thumbnailQueryHooks";
+import { startPendingArtLoop } from "@/lib/albumArtWorkerClient";
 
 export default function Main() {
   const songs = useSongsInDb() || [];
@@ -130,11 +132,17 @@ export default function Main() {
         startWriteLoop();
       }
 
-      const pendingWriteJobs = await sortPendingImportsByCol(
+      const pendingArtCount = await useCountPendingArtwork();
+
+      if (pendingArtCount > 0) {
+        startPendingArtLoop();
+      }
+
+      const pendingImportJobs = await sortPendingImportsByCol(
         "createdAt",
         "desc",
       );
-      const lastJob = pendingWriteJobs[0];
+      const lastJob = pendingImportJobs[0];
 
       if (lastJob && lastJob.files.some((f) => f.status !== "done")) {
         enqueueImportJob(lastJob.id!);

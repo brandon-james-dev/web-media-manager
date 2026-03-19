@@ -1,10 +1,10 @@
 export interface ThumbnailEntry {
   songId: string;
 
-  originalSize: Blob | null;
+  original: Blob | null;
 
-  thumb64: Blob | null;
-  thumb128: Blob | null;
+  thumbSmall: Blob | null;
+  thumbLarge: Blob | null;
 
   mtime: number;
 }

@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import type { Id3FormValues, Song } from "@/models";
 import { ImagePlusIcon } from "lucide-react";
 import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
+import { requestAlbumArtWrite } from "@/lib/albumArtWorkerClient";
+import { resizeBitmap } from "@/lib/albumArt";
 
 type Id3DrawerProps = {
   isOpen: boolean;
@@ -75,10 +77,9 @@ export function Id3Drawer({
         }
 
         const art = await getStaticThumbnail(selectedSong.id);
-        if (!art.thumb128Url) return;
+        if (!art.thumbLarge) return;
 
-        form.setValue("picture", [art.thumb128Url]);
-
+        form.setValue("picture", [art.thumbLarge]);
         cleanup = art.revoke;
       }
 
@@ -99,14 +100,14 @@ export function Id3Drawer({
         lyrics: selectedSong.tags?.lyrics,
         copyright: selectedSong.tags?.copyright,
         encoder: selectedSong.tags?.encoder,
-        picture: [],
+        picture: undefined,
       });
 
       return () => {
         if (cleanup) cleanup();
       };
     }
-  }, [isOpen, selectedSong, getStaticThumbnail, form]);
+  }, [isOpen, selectedSong, form]);
 
   function handleSubmit(values: Id3FormValues) {
     if (!selectedSong) return;
@@ -148,7 +149,7 @@ export function Id3Drawer({
                               cursor-pointer group
                             "
                           >
-                            {form.watch("picture")?.length || 0 > 0 ? (
+                            {form.watch("picture") ? (
                               <img
                                 src={form.watch("picture")?.at(0)}
                                 alt="Album Art"
@@ -181,14 +182,31 @@ export function Id3Drawer({
                             type="file"
                             accept="image/png, image/jpeg"
                             className="hidden"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const files = e.target.files;
-                              if (!files) return;
-                              let encodedFiles: string[] = [];
-                              for (const file of files) {
-                                encodedFiles.push(URL.createObjectURL(file));
-                              }
-                              field.onChange(encodedFiles[0]);
+                              if (!files || !files[0]) return;
+                              if (!selectedSong || !selectedSong.fileHandle)
+                                return;
+
+                              const file = files[0];
+
+                              // Send to album art worker to write + regenerate thumbnails
+                              const buf = await file.arrayBuffer();
+                              const bytes = new Uint8Array(buf);
+                              const originalBlob = new Blob([bytes]);
+
+                              const bitmap = await createImageBitmap(originalBlob);
+                              const resizedAlbumArt = await resizeBitmap(bitmap, 128)
+
+                              // Preview in the form
+                              const previewUrl = URL.createObjectURL(resizedAlbumArt);
+                              field.onChange([previewUrl]);
+
+                              requestAlbumArtWrite(
+                                selectedSong.id,
+                                selectedSong.fileHandle,
+                                bytes,
+                              );
                             }}
                           />
 

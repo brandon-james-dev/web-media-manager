@@ -1,6 +1,6 @@
 export interface PendingArtJob {
   id?: number;
   songId: string;
-  directoryHandle: FileSystemDirectoryHandle,
+  fileHandle: FileSystemFileHandle,
   createdAt: number;
 }

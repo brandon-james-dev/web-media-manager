@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { mediaDb } from "@/data";
+import { startPendingArtLoop } from "@/lib/albumArtWorkerClient";
 import { mapCommonTagsToId3FormValues } from "@/lib/utils";
 import type { Song, PendingImportJob } from "@/models";
 import { parseBlob } from "music-metadata";
@@ -67,10 +68,19 @@ async function processJob(jobId: number) {
         id: fileEntry.name,
         duration: format.duration ?? 0,
         bitrate: format.bitrate ?? 0,
+        fileHandle,
         tags: mapCommonTagsToId3FormValues(common),
       } as Song;
 
       await mediaDb.songs.put(song);
+
+      await mediaDb.pendingArt.add({
+        songId: song.id,
+        createdAt: Date.now(),
+        fileHandle,
+      });
+
+      startPendingArtLoop();
 
       self.postMessage({
         type: "song-imported",
