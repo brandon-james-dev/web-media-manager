@@ -3,7 +3,6 @@ import { twMerge } from "tailwind-merge";
 import type { Id3FormValues, Song } from "@/models";
 import type { ICommonTagsResult } from "music-metadata";
 import { TAG_MAP } from "./tagMap";
-import Resizer from "react-image-file-resizer";
 import { get } from "idb-keyval";
 import { ID3Writer } from "browser-id3-writer";
 import { ensureDirPermission } from "./ensureDirPermission";
@@ -23,26 +22,6 @@ export function arrayBufferToBase64(buffer: ArrayBufferLike): string {
   }
 
   return btoa(binary);
-}
-
-export function resizePicture(
-  file: Uint8Array,
-  mimeType: string,
-  maxWidth: number = 300,
-  maxHeight: number = 300,
-): Promise<string> {
-  return new Promise<string>((resolve) => {
-    Resizer.imageFileResizer(
-      new Blob([file] as BlobPart[], { type: mimeType }),
-      maxWidth,
-      maxHeight,
-      "JPEG",
-      100,
-      0,
-      (uri) => resolve(uri.toString()),
-      "base64",
-    );
-  });
 }
 
 export function mapCommonTagsToId3FormValues(
@@ -121,6 +100,20 @@ export async function writeUpdatedTagsToFile(
   if (updatedTags.disc) writer.setFrame("TPOS", updatedTags.disc);
   if (updatedTags.year) writer.setFrame("TYER", updatedTags.year);
   if (updatedTags.genre) writer.setFrame("TCON", [updatedTags.genre]);
+  if (updatedTags.picture) {
+    const firstImageAsB64Url = updatedTags.picture.at(0);
+    let firstImage = new ArrayBuffer();
+
+    if (firstImageAsB64Url) {
+      firstImage = dataUrlToArrayBufferManual(firstImageAsB64Url);
+    }
+    writer.setFrame("APIC", {
+      type: 3,
+      data: firstImage,
+      description: "Cover Art",
+      useUnicodeEncoding: false,
+    });
+  }
   if (updatedTags.comment) {
     writer.setFrame("COMM", {
       description: "",
@@ -145,4 +138,17 @@ export async function writeUpdatedTagsToFile(
   const writable = await fileHandle.createWritable();
   await writable.write(updatedBlob);
   await writable.close();
+}
+
+export function dataUrlToArrayBufferManual(dataUrl: string): ArrayBuffer {
+  const [_, base64] = dataUrl.split(","); // _ is header
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes.buffer;
 }

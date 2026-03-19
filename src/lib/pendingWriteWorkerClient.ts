@@ -1,5 +1,5 @@
 const worker = new Worker(
-  new URL("../workers/pendingWriteWorker.ts", import.meta.url),
+  new URL("@/workers/pendingWriteWorker.ts", import.meta.url),
   { type: "module" }
 );
 

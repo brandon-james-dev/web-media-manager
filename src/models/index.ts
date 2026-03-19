@@ -1,3 +1,5 @@
+import { type PendingArtJob } from './PendingArtJob';
+import { type ThumbnailEntry } from './ThumbnailEntry';
 import { type PendingWriteJob } from "./PendingWrite";
 import { type Song } from "./Song";
 import { type Id3FormValues } from "./Id3FormValues";
@@ -9,4 +11,6 @@ export type {
   PendingWriteJob,
   PendingImportJob,
   PendingImportFile,
+  PendingArtJob,
+  ThumbnailEntry
 };

@@ -42,7 +42,7 @@ import { type SortingState } from "@tanstack/react-table";
 
 export default function Main() {
   const songs = useSongsInDb() || [];
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [selectedSong, setSelectedSong] = useState<Song | undefined>();
   const [totalSongs, setTotalSongs] = useState<number>(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -150,14 +150,13 @@ export default function Main() {
         }
       });
 
-      subscribeToImportEvents(async (msg) => {
+      subscribeToImportEvents((msg) => {
         switch (msg.type) {
-          case "progress":
-            setTotalSongs(msg.total);
+          case 'progress':
+            if (msg.total != totalSongs)
+              setTotalSongs(msg.total);
             break;
-
-          case "file-error":
-            toast.error(`Error importing ${msg.file}: ${msg.error}`);
+          default:
             break;
         }
       });
@@ -214,7 +213,7 @@ export default function Main() {
                   <Button
                     className="w-40"
                     variant="outline"
-                    onClick={() => setSelectedSong(null)}
+                    onClick={() => setSelectedSong(undefined)}
                   >
                     <XIcon />
                     Deselect
@@ -267,6 +266,7 @@ export default function Main() {
                       songs={sortedSongs}
                       sorting={sorting}
                       onSortingChange={setSorting}
+                      rowSelection={selectedSong}
                       onRowSelectionChange={(row) => {
                         setSelectedSong(row.original);
                       }}

@@ -7,6 +7,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import React from "react";
 import type { Song } from "@/models";
 
 export function SongTable({
@@ -19,7 +20,7 @@ export function SongTable({
   songs: Song[];
   sorting: SortingState;
   onSortingChange: OnChangeFn<SortingState>;
-  rowSelection?: Record<string, boolean>;
+  rowSelection?: Song;
   onRowSelectionChange?: (updater: any) => void;
 }) {
   function formatBitRate(bitrate: number) {
@@ -92,25 +93,15 @@ export function SongTable({
 
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr
+              <SongRow
                 key={row.id}
-                className={`
-                  border-b border-zinc-300 dark:border-zinc-700
-                  cursor-pointer transition-colors
-                  hover:bg-zinc-100 dark:hover:bg-zinc-700
-                  ${row.getIsSelected() ? "bg-blue-100 dark:bg-blue-900/40" : ""}
-                `}
-                onClick={() => {
-                  row.toggleSelected();
-                  return onRowSelectionChange?.(row);
+                row={row}
+                isSelected={row.original === rowSelection}
+                onSelect={(r) => {
+                  r.toggleSelected();
+                  onRowSelectionChange?.(r);
                 }}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="p-2 whitespace-nowrap">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
+              />
             ))}
           </tbody>
         </table>
@@ -118,3 +109,36 @@ export function SongTable({
     </div>
   );
 }
+
+const SongRow = React.memo(
+  function SongRow({
+    row,
+    isSelected,
+    onSelect,
+  }: {
+    row: any;
+    isSelected: boolean;
+    onSelect: (row: any) => void;
+  }) {
+    return (
+      <tr
+        className={`
+          border-b border-zinc-300 dark:border-zinc-700
+          cursor-pointer transition-colors
+          hover:bg-zinc-100 dark:hover:bg-zinc-700
+          ${isSelected ? "bg-blue-100 dark:bg-blue-900/40" : ""}
+        `}
+        onClick={() => onSelect(row)}
+      >
+        {row.getVisibleCells().map((cell: any) => (
+          <td key={cell.id} className="p-2 whitespace-nowrap">
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </td>
+        ))}
+      </tr>
+    );
+  },
+  (prev, next) =>
+    prev.isSelected === next.isSelected &&
+    prev.row.original === next.row.original,
+);

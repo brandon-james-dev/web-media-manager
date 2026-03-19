@@ -15,5 +15,6 @@ export const TAG_MAP: Record<keyof Id3FormValues, keyof ICommonTagsResult | null
   bpm: "bpm",
   lyrics: "lyrics",
   copyright: "copyright",
-  encoder: "encodedby"
+  encoder: "encodedby",
+  picture: null
 };

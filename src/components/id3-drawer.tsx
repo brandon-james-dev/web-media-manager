@@ -28,11 +28,12 @@ import { Button } from "@/components/ui/button";
 
 import type { Id3FormValues, Song } from "@/models";
 import { ImagePlusIcon } from "lucide-react";
+import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 
 type Id3DrawerProps = {
   isOpen: boolean;
   onOpenChange?: (open: boolean) => void;
-  selectedSong: Song | null;
+  selectedSong: Song | undefined;
   className?: string | null;
   onSave?: (songId: string, values: Id3FormValues) => void;
 };
@@ -66,6 +67,23 @@ export function Id3Drawer({
 
   useEffect(() => {
     if (isOpen && selectedSong) {
+      let cleanup: (() => void) | undefined;
+
+      async function loadArt() {
+        if (!isOpen || !selectedSong) {
+          return;
+        }
+
+        const art = await getStaticThumbnail(selectedSong.id);
+        if (!art.thumb128Url) return;
+
+        form.setValue("picture", [art.thumb128Url]);
+
+        cleanup = art.revoke;
+      }
+
+      loadArt();
+
       form.reset({
         title: selectedSong.tags?.title,
         artist: selectedSong.tags?.artist,
@@ -81,10 +99,14 @@ export function Id3Drawer({
         lyrics: selectedSong.tags?.lyrics,
         copyright: selectedSong.tags?.copyright,
         encoder: selectedSong.tags?.encoder,
-        picture: undefined,
+        picture: [],
       });
+
+      return () => {
+        if (cleanup) cleanup();
+      };
     }
-  }, [isOpen, selectedSong, form]);
+  }, [isOpen, selectedSong, getStaticThumbnail, form]);
 
   function handleSubmit(values: Id3FormValues) {
     if (!selectedSong) return;
@@ -110,10 +132,8 @@ export function Id3Drawer({
               onSubmit={form.handleSubmit(handleSubmit)}
               className="space-y-8 lg:w-4xl mx-auto"
             >
-              {/* Core Info */}
               <div>
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {/* Album Art (spans multiple rows) */}
                   <div className="md:row-span-3 lg:row-span-3 flex flex-col items-start">
                     <FormField
                       control={form.control}
@@ -128,9 +148,9 @@ export function Id3Drawer({
                               cursor-pointer group
                             "
                           >
-                            {form.watch("picture") ? (
+                            {form.watch("picture")?.length || 0 > 0 ? (
                               <img
-                                src={form.watch("picture")}
+                                src={form.watch("picture")?.at(0)}
                                 alt="Album Art"
                                 className="object-cover w-full h-full"
                               />
@@ -162,9 +182,13 @@ export function Id3Drawer({
                             accept="image/png, image/jpeg"
                             className="hidden"
                             onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              field.onChange(URL.createObjectURL(file));
+                              const files = e.target.files;
+                              if (!files) return;
+                              let encodedFiles: string[] = [];
+                              for (const file of files) {
+                                encodedFiles.push(URL.createObjectURL(file));
+                              }
+                              field.onChange(encodedFiles[0]);
                             }}
                           />
 

@@ -13,5 +13,5 @@ export interface Id3FormValues {
     lyrics: string;
     copyright: string;
     encoder: string;
-    picture?: string | undefined;
+    picture?: string[] | undefined;
 };

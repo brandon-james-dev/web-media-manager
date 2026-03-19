@@ -2,8 +2,7 @@
 
 import { mediaDb } from "@/data";
 import { mapCommonTagsToId3FormValues } from "@/lib/utils";
-import type { Song } from "@/models";
-import type { PendingImportJob } from "@/models/PendingImport";
+import type { Song, PendingImportJob } from "@/models";
 import { parseBlob } from "music-metadata";
 
 let isProcessing = false;
@@ -62,14 +61,13 @@ async function processJob(jobId: number) {
         fileEntry.name,
       );
       const file = await fileHandle.getFile();
-
       const { format, common } = await parseBlob(file);
-      
+
       const song = {
         id: fileEntry.name,
         duration: format.duration ?? 0,
         bitrate: format.bitrate ?? 0,
-        tags: mapCommonTagsToId3FormValues(common)
+        tags: mapCommonTagsToId3FormValues(common),
       } as Song;
 
       await mediaDb.songs.put(song);
@@ -106,7 +104,7 @@ async function processJob(jobId: number) {
     self.postMessage({
       type: "done",
       jobId,
-      processed
+      processed,
     });
   }
 }

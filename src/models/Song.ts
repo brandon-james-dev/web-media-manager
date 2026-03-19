@@ -13,10 +13,6 @@ export type Song = {
      * Average bitrate as bytes
      */
     bitrate: number;
-    /**
-     * Base64-encoded album art
-     */
-    albumArt?: Blob | undefined;
 
     updatedAt?: number;
 
