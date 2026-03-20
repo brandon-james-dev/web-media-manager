@@ -13,8 +13,15 @@ import {
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Music, FileMusicIcon, CogIcon, XIcon, PenIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  Music,
+  FileMusicIcon,
+  CogIcon,
+  XIcon,
+  PenIcon,
+  CheckCheck,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Song } from "../models/Song";
 import { Link } from "react-router";
 import useFileSystemAccess, { showDirectoryPicker } from "use-fs-access";
@@ -44,44 +51,52 @@ import { startPendingArtLoop } from "@/lib/albumArtWorkerClient";
 
 export default function Main() {
   const songs = useSongsInDb() || [];
-  const [selectedSong, setSelectedSong] = useState<Song | undefined>();
+  const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [totalSongs, setTotalSongs] = useState<number>(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
-
+  const [isBulkSelectEnabled, setIsBulkSelectEnabled] = useState(false);
+  const bulkRef = useRef(isBulkSelectEnabled);
+  bulkRef.current = isBulkSelectEnabled;
   const searchRef = useRef("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sorting, setSorting] = useState<SortingState>([
     { id: "tags.title", desc: false },
   ]);
 
-  const filteredSongs = songs.filter((song) => {
+  const filteredSongs = useMemo(() => {
     const q = debouncedSearch.toLowerCase();
-    if (!q) return song;
+    if (!q) return songs;
 
-    const title = song.tags?.title?.toLowerCase() ?? "";
-    const artist = song.tags?.artist?.toLowerCase() ?? "";
-    const album = song.tags?.album?.toLowerCase() ?? "";
-    const albumArtist = song.tags?.albumArtist?.toLowerCase() ?? "";
-    return (
-      title.includes(q) ||
-      artist.includes(q) ||
-      album.includes(q) ||
-      albumArtist.includes(q)
-    );
-  });
+    return songs.filter((song) => {
+      const title = song.tags?.title?.toLowerCase() ?? "";
+      const artist = song.tags?.artist?.toLowerCase() ?? "";
+      const album = song.tags?.album?.toLowerCase() ?? "";
+      const albumArtist = song.tags?.albumArtist?.toLowerCase() ?? "";
 
-  const sortedSongs = (() => {
+      return (
+        title.includes(q) ||
+        artist.includes(q) ||
+        album.includes(q) ||
+        albumArtist.includes(q)
+      );
+    });
+  }, [songs, debouncedSearch]);
+
+  const sortedSongs = useMemo(() => {
     if (sorting.length === 0) return filteredSongs;
+
     const { id, desc } = sorting[0];
     const key = id.replaceAll("_", ".");
+
     return [...filteredSongs].sort((a, b) => {
       const aVal = key.split(".").reduce((o: any, k) => o?.[k], a);
       const bVal = key.split(".").reduce((o: any, k) => o?.[k], b);
+
       if (aVal < bVal) return desc ? 1 : -1;
       if (aVal > bVal) return desc ? -1 : 1;
       return 0;
     });
-  })();
+  }, [filteredSongs, sorting]);
 
   const didRun = useRef(false);
   const debounceTimer = useRef<number | null>(null);
@@ -160,9 +175,8 @@ export default function Main() {
 
       subscribeToImportEvents((msg) => {
         switch (msg.type) {
-          case 'progress':
-            if (msg.total != totalSongs)
-              setTotalSongs(msg.total);
+          case "progress":
+            if (msg.total != totalSongs) setTotalSongs(msg.total);
             break;
           default:
             break;
@@ -211,7 +225,7 @@ export default function Main() {
             <div
               className={`h-full flex flex-col${didRun.current ? "" : " hidden"}`}
             >
-              {selectedSong && (
+              {selectedSongs?.length > 0 && (
                 <div
                   className="sticky top-0 z-20
                              w-full shrink-0
@@ -221,33 +235,27 @@ export default function Main() {
                   <Button
                     className="w-40"
                     variant="outline"
-                    onClick={() => setSelectedSong(undefined)}
+                    onClick={() => setSelectedSongs([])}
                   >
                     <XIcon />
                     Deselect
+                  </Button>
+                  <Button
+                    className="w-40"
+                    variant={isBulkSelectEnabled ? "default" : "outline"}
+                    onClick={() => {
+                      const lastSelectedSong = selectedSongs?.at(selectedSongs.length - 1);
+                      if (lastSelectedSong) setSelectedSongs([lastSelectedSong]);
+                      setIsBulkSelectEnabled(!isBulkSelectEnabled);
+                    }}
+                  >
+                    <CheckCheck />
+                    Bulk Edit
                   </Button>
                   <Button className="w-40" onClick={() => setDrawerOpen(true)}>
                     <PenIcon />
                     Edit
                   </Button>
-
-                  <div className="ml-auto text-sm text-muted-foreground select-none">
-                    <div className="flex gap-2">
-                      <span
-                        hidden={!selectedSong.tags?.artist}
-                        className="after:content-['-'] after:ml-2 last:after:content-none"
-                      >
-                        {selectedSong.tags?.artist}
-                      </span>
-                      <span
-                        hidden={!selectedSong.tags?.album}
-                        className="after:content-['-'] after:ml-2 last:after:content-none"
-                      >
-                        {selectedSong.tags?.album}
-                      </span>
-                      <span>{selectedSong.tags?.title ?? selectedSong.id}</span>
-                    </div>
-                  </div>
                 </div>
               )}
               <div className="flex-1 w-full container-type-size">
@@ -274,10 +282,9 @@ export default function Main() {
                       songs={sortedSongs}
                       sorting={sorting}
                       onSortingChange={setSorting}
-                      rowSelection={selectedSong}
-                      onRowSelectionChange={(row) => {
-                        setSelectedSong(row.original);
-                      }}
+                      rowSelection={selectedSongs}
+                      onRowSelectionChange={setSelectedSongs}
+                      isBulkSelectEnabled={bulkRef}
                     />
                   )}
 
@@ -305,7 +312,7 @@ export default function Main() {
 
       <Id3Drawer
         isOpen={drawerOpen}
-        selectedSong={selectedSong}
+        selectedSong={selectedSongs?.at(0)}
         onOpenChange={setDrawerOpen}
         onSave={async (songId, tags) => {
           await useInsertPendingWrite(songId, tags);
