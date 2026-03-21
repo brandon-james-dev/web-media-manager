@@ -119,6 +119,7 @@ export function Id3Drawer({
       if (!art.thumbLarge) return;
 
       form.setValue("picture", [art.thumbLarge]);
+      setPreviewArt(art.thumbLarge);
       cleanup = art.revoke;
     }
 
