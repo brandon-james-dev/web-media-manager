@@ -31,26 +31,13 @@ export function SongTable({
 }: SongTableProps) {
   const tableRef = useRef<HTMLDivElement>(null);
 
-  // TanStack rowSelection state (keys = song.id)
   const [internalRowSelection, setInternalRowSelection] =
     useState<RowSelectionState>({});
+  const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
 
-  // Sync external Song[] selection into TanStack rowSelection
-  useEffect(() => {
-    const map: RowSelectionState = {};
-    rowSelection.forEach((s) => {
-      map[String(s.id)] = true;
-    });
-    setInternalRowSelection(map);
-  }, [rowSelection]);
+  const [columnSizing, setColumnSizing] = useState({});
 
-  // Anchor for shift-click and shift-arrow
   const anchorRef = useRef<string | null>(null);
-
-  // Focus row for keyboard navigation
-  const focusRef = useRef<string | null>(null);
-
-  // Row refs for auto-scrolling
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   function scrollRowIntoView(rowId: string) {
@@ -59,14 +46,28 @@ export function SongTable({
     el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
+  useEffect(() => {
+    const map: RowSelectionState = {};
+    rowSelection.forEach((s) => {
+      map[String(s.id)] = true;
+    });
+
+    if (rowSelection.length == 0) {
+      setFocusedRowId(null);
+    }
+    setInternalRowSelection(map);
+  }, [rowSelection]);
+
   const columns: ColumnDef<Song>[] = [
-    { accessorKey: "tags.title", header: "Title" },
-    { accessorKey: "tags.artist", header: "Artist" },
-    { accessorKey: "tags.album", header: "Album" },
-    { accessorKey: "tags.genre", header: "Genre" },
+    { accessorKey: "tags.title", header: "Title", size: 240, minSize: 80 },
+    { accessorKey: "tags.artist", header: "Artist", size: 160, minSize: 80 },
+    { accessorKey: "tags.album", header: "Album", size: 240, minSize: 80 },
+    { accessorKey: "tags.genre", header: "Genre", size: 140, minSize: 80 },
     {
       accessorKey: "duration",
       header: "Duration",
+      size: 80,
+      minSize: 60,
       cell: ({ getValue }) => {
         const d = getValue<number>();
         const m = Math.floor(d / 60);
@@ -77,6 +78,8 @@ export function SongTable({
     {
       accessorKey: "bitrate",
       header: "Bitrate",
+      size: 100,
+      minSize: 80,
       cell: ({ getValue }) => `${Math.floor(getValue<number>() / 1000)} kbps`,
     },
   ];
@@ -87,10 +90,14 @@ export function SongTable({
     state: {
       sorting,
       rowSelection: internalRowSelection,
+      columnSizing,
     },
+    onColumnSizingChange: setColumnSizing,
     getRowId: (row) => String(row.id),
     enableRowSelection: true,
     enableMultiRowSelection: isBulkSelectEnabled.current,
+    enableColumnResizing: true,
+    columnResizeMode: "onChange",
     onSortingChange,
     onRowSelectionChange: (updater) => {
       setInternalRowSelection((prev) => {
@@ -117,7 +124,7 @@ export function SongTable({
 
       const rowIds = rows.map((r) => r.id);
 
-      const currentId = focusRef.current ?? anchorRef.current ?? rowIds[0];
+      const currentId = focusedRowId ?? anchorRef.current ?? rowIds[0];
       let index = rowIds.indexOf(currentId);
       if (index === -1) index = 0;
 
@@ -135,7 +142,6 @@ export function SongTable({
 
       const nextId = rowIds[nextIndex];
 
-      // SHIFT + ARROW = RANGE SELECTION
       if (e.shiftKey && isBulkSelectEnabled.current) {
         const anchor = anchorRef.current ?? currentId;
         const a = rowIds.indexOf(anchor);
@@ -152,14 +158,13 @@ export function SongTable({
           onRowSelectionChange(selectedSongs);
         }
 
-        focusRef.current = nextId;
+        setFocusedRowId(nextId);
         scrollRowIntoView(nextId);
         return;
       }
 
-      // NORMAL ARROW = MOVE FOCUS + SELECT SINGLE
       anchorRef.current = nextId;
-      focusRef.current = nextId;
+      setFocusedRowId(nextId);
 
       const single: RowSelectionState = { [nextId]: true };
       setInternalRowSelection(single);
@@ -171,19 +176,15 @@ export function SongTable({
 
       scrollRowIntoView(nextId);
     },
-    [songs, onRowSelectionChange, table],
+    [songs, focusedRowId, onRowSelectionChange, table],
   );
 
-  // -----------------------------
-  // ROW CLICK HANDLER
-  // -----------------------------
   function handleRowClick(row: Row<Song>) {
     return (e: React.MouseEvent) => {
       const rowId = row.id;
 
-      focusRef.current = rowId;
+      setFocusedRowId(rowId);
 
-      // SHIFT-CLICK RANGE
       if (e.shiftKey && anchorRef.current && isBulkSelectEnabled.current) {
         const allRows = table.getRowModel().rows;
         const rowIds = allRows.map((r) => r.id);
@@ -225,27 +226,49 @@ export function SongTable({
       onKeyDown={handleKeyDown}
     >
       <div className="rounded border border-zinc-300 dark:border-zinc-700">
-        <table className="w-full select-none border-collapse text-sm">
-          <thead className="sticky top-0 z-1 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100">
+        <table
+          className="min-w-max select-none border-collapse text-sm table-fixed"
+          style={{
+            width: "100%",
+            minWidth: table.getTotalSize(),
+          }}
+        >
+          <thead className="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-b border-zinc-300 dark:border-zinc-700 sticky top-0 z-10 ">
             {table.getHeaderGroups().map((hg) => (
               <tr
                 key={hg.id}
-                className="border-b border-zinc-300 dark:border-zinc-700"
+                className="after:content-['']"
               >
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="p-2 text-left cursor-pointer select-none sticky top-0 bg-zinc-200 dark:bg-zinc-800 transition-colors"
-                    onClick={header.column.getToggleSortingHandler()}
+                    className="p-2 min-w-0 text-left select-none sticky top-0 z-10 bg-zinc-200 dark:bg-zinc-800"
+                    style={{ width: header.getSize() }}
                   >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                    {{
-                      asc: " ▲",
-                      desc: " ▼",
-                    }[header.column.getIsSorted() as string] ?? null}
+                    <div
+                      className="cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis"
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                      {{
+                        asc: " ▲",
+                        desc: " ▼",
+                      }[header.column.getIsSorted() as string] ?? null}
+                    </div>
+
+                    <div
+                      onMouseDown={header.getResizeHandler()}
+                      onTouchStart={header.getResizeHandler()}
+                      className="
+                        absolute inset-y-0 right-0 w-2
+                        cursor-col-resize
+                        select-none touch-none
+                        z-20
+                      "
+                    />
                   </th>
                 ))}
               </tr>
@@ -258,6 +281,7 @@ export function SongTable({
                 key={row.id}
                 row={row}
                 isSelected={!!internalRowSelection[row.id]}
+                isFocused={focusedRowId === row.id}
                 onClick={handleRowClick(row)}
                 rowRefs={rowRefs}
               />
@@ -273,13 +297,15 @@ const SongRow = React.memo(
   function SongRow({
     row,
     isSelected,
+    isFocused,
     onClick,
     rowRefs,
   }: {
     row: any;
     isSelected: boolean;
+    isFocused: boolean;
     onClick: (e: React.MouseEvent) => void;
-    rowRefs: React.MutableRefObject<Record<string, HTMLTableRowElement | null>>;
+    rowRefs: React.RefObject<Record<string, HTMLTableRowElement | null>>;
   }) {
     return (
       <tr
@@ -288,14 +314,31 @@ const SongRow = React.memo(
         }}
         className={`
           border-b border-zinc-300 dark:border-zinc-700
-          cursor-pointer transition-colors
+          cursor-pointer transition-colors relative after:content-['']
           hover:bg-zinc-100 dark:hover:bg-zinc-700
           ${isSelected ? "bg-blue-100 dark:bg-blue-900/40" : ""}
+          ${
+            isFocused
+              ? `
+                after:absolute
+                after:inset-0
+                after:pointer-events-none
+                after:border-2
+                after:border-blue-500
+                after:rounded-sm
+                after:box-border
+              `
+              : ""
+          }
         `}
         onClick={onClick}
       >
         {row.getVisibleCells().map((cell: any) => (
-          <td key={cell.id} className="p-2 whitespace-nowrap">
+          <td
+            key={cell.id}
+            className="p-2 whitespace-nowrap overflow-hidden text-ellipsis min-w-0"
+            style={{ width: cell.column.getSize() }}
+          >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </td>
         ))}
@@ -304,5 +347,6 @@ const SongRow = React.memo(
   },
   (prev, next) =>
     prev.isSelected === next.isSelected &&
+    prev.isFocused === next.isFocused &&
     prev.row.original === next.row.original,
 );
