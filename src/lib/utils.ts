@@ -23,23 +23,22 @@ export function arrayBufferToBase64(buffer: ArrayBufferLike): string {
 }
 
 function base64ToArrayBuffer(base64: string) {
-    let binaryString;
+  let binaryString;
 
-    if (typeof atob === 'function') {
-        binaryString = atob(base64);
-    }
-    else {
-        throw new Error("No Base64 decoding method available in this environment");
-    }
+  if (typeof atob === "function") {
+    binaryString = atob(base64);
+  } else {
+    throw new Error("No Base64 decoding method available in this environment");
+  }
 
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
 
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
 
-    return bytes.buffer;
+  return bytes.buffer;
 }
 
 export function mapCommonTagsToId3FormValues(
@@ -149,4 +148,15 @@ export async function writeUpdatedTagsToFile(
   const writable = await fileHandle.createWritable();
   await writable.write(updatedBlob);
   await writable.close();
+}
+
+export function getUniqueValues(key: keyof Song["tags"], songs: Song[]): string[] {
+  const set = new Set<string>();
+  for (const s of songs) {
+    const v = (s.tags as any)[key];
+    if (v !== undefined && v !== null && v !== "") {
+      set.add(String(v));
+    }
+  }
+  return Array.from(set);
 }

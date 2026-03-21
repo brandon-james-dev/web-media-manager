@@ -47,7 +47,7 @@ import {
 import { useSongsInDb } from "@/hooks/songQueryHooks";
 import { type SortingState } from "@tanstack/react-table";
 import { useCountPendingArtwork } from "@/hooks/thumbnailQueryHooks";
-import { startPendingArtLoop } from "@/lib/albumArtWorkerClient";
+import { requestAlbumArtWrite, startPendingArtLoop } from "@/lib/albumArtWorkerClient";
 
 export default function Main() {
   const songs = useSongsInDb() || [];
@@ -312,11 +312,22 @@ export default function Main() {
 
       <Id3Drawer
         isOpen={drawerOpen}
-        selectedSong={selectedSongs?.at(0)}
+        selectedSongs={selectedSongs}
         onOpenChange={setDrawerOpen}
-        onSave={async (songId, tags) => {
-          await useInsertPendingWrite(songId, tags);
-          startWriteLoop();
+        onSave={async (updatedSongs, pendingAlbumArt) => {
+          for (const song of updatedSongs) {
+            if (!song.tags) continue;
+            await useInsertPendingWrite(song.id, song.tags);
+            
+            if (pendingAlbumArt) {
+              requestAlbumArtWrite(
+                song.id,
+                song.fileHandle,
+                pendingAlbumArt
+              );
+            }
+            startWriteLoop();
+          }
 
           setDrawerOpen(false);
         }}
