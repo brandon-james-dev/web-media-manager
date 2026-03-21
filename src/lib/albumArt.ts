@@ -13,7 +13,9 @@ export async function extractAlbumArtAndThumbnails(file: File) {
     };
   }
 
-  const originalBlob = new Blob([embedded] as BlobPart[], { type: "image/jpeg" });
+  const originalBlob = new Blob([embedded] as BlobPart[], {
+    type: "image/jpeg",
+  });
 
   const bitmap = await createImageBitmap(originalBlob);
 
@@ -27,7 +29,10 @@ export async function extractAlbumArtAndThumbnails(file: File) {
   };
 }
 
-export async function resizeBitmap(bitmap: ImageBitmap, size: number): Promise<Blob> {
+export async function resizeBitmap(
+  bitmap: ImageBitmap,
+  size: number,
+): Promise<Blob> {
   const canvas = new OffscreenCanvas(size, size);
   const ctx = canvas.getContext("2d");
 
@@ -49,7 +54,26 @@ async function getEmbeddedArtwork(
   const { picture } = common;
 
   if (!picture?.at(0)?.data) return null;
-  
+
   if (picture.at(0)?.data == undefined) return null;
   return picture.at(0)!.data;
+}
+
+/**
+ * Downloads an image from a URL and returns its bytes as Uint8Array.
+ * @param url The image URL
+ */
+export async function downloadImageBytes(url: string): Promise<Uint8Array> {
+  if (!url || typeof url !== "string") {
+    throw new Error("Invalid URL provided.");
+  }
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image. Status: ${response.status}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }

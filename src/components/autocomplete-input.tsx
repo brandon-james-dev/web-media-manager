@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import {
   Command,
   CommandList,
@@ -11,20 +15,23 @@ import {
   CommandEmpty,
 } from "@/components/ui/command";
 import { ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type AutocompleteInputProps = {
-  label: string;
   value: string | string[] | number | undefined;
   onChange: (value: string) => void;
   uniqueValues: string[];
+  label?: string;
+  className?: string;
   placeholder?: string;
 };
 
 export function AutocompleteInput({
-  label,
   value,
   onChange,
   uniqueValues,
+  label,
+  className,
   placeholder,
 }: AutocompleteInputProps) {
   const [open, setOpen] = useState(false);
@@ -32,7 +39,9 @@ export function AutocompleteInput({
   const filteredValues =
     uniqueValues.length > 1
       ? uniqueValues.filter((v) =>
-          String(v).toLowerCase().includes(String(value ?? "").toLowerCase())
+          String(v)
+            .toLowerCase()
+            .includes(String(value ?? "").toLowerCase()),
         )
       : [];
 
@@ -48,13 +57,14 @@ export function AutocompleteInput({
           onChange(e.target.value);
           if (uniqueValues.length > 1) setOpen(true);
         }}
-        className="pointer-events-auto"
+        className={cn(
+          "pointer-events-auto w-full border rounded px-2 py-1",
+          className,
+        )}
       />
 
       {uniqueValues.length > 1 && (
-        <ChevronsUpDown
-          className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none"
-        />
+        <ChevronsUpDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
       )}
 
       <Popover open={open} onOpenChange={setOpen}>

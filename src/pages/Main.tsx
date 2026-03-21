@@ -59,6 +59,8 @@ export default function Main() {
   bulkRef.current = isBulkSelectEnabled;
   const searchRef = useRef("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  //#region Song sorting and filtering
   const [sorting, setSorting] = useState<SortingState>([
     { id: "tags.title", desc: false },
   ]);
@@ -108,7 +110,9 @@ export default function Main() {
       setDebouncedSearch(searchRef.current);
     }, 250);
   };
+  //#endregion
 
+  //#region Directory selection
   const { openDirectory } = useFileSystemAccess();
 
   const selectDirectory = async () => {
@@ -133,6 +137,7 @@ export default function Main() {
 
     enqueueImportJob(jobId);
   };
+  //#endregion
 
   //#region Event listeners
   useEffect(() => {
@@ -210,7 +215,7 @@ export default function Main() {
               className={songs.length == 0 ? "hidden" : "flex justify-center"}
             >
               <Input
-                placeholder="Search songs or artists..."
+                placeholder="Search songs by any term"
                 defaultValue=""
                 onChange={(e) => {
                   searchRef.current = e.target.value;

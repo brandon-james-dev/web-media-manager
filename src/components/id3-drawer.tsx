@@ -24,12 +24,32 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
+import { getSong, type MusicResult } from "itunes-web-api";
+
 import type { Id3FormValues, Song } from "@/models";
-import { ImagePlusIcon, SaveIcon, XIcon } from "lucide-react";
+import {
+  DownloadCloudIcon,
+  ImagePlusIcon,
+  ListRestartIcon,
+  SaveIcon,
+  XIcon,
+} from "lucide-react";
 import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
-import { resizeBitmap } from "@/lib/albumArt";
-import { getUniqueValues } from "@/lib/utils";
+import { downloadImageBytes, resizeBitmap } from "@/lib/albumArt";
+import { arrayBufferToBase64, getUniqueValues } from "@/lib/utils";
 import { AutocompleteInput } from "./autocomplete-input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Id3DrawerProps = {
   isOpen: boolean;
@@ -98,11 +118,136 @@ export function Id3Drawer({
     };
   }, [selectedSongs]);
 
+  const [itunesPreSearchOpen, setItunesPreSearchOpen] = useState(false);
+  const [preSearchTitle, setPreSearchTitle] = useState("");
+  const [preSearchArtist, setPreSearchArtist] = useState("");
+  const [preSearchAlbum, setPreSearchAlbum] = useState("");
+  const [itunesResults, setItunesResults] = useState<MusicResult[]>([]);
+  const [itunesModalOpen, setItunesModalOpen] = useState(false);
+
+  async function applyItunesMetadata(result: MusicResult) {
+    if (result.trackName) {
+      form.setValue("title", result.trackName);
+      markDirty("title");
+    }
+
+    if (result.artistName) {
+      form.setValue("artist", result.artistName);
+      markDirty("artist");
+    }
+
+    if (result.collectionName) {
+      form.setValue("album", result.collectionName);
+      markDirty("album");
+    }
+
+    if (result.primaryGenreName) {
+      form.setValue("genre", result.primaryGenreName);
+      markDirty("genre");
+    }
+
+    if (result.releaseDate) {
+      const year = new Date(result.releaseDate).getFullYear();
+      form.setValue("year", year);
+      markDirty("year");
+    }
+
+    if (result.artworkUrl100) {
+      const bestQualityAlbumArt = result.artworkUrl100.replace("100x100bb", "3000x3000bb");
+      const imageBytes = await downloadImageBytes(bestQualityAlbumArt);
+      const imageBlob = new Blob([imageBytes] as BlobPart[], { type: "image/jpeg" });
+      const imageBitmap = await createImageBitmap(imageBlob);
+      const imageDataForUpdate = arrayBufferToBase64(await imageBlob.arrayBuffer());
+      const imageDataBlobForPreview = await resizeBitmap(imageBitmap, 128);
+      form.setValue("picture", [imageDataForUpdate]);
+      setPreviewArt(URL.createObjectURL(imageDataBlobForPreview));
+      pendingAlbumArtRef.current = imageBytes;
+      markDirty("picture");
+    }
+  }
+
   const form = useForm<Id3FormValues>({
     defaultValues: initialValues,
   });
 
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
+
+  function resetField(name: keyof Id3FormValues) {
+    const original = initialValues[name];
+    form.setValue(name, original);
+    setDirty((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  }
+
+  async function resetAlbumArt() {
+    if (!primarySong) return;
+
+    const art = await getStaticThumbnail(primarySong.id);
+
+    if (art.thumbLarge) {
+      setPreviewArt(art.thumbLarge);
+      form.setValue("picture", [art.thumbLarge]);
+    } else {
+      setPreviewArt(null);
+      form.setValue("picture", undefined);
+    }
+
+    pendingAlbumArtRef.current = null;
+
+    setDirty((prev) => {
+      const next = { ...prev };
+      delete next.picture;
+      return next;
+    });
+  }
+
+  function resetAllDirtyFields() {
+    const nextDirty = { ...dirty };
+
+    for (const key in nextDirty) {
+      const k = key as keyof Id3FormValues;
+      form.setValue(k, initialValues[k]);
+      delete nextDirty[key];
+    }
+
+    resetAlbumArt();
+    setDirty({});
+  }
+
+  const getItunesSong = async (
+    title: string,
+    album?: string,
+    artist?: string,
+  ) => {
+    const queryParts = [title];
+
+    if (artist) queryParts.push(artist);
+    if (album) queryParts.push(album);
+
+    const query = queryParts.join(" ").trim();
+
+    const results = await getSong(query, {
+      language: "en",
+      country: "US",
+      limit: 25,
+    });
+
+    if (!results || results.resultCount === 0) {
+      console.warn("No iTunes results found");
+      return;
+    }
+
+    if (results.resultCount === 1) {
+      await applyItunesMetadata(results.results[0]);
+      return;
+    }
+
+    setItunesResults(results.results);
+    setItunesModalOpen(true);
+  };
 
   useEffect(() => {
     if (!isOpen || !selectedSongs.length) return;
@@ -153,12 +298,150 @@ export function Id3Drawer({
     onOpenChange?.(false);
   }
 
+  const initiatePreSearch = () => {
+    const title = form.getValues("title");
+    const artist = form.getValues("artist") || form.getValues("albumArtist");
+
+    if (!title || !artist) {
+      setPreSearchTitle(title || "");
+      setPreSearchArtist(artist || "");
+      setItunesPreSearchOpen(true);
+      return;
+    }
+
+    getItunesSong(title, artist);
+  };
+
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
       <DrawerContent
         className={`id3-drawer max-h-[90vh] overflow-y-auto after:hidden ${className ?? ""}`}
       >
         <div className="px-4 pb-4">
+          <Dialog
+            open={itunesPreSearchOpen}
+            onOpenChange={setItunesPreSearchOpen}
+          >
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Enter song info</DialogTitle>
+                <DialogDescription>
+                  Title and artist are required before searching iTunes.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 mt-4">
+                <div>
+                  <label className="text-sm font-medium">Title</label>
+                  <input
+                    className="w-full border rounded px-2 py-1 mt-1"
+                    value={preSearchTitle}
+                    onChange={(e) => setPreSearchTitle(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Artist</label>
+                  <input
+                    className="w-full border rounded px-2 py-1 mt-1"
+                    value={preSearchArtist}
+                    onChange={(e) => setPreSearchArtist(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">
+                    Album (optional)
+                  </label>
+                  <input
+                    className="w-full border rounded px-2 py-1 mt-1"
+                    value={preSearchAlbum}
+                    onChange={(e) => setPreSearchAlbum(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setItunesPreSearchOpen(false)}
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    setItunesPreSearchOpen(false);
+                    getItunesSong(
+                      preSearchTitle,
+                      preSearchAlbum,
+                      preSearchArtist,
+                    );
+                  }}
+                >
+                  Search
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={itunesModalOpen} onOpenChange={setItunesModalOpen}>
+            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Select the correct iTunes match</DialogTitle>
+                <DialogDescription>
+                  Multiple results were found. Choose the correct one below.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-2 mt-4">
+                {itunesResults.map((r) => {
+                  const thumb = r.artworkUrl100
+                    ? r.artworkUrl100.replace("100x100bb", "60x60bb")
+                    : null;
+
+                  return (
+                    <button
+                      key={r.trackId}
+                      type="button"
+                      className="w-full flex items-center gap-3 p-3 border rounded hover:bg-muted transition text-left"
+                      onClick={async () => {
+                        await applyItunesMetadata(r);
+                        setItunesModalOpen(false);
+                      }}
+                    >
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt={r.trackName}
+                          className="w-12 h-12 rounded object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                          No Art
+                        </div>
+                      )}
+
+                      <div className="flex flex-col">
+                        <span className="font-medium">{r.trackName}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {r.artistName} — {r.collectionName}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setItunesModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)}>
               <DrawerHeader>
@@ -177,9 +460,41 @@ export function Id3Drawer({
                   </div>
 
                   <div className="absolute right-0 top-0 flex gap-2">
-                    <Button type="submit">
-                      <SaveIcon />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button type="submit">
+                          <SaveIcon />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Save Changes</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button type="button" onClick={initiatePreSearch}>
+                          <DownloadCloudIcon />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Find song metadata from online sources</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="secondary"
+                          className="border border-neutral-600"
+                          type="reset"
+                          onClick={resetAllDirtyFields}
+                        >
+                          <ListRestartIcon />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Reset Changes</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <DrawerClose asChild>
                       <Button variant="outline" type="button">
                         <XIcon />
@@ -208,6 +523,18 @@ export function Id3Drawer({
                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <div className="md:row-span-3 lg:row-span-3 flex flex-col items-start">
                       <div className="w-full">
+                        <div className="flex items-center justify-start gap-3 w-full mb-1">
+                          <span className="text-sm font-medium">Album Art</span>
+
+                          <button
+                            type="button"
+                            onClick={resetAlbumArt}
+                            hidden={!dirty.picture}
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            Reset
+                          </button>
+                        </div>
                         <label
                           htmlFor="album-art-input"
                           className="
@@ -220,7 +547,7 @@ export function Id3Drawer({
                             <img
                               src={previewArt}
                               alt="Album Art"
-                              className="object-cover w-full h-full"
+                              className={`object-cover w-full h-full ${dirty.picture ? 'border border-blue-400': ''}`}
                             />
                           ) : form.watch("picture") ? (
                             <img
@@ -301,16 +628,33 @@ export function Id3Drawer({
 
                           return (
                             <FormItem>
-                              <FormLabel>{label}</FormLabel>
+                              <FormLabel className="flex items-center gap-2">
+                                {label}
+
+                                <button
+                                  type="button"
+                                  hidden={!dirty[name]}
+                                  onClick={() =>
+                                    resetField(name as keyof Id3FormValues)
+                                  }
+                                  className="text-xs text-blue-600 hover:underline"
+                                >
+                                  Reset
+                                </button>
+                              </FormLabel>
 
                               <AutocompleteInput
-                                label={label}
                                 value={field.value}
                                 onChange={(v) => {
                                   field.onChange(v);
                                   markDirty(name as keyof Id3FormValues);
                                 }}
                                 uniqueValues={uniqueValues}
+                                className={
+                                  dirty[name]
+                                    ? "focus-visible:border-blue-400 focus-visible:ring-blue-400/50 border-blue-500"
+                                    : ""
+                                }
                                 placeholder={
                                   initialValues[name as keyof Id3FormValues] ===
                                   ""
@@ -347,16 +691,33 @@ export function Id3Drawer({
 
                           return (
                             <FormItem>
-                              <FormLabel>{label}</FormLabel>
+                              <FormLabel className="flex items-center gap-2">
+                                {label}
+
+                                <button
+                                  type="button"
+                                  hidden={!dirty[name]}
+                                  onClick={() =>
+                                    resetField(name as keyof Id3FormValues)
+                                  }
+                                  className="text-xs text-blue-600 hover:underline"
+                                >
+                                  Reset
+                                </button>
+                              </FormLabel>
 
                               <AutocompleteInput
-                                label={label}
                                 value={field.value}
                                 onChange={(v) => {
                                   field.onChange(v);
                                   markDirty(name as keyof Id3FormValues);
                                 }}
                                 uniqueValues={uniqueValues}
+                                className={
+                                  dirty[name]
+                                    ? "focus-visible:border-blue-400 focus-visible:ring-blue-400/50 border-blue-500"
+                                    : ""
+                                }
                                 placeholder={
                                   initialValues[name as keyof Id3FormValues] ===
                                   ""
@@ -395,16 +756,33 @@ export function Id3Drawer({
 
                           return (
                             <FormItem>
-                              <FormLabel>{label}</FormLabel>
+                              <FormLabel className="flex items-center gap-2">
+                                {label}
+
+                                <button
+                                  type="button"
+                                  hidden={!dirty[name]}
+                                  onClick={() =>
+                                    resetField(name as keyof Id3FormValues)
+                                  }
+                                  className="text-xs text-blue-600 hover:underline"
+                                >
+                                  Reset
+                                </button>
+                              </FormLabel>
 
                               <AutocompleteInput
-                                label={label}
                                 value={field.value}
                                 onChange={(v) => {
                                   field.onChange(v);
                                   markDirty(name as keyof Id3FormValues);
                                 }}
                                 uniqueValues={uniqueValues}
+                                className={
+                                  dirty[name]
+                                    ? "focus-visible:border-blue-400 focus-visible:ring-blue-400/50 border-blue-500"
+                                    : ""
+                                }
                                 placeholder={
                                   initialValues[name as keyof Id3FormValues] ===
                                   ""
