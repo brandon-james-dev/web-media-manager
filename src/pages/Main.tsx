@@ -47,7 +47,11 @@ import {
 import { useSongsInDb } from "@/hooks/songQueryHooks";
 import { type SortingState } from "@tanstack/react-table";
 import { useCountPendingArtwork } from "@/hooks/thumbnailQueryHooks";
-import { requestAlbumArtWrite, startPendingArtLoop } from "@/lib/albumArtWorkerClient";
+import {
+  requestAlbumArtWrite,
+  startPendingArtLoop,
+} from "@/lib/albumArtWorkerClient";
+import fuzzysearch from "fuzzysearch-ts";
 
 export default function Main() {
   const songs = useSongsInDb() || [];
@@ -66,7 +70,7 @@ export default function Main() {
   ]);
 
   const filteredSongs = useMemo(() => {
-    const q = debouncedSearch.toLowerCase();
+    const q = debouncedSearch.toLowerCase().replace(/[^A-Za-z]/g, "");
     if (!q) return songs;
 
     return songs.filter((song) => {
@@ -76,10 +80,10 @@ export default function Main() {
       const albumArtist = song.tags?.albumArtist?.toLowerCase() ?? "";
 
       return (
-        title.includes(q) ||
-        artist.includes(q) ||
-        album.includes(q) ||
-        albumArtist.includes(q)
+        fuzzysearch(q, title) ||
+        fuzzysearch(q, artist) ||
+        fuzzysearch(q, album) ||
+        fuzzysearch(q, albumArtist)
       );
     });
   }, [songs, debouncedSearch]);
@@ -249,8 +253,11 @@ export default function Main() {
                     className="w-40"
                     variant={isBulkSelectEnabled ? "default" : "outline"}
                     onClick={() => {
-                      const lastSelectedSong = selectedSongs?.at(selectedSongs.length - 1);
-                      if (lastSelectedSong) setSelectedSongs([lastSelectedSong]);
+                      const lastSelectedSong = selectedSongs?.at(
+                        selectedSongs.length - 1,
+                      );
+                      if (lastSelectedSong)
+                        setSelectedSongs([lastSelectedSong]);
                       setIsBulkSelectEnabled(!isBulkSelectEnabled);
                     }}
                   >
@@ -323,16 +330,14 @@ export default function Main() {
           for (const song of updatedSongs) {
             if (!song.tags) continue;
             await useInsertPendingWrite(song.id, song.tags);
-            
+
             if (pendingAlbumArt) {
-              requestAlbumArtWrite(
-                song.id,
-                song.fileHandle,
-                pendingAlbumArt
-              );
+              requestAlbumArtWrite(song.id, song.fileHandle, pendingAlbumArt);
             }
             startWriteLoop();
           }
+
+          setSelectedSongs(updatedSongs);
 
           setDrawerOpen(false);
         }}

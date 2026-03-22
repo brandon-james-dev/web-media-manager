@@ -24,10 +24,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
+import fuzzysearch from "fuzzysearch-ts";
 import { getSong, type MusicResult } from "itunes-web-api";
 
 import type { Id3FormValues, Song } from "@/models";
 import {
+  ArrowDownIcon,
   DownloadCloudIcon,
   ImagePlusIcon,
   ListRestartIcon,
@@ -50,6 +52,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 type Id3DrawerProps = {
   isOpen: boolean;
@@ -75,6 +78,7 @@ export function Id3Drawer({
 }: Id3DrawerProps) {
   const isMulti = selectedSongs.length > 1;
   const primarySong = selectedSongs[0];
+  const [isAlbumArtLoading, setIsAlbumArtLoading] = useState(false);
   const [previewArt, setPreviewArt] = useState<string | null>(null);
   const pendingAlbumArtRef = useRef<Uint8Array | null>(null);
 
@@ -128,41 +132,50 @@ export function Id3Drawer({
   async function applyItunesMetadata(result: MusicResult) {
     if (result.trackName) {
       form.setValue("title", result.trackName);
-      markDirty("title");
+      markDirty("title", result.trackName);
     }
 
     if (result.artistName) {
       form.setValue("artist", result.artistName);
-      markDirty("artist");
+      markDirty("artist", result.artistName);
     }
 
     if (result.collectionName) {
       form.setValue("album", result.collectionName);
-      markDirty("album");
+      markDirty("album", result.collectionName);
     }
 
     if (result.primaryGenreName) {
       form.setValue("genre", result.primaryGenreName);
-      markDirty("genre");
+      markDirty("genre", result.primaryGenreName);
     }
 
     if (result.releaseDate) {
       const year = new Date(result.releaseDate).getFullYear();
       form.setValue("year", year);
-      markDirty("year");
+      markDirty("year", year);
     }
 
     if (result.artworkUrl100) {
-      const bestQualityAlbumArt = result.artworkUrl100.replace("100x100bb", "3000x3000bb");
+      setIsAlbumArtLoading(true);
+      const bestQualityAlbumArt = result.artworkUrl100.replace(
+        "100x100bb",
+        "1000x1000bb",
+      );
       const imageBytes = await downloadImageBytes(bestQualityAlbumArt);
-      const imageBlob = new Blob([imageBytes] as BlobPart[], { type: "image/jpeg" });
+      const imageBlob = new Blob([imageBytes] as BlobPart[], {
+        type: "image/jpeg",
+      });
       const imageBitmap = await createImageBitmap(imageBlob);
-      const imageDataForUpdate = arrayBufferToBase64(await imageBlob.arrayBuffer());
+      const imageDataForUpdate = arrayBufferToBase64(
+        await imageBlob.arrayBuffer(),
+      );
       const imageDataBlobForPreview = await resizeBitmap(imageBitmap, 128);
       form.setValue("picture", [imageDataForUpdate]);
       setPreviewArt(URL.createObjectURL(imageDataBlobForPreview));
       pendingAlbumArtRef.current = imageBytes;
-      markDirty("picture");
+      setIsAlbumArtLoading(false);
+      markDirty("picture", imageDataForUpdate);
     }
   }
 
@@ -219,8 +232,8 @@ export function Id3Drawer({
 
   const getItunesSong = async (
     title: string,
-    album?: string,
     artist?: string,
+    album?: string,
   ) => {
     const queryParts = [title];
 
@@ -235,17 +248,35 @@ export function Id3Drawer({
       limit: 25,
     });
 
-    if (!results || results.resultCount === 0) {
-      console.warn("No iTunes results found");
+    let itunesSongs: MusicResult[] = [];
+
+    try {
+      const filterableTitle = title.toLowerCase().replace(/[^A-Za-z]/g, "");
+      const filteredResults = results.results.filter((r) =>
+        fuzzysearch(
+          filterableTitle,
+          r.trackName.toLowerCase().replace(/[^A-Za-z]/g, ""),
+        ),
+      );
+
+      if (!filteredResults || filteredResults.length === 0) {
+        throw new Error("No iTunes results found");
+      }
+
+      itunesSongs = filteredResults;
+    } catch (error) {
+      if (!results.results || results.resultCount === 0) {
+        throw new Error("No iTunes results found");
+      }
+      itunesSongs = results.results;
+    }
+
+    if (itunesSongs.length === 1) {
+      await applyItunesMetadata(itunesSongs[0]);
       return;
     }
 
-    if (results.resultCount === 1) {
-      await applyItunesMetadata(results.results[0]);
-      return;
-    }
-
-    setItunesResults(results.results);
+    setItunesResults(itunesSongs);
     setItunesModalOpen(true);
   };
 
@@ -253,6 +284,8 @@ export function Id3Drawer({
     if (!isOpen || !selectedSongs.length) return;
 
     form.reset(initialValues);
+    setPreviewArt(null);
+    setIsAlbumArtLoading(false);
     setDirty({});
 
     let cleanup: (() => void) | undefined;
@@ -275,8 +308,12 @@ export function Id3Drawer({
     };
   }, [isOpen, selectedSongs, primarySong, form, initialValues]);
 
-  function markDirty(name: keyof Id3FormValues) {
-    setDirty((prev) => ({ ...prev, [name]: true }));
+  function markDirty(name: keyof Id3FormValues, value?: any) {
+    if (value != undefined) {
+      if (initialValues[name] != value) {
+        setDirty((prev) => ({ ...prev, [name]: true }));
+      }
+    }
   }
 
   async function handleSubmit(values: Id3FormValues) {
@@ -298,18 +335,49 @@ export function Id3Drawer({
     onOpenChange?.(false);
   }
 
-  const initiatePreSearch = () => {
+  const initiatePreSearch = async () => {
     const title = form.getValues("title");
     const artist = form.getValues("artist") || form.getValues("albumArtist");
+    const album = form.getValues("album");
 
-    if (!title || !artist) {
-      setPreSearchTitle(title || "");
+    if (!isMulti) {
+      if (!title || !artist) {
+        setPreSearchTitle(title || "");
+        setPreSearchArtist(artist || "");
+        setPreSearchAlbum(album || "");
+        setItunesPreSearchOpen(true);
+        return;
+      }
+      try {
+        await getItunesSong(title, artist, album);
+      } catch (error) {
+        console.error(`Could not find song ${title} - ${artist} - ${album}`);
+        try {
+          await getItunesSong(title, artist);
+        } catch (error) {
+          console.error(`Could not find song ${title} - ${artist}`);
+          try {
+            await getItunesSong(title);
+          } catch (error) {
+            console.error(`Could not find song ${title}`);
+            toast.error(String(error));
+          }
+        }
+      }
+      return;
+    }
+
+    if (!artist || !album) {
       setPreSearchArtist(artist || "");
+      setPreSearchAlbum(album || "");
+
       setItunesPreSearchOpen(true);
       return;
     }
 
-    getItunesSong(title, artist);
+    for (const song of selectedSongs) {
+      getItunesSong(song.tags!.title!, artist);
+    }
   };
 
   return (
@@ -325,17 +393,18 @@ export function Id3Drawer({
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Enter song info</DialogTitle>
-                <DialogDescription>
+                <DialogDescription hidden={isMulti}>
                   Title and artist are required before searching iTunes.
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4 mt-4">
-                <div>
+                <div hidden={isMulti}>
                   <label className="text-sm font-medium">Title</label>
                   <input
                     className="w-full border rounded px-2 py-1 mt-1"
                     value={preSearchTitle}
+                    required={!isMulti}
                     onChange={(e) => setPreSearchTitle(e.target.value)}
                   />
                 </div>
@@ -351,11 +420,12 @@ export function Id3Drawer({
 
                 <div>
                   <label className="text-sm font-medium">
-                    Album (optional)
+                    Album<span hidden={isMulti}> (optional)</span>
                   </label>
                   <input
                     className="w-full border rounded px-2 py-1 mt-1"
                     value={preSearchAlbum}
+                    required={isMulti}
                     onChange={(e) => setPreSearchAlbum(e.target.value)}
                   />
                 </div>
@@ -405,8 +475,8 @@ export function Id3Drawer({
                       type="button"
                       className="w-full flex items-center gap-3 p-3 border rounded hover:bg-muted transition text-left"
                       onClick={async () => {
-                        await applyItunesMetadata(r);
                         setItunesModalOpen(false);
+                        await applyItunesMetadata(r);
                       }}
                     >
                       {thumb ? (
@@ -462,12 +532,34 @@ export function Id3Drawer({
                   <div className="absolute right-0 top-0 flex gap-2">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button type="submit">
+                        <Button
+                          type="submit"
+                          className="bg-blue-500 hover:bg-blue-800 text-white"
+                          disabled={
+                            Object.keys(dirty).length == 0 || isAlbumArtLoading
+                          }
+                        >
                           <SaveIcon />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Save Changes</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="secondary"
+                          className="border border-neutral-600"
+                          disabled={Object.keys(dirty).length == 0}
+                          type="reset"
+                          onClick={resetAllDirtyFields}
+                        >
+                          <ListRestartIcon />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Reset Changes</p>
                       </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -478,21 +570,6 @@ export function Id3Drawer({
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Find song metadata from online sources</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="secondary"
-                          className="border border-neutral-600"
-                          type="reset"
-                          onClick={resetAllDirtyFields}
-                        >
-                          <ListRestartIcon />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Reset Changes</p>
                       </TooltipContent>
                     </Tooltip>
                     <DrawerClose asChild>
@@ -547,7 +624,7 @@ export function Id3Drawer({
                             <img
                               src={previewArt}
                               alt="Album Art"
-                              className={`object-cover w-full h-full ${dirty.picture ? 'border border-blue-400': ''}`}
+                              className={`object-cover w-full h-full ${dirty.picture ? "border border-blue-400" : ""}`}
                             />
                           ) : form.watch("picture") ? (
                             <img
@@ -567,6 +644,7 @@ export function Id3Drawer({
                           )}
 
                           <div
+                            hidden={isAlbumArtLoading}
                             className="
                               absolute inset-0 bg-black/40 opacity-0 
                               group-hover:opacity-100 transition-opacity 
@@ -574,6 +652,19 @@ export function Id3Drawer({
                             "
                           >
                             <ImagePlusIcon />
+                          </div>
+                          <div
+                            hidden={!isAlbumArtLoading}
+                            className="
+                              absolute inset-0 bg-black/40
+                              border border-blue-500
+                              flex items-center justify-center text-blue-500 text-sm
+                            "
+                          >
+                            <ArrowDownIcon
+                              className="w-6 h-6 text-blue-400 arrow-down-animate"
+                              strokeWidth={2}
+                            />
                           </div>
                         </label>
 
@@ -602,7 +693,7 @@ export function Id3Drawer({
                             const previewUrl =
                               URL.createObjectURL(resizedAlbumArt);
                             setPreviewArt(previewUrl);
-                            markDirty("picture");
+                            markDirty("picture", bytes);
                             pendingAlbumArtRef.current = bytes;
                           }}
                         />
@@ -647,7 +738,7 @@ export function Id3Drawer({
                                 value={field.value}
                                 onChange={(v) => {
                                   field.onChange(v);
-                                  markDirty(name as keyof Id3FormValues);
+                                  markDirty(name as keyof Id3FormValues, v);
                                 }}
                                 uniqueValues={uniqueValues}
                                 className={
@@ -710,7 +801,7 @@ export function Id3Drawer({
                                 value={field.value}
                                 onChange={(v) => {
                                   field.onChange(v);
-                                  markDirty(name as keyof Id3FormValues);
+                                  markDirty(name as keyof Id3FormValues, v);
                                 }}
                                 uniqueValues={uniqueValues}
                                 className={
@@ -775,7 +866,7 @@ export function Id3Drawer({
                                 value={field.value}
                                 onChange={(v) => {
                                   field.onChange(v);
-                                  markDirty(name as keyof Id3FormValues);
+                                  markDirty(name as keyof Id3FormValues, v);
                                 }}
                                 uniqueValues={uniqueValues}
                                 className={
