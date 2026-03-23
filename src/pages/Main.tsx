@@ -262,7 +262,7 @@ export default function Main() {
                     }}
                   >
                     <CheckCheck />
-                    Bulk Edit
+                    Bulk Selection
                   </Button>
                   <Button className="w-40" onClick={() => setDrawerOpen(true)}>
                     <PenIcon />
