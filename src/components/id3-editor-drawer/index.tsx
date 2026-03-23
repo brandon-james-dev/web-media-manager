@@ -51,7 +51,7 @@ import { getItunesSong } from "./online-src-helpers/getItunesSong";
 import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import type { MusicResult } from "itunes-web-api";
 
-type Props = {
+type Id3EditorDrawerProps = {
   isOpen: boolean;
   onOpenChange?: (open: boolean) => void;
   selectedSongs: Song[];
@@ -66,13 +66,8 @@ function getInitialValue(key: any, songs: Song[]) {
   return allSame ? first : "";
 }
 
-export function Id3EditorDrawer({
-  isOpen,
-  selectedSongs,
-  onOpenChange,
-  onSave,
-  className,
-}: Props) {
+export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
+  const { isOpen, selectedSongs, onOpenChange, onSave, className } = props;
   const isMulti = selectedSongs.length > 1;
   const primarySong = selectedSongs[0];
 
