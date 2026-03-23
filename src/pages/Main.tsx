@@ -22,11 +22,11 @@ import {
   CheckCheck,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Song } from "../models/Song";
+import type { Song } from "@/models/Song";
 import { Link } from "react-router";
 import useFileSystemAccess, { showDirectoryPicker } from "use-fs-access";
 import { SongTable } from "@/components/song-table";
-import { Id3Drawer } from "@/components/id3-drawer";
+import { Id3EditorDrawer } from "@/components/id3-editor-drawer";
 import {
   startWriteLoop,
   subscribeToWriteEvents,
@@ -322,7 +322,7 @@ export default function Main() {
         </div>
       </div>
 
-      <Id3Drawer
+      <Id3EditorDrawer
         isOpen={drawerOpen}
         selectedSongs={selectedSongs}
         onOpenChange={setDrawerOpen}
