@@ -24,4 +24,15 @@ async function sortPendingImportsByCol(
   return await query.toArray();
 }
 
-export { useInsertPendingImport, sortPendingImportsByCol };
+async function sortPendingArtByCol(
+  colName: string,
+  direction: "asc" | "desc" = "asc",
+) {
+  let query = mediaDb.pendingArt.orderBy(colName);
+  if (direction == "asc") {
+    query = query.reverse();
+  }
+  return await query.toArray();
+}
+
+export { useInsertPendingImport, sortPendingImportsByCol, sortPendingArtByCol };

@@ -52,7 +52,6 @@ import {
   startPendingArtLoop,
 } from "@/lib/albumArtWorkerClient";
 import fuzzysearch from "fuzzysearch-ts";
-import { useSongRepository } from "@/data/useSongRepository";
 import { base64ToArrayBuffer } from "@/lib/utils";
 
 export default function Main() {
@@ -129,7 +128,7 @@ export default function Main() {
     const directoryEntries = await openDirectory(dir);
     const filesMap = new Map(directoryEntries?.entries());
     const filesInDirectory = Array.from(filesMap.values()).filter(
-      (fd) => fd.kind === "file",
+      (fd) => fd.kind === "file" && fd.type.includes("audio/mpeg") && fd.path.toLowerCase().endsWith(".mp3",),
     );
 
     for (const entry of filesInDirectory) {
