@@ -3,14 +3,11 @@
 import fuzzysearch from "fuzzysearch-ts";
 import { getSong, type MusicResult } from "itunes-web-api";
 
-export async function getItunesSong(
+export async function getItunesSongMatches(
   title: string,
   artist: string | undefined,
   album: string | undefined,
-  applyMetadata: (r: MusicResult) => Promise<void>,
-  setItunesResults: (r: MusicResult[]) => void,
-  setItunesModalOpen: (v: boolean) => void,
-) {
+): Promise<MusicResult[]> {
   const queryParts = [title];
   if (artist) queryParts.push(artist);
   if (album) queryParts.push(album);
@@ -40,17 +37,8 @@ export async function getItunesSong(
 
     matches = filtered;
   } catch {
-    if (!results.results || results.resultCount === 0) {
-      throw new Error("No iTunes results found");
-    }
     matches = results.results;
   }
 
-  if (matches.length === 1) {
-    await applyMetadata(matches[0]);
-    return;
-  }
-
-  setItunesResults(matches);
-  setItunesModalOpen(true);
+  return matches;
 }

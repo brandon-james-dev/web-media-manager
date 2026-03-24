@@ -1,8 +1,7 @@
-"use client";
-
 import type { MusicResult } from "itunes-web-api";
-import { arrayBufferToBase64 } from "@/lib/utils";
-import { downloadImageBytes, resizeBitmap } from "@/lib/albumArt";
+import { extractItunesMetadata } from "./extractItunesMetadata";
+import { resizeBitmap } from "@/lib/albumArt";
+import { base64ToArrayBuffer } from "@/lib/utils";
 
 export async function applyItunesMetadata(
   result: MusicResult,
@@ -10,55 +9,58 @@ export async function applyItunesMetadata(
   markDirty: (name: string, value?: any) => void,
   setPreviewArt: (url: string | null) => void,
   setIsAlbumArtLoading: (v: boolean) => void,
-  pendingAlbumArtRef: React.RefObject<Uint8Array | null>,
 ) {
-  if (result.trackName) {
-    form.setValue("title", result.trackName);
-    markDirty("title", result.trackName);
+  const meta = await extractItunesMetadata(result);
+
+  if (meta.title) {
+    form.setValue("title", meta.title);
+    markDirty("title", meta.title);
   }
 
-  if (result.artistName) {
-    form.setValue("artist", result.artistName);
-    markDirty("artist", result.artistName);
+  if (meta.artist) {
+    form.setValue("artist", meta.artist);
+    markDirty("artist", meta.artist);
   }
 
-  if (result.collectionName) {
-    form.setValue("album", result.collectionName);
-    markDirty("album", result.collectionName);
+  if (meta.album) {
+    form.setValue("album", meta.album);
+    markDirty("album", meta.album);
   }
 
-  if (result.primaryGenreName) {
-    form.setValue("genre", result.primaryGenreName);
-    markDirty("genre", result.primaryGenreName);
+  if (meta.genre) {
+    form.setValue("genre", meta.genre);
+    markDirty("genre", meta.genre);
   }
 
-  if (result.releaseDate) {
-    const year = new Date(result.releaseDate).getFullYear();
-    form.setValue("year", year);
-    markDirty("year", year);
+  if (meta.year) {
+    form.setValue("year", meta.year);
+    markDirty("year", meta.year);
   }
 
-  if (result.artworkUrl100) {
+  if (meta.track) {
+    form.setValue("track", meta.track);
+    markDirty("track", meta.track);
+  }
+
+  if (meta.disc) {
+    form.setValue("disc", meta.disc);
+    markDirty("disc", meta.disc);
+  }
+
+  if (meta.picture) {
     setIsAlbumArtLoading(true);
 
-    const bestQualityAlbumArt = result.artworkUrl100.replace(
-      "100x100bb",
-      "2160x2160bb",
-    );
-
-    const imageBytes = await downloadImageBytes(bestQualityAlbumArt);
+    const base64 = meta.picture.at(0);
+    if (!base64) return;
+    const imageBytes = new Uint8Array(base64ToArrayBuffer(base64));
     const imageBlob = new Blob([imageBytes] as BlobPart[], {
       type: "image/jpeg",
     });
     const imageBitmap = await createImageBitmap(imageBlob);
-
-    const base64 = arrayBufferToBase64(await imageBlob.arrayBuffer());
     const resizedBlob = await resizeBitmap(imageBitmap, 128);
 
     form.setValue("picture", [base64]);
     setPreviewArt(URL.createObjectURL(resizedBlob));
-
-    pendingAlbumArtRef.current = imageBytes;
 
     markDirty("picture", base64);
     setIsAlbumArtLoading(false);

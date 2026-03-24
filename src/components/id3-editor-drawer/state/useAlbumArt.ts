@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import { resizeBitmap } from "@/lib/albumArt";
 
@@ -8,8 +8,6 @@ export function useAlbumArt(primarySong: any, form: any) {
   const [previewArt, setPreviewArt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadComplete, setDownloadComplete] = useState(false);
-
-  const pendingRef = useRef<Uint8Array | null>(null);
 
   async function resetAlbumArt() {
     if (!primarySong) return;
@@ -23,8 +21,6 @@ export function useAlbumArt(primarySong: any, form: any) {
       setPreviewArt(null);
       form.setValue("picture", undefined);
     }
-
-    pendingRef.current = null;
   }
 
   async function setArt(bytes: Uint8Array) {
@@ -34,8 +30,6 @@ export function useAlbumArt(primarySong: any, form: any) {
 
     const previewUrl = URL.createObjectURL(resized);
     setPreviewArt(previewUrl);
-
-    pendingRef.current = bytes;
   }
 
   return {
@@ -45,7 +39,6 @@ export function useAlbumArt(primarySong: any, form: any) {
     setIsLoading,
     downloadComplete,
     setDownloadComplete,
-    pendingRef,
     resetAlbumArt,
     setArt,
   };

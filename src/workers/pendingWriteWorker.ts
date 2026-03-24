@@ -50,6 +50,7 @@ async function processWriteJob(job: PendingWriteJob) {
     await writeUpdatedTagsToFile(song, updatedTags);
     //#endregion
     //#region Update database
+    delete updatedTags.picture;
     await mediaDb.songs.update(song.id, { tags: updatedTags });
     //#endregion
   } catch (err) {

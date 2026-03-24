@@ -1,6 +1,8 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { mediaDb } from "@/data";
+import { useEffect, useState } from "react";
 import type { SortingState } from "@tanstack/react-table";
+import type { Song } from "@/models";
 
 function useSongsInDbStatic() {
   return mediaDb.songs.toArray();
@@ -8,6 +10,32 @@ function useSongsInDbStatic() {
 
 function useSongsInDb() {
   return useLiveQuery(() => mediaDb.songs.toArray(), []);
+}
+
+function useSongById(id: string) {
+  const [song, setSong] = useState<Song | null>(null);
+
+  useEffect(() => {
+    if (!id) {
+      setSong(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function load() {
+      const result = await mediaDb.songs.get(id);
+      if (!cancelled) setSong(result ?? null);
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  return song;
 }
 
 function useSongsByArtistInDb(artist: string) {
@@ -55,6 +83,7 @@ function sortedByReactTable(sorting: SortingState) {
 export {
   useSongsInDb,
   useSongsInDbStatic,
+  useSongById,
   useSongsByArtistInDb,
   useSongsByAlbumInDb,
   sortedByReactTable,

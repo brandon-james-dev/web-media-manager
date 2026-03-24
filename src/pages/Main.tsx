@@ -52,6 +52,8 @@ import {
   startPendingArtLoop,
 } from "@/lib/albumArtWorkerClient";
 import fuzzysearch from "fuzzysearch-ts";
+import { useSongRepository } from "@/data/useSongRepository";
+import { base64ToArrayBuffer } from "@/lib/utils";
 
 export default function Main() {
   const songs = useSongsInDb() || [];
@@ -326,18 +328,26 @@ export default function Main() {
         isOpen={drawerOpen}
         selectedSongs={selectedSongs}
         onOpenChange={setDrawerOpen}
-        onSave={async (updatedSongs, pendingAlbumArt) => {
-          for (const song of updatedSongs) {
-            if (!song.tags) continue;
-            await useInsertPendingWrite(song.id, song.tags);
+        onSave={async (updatedSongs) => {
+          for (const [song, tags] of updatedSongs) {
+            if (!tags) continue;
+
+            let pendingAlbumArt: Uint8Array<ArrayBufferLike> | null = null;
+
+            if (tags.picture?.at(0)) {
+              pendingAlbumArt = new Uint8Array(
+                base64ToArrayBuffer(tags.picture.at(0)!),
+              );
+            }
+
+            await useInsertPendingWrite(song.id, tags);
 
             if (pendingAlbumArt) {
               requestAlbumArtWrite(song.id, song.fileHandle, pendingAlbumArt);
+              startPendingArtLoop();
             }
             startWriteLoop();
           }
-
-          setSelectedSongs(updatedSongs);
 
           setDrawerOpen(false);
         }}

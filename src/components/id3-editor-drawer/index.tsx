@@ -18,27 +18,11 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
+import { Form } from "@/components/ui/form";
 
-import {
-  SaveIcon,
-  ListRestartIcon,
-  DownloadCloudIcon,
-  XIcon,
-} from "lucide-react";
+import { Save, ListRestart, DownloadCloud, X } from "lucide-react";
 
 import type { Id3FormValues, Song } from "@/models";
-import { getUniqueValues } from "@/lib/utils";
-
-import { TextFieldRow } from "./fields/text-field-row";
-import { AlbumArtField } from "./fields/album-art-field";
 
 import { OnlineSrcPreSearchDialog } from "./dialogs/online-src-presearch-dialog";
 import { OnlineSrcResultsDialog } from "./dialogs/online-src-results-dialog";
@@ -46,17 +30,23 @@ import { OnlineSrcResultsDialog } from "./dialogs/online-src-results-dialog";
 import { useDirtyFields } from "./state/useDirtyFields";
 import { useAlbumArt } from "./state/useAlbumArt";
 
-import { applyItunesMetadata } from "./online-src-helpers/applyItunesMetaData";
-import { getItunesSong } from "./online-src-helpers/getItunesSong";
+import { applyItunesMetadata } from "./online-src-helpers/applyItunesMetadata";
+import { getItunesSongMatches } from "./online-src-helpers/getItunesSongMatches";
 import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import type { MusicResult } from "itunes-web-api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { useBulkSearch } from "./state/useBulkSearch";
+import { ManualId3EditorPanel } from "./panels/manual-id3-editor-panel";
+import { BulkSearchId3EditorPanel } from "./panels/bulk-search-id3-editor-panel";
+import { extractItunesMetadata } from "./online-src-helpers/extractItunesMetadata";
+import { useSongRepository } from "@/data/useSongRepository";
 
 type Id3EditorDrawerProps = {
   isOpen: boolean;
   onOpenChange?: (open: boolean) => void;
   selectedSongs: Song[];
   className?: string | null;
-  onSave?: (updatedSongs: Song[], pendingAlbumArt: Uint8Array | null) => void;
+  onSave?: (updatedSongs: Map<Song, Id3FormValues>) => void;
 };
 
 function getInitialValue(key: any, songs: Song[]) {
@@ -69,7 +59,7 @@ function getInitialValue(key: any, songs: Song[]) {
 export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
   const { isOpen, selectedSongs, onOpenChange, onSave, className } = props;
   const isMulti = selectedSongs.length > 1;
-  const primarySong = selectedSongs[0];
+  const primarySong = !isMulti ? selectedSongs[0] : null;
 
   const initialValues: Id3FormValues = useMemo(() => {
     if (!selectedSongs.length) {
@@ -123,7 +113,6 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     setPreviewArt,
     isLoading: isAlbumArtLoading,
     setIsLoading: setIsAlbumArtLoading,
-    pendingRef: pendingAlbumArtRef,
     resetAlbumArt,
     setArt,
   } = useAlbumArt(primarySong, form);
@@ -135,6 +124,31 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
 
   const [itunesResults, setItunesResults] = useState<MusicResult[]>([]);
   const [itunesModalOpen, setItunesModalOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState("manual");
+
+  const {
+    state: bulkState,
+    isRunning: bulkRunning,
+    progress: bulkProgress,
+    start: startBulkSearch,
+    cancel: cancelBulkSearch,
+    previewMatch,
+    selectMatch,
+  } = useBulkSearch(selectedSongs, async (title, artist, album) => {
+    const results = await getItunesSongMatches(title, artist, album);
+    return results;
+  });
+
+  const committedBulkMatches = useMemo(() => {
+    return bulkState.filter((entry) => entry.selectedMatchId !== null);
+  }, [bulkState]);
+
+  const uniqueAlbums: string[] = new Set(
+    selectedSongs.map((s) => s.tags?.album),
+  )
+    .values()
+    .toArray()
+    .filter((s) => s != undefined);
 
   async function handleApplyItunes(result: MusicResult) {
     await applyItunesMetadata(
@@ -143,7 +157,6 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
       markDirty,
       setPreviewArt,
       setIsAlbumArtLoading,
-      pendingAlbumArtRef,
     );
   }
 
@@ -152,26 +165,56 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     artist?: string,
     album?: string,
   ) {
-    await getItunesSong(
-      title,
-      artist,
-      album,
-      handleApplyItunes,
-      setItunesResults,
-      setItunesModalOpen,
-    );
+    const matches = await getItunesSongMatches(title, artist, album);
+
+    if (matches.length === 1) {
+      await handleApplyItunes(matches[0]);
+    }
+
+    setItunesResults(matches);
+    setItunesModalOpen(true);
+  }
+
+  async function processBulkSave() {
+    let updatedSongs = new Map<Song, Id3FormValues>();
+    for (const entry of committedBulkMatches) {
+      const match = entry.matches.find(
+        (m) => m.trackId === entry.selectedMatchId,
+      );
+      if (match) {
+        const formValues = await extractItunesMetadata(match);
+        const initialSong = await useSongRepository().getSongById(entry.id);
+
+        if (!initialSong) return;
+
+        let updated = {
+          ...initialSong,
+          tags: formValues,
+        };
+        if (formValues.picture?.at(0) !== undefined) {
+          updatedSongs.set(updated, updated.tags);
+        }
+      }
+      selectMatch(entry.id, null);
+    }
+
+    onSave?.(updatedSongs);
+    onOpenChange?.(false);
   }
 
   useEffect(() => {
     if (!isOpen || !selectedSongs.length) return;
 
+    setSelectedTab("manual");
     form.reset(initialValues);
+    resetAllDirtyFields(form, resetAlbumArt);
     setPreviewArt(null);
     setIsAlbumArtLoading(false);
 
     let cleanup: (() => void) | undefined;
 
     async function loadArt() {
+      if (isMulti) return;
       if (!primarySong) return;
 
       const art = await getStaticThumbnail(primarySong.id);
@@ -193,19 +236,20 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     if (!selectedSongs.length) return;
 
     const updated = selectedSongs.map((song) => {
-      const next = { ...song, tags: { ...song.tags } as any };
+      const next = { song, tags: { ...song.tags } as any };
 
       for (const key in dirty) {
-        if (key !== "picture") {
-          next.tags[key] = values[key as keyof Id3FormValues];
-        }
+        next.tags[key] = values[key as keyof Id3FormValues];
       }
 
       return next;
     });
 
-    onSave?.(updated, pendingAlbumArtRef.current);
-    onOpenChange?.(false);
+    const updatedMap = new Map(
+      updated.map((k) => [k.song, k.tags as Id3FormValues] as const),
+    );
+
+    onSave?.(updatedMap);
   }
 
   function initiatePreSearch() {
@@ -234,8 +278,22 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     }
 
     for (const song of selectedSongs) {
-      handleGetItunesSong(song.tags!.title!, artist);
+      handleGetItunesSong(song.tags?.title!, artist);
     }
+  }
+
+  function onTabSelect(selectedTab: string) {
+    resetAllDirtyFields(form, resetAlbumArt);
+    setSelectedTab(selectedTab);
+  }
+
+  let isSavingDisabled = Object.keys(dirty).length === 0 || isAlbumArtLoading;
+  let isResetDisabled = Object.keys(dirty).length === 0;
+
+  if (selectedTab === "bulk-search") {
+    const hasCommitted = committedBulkMatches.length > 0;
+    isSavingDisabled = !hasCommitted;
+    isResetDisabled = !hasCommitted;
   }
 
   return (
@@ -291,13 +349,18 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          type="submit"
+                          type="button"
                           className="bg-blue-500 hover:bg-blue-800 text-white"
-                          disabled={
-                            Object.keys(dirty).length === 0 || isAlbumArtLoading
-                          }
+                          disabled={isSavingDisabled}
+                          onClick={async () => {
+                            if (isMulti) {
+                              await processBulkSave();
+                            } else {
+                              form.handleSubmit(handleSubmit)();
+                            }
+                          }}
                         >
-                          <SaveIcon />
+                          <Save />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -310,13 +373,19 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
                         <Button
                           variant="secondary"
                           className="border border-neutral-600"
-                          disabled={Object.keys(dirty).length === 0}
-                          type="reset"
-                          onClick={() =>
-                            resetAllDirtyFields(form, resetAlbumArt)
-                          }
+                          disabled={isResetDisabled}
+                          type="button"
+                          onClick={() => {
+                            if (isMulti) {
+                              for (const entry of committedBulkMatches) {
+                                selectMatch(entry.id, null);
+                              }
+                            } else {
+                              resetAllDirtyFields(form, resetAlbumArt);
+                            }
+                          }}
                         >
-                          <ListRestartIcon />
+                          <ListRestart />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -326,8 +395,12 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
 
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button type="button" onClick={initiatePreSearch}>
-                          <DownloadCloudIcon />
+                        <Button
+                          type="button"
+                          disabled={isMulti}
+                          onClick={initiatePreSearch}
+                        >
+                          <DownloadCloud />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -337,7 +410,7 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
 
                     <DrawerClose asChild>
                       <Button variant="outline" type="button">
-                        <XIcon />
+                        <X />
                       </Button>
                     </DrawerClose>
                   </div>
@@ -345,221 +418,47 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
               </DrawerHeader>
 
               <div className="space-y-8 lg:w-4xl mx-auto">
-                <div className="mt-2" hidden={!isMulti}>
-                  <details className="cursor-pointer">
-                    <summary className="text-sm text-muted-foreground">
-                      {selectedSongs.length} selected songs
-                    </summary>
-
-                    <ul className="mt-2 max-h-40 overflow-y-auto border rounded p-2 text-sm">
-                      {selectedSongs.map((song) => (
-                        <li key={song.id} className="py-0.5">
-                          {song.tags?.title || song.id} — {song.tags?.artist}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                </div>
-
-                <div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    <div className="md:row-span-3 lg:row-span-3 flex flex-col items-start">
-                      <AlbumArtField
-                        previewArt={previewArt}
-                        dirty={!!dirty.picture}
-                        isLoading={isAlbumArtLoading}
-                        downloadComplete={false}
-                        onSelectFile={(bytes) => {
-                          setArt(bytes);
-                          markDirty("picture", bytes);
-                        }}
-                        onReset={resetAlbumArt}
-                      />
-                    </div>
-
-                    {[
-                      ["title", "Title"],
-                      ["artist", "Artist"],
-                      ["album", "Album"],
-                      ["albumArtist", "Album Artist"],
-                      ["year", "Year"],
-                      ["genre", "Genre"],
-                    ].map(([name, label]) => {
-                      const fieldName = name as keyof Id3FormValues;
-                      const uniqueValues = getUniqueValues(
-                        fieldName as keyof Song["tags"],
-                        selectedSongs,
-                      );
-
-                      return (
-                        <TextFieldRow
-                          key={name}
-                          name={name}
-                          label={label}
-                          value={form.watch(fieldName)}
-                          onChange={(v) => {
-                            form.setValue(fieldName, v);
-                            markDirty(fieldName, v);
-                          }}
-                          dirty={!!dirty[fieldName]}
-                          onReset={() => resetField(fieldName, form)}
-                          uniqueValues={uniqueValues}
-                          placeholder={
-                            initialValues[fieldName] === ""
-                              ? "Multiple values"
-                              : undefined
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Track Position</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                      ["track", "Track Number"],
-                      ["disc", "Disc Number"],
-                    ].map(([name, label]) => {
-                      const fieldName = name as keyof Id3FormValues;
-                      const uniqueValues = getUniqueValues(
-                        fieldName as keyof Song["tags"],
-                        selectedSongs,
-                      );
-
-                      return (
-                        <TextFieldRow
-                          key={name}
-                          name={name}
-                          label={label}
-                          value={form.watch(fieldName)}
-                          onChange={(v) => {
-                            form.setValue(fieldName, v);
-                            markDirty(fieldName, v);
-                          }}
-                          dirty={!!dirty[fieldName]}
-                          onReset={() => resetField(fieldName, form)}
-                          uniqueValues={uniqueValues}
-                          placeholder={
-                            initialValues[fieldName] === ""
-                              ? "Multiple values"
-                              : undefined
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Credits</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                      ["composer", "Composer"],
-                      ["bpm", "BPM"],
-                      ["copyright", "Copyright"],
-                      ["encoder", "Encoder"],
-                    ].map(([name, label]) => {
-                      const fieldName = name as keyof Id3FormValues;
-                      const uniqueValues = getUniqueValues(
-                        fieldName as keyof Song["tags"],
-                        selectedSongs,
-                      );
-
-                      return (
-                        <TextFieldRow
-                          key={name}
-                          name={name}
-                          label={label}
-                          value={form.watch(fieldName)}
-                          onChange={(v) => {
-                            form.setValue(fieldName, v);
-                            markDirty(fieldName, v);
-                          }}
-                          dirty={!!dirty[fieldName]}
-                          onReset={() => resetField(fieldName, form)}
-                          uniqueValues={uniqueValues}
-                          placeholder={
-                            initialValues[fieldName] === ""
-                              ? "Multiple values"
-                              : undefined
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Text Fields</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name={"comment" as keyof Id3FormValues}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            Comment
-                            <button
-                              type="button"
-                              hidden={!dirty.comment}
-                              onClick={() => resetField("comment", form)}
-                              className="text-xs text-blue-600 hover:underline"
-                            >
-                              Reset
-                            </button>
-                          </FormLabel>
-                          <Textarea
-                            value={field.value ?? ""}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              field.onChange(v);
-                              markDirty("comment", v);
-                            }}
-                            placeholder={
-                              initialValues.comment === ""
-                                ? "Multiple values"
-                                : undefined
-                            }
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                <Tabs
+                  defaultValue="manual"
+                  value={selectedTab}
+                  onValueChange={onTabSelect}
+                  className="w-full"
+                >
+                  <TabsList hidden={!isMulti}>
+                    <TabsTrigger value="manual">Manual</TabsTrigger>
+                    <TabsTrigger value="bulk-search">
+                      Bulk Online Search
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="manual">
+                    <ManualId3EditorPanel
+                      selectedSongs={selectedSongs}
+                      form={form}
+                      dirty={dirty}
+                      markDirty={markDirty}
+                      resetField={resetField}
+                      previewArt={previewArt}
+                      isAlbumArtLoading={isAlbumArtLoading}
+                      setArt={setArt}
+                      resetAlbumArt={resetAlbumArt}
+                      initialValues={initialValues}
+                      uniqueAlbums={uniqueAlbums}
+                      isMulti={isMulti}
                     />
-                    <FormField
-                      control={form.control}
-                      name={"lyrics" as keyof Id3FormValues}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            Lyrics
-                            <button
-                              type="button"
-                              hidden={!dirty.lyrics}
-                              onClick={() => resetField("lyrics", form)}
-                              className="text-xs text-blue-600 hover:underline"
-                            >
-                              Reset
-                            </button>
-                          </FormLabel>
-                          <Textarea
-                            value={field.value ?? ""}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              field.onChange(v);
-                              markDirty("lyrics", v);
-                            }}
-                            placeholder={
-                              initialValues.lyrics === ""
-                                ? "Multiple values"
-                                : undefined
-                            }
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                  </TabsContent>
+                  <TabsContent value="bulk-search">
+                    <BulkSearchId3EditorPanel
+                      songs={selectedSongs}
+                      bulkState={bulkState}
+                      progress={bulkProgress}
+                      isRunning={bulkRunning}
+                      onStart={startBulkSearch}
+                      onCancel={cancelBulkSearch}
+                      previewMatch={previewMatch}
+                      selectMatch={selectMatch}
                     />
-                  </div>
-                </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             </form>
           </Form>

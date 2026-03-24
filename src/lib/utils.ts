@@ -22,7 +22,7 @@ export function arrayBufferToBase64(buffer: ArrayBufferLike): string {
   return btoa(binary);
 }
 
-function base64ToArrayBuffer(base64: string) {
+export function base64ToArrayBuffer(base64: string) {
   let binaryString;
 
   if (typeof atob === "function") {

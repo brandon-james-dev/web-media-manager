@@ -1,14 +1,16 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import type { MusicResult } from "itunes-web-api";
+import { XIcon } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -25,15 +27,29 @@ export function OnlineSrcResultsDialog({
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Select the correct match</DialogTitle>
-          <DialogDescription>
-            Multiple results were found. Choose the correct one below.
-          </DialogDescription>
+      <DialogContent
+        className="max-w-md max-h-[80vh] p-0 overflow-y-auto"
+        showCloseButton={false}
+      >
+        <DialogHeader className="sticky p-6 top-0 z-10 bg-background">
+          <div className="flex">
+            <div className="flex-1">
+              <DialogTitle className="mb-2">Select the correct match</DialogTitle>
+              <DialogDescription>
+                Multiple results were found. Choose the correct one below.
+              </DialogDescription>
+            </div>
+            <div className="shrink-0">
+              <DialogClose className="items-center" asChild>
+                <Button type="button" variant="ghost">
+                  <XIcon />
+                </Button>
+              </DialogClose>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-2 mt-4">
+        <div className="space-y-2 px-6 pb-6">
           {results.map((r) => {
             const thumb = r.artworkUrl100
               ? r.artworkUrl100.replace("100x100bb", "60x60bb")
@@ -70,12 +86,6 @@ export function OnlineSrcResultsDialog({
               </button>
             );
           })}
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

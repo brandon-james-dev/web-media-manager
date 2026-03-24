@@ -2,23 +2,26 @@
 
 import { ImagePlusIcon, ArrowDownIcon } from "lucide-react";
 
-type Props = {
+type AlbumArtFieldProps = {
   previewArt: string | null;
+  labelText?: string;
   dirty: boolean;
   isLoading: boolean;
-  downloadComplete: boolean;
   onSelectFile: (bytes: Uint8Array) => void;
   onReset: () => void;
+  disabled?: boolean;
 };
 
-export function AlbumArtField({
-  previewArt,
-  dirty,
-  isLoading,
-  downloadComplete,
-  onSelectFile,
-  onReset,
-}: Props) {
+export function AlbumArtField(props: AlbumArtFieldProps) {
+  const {
+    previewArt,
+    labelText,
+    dirty,
+    isLoading,
+    onSelectFile,
+    onReset,
+    disabled,
+  } = props;
   return (
     <div className="w-full">
       <div className="flex items-center justify-start gap-3 w-full mb-1">
@@ -36,11 +39,11 @@ export function AlbumArtField({
 
       <label
         htmlFor="album-art-input"
-        className="
+        className={`
           relative w-32 h-32 rounded border bg-muted 
           flex items-center justify-center overflow-hidden 
-          cursor-pointer group
-        "
+          group${!disabled ? ' cursor-pointer' : ''}
+        `}
       >
         {previewArt ? (
           <img
@@ -52,12 +55,16 @@ export function AlbumArtField({
           />
         ) : (
           <div className="flex flex-col gap-0.5 items-center">
-            <div className="text-sm text-muted-foreground">No Album Art</div>
-            <div className="text-xs text-muted-foreground">Click to Select</div>
+            <div className="text-sm text-center text-muted-foreground">
+              {labelText || "No Album Art"}
+            </div>
+            <div hidden={disabled} className="text-xs text-muted-foreground">
+              Click to Select
+            </div>
           </div>
         )}
 
-        {!isLoading && (
+        {!isLoading && !disabled && (
           <div
             className="
               absolute inset-0 bg-black/40 opacity-0 
@@ -90,6 +97,7 @@ export function AlbumArtField({
         type="file"
         accept="image/png, image/jpeg"
         className="hidden"
+        disabled={disabled}
         onChange={async (e) => {
           const files = e.target.files;
           if (!files || !files[0]) return;
