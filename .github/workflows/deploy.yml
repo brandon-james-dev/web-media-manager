@@ -15,11 +15,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        working-directory: ./web-media-manager
         run: npm ci
 
       - name: Build Vite site
-        working-directory: ./web-media-manager
         run: npm run build
 
       - name: Deploy to GitHub Pages
