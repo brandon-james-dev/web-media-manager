@@ -8,12 +8,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import "./index.css";
 import App from "./App.tsx";
 
+const basename =
+  import.meta.env.MODE === "production"
+    ? "/web-media-manager"
+    : "/";
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App>
       <ThemeProvider storageKey="vite-ui-theme">
         <TooltipProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={basename}>
             <Routes>
               <Route path="/" element={<Main />} />
               <Route path="/settings" element={<Settings />} />
