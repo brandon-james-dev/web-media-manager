@@ -18,8 +18,13 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm ci
-      - run: npm run build
+      - name: Install Dependencies
+        working-directory: ./web-media-manager
+        run: npm ci
+      
+      - name: Build Vite Site
+        working-directory: ./web-media-manager
+        run: npm run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
