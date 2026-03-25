@@ -177,25 +177,30 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
 
   async function processBulkSave() {
     let updatedSongs = new Map<Song, Id3FormValues>();
-    for (const entry of committedBulkMatches) {
-      const match = entry.matches.find(
-        (m) => m.trackId === entry.selectedMatchId,
-      );
-      if (match) {
-        const formValues = await extractItunesMetadata(match);
-        const initialSong = await useSongRepository().getSongById(entry.id);
 
-        if (!initialSong) return;
+    if (committedBulkMatches.length > 0) {
+      for (const entry of committedBulkMatches) {
+        const match = entry.matches.find(
+          (m) => m.trackId === entry.selectedMatchId,
+        );
+        if (match) {
+          const formValues = await extractItunesMetadata(match);
+          const initialSong = await useSongRepository().getSongById(entry.id);
 
-        let updated = {
-          ...initialSong,
-          tags: formValues,
-        };
-        if (formValues.picture?.at(0) !== undefined) {
-          updatedSongs.set(updated, updated.tags);
+          if (!initialSong) return;
+
+          let updated = {
+            ...initialSong,
+            tags: formValues,
+          };
+          if (formValues.picture?.at(0) !== undefined) {
+            updatedSongs.set(updated, updated.tags);
+          }
         }
+        selectMatch(entry.id, null);
       }
-      selectMatch(entry.id, null);
+    } else {
+      handleSubmit(form.getValues());
     }
 
     onSave?.(updatedSongs);
@@ -299,7 +304,7 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
       <DrawerContent
-        className={`id3-drawer max-h-[90vh] overflow-y-auto after:hidden ${className ?? ""}`}
+        className={`id3-drawer max-h-[90vh] overflow-y-auto outline-none after:hidden ${className ?? ""}`}
       >
         <div className="px-4 pb-4">
           <OnlineSrcPreSearchDialog

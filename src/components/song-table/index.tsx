@@ -1,5 +1,4 @@
 import {
-  type ColumnDef,
   type OnChangeFn,
   type SortingState,
   type RowSelectionState,
@@ -11,6 +10,15 @@ import {
 } from "@tanstack/react-table";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import type { Song } from "@/models";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+import { columns } from "./columns";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export type SongTableProps = {
   songs: Song[];
@@ -19,6 +27,8 @@ export type SongTableProps = {
   rowSelection?: Song[];
   onRowSelectionChange?: (songs: Song[]) => void;
   isBulkSelectEnabled: React.RefObject<boolean>;
+  onEnterKey?: () => void;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 export function SongTable({
@@ -28,8 +38,10 @@ export function SongTable({
   rowSelection = [],
   onRowSelectionChange,
   isBulkSelectEnabled = useRef<boolean>(false),
+  onEnterKey,
+  containerRef,
 }: SongTableProps) {
-  const tableRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
 
   const [internalRowSelection, setInternalRowSelection] =
     useState<RowSelectionState>({});
@@ -57,32 +69,6 @@ export function SongTable({
     }
     setInternalRowSelection(map);
   }, [rowSelection]);
-
-  const columns: ColumnDef<Song>[] = [
-    { accessorKey: "tags.title", header: "Title", size: 240, minSize: 80 },
-    { accessorKey: "tags.artist", header: "Artist", size: 160, minSize: 80 },
-    { accessorKey: "tags.album", header: "Album", size: 240, minSize: 80 },
-    { accessorKey: "tags.genre", header: "Genre", size: 140, minSize: 80 },
-    {
-      accessorKey: "duration",
-      header: "Duration",
-      size: 80,
-      minSize: 60,
-      cell: ({ getValue }) => {
-        const d = getValue<number>();
-        const m = Math.floor(d / 60);
-        const s = `${Math.floor(d % 60)}`.padStart(2, "0");
-        return `${m}:${s}`;
-      },
-    },
-    {
-      accessorKey: "bitrate",
-      header: "Bitrate",
-      size: 100,
-      minSize: 80,
-      cell: ({ getValue }) => `${Math.floor(getValue<number>() / 1000)} kbps`,
-    },
-  ];
 
   const table = useReactTable({
     data: songs,
@@ -128,6 +114,96 @@ export function SongTable({
       let index = rowIds.indexOf(currentId);
       if (index === -1) index = 0;
 
+      if (e.key === "a" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+
+        const all: RowSelectionState = {};
+        for (const id of rowIds) all[id] = true;
+
+        setInternalRowSelection(all);
+
+        if (onRowSelectionChange) {
+          const selectedSongs = songs.filter((s) => all[String(s.id)]);
+          onRowSelectionChange(selectedSongs);
+        }
+
+        anchorRef.current = rowIds[0];
+        setFocusedRowId(rowIds[0]);
+        scrollRowIntoView(rowIds[0]);
+        return;
+      }
+
+      if (e.key === "d" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+
+        setInternalRowSelection({});
+        onRowSelectionChange?.([]);
+        anchorRef.current = null;
+        setFocusedRowId(null);
+        return;
+      }
+
+      if (e.key === "Home") {
+        e.preventDefault();
+        const firstId = rowIds[0];
+
+        anchorRef.current = firstId;
+        setFocusedRowId(firstId);
+
+        const single: RowSelectionState = { [firstId]: true };
+        setInternalRowSelection(single);
+
+        onRowSelectionChange?.(songs.filter((s) => String(s.id) === firstId));
+        scrollRowIntoView(firstId);
+        return;
+      }
+
+      if (e.key === "End") {
+        e.preventDefault();
+        const lastId = rowIds[rowIds.length - 1];
+
+        anchorRef.current = lastId;
+        setFocusedRowId(lastId);
+
+        const single: RowSelectionState = { [lastId]: true };
+        setInternalRowSelection(single);
+
+        onRowSelectionChange?.(songs.filter((s) => String(s.id) === lastId));
+        scrollRowIntoView(lastId);
+        return;
+      }
+
+      if (e.key === "PageDown" || e.key === "PageUp") {
+        e.preventDefault();
+        const rowHeight = rowRefs.current[currentId]?.getBoundingClientRect().height ?? 28;
+
+        const container = containerRef?.current;
+        if (!container) return;
+
+        const viewportRows = Math.floor(container.clientHeight / rowHeight);
+        const delta = e.key === "PageDown" ? viewportRows : -viewportRows;
+
+        let nextIndex = Math.min(rows.length - 1, Math.max(0, index + delta));
+
+        const nextId = rowIds[nextIndex];
+
+        anchorRef.current = nextId;
+        setFocusedRowId(nextId);
+
+        const single: RowSelectionState = { [nextId]: true };
+        setInternalRowSelection(single);
+
+        onRowSelectionChange?.(songs.filter((s) => String(s.id) === nextId));
+        scrollRowIntoView(nextId);
+        return;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (onEnterKey) onEnterKey();
+        return;
+      }
+
       let nextIndex = index;
 
       if (e.key === "ArrowDown") {
@@ -153,10 +229,7 @@ export function SongTable({
         }
 
         setInternalRowSelection(range);
-        if (onRowSelectionChange) {
-          const selectedSongs = songs.filter((s) => range[String(s.id)]);
-          onRowSelectionChange(selectedSongs);
-        }
+        onRowSelectionChange?.(songs.filter((s) => range[String(s.id)]));
 
         setFocusedRowId(nextId);
         scrollRowIntoView(nextId);
@@ -169,10 +242,7 @@ export function SongTable({
       const single: RowSelectionState = { [nextId]: true };
       setInternalRowSelection(single);
 
-      if (onRowSelectionChange) {
-        const selectedSongs = songs.filter((s) => String(s.id) === nextId);
-        onRowSelectionChange(selectedSongs);
-      }
+      onRowSelectionChange?.(songs.filter((s) => String(s.id) === nextId));
 
       scrollRowIntoView(nextId);
     },
@@ -219,34 +289,27 @@ export function SongTable({
   }
 
   return (
-    <div
-      className="space-y-4 outline-none"
-      ref={tableRef}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-    >
+    <div tabIndex={0} onKeyDown={handleKeyDown} className="outline-none">
       <div className="rounded border border-zinc-300 dark:border-zinc-700">
         <table
+          ref={tableRef}
           className="min-w-max select-none border-collapse text-sm table-fixed"
           style={{
             width: "100%",
             minWidth: table.getTotalSize(),
           }}
         >
-          <thead className="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-b border-zinc-300 dark:border-zinc-700 sticky top-0 z-10 ">
+          <TableHeader className="bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-b border-zinc-300 dark:border-zinc-700 sticky top-0 z-10">
             {table.getHeaderGroups().map((hg) => (
-              <tr
-                key={hg.id}
-                className="after:content-['']"
-              >
+              <TableRow key={hg.id} className="after:content-['']">
                 {hg.headers.map((header) => (
-                  <th
+                  <TableHead
                     key={header.id}
-                    className="p-2 min-w-0 text-left select-none sticky top-0 z-10 bg-zinc-200 dark:bg-zinc-800"
+                    className="dark:hover:bg-white/10 p-2 min-w-0 text-left select-none sticky top-0 z-10"
                     style={{ width: header.getSize() }}
                   >
                     <div
-                      className="cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis"
+                      className="flex items-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis"
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       {flexRender(
@@ -254,8 +317,18 @@ export function SongTable({
                         header.getContext(),
                       )}
                       {{
-                        asc: " ▲",
-                        desc: " ▼",
+                        asc: (
+                          <ChevronUp
+                            className="inline-flex text-neutral-500"
+                            size={16}
+                          />
+                        ),
+                        desc: (
+                          <ChevronDown
+                            className="inline-flex text-neutral-500"
+                            size={16}
+                          />
+                        ),
                       }[header.column.getIsSorted() as string] ?? null}
                     </div>
 
@@ -269,13 +342,13 @@ export function SongTable({
                         z-20
                       "
                     />
-                  </th>
+                  </TableHead>
                 ))}
-              </tr>
+              </TableRow>
             ))}
-          </thead>
+          </TableHeader>
 
-          <tbody>
+          <TableBody className="text-xs">
             {rows.map((row) => (
               <SongRow
                 key={row.id}
@@ -286,7 +359,7 @@ export function SongTable({
                 rowRefs={rowRefs}
               />
             ))}
-          </tbody>
+          </TableBody>
         </table>
       </div>
     </div>
@@ -308,13 +381,14 @@ const SongRow = React.memo(
     rowRefs: React.RefObject<Record<string, HTMLTableRowElement | null>>;
   }) {
     return (
-      <tr
+      <TableRow
         ref={(el) => {
           rowRefs.current[row.id] = el;
         }}
         className={`
+          odd:bg-neutral-800/40
           border-b border-zinc-300 dark:border-zinc-700
-          cursor-pointer transition-colors relative after:content-['']
+          transition-colors relative after:content-['']
           hover:bg-zinc-100 dark:hover:bg-zinc-700
           ${isSelected ? "bg-blue-100 dark:bg-blue-900/40" : ""}
           ${
@@ -334,15 +408,15 @@ const SongRow = React.memo(
         onClick={onClick}
       >
         {row.getVisibleCells().map((cell: any) => (
-          <td
+          <TableCell
             key={cell.id}
-            className="p-2 whitespace-nowrap overflow-hidden text-ellipsis min-w-0"
+            className="p-1.5 whitespace-nowrap overflow-hidden text-ellipsis min-w-0"
             style={{ width: cell.column.getSize() }}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </td>
+          </TableCell>
         ))}
-      </tr>
+      </TableRow>
     );
   },
   (prev, next) =>

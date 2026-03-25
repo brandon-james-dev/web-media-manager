@@ -64,6 +64,7 @@ export default function Main() {
   bulkRef.current = isBulkSelectEnabled;
   const searchRef = useRef("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   //#region Song sorting and filtering
   const [sorting, setSorting] = useState<SortingState>([
@@ -128,7 +129,10 @@ export default function Main() {
     const directoryEntries = await openDirectory(dir);
     const filesMap = new Map(directoryEntries?.entries());
     const filesInDirectory = Array.from(filesMap.values()).filter(
-      (fd) => fd.kind === "file" && fd.type.includes("audio/mpeg") && fd.path.toLowerCase().endsWith(".mp3",),
+      (fd) =>
+        fd.kind === "file" &&
+        fd.type.includes("audio/mpeg") &&
+        fd.path.toLowerCase().endsWith(".mp3"),
     );
 
     for (const entry of filesInDirectory) {
@@ -245,6 +249,7 @@ export default function Main() {
                   <Button
                     className="w-40"
                     variant="outline"
+                    size="xs"
                     onClick={() => setSelectedSongs([])}
                   >
                     <XIcon />
@@ -252,6 +257,7 @@ export default function Main() {
                   </Button>
                   <Button
                     className="w-40"
+                    size="xs"
                     variant={isBulkSelectEnabled ? "default" : "outline"}
                     onClick={() => {
                       const lastSelectedSong = selectedSongs?.at(
@@ -265,14 +271,18 @@ export default function Main() {
                     <CheckCheck />
                     Bulk Selection
                   </Button>
-                  <Button className="w-40" onClick={() => setDrawerOpen(true)}>
+                  <Button
+                    className="w-40"
+                    size="xs"
+                    onClick={() => setDrawerOpen(true)}
+                  >
                     <PenIcon />
                     Edit
                   </Button>
                 </div>
               )}
               <div className="flex-1 w-full container-type-size">
-                <ScrollArea className="container-height">
+                <ScrollArea ref={scrollAreaRef} className="container-height">
                   {songs.length == 0 && (
                     <Empty>
                       <EmptyHeader className="pointer-events-none">
@@ -298,6 +308,8 @@ export default function Main() {
                       rowSelection={selectedSongs}
                       onRowSelectionChange={setSelectedSongs}
                       isBulkSelectEnabled={bulkRef}
+                      containerRef={scrollAreaRef}
+                      onEnterKey={() => setDrawerOpen(true)}
                     />
                   )}
 
@@ -308,7 +320,7 @@ export default function Main() {
             </div>
           </div>
 
-          <div className={`shrink-0${totalSongs === 0 ? " hidden" : ""}`}>
+          <div className="shrink-0" hidden={totalSongs == 0}>
             <div className="flex items-center gap-2">
               <Progress
                 value={(songs.length / totalSongs) * 100}

@@ -116,6 +116,7 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
         <Button
           type="button"
           variant="outline"
+          size="xs"
           onClick={onCancel}
           hidden={!isRunning}
           className="ml-4 px-4"
@@ -124,10 +125,11 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
         </Button>
 
         <Button
+          type="button"
+          size="xs"
           disabled={!isIdle}
           onClick={onStart}
           hidden={isRunning}
-          size="xs"
           variant={hasCompletedSearch ? "ghost" : "default"}
           className="ml-4 px-4"
         >
@@ -242,12 +244,15 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
                   className="flex justify-end gap-2 text-sm text-muted-foreground"
                   hidden={entry.status !== "done"}
                 >
-                  {useMemo(() => (
-                    <span hidden={entry.matches.length == 0}>
-                      {!isOpen && <ChevronDown />}
-                      {isOpen && <ChevronUp />}
-                    </span>
-                  ), [isOpen])}
+                  {useMemo(
+                    () => (
+                      <span hidden={entry.matches.length == 0}>
+                        {!isOpen && <ChevronDown />}
+                        {isOpen && <ChevronUp />}
+                      </span>
+                    ),
+                    [isOpen],
+                  )}
                 </div>
               </summary>
 
