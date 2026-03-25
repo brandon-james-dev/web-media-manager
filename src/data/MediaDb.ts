@@ -38,7 +38,7 @@ export class MediaDB extends Dexie {
         createdAt
       `,
       thumbnails: `
-        songId
+        songId,
         thumbSmall,
         thumbMedium,
         thumbLarge,
