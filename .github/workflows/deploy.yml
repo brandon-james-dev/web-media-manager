@@ -14,16 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install Dependencies
-        working-directory: ./web-media-manager
+      - name: Install dependencies
         run: npm ci
-      
-      - name: Build Vite Site
-        working-directory: ./web-media-manager
+
+      - name: Build Vite site
         run: npm run build
 
       - name: Deploy to GitHub Pages
