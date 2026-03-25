@@ -12,7 +12,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   worker: {
-    format: "es",
-    inline: true
+    format: "es"
   },
 }));

@@ -8,7 +8,8 @@ const listeners = new Set<Listener>();
 function ensureWorker() {
   if (!worker) {
     worker = new Worker(
-      new URL("@/workers/albumArtWorker.ts", import.meta.url), { type: "module" },
+      new URL("@/workers/albumArtWorker.ts?worker&inline", import.meta.url),
+      { type: "module" },
     );
     worker.onmessage = handleMessage;
   }

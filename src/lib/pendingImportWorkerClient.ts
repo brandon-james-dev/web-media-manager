@@ -1,6 +1,6 @@
 const worker = new Worker(
-  new URL("@/workers/pendingImportWorker.ts", import.meta.url),
-  { type: "module" }
+  new URL("@/workers/pendingImportWorker.ts?worker&inline", import.meta.url),
+  { type: "module" },
 );
 
 type Listener = (msg: any) => void;
@@ -13,7 +13,7 @@ worker.onmessage = (event) => {
 export function enqueueImportJob(jobId: number) {
   worker.postMessage({
     type: "start-job",
-    jobId
+    jobId,
   });
 }
 

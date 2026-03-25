@@ -1,6 +1,6 @@
 const worker = new Worker(
-  new URL("@/workers/pendingWriteWorker.ts", import.meta.url),
-  { type: "module" }
+  new URL("@/workers/pendingWriteWorker.ts?worker&inline", import.meta.url),
+  { type: "module" },
 );
 
 type Listener = (msg: any) => void;
