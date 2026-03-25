@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist -u \"github-actions-bot <github-actions@github.com>\" --repo https://x-access-token:${GITHUB_TOKEN}@github.com/brandon-james-dev/web-media-manager.git"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

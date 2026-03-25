@@ -13,11 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Configure Git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
