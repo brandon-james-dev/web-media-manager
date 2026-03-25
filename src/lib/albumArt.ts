@@ -8,6 +8,8 @@ export async function extractAlbumArtAndThumbnails(file: File) {
   if (!embedded) {
     return {
       original: null,
+      thumb512: null,
+      thumb256: null,
       thumb128: null,
       thumb64: null,
     };
@@ -19,13 +21,17 @@ export async function extractAlbumArtAndThumbnails(file: File) {
 
   const bitmap = await createImageBitmap(originalBlob);
 
+  const thumb512 = await resizeBitmap(bitmap, 512);
+  const thumb256 = await resizeBitmap(bitmap, 256);
   const thumb128 = await resizeBitmap(bitmap, 128);
   const thumb64 = await resizeBitmap(bitmap, 64);
 
   return {
     original: originalBlob,
+    thumb512,
+    thumb256,
     thumb128,
-    thumb64,
+    thumb64
   };
 }
 

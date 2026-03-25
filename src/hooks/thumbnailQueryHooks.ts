@@ -20,19 +20,35 @@ export async function getStaticThumbnail(songId: string) {
   if (!entry) {
     return {
       thumbSmall: null,
+      thumbMedium: null,
       thumbLarge: null,
+      thumbXLarge: null,
       originalUrl: null,
     };
   }
 
   const urls: string[] = [];
 
-  const thumbSmall = entry.thumbSmall ? URL.createObjectURL(entry.thumbSmall) : null;
+  const thumbSmall = entry.thumbSmall
+    ? URL.createObjectURL(entry.thumbSmall)
+    : null;
 
   if (thumbSmall) urls.push(thumbSmall);
 
+  const thumbXLarge = entry.thumbLarge
+    ? URL.createObjectURL(entry.thumbLarge)
+    : null;
+
+  if (thumbXLarge) urls.push(thumbXLarge);
+
   const thumbLarge = entry.thumbLarge
     ? URL.createObjectURL(entry.thumbLarge)
+    : null;
+
+  if (thumbLarge) urls.push(thumbLarge);
+
+  const thumbMedium = entry.thumbMedium
+    ? URL.createObjectURL(entry.thumbMedium)
     : null;
 
   if (thumbLarge) urls.push(thumbLarge);
@@ -45,7 +61,9 @@ export async function getStaticThumbnail(songId: string) {
 
   return {
     thumbSmall,
+    thumbMedium,
     thumbLarge,
+    thumbXLarge,
     originalUrl,
     revoke: () => urls.forEach((u) => URL.revokeObjectURL(u)),
   };

@@ -207,11 +207,9 @@ export default function Main() {
       <div className="w-full h-full mx-auto px-6 pt-4 pb-2">
         <div className="h-full flex flex-col gap-2">
           <div className="shrink-0">
-            <div className="flex justify-between items-center gap-2 mb-4">
-              <Music className="w-6 h-6 inline pr-1" />
-              <h1 className="text-3xl font-bold pointer-events-none">
-                Song Library
-              </h1>
+            <div className="flex justify-between items-center">
+              <Music className="w-6 h-6" />
+              <h1 className="font-bold pointer-events-none">Song Library</h1>
               <div>
                 <Link to="/settings">
                   <Button variant="outline">
@@ -224,7 +222,7 @@ export default function Main() {
               className={songs.length == 0 ? "hidden" : "flex justify-center"}
             >
               <Input
-                placeholder="Search songs by any term"
+                placeholder="Search songs"
                 defaultValue=""
                 onChange={(e) => {
                   searchRef.current = e.target.value;
@@ -236,20 +234,19 @@ export default function Main() {
           </div>
 
           <div className="flex-1 overflow-auto">
-            <div
-              className={`h-full flex flex-col${didRun.current ? "" : " hidden"}`}
-            >
-              {selectedSongs?.length > 0 && (
-                <div
-                  className="sticky top-0 z-20
-                             w-full shrink-0
-                             flex items-center gap-2 mb-3 p-2
-                             border-b bg-background"
-                >
+            <div className="h-full flex flex-col">
+              <div
+                className="sticky top-0 z-20
+                           w-full shrink-0
+                           flex items-stretch gap-2 mb-3 py-2
+                           border-b bg-background"
+              >
+                <div className="flex gap-2" hidden={songs.length === 0}>
                   <Button
                     className="w-40"
                     variant="outline"
                     size="xs"
+                    disabled={selectedSongs.length === 0}
                     onClick={() => setSelectedSongs([])}
                   >
                     <XIcon />
@@ -258,6 +255,7 @@ export default function Main() {
                   <Button
                     className="w-40"
                     size="xs"
+                    disabled={selectedSongs.length === 0}
                     variant={isBulkSelectEnabled ? "default" : "outline"}
                     onClick={() => {
                       const lastSelectedSong = selectedSongs?.at(
@@ -274,13 +272,14 @@ export default function Main() {
                   <Button
                     className="w-40"
                     size="xs"
+                    disabled={selectedSongs.length === 0}
                     onClick={() => setDrawerOpen(true)}
                   >
                     <PenIcon />
                     Edit
                   </Button>
                 </div>
-              )}
+              </div>
               <div className="flex-1 w-full container-type-size">
                 <ScrollArea ref={scrollAreaRef} className="container-height">
                   {songs.length == 0 && (

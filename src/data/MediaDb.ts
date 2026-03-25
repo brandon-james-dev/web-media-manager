@@ -39,6 +39,10 @@ export class MediaDB extends Dexie {
       `,
       thumbnails: `
         songId
+        thumbSmall,
+        thumbMedium,
+        thumbLarge,
+        thumbXLarge
       `,
       pendingArt: `
         ++id,

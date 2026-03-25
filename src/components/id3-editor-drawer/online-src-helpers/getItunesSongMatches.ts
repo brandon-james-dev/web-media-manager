@@ -12,7 +12,7 @@ export async function getItunesSongMatches(
   if (artist) queryParts.push(artist);
   if (album) queryParts.push(album);
 
-  const query = queryParts.join(" ").trim();
+  const query = queryParts.join(" - ").trim();
 
   const results = await getSong(query, {
     language: "en",

@@ -17,8 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { columns } from "./columns";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { columns } from "./columns";
 
 export type SongTableProps = {
   songs: Song[];
@@ -31,16 +31,17 @@ export type SongTableProps = {
   containerRef?: React.RefObject<HTMLDivElement | null>;
 };
 
-export function SongTable({
-  songs,
-  sorting,
-  onSortingChange,
-  rowSelection = [],
-  onRowSelectionChange,
-  isBulkSelectEnabled = useRef<boolean>(false),
-  onEnterKey,
-  containerRef,
-}: SongTableProps) {
+export function SongTable(props: SongTableProps) {
+  const {
+    songs,
+    sorting,
+    onSortingChange,
+    rowSelection = [],
+    onRowSelectionChange,
+    isBulkSelectEnabled = useRef<boolean>(false),
+    onEnterKey,
+    containerRef,
+  } = props;
   const tableRef = useRef<HTMLTableElement>(null);
 
   const [internalRowSelection, setInternalRowSelection] =
@@ -103,6 +104,7 @@ export function SongTable({
 
   const rows = table.getRowModel().rows;
 
+  //#region Keyboard Shortcuts
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const rows = table.getRowModel().rows;
@@ -175,7 +177,8 @@ export function SongTable({
 
       if (e.key === "PageDown" || e.key === "PageUp") {
         e.preventDefault();
-        const rowHeight = rowRefs.current[currentId]?.getBoundingClientRect().height ?? 28;
+        const rowHeight =
+          rowRefs.current[currentId]?.getBoundingClientRect().height ?? 28;
 
         const container = containerRef?.current;
         if (!container) return;
@@ -248,6 +251,7 @@ export function SongTable({
     },
     [songs, focusedRowId, onRowSelectionChange, table],
   );
+  //#endregion
 
   function handleRowClick(row: Row<Song>) {
     return (e: React.MouseEvent) => {
@@ -305,7 +309,7 @@ export function SongTable({
                 {hg.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="dark:hover:bg-white/10 p-2 min-w-0 text-left select-none sticky top-0 z-10"
+                    className="hover:bg-white/90 dark:hover:bg-white/10 p-2 min-w-0 text-left select-none sticky top-0 z-10"
                     style={{ width: header.getSize() }}
                   >
                     <div
@@ -348,7 +352,7 @@ export function SongTable({
             ))}
           </TableHeader>
 
-          <TableBody className="text-xs">
+          <TableBody className="text-xs dark:text-zinc-100">
             {rows.map((row) => (
               <SongRow
                 key={row.id}
@@ -386,11 +390,10 @@ const SongRow = React.memo(
           rowRefs.current[row.id] = el;
         }}
         className={`
-          odd:bg-neutral-800/40
           border-b border-zinc-300 dark:border-zinc-700
           transition-colors relative after:content-['']
-          hover:bg-zinc-100 dark:hover:bg-zinc-700
-          ${isSelected ? "bg-blue-100 dark:bg-blue-900/40" : ""}
+          hover:bg-zinc-300 dark:hover:bg-zinc-700
+          ${isSelected ? "bg-blue-300 dark:bg-blue-900/40" : "dark:odd:bg-neutral-800/40 odd:bg-zinc-200/40"}
           ${
             isFocused
               ? `

@@ -3,7 +3,7 @@
 import { FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AutocompleteInput } from "../autocomplete-input";
 
-type Props = {
+type TextFieldRowProps = {
   name: string;
   label: string;
   value: any;
@@ -14,16 +14,18 @@ type Props = {
   placeholder?: string;
 };
 
-export function TextFieldRow({
-  name,
-  label,
-  value,
-  onChange,
-  dirty,
-  onReset,
-  uniqueValues,
-  placeholder,
-}: Props) {
+export function TextFieldRow(props: TextFieldRowProps) {
+  const {
+    name,
+    label,
+    value,
+    onChange,
+    dirty,
+    onReset,
+    uniqueValues,
+    placeholder,
+  } = props;
+  
   return (
     <FormItem>
       <FormLabel className="flex items-center gap-2">

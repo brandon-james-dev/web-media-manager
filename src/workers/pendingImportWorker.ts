@@ -2,7 +2,7 @@
 
 import { mediaDb } from "@/data";
 import { startPendingArtLoop } from "@/lib/albumArtWorkerClient";
-import { mapCommonTagsToId3FormValues } from "@/lib/utils";
+import { mapCommonTagsToSongTags } from "@/lib/utils";
 import type { Song, PendingImportJob } from "@/models";
 import { parseBlob } from "music-metadata";
 
@@ -64,12 +64,14 @@ async function processJob(jobId: number) {
       const file = await fileHandle.getFile();
       const { format, common } = await parseBlob(file);
 
+      const tags = mapCommonTagsToSongTags(common);
+
       const song = {
         id: fileEntry.name,
         duration: format.duration ?? 0,
         bitrate: format.bitrate ?? 0,
         fileHandle,
-        tags: mapCommonTagsToId3FormValues(common),
+        tags,
       } as Song;
 
       await mediaDb.songs.put(song);

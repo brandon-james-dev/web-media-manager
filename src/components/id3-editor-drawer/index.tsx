@@ -169,6 +169,7 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
 
     if (matches.length === 1) {
       await handleApplyItunes(matches[0]);
+      return;
     }
 
     setItunesResults(matches);

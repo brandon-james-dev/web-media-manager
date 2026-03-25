@@ -3,6 +3,7 @@
 import { db } from "@/data/MediaDb";
 import { extractAlbumArtAndThumbnails } from "@/lib/albumArt";
 import { arrayBufferToBase64, writeUpdatedTagsToFile } from "@/lib/utils";
+import type { Id3FormValues } from "@/models";
 
 let running = false;
 
@@ -58,15 +59,19 @@ async function handleExtract(
 ) {
   const file = await fileHandle.getFile();
 
-  const { original, thumb128, thumb64 } =
+  const { original, thumb128, thumb64, thumb256, thumb512 } =
     await extractAlbumArtAndThumbnails(file);
 
   const originalBuf = original ? await original.arrayBuffer() : null;
+  const t512Buf = thumb512 ? await thumb512.arrayBuffer() : null;
+  const t256Buf = thumb256 ? await thumb256.arrayBuffer() : null;
   const t128Buf = thumb128 ? await thumb128.arrayBuffer() : null;
   const t64Buf = thumb64 ? await thumb64.arrayBuffer() : null;
 
   const transfer = [];
   if (originalBuf) transfer.push(originalBuf);
+  if (t512Buf) transfer.push(t512Buf);
+  if (t256Buf) transfer.push(t256Buf);
   if (t128Buf) transfer.push(t128Buf);
   if (t64Buf) transfer.push(t64Buf);
 
@@ -75,7 +80,9 @@ async function handleExtract(
       type: "art-ready",
       songId,
       original: originalBuf,
-      thumbLarge: t128Buf,
+      thumbXLarge: t512Buf,
+      thumbLarge: t256Buf,
+      thumbMedium: t128Buf,
       thumbSmall: t64Buf,
     },
     transfer,
@@ -86,11 +93,12 @@ async function handleWrite(songId: string, imageBytes: ArrayBuffer) {
   const song = await db.songs.get(songId);
   if (!song?.tags) return;
 
-  song.tags.picture = [arrayBufferToBase64(imageBytes)]
+  const id3Tags: Id3FormValues = {
+    ...song.tags,
+    picture: [arrayBufferToBase64(imageBytes)]
+  };
 
-  if (!song?.tags) return;
-
-  await writeUpdatedTagsToFile(song, song?.tags);
+  await writeUpdatedTagsToFile(song, id3Tags);
   await handleExtract(songId, song.fileHandle);
 
   self.postMessage({

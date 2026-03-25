@@ -4,6 +4,7 @@ import type { Id3FormValues, Song } from "@/models";
 import type { ICommonTagsResult } from "music-metadata";
 import { TAG_MAP } from "./tagMap";
 import { ID3Writer } from "browser-id3-writer";
+import type { SongTags } from "@/models/SongTags";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -41,13 +42,13 @@ export function base64ToArrayBuffer(base64: string) {
   return bytes.buffer;
 }
 
-export function mapCommonTagsToId3FormValues(
+export function mapCommonTagsToSongTags(
   tags: ICommonTagsResult,
-): Partial<Id3FormValues> {
+): Partial<SongTags> {
   const result: any = {};
 
   for (const key in TAG_MAP) {
-    const formKey = key as keyof Id3FormValues;
+    const formKey = key as keyof SongTags;
     const tagKey = TAG_MAP[formKey];
 
     if (!tagKey) continue;
@@ -73,7 +74,7 @@ export function mapCommonTagsToId3FormValues(
     result.disc = [no, of].filter(Boolean).join("/") || "";
   }
 
-  return result as Id3FormValues;
+  return result as SongTags;
 }
 
 export function stripExistingId3v2Tag(arrayBuffer: ArrayBuffer): ArrayBuffer {
@@ -150,7 +151,10 @@ export async function writeUpdatedTagsToFile(
   await writable.close();
 }
 
-export function getUniqueValues(key: keyof Song["tags"], songs: Song[]): string[] {
+export function getUniqueValues(
+  key: keyof Song["tags"],
+  songs: Song[],
+): string[] {
   const set = new Set<string>();
   for (const s of songs) {
     const v = (s.tags as any)[key];

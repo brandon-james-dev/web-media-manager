@@ -1,4 +1,4 @@
-import type { Id3FormValues } from "./Id3FormValues";
+import type { SongTags } from "./SongTags";
 
 export type Song = {
     /**
@@ -29,7 +29,7 @@ export type Song = {
     /**
      * ID3 tags extracted from the original file
      */
-    tags?: Partial<Id3FormValues>;
+    tags?: Partial<SongTags>;
 } & {
-    [K in keyof Id3FormValues]: string;
+    [K in keyof SongTags]: string;
 }

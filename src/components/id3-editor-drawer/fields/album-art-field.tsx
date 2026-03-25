@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlusIcon, ArrowDownIcon } from "lucide-react";
+import { ArrowDown, ImagePlus } from "lucide-react";
 
 type AlbumArtFieldProps = {
   previewArt: string | null;
@@ -42,54 +42,54 @@ export function AlbumArtField(props: AlbumArtFieldProps) {
         className={`
           relative w-32 h-32 rounded border bg-muted 
           flex items-center justify-center overflow-hidden 
-          group${!disabled ? ' cursor-pointer' : ''}
+          group${!disabled ? " cursor-pointer" : ""}
         `}
       >
-        {previewArt ? (
-          <img
-            src={previewArt}
-            alt="Album Art"
-            className={`object-cover w-full h-full ${
-              dirty ? "border border-blue-400" : ""
-            }`}
+        <img
+          src={previewArt!}
+          alt="Album Art"
+          className={`object-cover w-full h-full ${
+            dirty ? "border border-blue-400" : ""
+          }`}
+          hidden={previewArt === null}
+        />
+
+        <div
+          className="flex flex-col gap-0.5 items-center"
+          hidden={previewArt !== null}
+        >
+          <div className="text-sm text-center text-muted-foreground">
+            {labelText || "No Album Art"}
+          </div>
+          <div hidden={disabled} className="text-xs text-muted-foreground">
+            Click to Select
+          </div>
+        </div>
+
+        <div
+          className="
+            absolute inset-0 bg-black/40 opacity-0 
+            group-hover:opacity-100 transition-opacity 
+            flex flex-col items-center justify-center gap-1 text-white text-sm
+          "
+          hidden={!(!isLoading && !disabled)}
+        >
+          <ImagePlus />
+        </div>
+
+        <div
+          className="
+            absolute inset-0 bg-black/40
+            border border-blue-500
+            flex items-center justify-center text-blue-500 text-sm
+            "
+          hidden={!isLoading}
+        >
+          <ArrowDown
+            className="w-6 h-6 text-blue-400 arrow-down-animate"
+            strokeWidth={2}
           />
-        ) : (
-          <div className="flex flex-col gap-0.5 items-center">
-            <div className="text-sm text-center text-muted-foreground">
-              {labelText || "No Album Art"}
-            </div>
-            <div hidden={disabled} className="text-xs text-muted-foreground">
-              Click to Select
-            </div>
-          </div>
-        )}
-
-        {!isLoading && !disabled && (
-          <div
-            className="
-              absolute inset-0 bg-black/40 opacity-0 
-              group-hover:opacity-100 transition-opacity 
-              flex items-center justify-center text-white text-sm
-            "
-          >
-            <ImagePlusIcon />
-          </div>
-        )}
-
-        {isLoading && (
-          <div
-            className="
-              absolute inset-0 bg-black/40
-              border border-blue-500
-              flex items-center justify-center text-blue-500 text-sm
-            "
-          >
-            <ArrowDownIcon
-              className="w-6 h-6 text-blue-400 arrow-down-animate"
-              strokeWidth={2}
-            />
-          </div>
-        )}
+        </div>
       </label>
 
       <input
