@@ -3,10 +3,8 @@ import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 
-const isProd = process.env.NODE_ENV === "production";
-
-export default defineConfig({
-  base: isProd ? "/web-media-manager/" : "/",
+export default defineConfig(({ mode }) => ({
+  base: mode == "production" ? "/web-media-manager/" : "/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -16,4 +14,4 @@ export default defineConfig({
   worker: {
     format: "es",
   },
-});
+}));
