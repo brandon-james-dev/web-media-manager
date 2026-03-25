@@ -30,7 +30,6 @@ export function AutocompleteInput({
   value,
   onChange,
   uniqueValues,
-  label,
   className,
   placeholder,
 }: AutocompleteInputProps) {

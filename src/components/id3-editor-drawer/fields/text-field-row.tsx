@@ -16,7 +16,6 @@ type TextFieldRowProps = {
 
 export function TextFieldRow(props: TextFieldRowProps) {
   const {
-    name,
     label,
     value,
     onChange,
