@@ -29,6 +29,7 @@ export type SongTableProps = {
   isBulkSelectEnabled: React.RefObject<boolean>;
   onEnterKey?: () => void;
   containerRef?: React.RefObject<HTMLDivElement | null>;
+  hidden?: boolean;
 };
 
 export function SongTable(props: SongTableProps) {
@@ -41,6 +42,7 @@ export function SongTable(props: SongTableProps) {
     isBulkSelectEnabled = useRef<boolean>(false),
     onEnterKey,
     containerRef,
+    hidden,
   } = props;
   const tableRef = useRef<HTMLTableElement>(null);
 
@@ -293,7 +295,12 @@ export function SongTable(props: SongTableProps) {
   }
 
   return (
-    <div tabIndex={0} onKeyDown={handleKeyDown} className="outline-none">
+    <div
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      className="outline-none"
+      hidden={hidden}
+    >
       <div className="rounded border border-zinc-300 dark:border-zinc-700">
         <table
           ref={tableRef}

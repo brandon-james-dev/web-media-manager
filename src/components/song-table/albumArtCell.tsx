@@ -1,20 +1,18 @@
-import { db } from "@/data/MediaDb";
-import { subscribeToAlbumArtEvents } from "@/lib/albumArtWorkerClient";
+import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import { Music } from "lucide-react";
 import { useState, useEffect } from "react";
 
 function AlbumArtCell({ songId }: { songId: string }) {
-  const [blob, setBlob] = useState<Blob | null>(null);
-  const [url, setUrl] = useState<string | null>(null);
+  const [art, setArt] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const art = await db.thumbnails.get(songId);
+      const { thumbSmall } = await getStaticThumbnail(songId);
 
       if (!cancelled) {
-        setBlob(art?.thumbSmall ?? null);
+        setArt(thumbSmall ?? null);
       }
     }
 
@@ -25,33 +23,21 @@ function AlbumArtCell({ songId }: { songId: string }) {
   }, [songId]);
 
   useEffect(() => {
-    return subscribeToAlbumArtEvents(async (msg) => {
-      if (msg.songId !== songId) return;
+    const eventName = `pending-art-complete:${songId}`;
 
-      if (
-        msg.type === "art-ready" ||
-        msg.type === "write-complete" ||
-        msg.type === "pending-art-complete"
-      ) {
-        const art = await db.thumbnails.get(songId);
-        setBlob(art?.thumbSmall ?? null);
-      }
-    });
-  }, [songId]);
-
-  useEffect(() => {
-    if (!blob) {
-      setUrl(null);
-      return;
+    async function handleUpdate() {
+      const { thumbSmall } = await getStaticThumbnail(songId);
+      setArt(thumbSmall ?? null);
     }
 
-    const nextUrl = URL.createObjectURL(blob);
-    setUrl(nextUrl);
+    window.addEventListener(eventName, handleUpdate);
 
-    return () => URL.revokeObjectURL(nextUrl);
-  }, [blob]);
+    return () => {
+      window.removeEventListener(eventName, handleUpdate);
+    };
+  }, [songId]);
 
-  if (!url) {
+  if (!art) {
     return (
       <div className="h-12 w-12 bg-zinc-300 dark:bg-zinc-700 rounded flex justify-center items-center">
         <Music />
@@ -61,7 +47,7 @@ function AlbumArtCell({ songId }: { songId: string }) {
 
   return (
     <img
-      src={url}
+      src={art}
       draggable={false}
       className="h-12 w-12 rounded object-cover"
     />

@@ -59,7 +59,7 @@ function getInitialValue(key: any, songs: Song[]) {
 export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
   const { isOpen, selectedSongs, onOpenChange, onSave, className } = props;
   const isMulti = selectedSongs.length > 1;
-  const primarySong = !isMulti ? selectedSongs[0] : null;
+  let primarySong = !isMulti ? selectedSongs[0] : null;
 
   const initialValues: Id3FormValues = useMemo(() => {
     if (!selectedSongs.length) {
@@ -220,7 +220,16 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     let cleanup: (() => void) | undefined;
 
     async function loadArt() {
-      if (isMulti) return;
+      if (isMulti) {
+        const uniqueAlbums = new Set<string>(
+          selectedSongs.map((s) => s.tags?.album).filter((a) => a !== undefined),
+        ).values().toArray();
+        const sameAlbum = uniqueAlbums.length == 1;
+        primarySong = selectedSongs[0];
+        if (!sameAlbum) {
+          return;
+        }
+      }
       if (!primarySong) return;
 
       const art = await getStaticThumbnail(primarySong.id);

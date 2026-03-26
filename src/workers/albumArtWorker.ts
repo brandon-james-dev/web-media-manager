@@ -37,26 +37,21 @@ async function processPendingArtLoop() {
     try {
       await handleExtract(job.songId, job.fileHandle);
       await db.pendingArt.delete(job.id);
+      const song = await db.songs.get(job.songId);
 
-      self.postMessage({
-        type: "pending-art-complete",
-        songId: job.songId,
-      });
+      if (!song) break;
     } catch (err) {
       self.postMessage({
         type: "pending-art-error",
         job,
         error: String(err),
       });
-      return;
+      break;
     }
   }
 }
 
-async function handleExtract(
-  songId: string,
-  fileHandle: FileSystemFileHandle,
-) {
+async function handleExtract(songId: string, fileHandle: FileSystemFileHandle) {
   const file = await fileHandle.getFile();
 
   const { original, thumb128, thumb64, thumb256, thumb512 } =
@@ -95,14 +90,9 @@ async function handleWrite(songId: string, imageBytes: ArrayBuffer) {
 
   const id3Tags: Id3FormValues = {
     ...song.tags,
-    picture: [arrayBufferToBase64(imageBytes)]
+    picture: [arrayBufferToBase64(imageBytes)],
   };
 
   await writeUpdatedTagsToFile(song, id3Tags);
   await handleExtract(songId, song.fileHandle);
-
-  self.postMessage({
-    type: "write-complete",
-    songId,
-  });
 }

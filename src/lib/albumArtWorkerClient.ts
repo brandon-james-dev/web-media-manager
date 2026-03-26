@@ -30,11 +30,18 @@ async function handleMessage(event: MessageEvent) {
         thumbSmall: msg.thumbSmall ? new Blob([msg.thumbSmall]) : null,
         mtime: Date.now(),
       });
+      dispatchEvent(
+        new CustomEvent(`pending-art-complete:${msg.songId}`, {
+          detail: { songId: msg.songId },
+        }),
+      );
       break;
-
-    case "write-complete":
-    case "pending-art-complete":
     case "pending-art-error":
+      dispatchEvent(
+        new CustomEvent(`pending-art-error:${msg.songId}`, {
+          detail: { songId: msg.songId },
+        }),
+      );
       break;
   }
 

@@ -44,7 +44,7 @@ import {
   useCountPendingWrites,
   useInsertPendingWrite,
 } from "@/hooks/pendingWriteHooks";
-import { useSongsInDb } from "@/hooks/songQueryHooks";
+import { useAlbums, useSongsInDb } from "@/hooks/songQueryHooks";
 import { type SortingState } from "@tanstack/react-table";
 import { useCountPendingArtwork } from "@/hooks/thumbnailQueryHooks";
 import {
@@ -53,20 +53,26 @@ import {
 } from "@/lib/albumArtWorkerClient";
 import fuzzysearch from "fuzzysearch-ts";
 import { base64ToArrayBuffer } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlbumView } from "@/components/album-view";
+import type { Album } from "@/components/album-view/types";
 
 export default function Main() {
   const songs = useSongsInDb() || [];
+  const albums = useAlbums() || [];
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
+  const [selectedAlbums, setSelectedAlbums] = useState<Album[]>([]);
   const [totalSongs, setTotalSongs] = useState<number>(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isBulkSelectEnabled, setIsBulkSelectEnabled] = useState(false);
+  const [tab, setTab] = useState("songs");
   const bulkRef = useRef(isBulkSelectEnabled);
   bulkRef.current = isBulkSelectEnabled;
   const searchRef = useRef("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  //#region Song sorting and filtering
+  //#region Song and Album sorting and filtering
   const [sorting, setSorting] = useState<SortingState>([
     { id: "tags.title", desc: false },
   ]);
@@ -89,6 +95,25 @@ export default function Main() {
       );
     });
   }, [songs, debouncedSearch]);
+
+  const filteredAlbums = useMemo(() => {
+    const q = debouncedSearch.toLowerCase().replace(/[^A-Za-z]/g, "");
+    if (!q) return albums;
+
+    return albums.filter((album) => {
+      const title = album.albumName.toLowerCase() ?? "";
+      const artist = album.artist.toLowerCase() ?? "";
+      const songTitles = album.songs
+        .map((s) => s.title?.toLowerCase())
+        .filter((t) => t !== undefined);
+
+      return (
+        fuzzysearch(q, title) ||
+        fuzzysearch(q, artist) ||
+        songTitles.some((t) => fuzzysearch(q, t))
+      );
+    });
+  }, [albums, debouncedSearch]);
 
   const sortedSongs = useMemo(() => {
     if (sorting.length === 0) return filteredSongs;
@@ -218,9 +243,7 @@ export default function Main() {
                 </Link>
               </div>
             </div>
-            <div
-              className={songs.length == 0 ? "hidden" : "flex justify-center"}
-            >
+            <div className="flex justify-center" hidden={songs.length === 0}>
               <Input
                 placeholder="Search songs"
                 defaultValue=""
@@ -241,13 +264,16 @@ export default function Main() {
                            flex items-stretch gap-2 mb-3 py-2
                            border-b bg-background"
               >
-                <div className="flex gap-2" hidden={songs.length === 0}>
+                <div className="flex shrink gap-2" hidden={songs.length === 0}>
                   <Button
                     className="w-40"
                     variant="outline"
                     size="xs"
                     disabled={selectedSongs.length === 0}
-                    onClick={() => setSelectedSongs([])}
+                    onClick={() => {
+                      setSelectedSongs([]);
+                      setSelectedAlbums([]);
+                    }}
                   >
                     <XIcon />
                     Deselect
@@ -261,8 +287,15 @@ export default function Main() {
                       const lastSelectedSong = selectedSongs?.at(
                         selectedSongs.length - 1,
                       );
-                      if (lastSelectedSong)
+                      if (lastSelectedSong) {
                         setSelectedSongs([lastSelectedSong]);
+                      }
+                      const lastSelectedAlbum = selectedAlbums?.at(
+                        selectedAlbums.length - 1,
+                      );
+                      if (lastSelectedAlbum) {
+                        setSelectedAlbums([lastSelectedAlbum]);
+                      }
                       setIsBulkSelectEnabled(!isBulkSelectEnabled);
                     }}
                   >
@@ -279,11 +312,30 @@ export default function Main() {
                     Edit
                   </Button>
                 </div>
+                <div
+                  className="flex-1 justify-items-end gap-2"
+                  hidden={songs.length === 0}
+                >
+                  <Tabs
+                    defaultValue="songs"
+                    value={tab}
+                    onValueChange={(tab) => {
+                      setTab(tab);
+                      setSelectedAlbums([]);
+                      setSelectedSongs([]);
+                    }}
+                  >
+                    <TabsList>
+                      <TabsTrigger value="songs">Songs</TabsTrigger>
+                      <TabsTrigger value="albums">Albums</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
               </div>
               <div className="flex-1 w-full container-type-size">
                 <ScrollArea ref={scrollAreaRef} className="container-height">
-                  {songs.length == 0 && (
-                    <Empty>
+                  {songs.length == 0 && didRun.current && (
+                    <Empty hidden={songs.length > 0}>
                       <EmptyHeader className="pointer-events-none">
                         <EmptyMedia variant="icon">
                           <FileMusicIcon />
@@ -299,7 +351,7 @@ export default function Main() {
                       </EmptyContent>
                     </Empty>
                   )}
-                  {songs.length > 0 && (
+                  {songs.length > 0 && tab === "songs" && (
                     <SongTable
                       songs={sortedSongs}
                       sorting={sorting}
@@ -311,7 +363,17 @@ export default function Main() {
                       onEnterKey={() => setDrawerOpen(true)}
                     />
                   )}
-
+                  {songs.length > 0 && tab === "albums" && (
+                    <AlbumView
+                      albums={filteredAlbums}
+                      onSelectAlbums={(albums: Album[]) => {
+                        setSelectedAlbums(albums);
+                        setSelectedSongs(albums.flatMap((a) => a.songs));
+                      }}
+                      selectedAlbums={selectedAlbums}
+                      isBulkSelectEnabled={bulkRef}
+                    />
+                  )}
                   <ScrollBar orientation="horizontal" />
                   <ScrollBar orientation="vertical" />
                 </ScrollArea>
@@ -354,7 +416,6 @@ export default function Main() {
 
             if (pendingAlbumArt) {
               requestAlbumArtWrite(song.id, song.fileHandle, pendingAlbumArt);
-              startPendingArtLoop();
             }
             startWriteLoop();
           }

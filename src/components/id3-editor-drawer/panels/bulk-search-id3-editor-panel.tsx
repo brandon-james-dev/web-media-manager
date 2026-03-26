@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Song } from "@/models";
 import type { BulkSongState } from "../state/useBulkSearch";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Music } from "lucide-react";
 import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import type { MusicResult } from "itunes-web-api";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +59,7 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
       for (const song of songs) {
         const t = await getStaticThumbnail(song.id);
         if (cancelled) return;
-        map.set(song.id, t.thumbLarge ?? null);
+        map.set(song.id, t.thumbLarge);
       }
 
       if (!cancelled) {
@@ -157,13 +157,10 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
           const activeArt = activeMatch
             ? (activeMatch.artworkUrl100?.replace("100x100bb", "300x300bb") ??
               "")
-            : (idToAlbumArt.get(song.id) ?? "");
+            : idToAlbumArt.get(song.id);
           const committedArt = committedMatch
-            ? (committedMatch.artworkUrl100?.replace(
-                "100x100bb",
-                "300x300bb",
-              ) ?? "")
-            : (idToAlbumArt.get(song.id) ?? "");
+            ? committedMatch.artworkUrl100?.replace("100x100bb", "300x300bb")
+            : idToAlbumArt.get(song.id);
 
           const isDirty = entry.selectedMatchId !== null;
 
@@ -194,11 +191,18 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
                 } p-3 flex items-center justify-between`}
               >
                 <div className="flex items-center gap-3">
-                  <img
-                    src={committedArt}
-                    alt={song.album}
-                    className="w-12 h-12 object-cover rounded bg-muted"
-                  />
+                  {committedArt && (
+                    <img
+                      src={committedArt}
+                      alt={song.album}
+                      className="w-12 h-12 object-cover rounded bg-muted"
+                    />
+                  )}
+                  {!committedArt && (
+                    <div className="w-12 h-12 object-cover rounded bg-muted flex items-center justify-center">
+                      <Music />
+                    </div>
+                  )}
 
                   <div className="flex flex-col">
                     <span className="font-medium">
@@ -260,11 +264,18 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:sticky md:top-0 self-start">
                     <div className="flex flex-col gap-3">
-                      <img
-                        src={activeArt}
-                        alt="Album Art"
-                        className="w-32 h-32 object-cover rounded bg-muted"
-                      />
+                      {activeArt && (
+                        <img
+                          src={activeArt}
+                          alt={song.album}
+                          className="w-32 h-32 object-cover rounded bg-muted"
+                        />
+                      )}
+                      {!activeArt && (
+                        <div className="w-32 h-32 object-cover rounded bg-muted flex items-center justify-center">
+                          <Music />
+                        </div>
+                      )}
 
                       {renderField(
                         "Title",
