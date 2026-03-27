@@ -15,56 +15,48 @@ export async function sortPendingArtworkByCol(
   return await query.toArray();
 }
 
-export async function getStaticThumbnail(songId: string) {
+export async function getStaticThumbnail(
+  songId: string,
+  thumbnailSize: "sm" | "md" | "lg" | "xl" | "original",
+): Promise<{
+  thumbSmall?: string;
+  thumbMedium?: string;
+  thumbLarge?: string;
+  thumbXLarge?: string;
+  original?: string;
+  revoke: () => void;
+}> {
+  const inputSizeToDbSize: Map<string, string> = new Map<string, string>([
+    ["sm", "thumbSmall"],
+    ["md", "thumbMedium"],
+    ["lg", "thumbLarge"],
+    ["xl", "thumbXLarge"],
+    ["original", "original"],
+  ]);
+
+  const inputSize = inputSizeToDbSize.get(thumbnailSize)!;
   const entry = await mediaDb.thumbnails.get(songId);
+  const voidFn = () => {};
+
   if (!entry) {
     return {
-      thumbSmall: null,
-      thumbMedium: null,
-      thumbLarge: null,
-      thumbXLarge: null,
-      originalUrl: null,
+      [inputSize]: null,
+      revoke: voidFn,
     };
   }
 
-  const urls: string[] = [];
+  if (!inputSize)
+    return {
+      [inputSize]: null,
+      revoke: voidFn,
+    };
 
-  const thumbSmall = entry.thumbSmall
-    ? URL.createObjectURL(entry.thumbSmall)
-    : null;
+  const entryAsAnyWithInput: Blob = (entry as any)[inputSize];
 
-  if (thumbSmall) urls.push(thumbSmall);
-
-  const thumbXLarge = entry.thumbLarge
-    ? URL.createObjectURL(entry.thumbLarge)
-    : null;
-
-  if (thumbXLarge) urls.push(thumbXLarge);
-
-  const thumbLarge = entry.thumbLarge
-    ? URL.createObjectURL(entry.thumbLarge)
-    : null;
-
-  if (thumbLarge) urls.push(thumbLarge);
-
-  const thumbMedium = entry.thumbMedium
-    ? URL.createObjectURL(entry.thumbMedium)
-    : null;
-
-  if (thumbLarge) urls.push(thumbLarge);
-
-  const originalUrl = entry.original
-    ? URL.createObjectURL(entry.original)
-    : null;
-
-  if (originalUrl) urls.push(originalUrl);
+  const thumb = URL.createObjectURL(entryAsAnyWithInput);
 
   return {
-    thumbSmall,
-    thumbMedium,
-    thumbLarge,
-    thumbXLarge,
-    originalUrl,
-    revoke: () => urls.forEach((u) => URL.revokeObjectURL(u)),
+    [inputSize]: thumb,
+    revoke: () => URL.revokeObjectURL(thumb),
   };
 }

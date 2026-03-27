@@ -4,15 +4,17 @@ import { useState, useEffect } from "react";
 
 function AlbumArtCell({ songId }: { songId: string }) {
   const [art, setArt] = useState<string | null>(null);
+  let revokeFn = () => {};
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const { thumbSmall } = await getStaticThumbnail(songId);
+      const { thumbSmall, revoke } = await getStaticThumbnail(songId, "sm");
+      revokeFn = revoke;
 
       if (!cancelled) {
-        setArt(thumbSmall ?? null);
+        if (thumbSmall) setArt(thumbSmall);
       }
     }
 
@@ -24,16 +26,19 @@ function AlbumArtCell({ songId }: { songId: string }) {
 
   useEffect(() => {
     const eventName = `pending-art-complete:${songId}`;
+    let revokeFn = () => {};
 
     async function handleUpdate() {
-      const { thumbSmall } = await getStaticThumbnail(songId);
-      setArt(thumbSmall ?? null);
+      const { thumbSmall, revoke } = await getStaticThumbnail(songId, "sm");
+      revokeFn = revoke;
+      if (thumbSmall) setArt(thumbSmall);
     }
 
     window.addEventListener(eventName, handleUpdate);
 
     return () => {
       window.removeEventListener(eventName, handleUpdate);
+      revokeFn();
     };
   }, [songId]);
 

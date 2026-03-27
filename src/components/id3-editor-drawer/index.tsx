@@ -232,7 +232,7 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
       }
       if (!primarySong) return;
 
-      const art = await getStaticThumbnail(primarySong.id);
+      const art = await getStaticThumbnail(primarySong.id, "lg");
       if (!art.thumbLarge) return;
 
       form.setValue("picture", [art.thumbLarge]);

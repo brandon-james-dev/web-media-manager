@@ -17,30 +17,35 @@ export function AlbumArt({ album }: AlbumArtProps) {
 
   // Initial load
   useEffect(() => {
+    let revokeFn = () => {};
     let cancelled = false;
 
     async function load() {
       if (!songId) return;
-      const { thumbXLarge } = await getStaticThumbnail(songId);
+      const { thumbXLarge, revoke } = await getStaticThumbnail(songId, "xl");
+      revokeFn = revoke;
       if (!cancelled) {
-        setArt(thumbXLarge ?? null);
+        if (thumbXLarge) setArt(thumbXLarge);
       }
     }
 
     load();
     return () => {
       cancelled = true;
+      revokeFn();
     };
   }, [songId]);
 
   useEffect(() => {
+    let revokeFn = () => {};
     const eventName = `pending-art-complete:album:${album.albumName}`;
 
     const handleUpdate = async (evt: Event) => {
       const e = evt as CustomEvent<{ songId: string }>;
       if (e.detail.songId === songId) {
-        const { thumbXLarge } = await getStaticThumbnail(songId);
-        setArt(thumbXLarge ?? null);
+        const { thumbXLarge, revoke } = await getStaticThumbnail(songId, "sm");
+        revokeFn = revoke;
+        if (thumbXLarge) setArt(thumbXLarge);
       }
     };
 
@@ -48,6 +53,7 @@ export function AlbumArt({ album }: AlbumArtProps) {
 
     return () => {
       window.removeEventListener(eventName, handleUpdate);
+      revokeFn();
     };
   }, [album, songId]);
 

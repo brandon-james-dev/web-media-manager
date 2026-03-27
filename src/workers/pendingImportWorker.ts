@@ -118,5 +118,16 @@ async function processJob(jobId: number) {
       jobId,
       processed,
     });
+
+    const thumbnails = await mediaDb.thumbnails.where("songId").anyOf(job.files.map(f => f.name)).toArray();
+
+    // Send a refresh signal to every album art in case it missed it
+    for (const thumbnail of thumbnails) {
+      dispatchEvent(
+        new CustomEvent(`pending-art-complete:${thumbnail.songId}`, {
+          detail: { songId: thumbnail.songId },
+        }),
+      );
+    }
   }
 }
