@@ -3,6 +3,7 @@
 import { mediaDb } from "@/data";
 import type { PendingWriteJob } from "@/models";
 import { writeUpdatedTagsToFile } from "@/lib/utils";
+import type { SongTags } from "@/models/SongTags";
 
 let isProcessing = false;
 
@@ -51,7 +52,7 @@ async function processWriteJob(job: PendingWriteJob) {
     //#endregion
     //#region Update database
     delete updatedTags.picture;
-    await mediaDb.songs.update(song.id, { tags: updatedTags });
+    await mediaDb.songs.update(song.id, { tags: updatedTags as SongTags });
     //#endregion
   } catch (err) {
     console.error("Failed to write tags:", err);

@@ -5,6 +5,7 @@ import type { ICommonTagsResult } from "music-metadata";
 import { TAG_MAP } from "./tagMap";
 import { ID3Writer } from "browser-id3-writer";
 import type { SongTags } from "@/models/SongTags";
+import { ensureDirPermission } from "./ensureDirPermission";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -97,6 +98,8 @@ export async function writeUpdatedTagsToFile(
   updatedTags: Partial<Id3FormValues>,
 ) {
   const { fileHandle } = song;
+
+  if (!(await ensureDirPermission(fileHandle))) return;
 
   const file = await fileHandle.getFile();
   const originalBuffer = await file.arrayBuffer();

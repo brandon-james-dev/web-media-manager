@@ -15,11 +15,11 @@ export async function extractAlbumArtAndThumbnails(file: File) {
     };
   }
 
-  const originalBlob = new Blob([embedded] as BlobPart[], {
+  const original = new Blob([embedded] as BlobPart[], {
     type: "image/jpeg",
   });
 
-  const bitmap = await createImageBitmap(originalBlob);
+  const bitmap = await createImageBitmap(original);
 
   const thumb512 = await resizeBitmap(bitmap, 512);
   const thumb256 = await resizeBitmap(bitmap, 256);
@@ -27,7 +27,7 @@ export async function extractAlbumArtAndThumbnails(file: File) {
   const thumb64 = await resizeBitmap(bitmap, 64);
 
   return {
-    original: originalBlob,
+    original,
     thumb512,
     thumb256,
     thumb128,
