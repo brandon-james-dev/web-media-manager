@@ -4,6 +4,7 @@ import { mediaDb } from "@/data";
 import type { PendingWriteJob } from "@/models";
 import { writeUpdatedTagsToFile } from "@/lib/utils";
 import type { SongTags } from "@/models/SongTags";
+import { extractAlbumArtAndThumbnails } from "@/lib/albumArt";
 
 let isProcessing = false;
 
@@ -25,7 +26,10 @@ async function processQueue() {
 
   try {
     await processWriteJob(job);
-    self.postMessage({ type: "write-complete", payload: job.tags });
+    self.postMessage({
+      type: "write-complete",
+      payload: { id: job.songId, tags: job.tags },
+    });
   } catch (err) {
     await mediaDb.pendingWrites.delete(job.id);
 
@@ -46,13 +50,30 @@ async function processWriteJob(job: PendingWriteJob) {
 
   if (!updatedTags) return;
 
+  const { id, fileHandle } = song;
+
   try {
     //#region Update backing file
     await writeUpdatedTagsToFile(song, updatedTags);
     //#endregion
     //#region Update database
     delete updatedTags.picture;
-    await mediaDb.songs.update(song.id, { tags: updatedTags as SongTags });
+    await mediaDb.songs.update(id, { tags: updatedTags as SongTags });
+
+    const file = await fileHandle.getFile();
+
+    const { original, thumb512, thumb256, thumb128, thumb64 } =
+      await extractAlbumArtAndThumbnails(file);
+
+    await mediaDb.thumbnails.put({
+      songId: id,
+      original: original,
+      thumbXLarge: thumb512,
+      thumbLarge: thumb256,
+      thumbMedium: thumb128,
+      thumbSmall: thumb64,
+      mtime: Date.now(),
+    });
     //#endregion
   } catch (err) {
     console.error("Failed to write tags:", err);

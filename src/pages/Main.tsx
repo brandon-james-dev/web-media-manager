@@ -47,10 +47,7 @@ import {
 import { useAlbums, useSongsInDb } from "@/hooks/songQueryHooks";
 import { type SortingState } from "@tanstack/react-table";
 import { useCountPendingArtwork } from "@/hooks/thumbnailQueryHooks";
-import {
-  requestAlbumArtWrite,
-  startPendingArtLoop,
-} from "@/lib/albumArtWorkerClient";
+import { startPendingArtLoop } from "@/lib/albumArtWorkerClient";
 import fuzzysearch from "fuzzysearch-ts";
 import { base64ToArrayBuffer } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -403,20 +400,7 @@ export default function Main() {
         onSave={async (updatedSongs) => {
           for (const [song, tags] of updatedSongs) {
             if (!tags) continue;
-
-            let pendingAlbumArt: Uint8Array<ArrayBufferLike> | null = null;
-
-            if (tags.picture?.at(0)) {
-              pendingAlbumArt = new Uint8Array(
-                base64ToArrayBuffer(tags.picture.at(0)!),
-              );
-            }
-
             await useInsertPendingWrite(song.id, tags);
-
-            if (pendingAlbumArt) {
-              requestAlbumArtWrite(song.id, song.fileHandle, pendingAlbumArt);
-            }
             startWriteLoop();
           }
 

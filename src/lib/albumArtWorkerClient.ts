@@ -31,7 +31,7 @@ async function handleMessage(event: MessageEvent) {
         mtime: Date.now(),
       });
       dispatchEvent(
-        new CustomEvent(`pending-art-complete:${msg.songId}`, {
+        new CustomEvent(`art-thumbnail-complete:${msg.songId}`, {
           detail: { songId: msg.songId },
         }),
       );
@@ -65,19 +65,6 @@ export function requestAlbumArtExtraction(
     type: "extract-art",
     songId,
     fileHandle,
-  });
-}
-
-export function requestAlbumArtWrite(
-  songId: string,
-  fileHandle: FileSystemFileHandle,
-  imageBytes: Uint8Array,
-) {
-  ensureWorker().postMessage({
-    type: "write-art",
-    songId,
-    fileHandle,
-    imageBytes,
   });
 }
 

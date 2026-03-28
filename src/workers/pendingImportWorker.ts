@@ -124,7 +124,7 @@ async function processJob(jobId: number) {
     // Send a refresh signal to every album art in case it missed it
     for (const thumbnail of thumbnails) {
       dispatchEvent(
-        new CustomEvent(`pending-art-complete:${thumbnail.songId}`, {
+        new CustomEvent(`art-thumbnail-complete:${thumbnail.songId}`, {
           detail: { songId: thumbnail.songId },
         }),
       );

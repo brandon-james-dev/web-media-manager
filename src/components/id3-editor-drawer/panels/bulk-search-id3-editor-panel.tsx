@@ -57,9 +57,9 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
       const map = new Map<string, string | null>();
 
       for (const song of songs) {
-        const { thumbLarge } = await getStaticThumbnail(song.id, "lg");
+        const { thumbnail } = await getStaticThumbnail(song.id, "lg");
         if (cancelled) return;
-        if (thumbLarge) map.set(song.id, thumbLarge);
+        if (thumbnail) map.set(song.id, thumbnail);
       }
 
       if (!cancelled) {

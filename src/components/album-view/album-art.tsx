@@ -22,10 +22,10 @@ export function AlbumArt({ album }: AlbumArtProps) {
 
     async function load() {
       if (!songId) return;
-      const { thumbXLarge, revoke } = await getStaticThumbnail(songId, "xl");
+      const { thumbnail, revoke } = await getStaticThumbnail(songId, "xl");
       revokeFn = revoke;
       if (!cancelled) {
-        if (thumbXLarge) setArt(thumbXLarge);
+        if (thumbnail) setArt(thumbnail);
       }
     }
 
@@ -38,14 +38,14 @@ export function AlbumArt({ album }: AlbumArtProps) {
 
   useEffect(() => {
     let revokeFn = () => {};
-    const eventName = `pending-art-complete:album:${album.albumName}`;
+    const eventName = `art-thumbnail-complete:album:${album.albumName}`;
 
     const handleUpdate = async (evt: Event) => {
       const e = evt as CustomEvent<{ songId: string }>;
       if (e.detail.songId === songId) {
-        const { thumbXLarge, revoke } = await getStaticThumbnail(songId, "sm");
+        const { thumbnail, revoke } = await getStaticThumbnail(songId, "xl");
         revokeFn = revoke;
-        if (thumbXLarge) setArt(thumbXLarge);
+        if (thumbnail) setArt(thumbnail);
       }
     };
 

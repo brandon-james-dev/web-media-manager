@@ -13,11 +13,11 @@ export function useAlbumArt(primarySong: Song | null, form: any) {
   async function resetAlbumArt() {
     if (!primarySong) return;
 
-    const art = await getStaticThumbnail(primarySong.id);
+    const { thumbnail } = await getStaticThumbnail(primarySong.id, "lg");
 
-    if (art.thumbLarge) {
-      setPreviewArt(art.thumbLarge);
-      form.setValue("picture", [art.thumbLarge]);
+    if (thumbnail) {
+      setPreviewArt(thumbnail);
+      form.setValue("picture", [thumbnail]);
     } else {
       setPreviewArt(null);
       form.setValue("picture", undefined);

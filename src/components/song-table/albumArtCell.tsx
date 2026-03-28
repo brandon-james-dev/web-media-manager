@@ -10,11 +10,11 @@ function AlbumArtCell({ songId }: { songId: string }) {
     let cancelled = false;
 
     async function load() {
-      const { thumbSmall, revoke } = await getStaticThumbnail(songId, "sm");
+      const { thumbnail, revoke } = await getStaticThumbnail(songId, "sm");
       revokeFn = revoke;
 
       if (!cancelled) {
-        if (thumbSmall) setArt(thumbSmall);
+        if (thumbnail) setArt(thumbnail);
       }
     }
 
@@ -25,13 +25,13 @@ function AlbumArtCell({ songId }: { songId: string }) {
   }, [songId]);
 
   useEffect(() => {
-    const eventName = `pending-art-complete:${songId}`;
+    const eventName = `art-thumbnail-complete:${songId}`;
     let revokeFn = () => {};
 
     async function handleUpdate() {
-      const { thumbSmall, revoke } = await getStaticThumbnail(songId, "sm");
+      const { thumbnail, revoke } = await getStaticThumbnail(songId, "sm");
       revokeFn = revoke;
-      if (thumbSmall) setArt(thumbSmall);
+      if (thumbnail) setArt(thumbnail);
     }
 
     window.addEventListener(eventName, handleUpdate);

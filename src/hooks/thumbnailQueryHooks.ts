@@ -17,12 +17,9 @@ export async function sortPendingArtworkByCol(
 
 export async function getStaticThumbnail(
   songId: string,
-  thumbnailSize: "sm" | "md" | "lg" | "xl" | "original",
+  thumbnailSize: "sm" | "md" | "lg" | "xl" | "original" = "sm",
 ): Promise<{
-  thumbSmall?: string;
-  thumbMedium?: string;
-  thumbLarge?: string;
-  thumbXLarge?: string;
+  thumbnail?: string;
   original?: string;
   revoke: () => void;
 }> {
@@ -40,23 +37,24 @@ export async function getStaticThumbnail(
 
   if (!entry) {
     return {
-      [inputSize]: null,
+      thumbnail: undefined,
       revoke: voidFn,
     };
   }
 
-  if (!inputSize)
-    return {
-      [inputSize]: null,
-      revoke: voidFn,
-    };
-
   const entryAsAnyWithInput: Blob = (entry as any)[inputSize];
 
-  const thumb = URL.createObjectURL(entryAsAnyWithInput);
+  if (!entryAsAnyWithInput) {
+    return {
+      thumbnail: undefined,
+      revoke: voidFn,
+    };
+  }
+
+  const thumbnail = URL.createObjectURL(entryAsAnyWithInput);
 
   return {
-    [inputSize]: thumb,
-    revoke: () => URL.revokeObjectURL(thumb),
+    thumbnail,
+    revoke: () => URL.revokeObjectURL(thumbnail),
   };
 }

@@ -2,8 +2,6 @@
 
 import { db } from "@/data/MediaDb";
 import { extractAlbumArtAndThumbnails } from "@/lib/albumArt";
-import { arrayBufferToBase64, writeUpdatedTagsToFile } from "@/lib/utils";
-import type { Id3FormValues } from "@/models";
 
 let running = false;
 
@@ -13,10 +11,6 @@ self.onmessage = async (event) => {
   switch (msg.type) {
     case "extract-art":
       await handleExtract(msg.songId, msg.fileHandle);
-      break;
-
-    case "write-art":
-      await handleWrite(msg.songId, msg.imageBytes);
       break;
 
     case "start-pending-art-loop":
@@ -54,7 +48,7 @@ async function processPendingArtLoop() {
 async function handleExtract(songId: string, fileHandle: FileSystemFileHandle) {
   const file = await fileHandle.getFile();
 
-  const { original, thumb128, thumb64, thumb256, thumb512 } =
+  const { original, thumb512, thumb256, thumb128, thumb64 } =
     await extractAlbumArtAndThumbnails(file);
 
   const originalBuf = original ? await original.arrayBuffer() : null;
@@ -82,17 +76,4 @@ async function handleExtract(songId: string, fileHandle: FileSystemFileHandle) {
     },
     transfer,
   );
-}
-
-async function handleWrite(songId: string, imageBytes: ArrayBuffer) {
-  const song = await db.songs.get(songId);
-  if (!song?.tags) return;
-
-  const id3Tags: Id3FormValues = {
-    ...song.tags,
-    picture: [arrayBufferToBase64(imageBytes)],
-  };
-
-  await writeUpdatedTagsToFile(song, id3Tags);
-  await handleExtract(songId, song.fileHandle);
 }
