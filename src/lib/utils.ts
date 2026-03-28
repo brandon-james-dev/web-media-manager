@@ -103,7 +103,8 @@ export async function writeUpdatedTagsToFile(
 
   const file = await fileHandle.getFile();
   const originalBuffer = await file.arrayBuffer();
-  const writer = new ID3Writer(originalBuffer);
+  const audioOnlyBuffer = stripExistingId3v2Tag(originalBuffer);
+  const writer = new ID3Writer(audioOnlyBuffer);
 
   if (updatedTags.title) writer.setFrame("TIT2", updatedTags.title);
   if (updatedTags.artist) writer.setFrame("TPE1", [updatedTags.artist]);

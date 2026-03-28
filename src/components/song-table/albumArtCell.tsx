@@ -29,7 +29,7 @@ function AlbumArtCell({ songId }: { songId: string }) {
   }, [songId]);
 
   useEffect(() => {
-    const eventName = `album-art-thumbnail-complete:${songId}`;
+    const eventName = `art-thumbnail-complete:${songId}`;
 
     const handler = async () => {
       const { thumbnail, revoke } = await getStaticThumbnail(songId, "sm");
