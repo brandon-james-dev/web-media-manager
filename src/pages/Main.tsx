@@ -49,7 +49,6 @@ import { type SortingState } from "@tanstack/react-table";
 import { useCountPendingArtwork } from "@/hooks/thumbnailQueryHooks";
 import { startPendingArtLoop } from "@/lib/albumArtWorkerClient";
 import fuzzysearch from "fuzzysearch-ts";
-import { base64ToArrayBuffer } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlbumView } from "@/components/album-view";
 import type { Album } from "@/components/album-view/types";

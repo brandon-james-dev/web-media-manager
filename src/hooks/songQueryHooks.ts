@@ -75,12 +75,17 @@ export function useAlbums() {
 
     for (const album of uniqueAlbums) {
       const albumSongs = songs.filter((s) => s.tags?.album === album);
-      const artist = albumSongs.at(0)?.tags?.artist;
-      const { thumbXLarge } = await getStaticThumbnail(albumSongs.at(0)!.id);
+      const artist = new Set<string>(
+        albumSongs.map((s) => s.tags?.artist).filter((a) => a != undefined),
+      )
+        .values()
+        .toArray()
+        .join(", ");
+      const { thumbnail } = await getStaticThumbnail(albumSongs.at(0)!.id);
 
       albums.set(album!, {
         albumName: album!,
-        art: thumbXLarge || undefined,
+        art: thumbnail,
         artist: artist || "Unknown Artist",
         songs: albumSongs,
       });

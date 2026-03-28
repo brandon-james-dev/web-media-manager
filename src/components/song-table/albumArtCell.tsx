@@ -1,44 +1,50 @@
 import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import { Music } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function AlbumArtCell({ songId }: { songId: string }) {
   const [art, setArt] = useState<string | null>(null);
-  let revokeFn = () => {};
+  const revokeRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       const { thumbnail, revoke } = await getStaticThumbnail(songId, "sm");
-      revokeFn = revoke;
 
-      if (!cancelled) {
-        if (thumbnail) setArt(thumbnail);
-      }
+      if (cancelled) return;
+
+      revokeRef.current();
+
+      revokeRef.current = revoke;
+      setArt(thumbnail || null);
     }
 
     load();
+
     return () => {
       cancelled = true;
+      revokeRef.current();
     };
   }, [songId]);
 
   useEffect(() => {
-    const eventName = `art-thumbnail-complete:${songId}`;
-    let revokeFn = () => {};
+    const eventName = `album-art-thumbnail-complete:${songId}`;
 
-    async function handleUpdate() {
+    const handler = async () => {
       const { thumbnail, revoke } = await getStaticThumbnail(songId, "sm");
-      revokeFn = revoke;
-      if (thumbnail) setArt(thumbnail);
-    }
 
-    window.addEventListener(eventName, handleUpdate);
+      revokeRef.current();
+
+      revokeRef.current = revoke;
+      setArt(thumbnail ?? null);
+    };
+
+    window.addEventListener(eventName, handler);
 
     return () => {
-      window.removeEventListener(eventName, handleUpdate);
-      revokeFn();
+      window.removeEventListener(eventName, handler);
+      revokeRef.current();
     };
   }, [songId]);
 

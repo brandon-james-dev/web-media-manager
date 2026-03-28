@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Music } from "lucide-react";
 import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import type { Album } from "./types";
@@ -10,6 +10,7 @@ interface AlbumArtProps {
 
 export function AlbumArt({ album }: AlbumArtProps) {
   const [art, setArt] = useState<string | null>(album.art ?? null);
+  const revokeRef = useRef<() => void>(() => {});
 
   const songsByAlbum = useSongsByAlbumInDb(album.albumName);
   const primarySong = songsByAlbum?.at(0);
@@ -17,34 +18,42 @@ export function AlbumArt({ album }: AlbumArtProps) {
 
   // Initial load
   useEffect(() => {
-    let revokeFn = () => {};
     let cancelled = false;
 
     async function load() {
       if (!songId) return;
       const { thumbnail, revoke } = await getStaticThumbnail(songId, "xl");
-      revokeFn = revoke;
-      if (!cancelled) {
-        if (thumbnail) setArt(thumbnail);
-      }
+
+      if (cancelled) return;
+
+      revokeRef.current();
+
+      revokeRef.current = revoke;
+      setArt(thumbnail || null);
     }
 
     load();
     return () => {
       cancelled = true;
-      revokeFn();
+      revokeRef.current();
     };
   }, [songId]);
 
   useEffect(() => {
-    let revokeFn = () => {};
     const eventName = `art-thumbnail-complete:album:${album.albumName}`;
 
     const handleUpdate = async (evt: Event) => {
       const e = evt as CustomEvent<{ songId: string }>;
-      if (e.detail.songId === songId) {
-        const { thumbnail, revoke } = await getStaticThumbnail(songId, "xl");
-        revokeFn = revoke;
+
+      if (album.songs.map((s) => s.id).includes(e.detail.songId)) {
+        const { thumbnail, revoke } = await getStaticThumbnail(
+          e.detail.songId,
+          "xl",
+        );
+
+        revokeRef.current();
+
+        revokeRef.current = revoke;
         if (thumbnail) setArt(thumbnail);
       }
     };
@@ -53,7 +62,7 @@ export function AlbumArt({ album }: AlbumArtProps) {
 
     return () => {
       window.removeEventListener(eventName, handleUpdate);
-      revokeFn();
+      revokeRef.current();
     };
   }, [album, songId]);
 
