@@ -72,7 +72,7 @@ async function processWriteJob(job: PendingWriteJob) {
       thumbLarge: thumb256,
       thumbMedium: thumb128,
       thumbSmall: thumb64,
-      mtime: Date.now(),
+      createdAt: Date.now(),
     });
     //#endregion
   } catch (err) {

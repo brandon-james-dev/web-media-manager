@@ -119,7 +119,7 @@ function sortedByReactTable(sorting: SortingState) {
       "album",
       "duration",
       "bitrate",
-      "mtime",
+      "createdAt",
     ];
 
     if (!sortable.includes(id)) {

@@ -4,12 +4,18 @@ import type {
   PendingImportJob,
   ThumbnailEntry,
   PendingArtJob,
+  Folder,
 } from "@/models";
 import Dexie, { type Table } from "dexie";
 
+/**
+ * MediaDB is an indexedDB in-browser database with tables to store songs information
+ * and the states of all other data to be imported in the background.
+ */
 export class MediaDB extends Dexie {
   songs!: Table<Song, string>;
   thumbnails!: Table<ThumbnailEntry, string>;
+  folders!: Table<Folder, number>;
   pendingWrites!: Table<PendingWriteJob, number>;
   pendingImports!: Table<PendingImportJob, number>;
   pendingArt!: Table<PendingArtJob, number>;
@@ -26,7 +32,13 @@ export class MediaDB extends Dexie {
         tags.genre,
         duration,
         bitrate,
-        mtime
+        folderId,
+        createdAt
+      `,
+      folders: `
+        ++id,
+        directoryName,
+        createdAt
       `,
       pendingWrites: `
         ++id,
@@ -42,7 +54,8 @@ export class MediaDB extends Dexie {
         thumbSmall,
         thumbMedium,
         thumbLarge,
-        thumbXLarge
+        thumbXLarge,
+        createdAt
       `,
       pendingArt: `
         ++id,

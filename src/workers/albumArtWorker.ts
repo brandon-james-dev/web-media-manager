@@ -29,11 +29,12 @@ async function processPendingArtLoop() {
     if (!job?.id) return;
 
     try {
-      await handleExtract(job.songId, job.fileHandle);
-      await db.pendingArt.delete(job.id);
       const song = await db.songs.get(job.songId);
-
       if (!song) break;
+      
+      await handleExtract(job.songId, song.fileHandle);
+      await db.pendingArt.delete(job.id);
+
     } catch (err) {
       self.postMessage({
         type: "pending-art-error",

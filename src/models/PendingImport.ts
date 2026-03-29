@@ -1,13 +1,40 @@
+/**
+ * A background job for user-selected files which are to be imported by a worker.
+ */
 interface PendingImportJob {
+  /**
+   * A unique incrementing id
+   */
   id?: number;
+
+  /**
+   * The chosen directory the songs are imported from
+   */
   directoryHandle: FileSystemDirectoryHandle;
+
+  /**
+   * All files initially detected by the user selection
+   */
   files: PendingImportFile[];
+
+  /**
+   * The timestamp that the import job was created
+   */
   createdAt: number;
-  updatedAt?: number;
 }
 
+/**
+ * The name and status of each song in the selected folder
+ */
 interface PendingImportFile {
+  /**
+   * The file name
+   */
   name: string;
+
+  /**
+   * The state of the file relating to import
+   */
   status: "pending" | "processing" | "done" | "error";
 }
 

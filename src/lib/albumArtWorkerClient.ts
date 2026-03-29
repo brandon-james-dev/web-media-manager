@@ -28,7 +28,7 @@ async function handleMessage(event: MessageEvent) {
         thumbLarge: msg.thumbLarge ? new Blob([msg.thumbLarge]) : null,
         thumbMedium: msg.thumbMedium ? new Blob([msg.thumbMedium]) : null,
         thumbSmall: msg.thumbSmall ? new Blob([msg.thumbSmall]) : null,
-        mtime: Date.now(),
+        createdAt: Date.now(),
       });
       dispatchEvent(
         new CustomEvent(`art-thumbnail-complete:${msg.songId}`, {

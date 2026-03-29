@@ -1,8 +1,11 @@
 import type { SongTags } from "./SongTags";
 
-export type Song = {
+/**
+ * Representation of an audio file with its containing id3 tags.
+ */
+export interface Song {
     /**
-     * Unique identifier
+     * Unique identifier, typically the song's file name
      */
     id: string;
     
@@ -22,14 +25,22 @@ export type Song = {
     fileHandle: FileSystemFileHandle;
 
     /**
+     * The time when the song was created
+     */
+    createdAt?: number;
+
+    /**
      * The time when the song was last updated
      */
     updatedAt?: number;
 
     /**
+     * The folder this song was imported from
+     */
+    folderId: number;
+
+    /**
      * ID3 tags extracted from the original file
      */
     tags?: Partial<SongTags>;
-} & {
-    [K in keyof SongTags]: string;
 }

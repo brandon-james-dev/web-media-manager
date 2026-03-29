@@ -78,8 +78,7 @@ async function processJob(jobId: number) {
 
       await mediaDb.pendingArt.add({
         songId: song.id,
-        createdAt: Date.now(),
-        fileHandle,
+        createdAt: Date.now()
       });
 
       startPendingArtLoop();
