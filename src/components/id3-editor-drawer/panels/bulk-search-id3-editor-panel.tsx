@@ -194,7 +194,7 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
                   {committedArt && (
                     <img
                       src={committedArt}
-                      alt={song.album}
+                      alt={song.tags?.album}
                       className="w-12 h-12 object-cover rounded bg-muted"
                     />
                   )}
@@ -267,7 +267,7 @@ export function BulkSearchId3EditorPanel(props: BulkSearchId3EditorPanelProps) {
                       {activeArt && (
                         <img
                           src={activeArt}
-                          alt={song.album}
+                          alt={song.tags?.album}
                           className="w-32 h-32 object-cover rounded bg-muted"
                         />
                       )}
