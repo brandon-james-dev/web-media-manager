@@ -1,3 +1,5 @@
+import type { Folder } from "./Folder";
+
 /**
  * A background job for user-selected files which are to be imported by a worker.
  */
@@ -8,9 +10,9 @@ interface PendingImportJob {
   id?: number;
 
   /**
-   * The chosen directory the songs are imported from
+   * The folder the pending import job is to be executed from
    */
-  directoryHandle: FileSystemDirectoryHandle;
+  folder: Folder;
 
   /**
    * All files initially detected by the user selection
@@ -21,6 +23,11 @@ interface PendingImportJob {
    * The timestamp that the import job was created
    */
   createdAt: number;
+
+  /**
+   * The timestamp that the import job was updated
+   */
+  updatedAt?: number;
 }
 
 /**

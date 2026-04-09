@@ -20,7 +20,6 @@ export async function getStaticThumbnail(
   thumbnailSize: "sm" | "md" | "lg" | "xl" | "original" = "sm",
 ): Promise<{
   thumbnail?: string;
-  original?: string;
   revoke: () => void;
 }> {
   const inputSizeToDbSize: Map<string, string> = new Map<string, string>([

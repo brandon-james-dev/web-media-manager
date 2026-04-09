@@ -27,7 +27,7 @@ export interface Song {
     /**
      * The time when the song was created
      */
-    createdAt?: number;
+    createdAt: number;
 
     /**
      * The time when the song was last updated

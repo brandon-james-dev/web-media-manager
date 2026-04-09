@@ -58,7 +58,7 @@ async function processJob(jobId: number) {
     await mediaDb.pendingImports.put(job);
 
     try {
-      const fileHandle = await job.directoryHandle.getFileHandle(
+      const fileHandle = await job.folder.directoryHandle.getFileHandle(
         fileEntry.name,
       );
       const file = await fileHandle.getFile();
@@ -66,13 +66,15 @@ async function processJob(jobId: number) {
 
       const tags = mapCommonTagsToSongTags(common);
 
-      const song = {
+      const song: Song = {
         id: fileEntry.name,
+        folderId: job.folder.id!,
         duration: format.duration ?? 0,
         bitrate: format.bitrate ?? 0,
         fileHandle,
+        createdAt: Date.now(),
         tags,
-      } as Song;
+      };
 
       await mediaDb.songs.put(song);
 

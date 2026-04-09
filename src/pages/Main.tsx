@@ -38,6 +38,7 @@ import {
 } from "@/lib/pendingImportWorkerClient";
 import {
   sortPendingImportsByCol,
+  useInsertImportedFolder,
   useInsertPendingImport,
 } from "@/hooks/pendingImportHooks";
 import {
@@ -52,6 +53,7 @@ import fuzzysearch from "fuzzysearch-ts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlbumView } from "@/components/album-view";
 import type { Album } from "@/components/album-view/types";
+import { ensureDirPermission } from "@/lib/ensureDirPermission";
 
 export default function Main() {
   const songs = useSongsInDb() || [];
@@ -100,7 +102,7 @@ export default function Main() {
       const title = album.albumName.toLowerCase() ?? "";
       const artist = album.artist.toLowerCase() ?? "";
       const songTitles = album.songs
-        .map((s) => s.title?.toLowerCase())
+        .map((s) => s.tags?.title?.toLowerCase())
         .filter((t) => t !== undefined);
 
       return (
@@ -146,6 +148,16 @@ export default function Main() {
     const dir = await showDirectoryPicker();
     if (!dir || dir instanceof Error) return;
 
+    const chosenFolder = await useInsertImportedFolder(dir);
+
+    const hasWritePermission = await ensureDirPermission(dir);
+
+    if (!hasWritePermission) {
+      toast.error(
+        "Read and write permissions were not granted in this directory.",
+      );
+    }
+
     const files: PendingImportFile[] = [];
     const directoryEntries = await openDirectory(dir);
     const filesMap = new Map(directoryEntries?.entries());
@@ -163,7 +175,7 @@ export default function Main() {
       });
     }
 
-    const jobId = await useInsertPendingImport(dir, files);
+    const jobId = await useInsertPendingImport(chosenFolder, files);
 
     enqueueImportJob(jobId);
   };

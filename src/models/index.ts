@@ -1,9 +1,9 @@
 import type { PendingArtJob } from './PendingArtJob';
 import type { ThumbnailEntry } from './ThumbnailEntry';
-import type { PendingWriteJob } from "./PendingWrite";
+import type { PendingWriteJob } from "./PendingWriteJob";
 import type { Song } from "./Song";
 import type { Id3FormValues } from "./Id3FormValues";
-import type { PendingImportJob, PendingImportFile } from "./PendingImport";
+import type { PendingImportJob, PendingImportFile } from "./PendingImportJob";
 import type { Folder } from './Folder';
 
 export type {

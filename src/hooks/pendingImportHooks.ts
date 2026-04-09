@@ -1,12 +1,25 @@
 import { mediaDb } from "@/data";
-import type { PendingImportFile } from "@/models";
+import type { Folder, PendingImportFile } from "@/models";
+
+async function useInsertImportedFolder(
+  directoryHandle: FileSystemDirectoryHandle,
+) {
+  const folderId = await mediaDb.folders.add({
+    directoryHandle,
+    directoryName: directoryHandle.name,
+    createdAt: Date.now(),
+  });
+  const folder = await mediaDb.folders.get(folderId);
+
+  return folder!;
+}
 
 async function useInsertPendingImport(
-  directoryHandle: FileSystemDirectoryHandle,
+  folder: Folder,
   files: PendingImportFile[],
 ) {
   const jobId = await mediaDb.pendingImports.add({
-    directoryHandle,
+    folder,
     files,
     createdAt: Date.now(),
   });
@@ -35,4 +48,9 @@ async function sortPendingArtByCol(
   return await query.toArray();
 }
 
-export { useInsertPendingImport, sortPendingImportsByCol, sortPendingArtByCol };
+export {
+  useInsertPendingImport,
+  sortPendingImportsByCol,
+  sortPendingArtByCol,
+  useInsertImportedFolder,
+};
