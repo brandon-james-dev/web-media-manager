@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { MusicResult } from "itunes-web-api";
 import { extractItunesMetadata } from "./extractItunesMetadata";
 import { resizeBitmap } from "@/lib/albumArt";

@@ -1,7 +1,7 @@
 import { mediaDb } from "@/data";
 import type { Id3FormValues } from "@/models";
 
-export async function useInsertPendingWrite(songId: string, tags: Id3FormValues) {
+export async function insertPendingWrite(songId: string, tags: Id3FormValues) {
   const jobId = await mediaDb.pendingWrites.add({
     songId,
     tags,
@@ -10,6 +10,6 @@ export async function useInsertPendingWrite(songId: string, tags: Id3FormValues)
   return jobId;
 }
 
-export async function useCountPendingWrites() {
+export async function countPendingWrites() {
   return await mediaDb.pendingWrites.count();
 }

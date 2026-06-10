@@ -5,17 +5,13 @@
       "name": "Edge: Debug Vite",
       "type": "msedge",
       "request": "launch",
-      "runtimeArgs": [
-        "--remote-debugging-port=9222",
-        "--user-data-dir=${workspaceFolder}/.vscode/vscode-edge-profile",
-        "http://localhost:5173"
-      ],
-      "preLaunchTask": "vite-dev",
+      "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}",
       "sourceMaps": true,
       "sourceMapPathOverrides": {
         "vite:///*": "${workspaceFolder}/*"
-      }
+      },
+      "preLaunchTask": "vite-dev"
     }
   ]
 }

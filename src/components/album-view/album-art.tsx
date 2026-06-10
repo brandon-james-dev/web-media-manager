@@ -72,6 +72,7 @@ export function AlbumArt({ album }: AlbumArtProps) {
         <img
           src={art}
           draggable={false}
+          alt={album.albumName}
           className="w-full aspect-square object-cover"
         />
       )}

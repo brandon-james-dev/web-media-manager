@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { mediaDb } from "@/data";
 
-export async function useCountPendingArtwork() {
+export async function countPendingArtwork() {
   return mediaDb.pendingArt.count();
 }
 

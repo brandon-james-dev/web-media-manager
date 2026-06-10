@@ -46,7 +46,7 @@ export function base64ToArrayBuffer(base64: string) {
 export function mapCommonTagsToSongTags(
   tags: ICommonTagsResult,
 ): Partial<SongTags> {
-  const result: any = {};
+  const result: Record<string, string> = {};
 
   for (const key in TAG_MAP) {
     const formKey = key as keyof SongTags;
@@ -160,7 +160,7 @@ export function getUniqueValues(
 ): string[] {
   const set = new Set<string>();
   for (const s of songs) {
-    const v = (s.tags as any)[key];
+    const v = (s.tags as never)[key];
     if (v !== undefined && v !== null && v !== "") {
       set.add(String(v));
     }

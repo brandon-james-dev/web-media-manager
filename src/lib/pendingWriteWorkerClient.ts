@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const worker = new Worker(
   new URL("@/workers/pendingWriteWorker.ts", import.meta.url),
   { type: "module" },

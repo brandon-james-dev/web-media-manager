@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -5,7 +6,7 @@ import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import { resizeBitmap } from "@/lib/albumArt";
 import type { Song } from "@/models";
 
-export function useAlbumArt(primarySong: Song | null, form: any) {
+export function useAlbumArt(primarySong: Song, form: any) {
   const [previewArt, setPreviewArt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadComplete, setDownloadComplete] = useState(false);

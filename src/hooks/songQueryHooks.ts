@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useLiveQuery } from "dexie-react-hooks";
 import { mediaDb } from "@/data";
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ function useSongsInDbStatic() {
 }
 
 function useSongsInDb() {
-  return useLiveQuery(() => mediaDb.songs.toArray(), []);
+  return useLiveQuery(() => mediaDb.songs.toArray(), []) || [];
 }
 
 function useSongById(id: string) {
@@ -19,7 +20,6 @@ function useSongById(id: string) {
 
   useEffect(() => {
     if (!id) {
-      setSong(null);
       return;
     }
 
@@ -105,7 +105,7 @@ export function useAlbums() {
   });
 }
 
-function sortedByReactTable(sorting: SortingState) {
+function useSortedByReactTable(sorting: SortingState) {
   return useLiveQuery(async () => {
     if (sorting.length === 0) {
       return mediaDb.songs.toArray();
@@ -139,5 +139,5 @@ export {
   useSongById,
   useSongsByArtistInDb,
   useSongsByAlbumInDb,
-  sortedByReactTable,
+  useSortedByReactTable,
 };

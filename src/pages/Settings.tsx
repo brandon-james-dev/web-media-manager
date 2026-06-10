@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenu } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { useTheme } from "@/components/theme-provider"
+import { useTheme } from "@/components/useTheme";
 import { Sun, Moon, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router';
 import { clearDb } from '@/hooks/songUpdateHooks';

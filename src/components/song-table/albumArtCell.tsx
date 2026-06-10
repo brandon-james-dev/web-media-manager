@@ -58,6 +58,7 @@ function AlbumArtCell({ songId }: { songId: string }) {
 
   return (
     <img
+      alt="Album Art"
       src={art}
       draggable={false}
       className="h-12 w-12 rounded object-cover"

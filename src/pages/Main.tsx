@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -37,17 +38,17 @@ import {
   subscribeToImportEvents,
 } from "@/lib/pendingImportWorkerClient";
 import {
+  insertImportedFolder,
+  insertPendingImport,
   sortPendingImportsByCol,
-  useInsertImportedFolder,
-  useInsertPendingImport,
 } from "@/hooks/pendingImportHooks";
 import {
-  useCountPendingWrites,
-  useInsertPendingWrite,
+  insertPendingWrite,
+  countPendingWrites,
 } from "@/hooks/pendingWriteHooks";
 import { useAlbums, useSongsInDb } from "@/hooks/songQueryHooks";
 import { type SortingState } from "@tanstack/react-table";
-import { useCountPendingArtwork } from "@/hooks/thumbnailQueryHooks";
+import { countPendingArtwork } from "@/hooks/thumbnailQueryHooks";
 import { startPendingArtLoop } from "@/lib/albumArtWorkerClient";
 import fuzzysearch from "fuzzysearch-ts";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -56,8 +57,8 @@ import type { Album } from "@/components/album-view/types";
 import { ensureDirPermission } from "@/lib/ensureDirPermission";
 
 export default function Main() {
-  const songs = useSongsInDb() || [];
-  const albums = useAlbums() || [];
+  const songs = useSongsInDb();
+  const albums = useAlbums();
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [selectedAlbums, setSelectedAlbums] = useState<Album[]>([]);
   const [totalSongs, setTotalSongs] = useState<number>(0);
@@ -65,7 +66,6 @@ export default function Main() {
   const [isBulkSelectEnabled, setIsBulkSelectEnabled] = useState(false);
   const [tab, setTab] = useState("songs");
   const bulkRef = useRef(isBulkSelectEnabled);
-  bulkRef.current = isBulkSelectEnabled;
   const searchRef = useRef("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -98,7 +98,7 @@ export default function Main() {
     const q = debouncedSearch.toLowerCase().replace(/[^A-Za-z]/g, "");
     if (!q) return albums;
 
-    return albums.filter((album) => {
+    return albums?.filter((album) => {
       const title = album.albumName.toLowerCase() ?? "";
       const artist = album.artist.toLowerCase() ?? "";
       const songTitles = album.songs
@@ -119,7 +119,7 @@ export default function Main() {
     const { id, desc } = sorting[0];
     const key = id.replaceAll("_", ".");
 
-    return [...filteredSongs].sort((a, b) => {
+    return [...(filteredSongs || [])].sort((a, b) => {
       const aVal = key.split(".").reduce((o: any, k) => o?.[k], a);
       const bVal = key.split(".").reduce((o: any, k) => o?.[k], b);
 
@@ -148,7 +148,7 @@ export default function Main() {
     const dir = await showDirectoryPicker();
     if (!dir || dir instanceof Error) return;
 
-    const chosenFolder = await useInsertImportedFolder(dir);
+    const chosenFolder = await insertImportedFolder(dir);
 
     const hasWritePermission = await ensureDirPermission(dir);
 
@@ -175,7 +175,7 @@ export default function Main() {
       });
     }
 
-    const jobId = await useInsertPendingImport(chosenFolder, files);
+    const jobId = await insertPendingImport(chosenFolder, files);
 
     enqueueImportJob(jobId);
   };
@@ -189,12 +189,12 @@ export default function Main() {
     const init = async () => {
       // Resume pending writes if any
 
-      const pendingWriteCount = await useCountPendingWrites();
+      const pendingWriteCount = await countPendingWrites();
       if (pendingWriteCount > 0) {
         startWriteLoop();
       }
 
-      const pendingArtCount = await useCountPendingArtwork();
+      const pendingArtCount = await countPendingArtwork();
 
       if (pendingArtCount > 0) {
         startPendingArtLoop();
@@ -232,7 +232,7 @@ export default function Main() {
     };
 
     init();
-  }, []);
+  }, [totalSongs]);
   //#endregion
 
   return (
@@ -342,7 +342,7 @@ export default function Main() {
               </div>
               <div className="flex-1 w-full container-type-size">
                 <ScrollArea ref={scrollAreaRef} className="container-height">
-                  {songs.length == 0 && didRun.current && (
+                  {songs.length == 0 && didRun && (
                     <Empty hidden={songs.length > 0}>
                       <EmptyHeader className="pointer-events-none">
                         <EmptyMedia variant="icon">
@@ -373,7 +373,7 @@ export default function Main() {
                   )}
                   {songs.length > 0 && tab === "albums" && (
                     <AlbumView
-                      albums={filteredAlbums}
+                      albums={filteredAlbums || []}
                       onSelectAlbums={(albums: Album[]) => {
                         setSelectedAlbums(albums);
                         setSelectedSongs(albums.flatMap((a) => a.songs));
@@ -411,7 +411,7 @@ export default function Main() {
         onSave={async (updatedSongs) => {
           for (const [song, tags] of updatedSongs) {
             if (!tags) continue;
-            await useInsertPendingWrite(song.id, tags);
+            await insertPendingWrite(song.id, tags);
             startWriteLoop();
           }
 

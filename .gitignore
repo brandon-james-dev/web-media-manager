@@ -49,3 +49,4 @@ out/
 storybook-static/
 # Miscellaneous temporary files
 *.local
+.DS_Store

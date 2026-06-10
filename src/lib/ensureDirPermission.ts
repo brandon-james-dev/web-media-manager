@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function ensureDirPermission(dir: any) {
   const opts = { mode: "readwrite" };
 

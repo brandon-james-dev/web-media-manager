@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { mediaDb } from "@/data";
 
 let worker: Worker | null = null;

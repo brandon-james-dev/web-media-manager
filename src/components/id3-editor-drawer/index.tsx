@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import {
@@ -32,14 +33,13 @@ import { useAlbumArt } from "./state/useAlbumArt";
 
 import { applyItunesMetadata } from "./online-src-helpers/applyItunesMetadata";
 import { getItunesSongMatches } from "./online-src-helpers/getItunesSongMatches";
-import { getStaticThumbnail } from "@/hooks/thumbnailQueryHooks";
 import type { MusicResult } from "itunes-web-api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useBulkSearch } from "./state/useBulkSearch";
 import { ManualId3EditorPanel } from "./panels/manual-id3-editor-panel";
 import { BulkSearchId3EditorPanel } from "./panels/bulk-search-id3-editor-panel";
 import { extractItunesMetadata } from "./online-src-helpers/extractItunesMetadata";
-import { useSongRepository } from "@/data/useSongRepository";
+import { SongRepository } from "@/data/SongRepository";
 
 type Id3EditorDrawerProps = {
   isOpen: boolean;
@@ -59,7 +59,6 @@ function getInitialValue(key: any, songs: Song[]) {
 export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
   const { isOpen, selectedSongs, onOpenChange, onSave, className } = props;
   const isMulti = selectedSongs.length > 1;
-  let primarySong = !isMulti ? selectedSongs[0] : null;
 
   const initialValues: Id3FormValues = useMemo(() => {
     if (!selectedSongs.length) {
@@ -115,7 +114,7 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     setIsLoading: setIsAlbumArtLoading,
     resetAlbumArt,
     setArt,
-  } = useAlbumArt(primarySong, form);
+  } = useAlbumArt(selectedSongs.at(0)!, form);
 
   const [itunesPreSearchOpen, setItunesPreSearchOpen] = useState(false);
   const [preSearchTitle, setPreSearchTitle] = useState("");
@@ -177,7 +176,7 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
   }
 
   async function processBulkSave() {
-    let updatedSongs = new Map<Song, Id3FormValues>();
+    const updatedSongs = new Map<Song, Id3FormValues>();
 
     if (committedBulkMatches.length > 0) {
       for (const entry of committedBulkMatches) {
@@ -186,11 +185,11 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
         );
         if (match) {
           const formValues = await extractItunesMetadata(match);
-          const initialSong = await useSongRepository().getSongById(entry.id);
+          const initialSong = await SongRepository().getSongById(entry.id);
 
           if (!initialSong) return;
 
-          let updated = {
+          const updated = {
             ...initialSong,
             tags: formValues,
           };
@@ -207,45 +206,6 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     onSave?.(updatedSongs);
     onOpenChange?.(false);
   }
-
-  useEffect(() => {
-    if (!isOpen || !selectedSongs.length) return;
-
-    setSelectedTab("manual");
-    form.reset(initialValues);
-    resetAllDirtyFields(form, resetAlbumArt);
-    setPreviewArt(null);
-    setIsAlbumArtLoading(false);
-
-    let cleanup: (() => void) | undefined;
-
-    async function loadArt() {
-      if (isMulti) {
-        const uniqueAlbums = new Set<string>(
-          selectedSongs.map((s) => s.tags?.album).filter((a) => a !== undefined),
-        ).values().toArray();
-        const sameAlbum = uniqueAlbums.length == 1;
-        primarySong = selectedSongs[0];
-        if (!sameAlbum) {
-          return;
-        }
-      }
-      if (!primarySong) return;
-
-      const { thumbnail, revoke } = await getStaticThumbnail(primarySong.id, "lg");
-      if (!thumbnail) return;
-
-      form.setValue("picture", [thumbnail]);
-      setPreviewArt(thumbnail);
-      cleanup = revoke;
-    }
-
-    loadArt();
-
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [isOpen, selectedSongs, primarySong, form, initialValues]);
 
   async function handleSubmit(values: Id3FormValues) {
     if (!selectedSongs.length) return;
@@ -293,7 +253,10 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     }
 
     for (const song of selectedSongs) {
-      handleGetItunesSong(song.tags?.title!, artist);
+      if (!song.tags?.title) {
+        continue;
+      }
+      handleGetItunesSong(song.tags.title, artist);
     }
   }
 

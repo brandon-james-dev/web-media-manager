@@ -94,6 +94,7 @@ export function AlbumArtField(props: AlbumArtFieldProps) {
 
       <input
         id="album-art-input"
+        title="Album Art"
         type="file"
         accept="image/png, image/jpeg"
         className="hidden"

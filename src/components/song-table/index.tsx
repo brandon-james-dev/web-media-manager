@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   type OnChangeFn,
   type SortingState,
@@ -39,7 +40,7 @@ export function SongTable(props: SongTableProps) {
     onSortingChange,
     rowSelection = [],
     onRowSelectionChange,
-    isBulkSelectEnabled = useRef<boolean>(false),
+    isBulkSelectEnabled,
     onEnterKey,
     containerRef,
     hidden,
@@ -137,7 +138,7 @@ export function SongTable(props: SongTableProps) {
         return;
       }
 
-      if (e.key === "d" && (e.ctrlKey || e.metaKey)) {
+      if ((e.key === "d" && (e.ctrlKey || e.metaKey) || e.key === "Escape")) {
         e.preventDefault();
 
         setInternalRowSelection({});
@@ -188,7 +189,7 @@ export function SongTable(props: SongTableProps) {
         const viewportRows = Math.floor(container.clientHeight / rowHeight);
         const delta = e.key === "PageDown" ? viewportRows : -viewportRows;
 
-        let nextIndex = Math.min(rows.length - 1, Math.max(0, index + delta));
+        const nextIndex = Math.min(rows.length - 1, Math.max(0, index + delta));
 
         const nextId = rowIds[nextIndex];
 
@@ -251,7 +252,7 @@ export function SongTable(props: SongTableProps) {
 
       scrollRowIntoView(nextId);
     },
-    [songs, focusedRowId, onRowSelectionChange, table],
+    [table, focusedRowId, isBulkSelectEnabled, onRowSelectionChange, songs, containerRef, onEnterKey],
   );
   //#endregion
 
@@ -286,6 +287,11 @@ export function SongTable(props: SongTableProps) {
           scrollRowIntoView(rowId);
           return;
         }
+      }
+
+      if (isBulkSelectEnabled.current) {
+        const newInternalRowSelection = { ...internalRowSelection, [rowId]: true }
+        setInternalRowSelection(newInternalRowSelection);
       }
 
       anchorRef.current = rowId;
@@ -394,6 +400,7 @@ const SongRow = React.memo(
     return (
       <TableRow
         ref={(el) => {
+          // eslint-disable-next-line react-hooks/immutability
           rowRefs.current[row.id] = el;
         }}
         className={`

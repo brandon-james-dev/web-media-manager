@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { Song } from "@/models";
 import type { MusicResult } from "itunes-web-api";
 
@@ -26,27 +26,24 @@ export function useBulkSearch(
   const [isRunning, setIsRunning] = useState(false);
   const abortRef = useRef(false);
 
-  useEffect(() => {
-    const initial = songs.map(s => ({
-      id: s.id,
-      title: s.tags?.title ?? "",
-      artist: s.tags?.artist ?? "",
-      status: "idle" as const,
-      matches: [],
-      selectedMatchId: null,
-      previewMatchId: null
-    }));
-
-    setState(initial);
-    abortRef.current = false;
-  }, [songs]);
-
   async function start() {
     if (isRunning) return;
     setIsRunning(true);
 
     for (const song of songs) {
       if (abortRef.current) break;
+      const initial = songs.map(s => ({
+        id: s.id,
+        title: s.tags?.title ?? "",
+        artist: s.tags?.artist ?? "",
+        status: "idle" as const,
+        matches: [],
+        selectedMatchId: null,
+        previewMatchId: null
+      }));
+
+      setState(initial);
+      abortRef.current = false;
 
       setState(prev =>
         prev.map(p =>

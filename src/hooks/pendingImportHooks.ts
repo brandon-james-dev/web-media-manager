@@ -1,7 +1,7 @@
 import { mediaDb } from "@/data";
 import type { Folder, PendingImportFile } from "@/models";
 
-async function useInsertImportedFolder(
+async function insertImportedFolder(
   directoryHandle: FileSystemDirectoryHandle,
 ) {
   const folderId = await mediaDb.folders.add({
@@ -14,7 +14,7 @@ async function useInsertImportedFolder(
   return folder!;
 }
 
-async function useInsertPendingImport(
+async function insertPendingImport(
   folder: Folder,
   files: PendingImportFile[],
 ) {
@@ -49,8 +49,8 @@ async function sortPendingArtByCol(
 }
 
 export {
-  useInsertPendingImport,
+  insertPendingImport,
   sortPendingImportsByCol,
   sortPendingArtByCol,
-  useInsertImportedFolder,
+  insertImportedFolder,
 };

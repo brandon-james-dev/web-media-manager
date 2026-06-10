@@ -56,8 +56,9 @@ export function OnlineSrcPreSearchDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium">Artist</label>
+            <label className="text-sm font-medium" htmlFor="artist">Artist</label>
             <input
+              id="artist"
               className="w-full border rounded px-2 py-1 mt-1"
               value={artist}
               onChange={(e) => onChangeArtist(e.target.value)}
@@ -65,10 +66,11 @@ export function OnlineSrcPreSearchDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium">
+            <label className="text-sm font-medium" htmlFor="album">
               Album<span hidden={isMulti}> (optional)</span>
             </label>
             <input
+              id="album"
               className="w-full border rounded px-2 py-1 mt-1"
               value={album}
               required={isMulti}
