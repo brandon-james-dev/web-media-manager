@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import {
@@ -274,6 +274,13 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
     isResetDisabled = !hasCommitted;
   }
 
+  useEffect(() => {
+    if (isOpen && selectedSongs.length > 0) {
+      form.reset(initialValues);
+      resetAlbumArt();
+    }
+  }, [form, isOpen, selectedSongs, initialValues, resetAlbumArt]);
+
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
       <DrawerContent
@@ -410,6 +417,7 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
                   </TabsList>
                   <TabsContent value="manual">
                     <ManualId3EditorPanel
+                      key={selectedSongs.map((s) => s.id).join("|")}
                       selectedSongs={selectedSongs}
                       form={form}
                       dirty={dirty}
@@ -426,6 +434,7 @@ export function Id3EditorDrawer(props: Id3EditorDrawerProps) {
                   </TabsContent>
                   <TabsContent value="bulk-search">
                     <BulkSearchId3EditorPanel
+                      key={selectedSongs.map((s) => s.id).join("|")}
                       songs={selectedSongs}
                       bulkState={bulkState}
                       progress={bulkProgress}
