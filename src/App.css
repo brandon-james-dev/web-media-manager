@@ -182,3 +182,32 @@
     border-right-color: var(--border);
   }
 }
+
+.navbar {
+  display: flex;
+  gap: 20px; /* Spacing between links */
+  padding: 15px 30px;
+  background-color: #2c3e50; /* Darker background for contrast */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Base styles for all navigation links */
+.nav-link {
+  color: #bdc3c7; /* Light grey text color */
+  text-decoration: none;
+  padding: 8px 12px;
+  transition: color 0.3s ease, border-bottom 0.3s ease;
+  border-bottom: 2px solid transparent; /* Base line for transition */
+}
+
+/* Style when hovering over a link */
+.nav-link:hover {
+  color: #ecf0f1; /* Slightly lighter color on hover */
+}
+
+/* Style to indicate the currently active page (this is added by NavLink) */
+.nav-link.active {
+  color: #3498db; /* Primary brand color for active state */
+  border-bottom: 3px solid #3498db; /* Clear visual indicator */
+  font-weight: 600; /* Make active link bolder */
+}
