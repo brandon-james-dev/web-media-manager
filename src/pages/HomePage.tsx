@@ -3,12 +3,15 @@ import SongTable from "@/components/SongTable/SongTable";
 import { importFiles } from "@/lib/importFiles";
 import { useState } from "react";
 import { TagLibMetadataReader } from "@/lib/TagLibMetadataReader";
+import { Progress } from "@/components/Progress";
 const reader = new TagLibMetadataReader();
 
 export function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [status, setStatus] = useState<string>("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [progressIndex, setProgressIndex] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -16,7 +19,7 @@ export function HomePage() {
     setStatus(files.length ? `${files.length} files selected.` : "");
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!selectedFiles.length) {
@@ -24,17 +27,26 @@ export function HomePage() {
       return;
     }
 
-    setStatus("Validating and importing…");
+    setProgressIndex(0);
+    setProgressTotal(selectedFiles.length);
+    setStatus("Starting import…");
 
-    const imported = await importFiles(selectedFiles, reader);
+    const imported = await importFiles(selectedFiles, reader, 10, {
+      onFileComplete(fileIndex, totalFiles) {
+        setProgressIndex(fileIndex);
+        setProgressTotal(totalFiles);
+      },
+    });
 
     setSongs((prev) => [...prev, ...imported]);
-    setStatus(`${imported.length} files imported.`);
+    setStatus(`Finished importing ${imported.length} files.`);
   }
 
   return (
     <div style={{ padding: "1rem" }}>
       <h1>Media Import</h1>
+
+      <Progress fileIndex={progressIndex} totalFiles={progressTotal} />
 
       <form onSubmit={handleSubmit}>
         <input
