@@ -1,15 +1,9 @@
 import { useState, type ChangeEvent, type SubmitEvent } from "react";
-import {
-  readProperties,
-  readTags,
-  type AudioProperties,
-  type ExtendedTag,
-} from "taglib-wasm/simple";
+import { isValidAudioFile, readMetadata } from "taglib-wasm/simple";
 import type { Song } from "../models/Song";
 import SongTable from "../components/SongTable/SongTable";
 
 function HomePage() {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [songData, setSongData] = useState<Song[]>([]);
   const [folderSelectStatus, setFolderSelectStatus] = useState("");
 
@@ -31,18 +25,16 @@ function HomePage() {
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const fileList = Array.from(event.target.files ?? []);
-    setSelectedFiles(fileList);
+    let validFiles = [];
 
-    const songs = await processInBatches(fileList, 5, async (file) => {
-      let tags: ExtendedTag | null = null;
-      let props: AudioProperties | null = null;
-
-      try {
-        tags = await readTags(file);
-        props = await readProperties(file);
-      } catch (err) {
-        console.error("TagLib error for:", file.name, err);
+    for (const file of fileList) {
+      if (await isValidAudioFile(file)) {
+        validFiles.push(file);
       }
+    }
+
+    const songs = await processInBatches(validFiles, 5, async (file) => {
+      const { tags, properties } = await readMetadata(file);
 
       return {
         id: file.name,
@@ -65,10 +57,10 @@ function HomePage() {
         mbTrackId: tags?.musicbrainzTrackId?.at(0),
         mbArtistId: tags?.musicbrainzArtistId?.at(0),
         mbReleaseGroupId: tags?.musicbrainzReleaseGroupId?.at(0),
-        length: props?.duration,
-        bitrate: props?.bitrate,
-        sampleRate: props?.sampleRate,
-        channels: props?.channels,
+        length: properties?.duration,
+        bitrate: properties?.bitrate,
+        sampleRate: properties?.sampleRate,
+        channels: properties?.channels,
         fileSizeBytes: file.size,
       } as Song;
     });
@@ -80,13 +72,13 @@ function HomePage() {
   const handleFormSubmit = async (event: SubmitEvent) => {
     event.preventDefault();
 
-    if (selectedFiles.length === 0) {
+    if (songData.length === 0) {
       setFolderSelectStatus("Please select files first.");
       return;
     }
 
     setFolderSelectStatus(
-      `Found ${selectedFiles.length} files in the selected folder`
+      `Found ${songData.length} files in the selected folder`
     );
   };
 
