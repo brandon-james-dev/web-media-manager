@@ -1,16 +1,7 @@
-import { Routes, Route, NavLink } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import "./App.css";
-import HomePage from "./pages/HomePage";
-
-const SettingsPage = () => <h1 className="page-title">Settings</h1>;
-
-function NavBar() {
-  return (
-    <nav className="navbar">
-      <NavLink to="/" className="nav-link">Home</NavLink> | <NavLink to="/settings" className="nav-link">Settings</NavLink>
-    </nav>
-  );
-}
+import { HomePage, SettingsPage } from "./pages";
+import { NavBar } from "./layout";
 
 function App() {
   return (
