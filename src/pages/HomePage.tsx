@@ -18,7 +18,9 @@ function HomePage() {
       return;
     }
 
-    setFolderSelectStatus(`Found ${selectedFiles.length} files in the selected folder`);
+    setFolderSelectStatus(
+      `Found ${selectedFiles.length} files in the selected folder`
+    );
   };
 
   return (
@@ -27,7 +29,10 @@ function HomePage() {
 
       <form onSubmit={handleFormSubmit}>
         <label htmlFor="file-input">
-          <button type="button" onClick={() => document.getElementById("file-input")?.click()}>
+          <button
+            type="button"
+            onClick={() => document.getElementById("file-input")?.click()}
+          >
             Import Folder
           </button>
         </label>
@@ -55,7 +60,7 @@ function HomePage() {
               {selectedFiles.map((file) => (
                 <tr key={file.webkitRelativePath || file.name}>
                   <td>{file.name}</td>
-                  <td>{file.webkitRelativePath || 'Root'}</td>
+                  <td>{file.webkitRelativePath || "Root"}</td>
                   <td>{Math.round(file.size / 1024)} KB</td>
                 </tr>
               ))}
