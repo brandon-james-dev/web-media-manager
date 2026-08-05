@@ -1,118 +1,55 @@
-import { useState, type ChangeEvent, type SubmitEvent } from "react";
-import { isValidAudioFile, readMetadata } from "taglib-wasm/simple";
-import type { Song } from "../models/Song";
-import SongTable from "../components/SongTable/SongTable";
+import type { Song } from "@/models/Song";
+import SongTable from "@/components/SongTable/SongTable";
+import { importFiles } from "@/lib/importFiles";
+import { useState } from "react";
+import { TagLibMetadataReader } from "@/lib/TagLibMetadataReader";
+const reader = new TagLibMetadataReader();
 
-function HomePage() {
-  const [songData, setSongData] = useState<Song[]>([]);
-  const [folderSelectStatus, setFolderSelectStatus] = useState("");
+export function HomePage() {
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [status, setStatus] = useState<string>("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  async function processInBatches<T>(
-    items: T[],
-    batchSize: number,
-    fn: (item: T) => Promise<Song>
-  ): Promise<Song[]> {
-    const result: Song[] = [];
-
-    for (let i = 0; i < items.length; i += batchSize) {
-      const batch = items.slice(i, i + batchSize);
-      const batchResults = await Promise.all(batch.map(fn));
-      result.push(...batchResults);
-    }
-
-    return result;
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    setSelectedFiles(files);
+    setStatus(files.length ? `${files.length} files selected.` : "");
   }
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const fileList = Array.from(event.target.files ?? []);
-    let validFiles = [];
-
-    for (const file of fileList) {
-      if (await isValidAudioFile(file)) {
-        validFiles.push(file);
-      }
-    }
-
-    const songs = await processInBatches(validFiles, 5, async (file) => {
-      const { tags, properties } = await readMetadata(file);
-
-      return {
-        id: file.name,
-        path: file.name,
-        title: tags?.title?.at(0) ?? file.name,
-        artist: tags?.artist?.at(0),
-        album: tags?.album?.at(0),
-        albumArtist: tags?.albumArtist?.at(0),
-        genre: tags?.genre?.at(0),
-        comment: tags?.comment?.at(0),
-        composer: tags?.composer?.at(0),
-        year: tags?.year,
-        track: tags?.track,
-        disc: tags?.discNumber,
-        lyrics: tags?.lyrics?.at(0),
-        copyright: tags?.copyright?.at(0),
-        encodedBy: tags?.encodedBy?.at(0),
-        bpm: tags?.bpm,
-        isrc: tags?.isrc?.at(0),
-        mbTrackId: tags?.musicbrainzTrackId?.at(0),
-        mbArtistId: tags?.musicbrainzArtistId?.at(0),
-        mbReleaseGroupId: tags?.musicbrainzReleaseGroupId?.at(0),
-        length: properties?.duration,
-        bitrate: properties?.bitrate,
-        sampleRate: properties?.sampleRate,
-        channels: properties?.channels,
-        fileSizeBytes: file.size,
-      } as Song;
-    });
-
-    setSongData((prev) => [...prev, ...songs]);
-    setFolderSelectStatus(`${fileList.length} files in the selected folder.`);
-  };
-
-  const handleFormSubmit = async (event: SubmitEvent) => {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (songData.length === 0) {
-      setFolderSelectStatus("Please select files first.");
+    if (!selectedFiles.length) {
+      setStatus("No files selected.");
       return;
     }
 
-    setFolderSelectStatus(
-      `Found ${songData.length} files in the selected folder`
-    );
-  };
+    setStatus("Validating and importing…");
+
+    const imported = await importFiles(selectedFiles, reader);
+
+    setSongs((prev) => [...prev, ...imported]);
+    setStatus(`${imported.length} files imported.`);
+  }
 
   return (
-    <div className="home-page-container">
-      <h1 className="page-title">Web Media Manager</h1>
+    <div style={{ padding: "1rem" }}>
+      <h1>Media Import</h1>
 
-      <form onSubmit={handleFormSubmit}>
-        <label htmlFor="file-input">
-          <button
-            type="button"
-            onClick={() => document.getElementById("file-input")?.click()}
-          >
-            Import Folder
-          </button>
-        </label>
-
+      <form onSubmit={handleSubmit}>
         <input
-          id="file-input"
           type="file"
-          webkitdirectory="true"
           directory="true"
+          webkitdirectory="true"
           onChange={handleFileChange}
-          hidden
+          style={{ marginRight: "0.5rem" }}
         />
-
-        <div className="file-list">
-          <h3>Selected Items ({songData.length}):</h3>
-
-          <SongTable songs={songData} />
-        </div>
+        <button type="submit">Import</button>
       </form>
 
-      <p className="status">{folderSelectStatus}</p>
+      <div style={{ marginTop: "0.5rem" }}>{status}</div>
+
+      <SongTable songs={songs} />
     </div>
   );
 }
