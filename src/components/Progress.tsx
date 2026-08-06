@@ -3,7 +3,7 @@ interface ProgressProps {
   totalFiles: number;
 }
 
-export function Progress({ fileIndex, totalFiles }: ProgressProps) {
+export default function Progress({ fileIndex, totalFiles }: ProgressProps) {
   if (totalFiles === 0) return null;
 
   const current = fileIndex + 1;

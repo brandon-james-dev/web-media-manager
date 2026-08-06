@@ -1,10 +1,8 @@
-import type { Song } from "@/models/Song";
-import SongTable from "@/components/SongTable/SongTable";
-import { importFiles } from "@/lib/importFiles";
 import { useState } from "react";
-import { TagLibMetadataReader } from "@/lib/TagLibMetadataReader";
-import { Progress } from "@/components/Progress";
-const reader = new TagLibMetadataReader();
+import type { Song } from "@/models/Song";
+import { SongTable, Progress } from "@/components";
+import { importFiles } from "@/lib/importFiles";
+import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils/TagLibMetadataReader";
 
 export function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -21,6 +19,8 @@ export function HomePage() {
 
   async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const reader = new TagLibMetadataReader();
 
     if (!selectedFiles.length) {
       setStatus("No files selected.");

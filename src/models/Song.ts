@@ -1,6 +1,8 @@
 export interface Song {
-  id: string; // hash or path
+  id: string;
   path: string;
+
+  // Tag fields
   title?: string;
   artist?: string;
   album?: string;
@@ -12,7 +14,8 @@ export interface Song {
   track?: number;
   disc?: number;
 
-  fileSizeBytes: number;
+  coverFront?: Blob;
+  coverBack?: Blob;
 
   lyrics?: string;
   copyright?: string;
@@ -32,11 +35,11 @@ export interface Song {
   mbAlbumArtistId?: string;
   mbReleaseGroupId?: string;
 
+  // Properties fields (readonly)
+  fileSizeBytes: number;
+
   bitrate?: number;
   sampleRate?: number;
   channels?: number;
   length?: number;
-
-  coverFront?: Blob;
-  coverBack?: Blob;
 }

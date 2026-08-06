@@ -1,5 +1,6 @@
-import type { IMetadataReader } from "./tagreader";
 import type { Song } from "@/models/Song";
+import { importFile } from "./importFile";
+import type { IMetadataReader } from "./metadata-utils";
 
 interface ImportProgressCallbacks {
   onBatchStart?: (batchIndex: number, batchCount: number) => void;
@@ -30,22 +31,7 @@ export async function importFiles(
       batch.map(async (file, i) => {
         const globalIndex = start + i;
 
-        const valid = await reader.validate(file);
-        if (!valid) {
-          callbacks.onFileComplete?.(globalIndex, totalFiles, null);
-          return null;
-        }
-
-        const tags = await reader.readTags(file);
-        const props = await reader.readProperties(file);
-
-        const song: Song = {
-          id: file.name,
-          path: file.name,
-          fileSizeBytes: file.size,
-          ...tags,
-          ...props,
-        };
+        const song = await importFile(file, reader);
 
         callbacks.onFileComplete?.(globalIndex, totalFiles, song);
         return song;

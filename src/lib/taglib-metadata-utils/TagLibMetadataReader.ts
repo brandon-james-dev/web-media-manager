@@ -12,7 +12,7 @@ import type {
   ITagData,
   IAudioProperties,
   IMetadata,
-} from "./tagreader";
+} from "@/lib/metadata-utils";
 
 export class TagLibMetadataReader implements IMetadataReader {
   async validate(file: File): Promise<boolean> {
