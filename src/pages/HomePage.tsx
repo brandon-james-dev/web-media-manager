@@ -40,6 +40,8 @@ export function HomePage() {
         );
         setSelectedSong(updatedSong);
         setStatus("Song updated.");
+
+        event.currentTarget.reset();
       },
     });
   }
