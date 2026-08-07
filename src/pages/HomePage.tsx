@@ -9,9 +9,6 @@ export function HomePage() {
   const [status, setStatus] = useState<string>("");
   const [directoryHandle, setDirectoryHandle] =
     useState<FileSystemDirectoryHandle | null>(null);
-  const [selectedFiles, setSelectedFiles] = useState<
-    FileSystemDirectoryHandle[]
-  >([]);
   const [progressIndex, setProgressIndex] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
 
