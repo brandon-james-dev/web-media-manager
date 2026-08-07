@@ -1,4 +1,6 @@
 export interface Song {
+  fileHandle?: FileSystemFileHandle;
+
   id: string;
   path: string;
 

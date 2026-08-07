@@ -7,31 +7,61 @@ import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils/TagLibMetadata
 export function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [status, setStatus] = useState<string>("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [directoryHandle, setDirectoryHandle] =
+    useState<FileSystemDirectoryHandle | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<
+    FileSystemDirectoryHandle[]
+  >([]);
   const [progressIndex, setProgressIndex] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    setSelectedFiles(files);
-    setStatus(files.length ? `${files.length} files selected.` : "");
+  async function handlePickDirectory() {
+    if (!window.showDirectoryPicker) {
+      throw new Error("File System Access API not supported.");
+    }
+
+    const dirHandle = await window.showDirectoryPicker({
+      mode: "readwrite",
+    });
+
+    setDirectoryHandle(dirHandle);
+    setStatus(`Directory selected: ${dirHandle.name}`);
   }
 
-  async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
+  async function* walkDirectory(
+    dir: FileSystemDirectoryHandle
+  ): AsyncGenerator<FileSystemFileHandle> {
+    for await (const entry of dir.values()) {
+      if (entry.kind === "file") {
+        yield entry;
+      } else if (entry.kind === "directory") {
+        yield* walkDirectory(entry);
+      }
+    }
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const reader = new TagLibMetadataReader();
 
-    if (!selectedFiles.length) {
-      setStatus("No files selected.");
+    if (!directoryHandle) {
+      setStatus("No directory selected.");
       return;
     }
 
+    setStatus("Scanning directory…");
+
+    const handles: FileSystemFileHandle[] = [];
+    for await (const fileHandle of walkDirectory(directoryHandle)) {
+      handles.push(fileHandle);
+    }
+
     setProgressIndex(0);
-    setProgressTotal(selectedFiles.length);
+    setProgressTotal(handles.length);
     setStatus("Starting import…");
 
-    const imported = await importFiles(selectedFiles, reader, 10, {
+    const imported = await importFiles(handles, reader, 10, {
       onFileComplete(fileIndex, totalFiles) {
         setProgressIndex(fileIndex);
         setProgressTotal(totalFiles);
@@ -48,14 +78,11 @@ export function HomePage() {
 
       <Progress fileIndex={progressIndex} totalFiles={progressTotal} />
 
+      <button type="button" onClick={handlePickDirectory}>
+        Select Directory
+      </button>
+
       <form onSubmit={handleSubmit}>
-        <input
-          type="file"
-          directory="true"
-          webkitdirectory="true"
-          onChange={handleFileChange}
-          style={{ marginRight: "0.5rem" }}
-        />
         <button type="submit">Import</button>
       </form>
 

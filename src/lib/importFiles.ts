@@ -12,7 +12,7 @@ interface ImportProgressCallbacks {
 }
 
 export async function importFiles(
-  files: File[],
+  files: FileSystemFileHandle[],
   reader: IMetadataReader,
   batchSize: number = 10,
   callbacks: ImportProgressCallbacks = {}

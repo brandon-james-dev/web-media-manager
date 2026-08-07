@@ -2,9 +2,10 @@ import type { IMetadataReader } from "./metadata-utils";
 import type { Song } from "@/models/Song";
 
 export async function importFile(
-  file: File,
+  fileHandle: FileSystemFileHandle,
   reader: IMetadataReader
 ): Promise<Song | null> {
+  const file = await fileHandle.getFile();
   const valid = await reader.validate(file);
   if (!valid) return null;
 
@@ -15,6 +16,7 @@ export async function importFile(
     id: file.name,
     path: file.name,
     fileSizeBytes: file.size,
+    fileHandle,
     ...tags,
     ...props,
   } as Song;
