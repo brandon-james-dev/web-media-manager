@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
-import { importFiles } from "@/lib/importFiles";
+import { readSongFiles } from "@/lib/readSongFiles";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils/TagLibMetadataReader";
 import { TagLibMetadataWriter } from "@/lib/taglib-metadata-utils";
 import { applySongEdits } from "@/lib/applySongEdits";
@@ -92,7 +92,7 @@ export function HomePage() {
     setProgressTotal(handles.length);
     setStatus("Starting import…");
 
-    const imported = await importFiles(handles, reader, 10, {
+    const imported = await readSongFiles(handles, reader, 10, {
       onFileComplete(fileIndex, totalFiles) {
         setProgressIndex(fileIndex);
         setProgressTotal(totalFiles);

@@ -1,7 +1,7 @@
 import type { IMetadataReader } from "./metadata-utils";
 import type { Song } from "@/models/Song";
 
-export async function importFile(
+export async function readSongFile(
   fileHandle: FileSystemFileHandle,
   reader: IMetadataReader
 ): Promise<Song | null> {
