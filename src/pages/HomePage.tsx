@@ -7,6 +7,7 @@ import {
 } from "@/lib/taglib-metadata-utils";
 import { applySongEdits } from "@/lib/applySongEdits";
 import { readSongFiles } from "@/lib/readSongFiles";
+import { importSongs } from "@/lib/importSongs";
 
 export function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -30,6 +31,17 @@ export function HomePage() {
       }
       return next;
     });
+  }
+
+  async function* streamSelectedSongs(
+    songs: Song[],
+    selectedBatch: Set<string>
+  ): AsyncGenerator<Song> {
+    for (const song of songs) {
+      if (selectedBatch.has(song.id)) {
+        yield song;
+      }
+    }
   }
 
   async function handleEditSubmit(event: React.SubmitEvent<HTMLFormElement>) {
@@ -61,7 +73,7 @@ export function HomePage() {
     });
   }
 
-  async function handleBatchSubmit(event: React.SubmitEvent<HTMLFormElement>) {
+  async function handleBatchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
@@ -78,9 +90,14 @@ export function HomePage() {
     if (genre) updates.genre = genre;
 
     const writer = new TagLibMetadataWriter();
-    const songsToEdit = songs.filter((s) => selectedBatch.has(s.id));
 
-    for (const song of songsToEdit) {
+    let count = 0;
+
+    // Build the batch stream
+    const batchStream = streamSelectedSongs(songs, selectedBatch);
+
+    // Consume the stream
+    for await (const song of batchStream) {
       await applySongEdits(song, updates, writer, {
         onSongUpdated(updatedSong) {
           setSongs((prev) =>
@@ -88,9 +105,11 @@ export function HomePage() {
           );
         },
       });
+
+      count++;
     }
 
-    setStatus(`Batch updated ${songsToEdit.length} songs.`);
+    setStatus(`Batch updated ${count} songs.`);
     event.currentTarget.reset();
   }
 
@@ -119,18 +138,17 @@ export function HomePage() {
     }
   }
 
-  async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const reader = new TagLibMetadataReader();
 
     if (!directoryHandle) {
       setStatus("No directory selected.");
       return;
     }
 
-    setStatus("Scanning directory…");
+    const reader = new TagLibMetadataReader();
 
+    // Collect file handles
     const handles: FileSystemFileHandle[] = [];
     for await (const fileHandle of walkDirectory(directoryHandle)) {
       handles.push(fileHandle);
@@ -140,14 +158,18 @@ export function HomePage() {
     setProgressTotal(handles.length);
     setStatus("Starting import…");
 
-    const imported = await readSongFiles(handles, reader, 10, {
-      onFileComplete(fileIndex, totalFiles) {
-        setProgressIndex(fileIndex);
-        setProgressTotal(totalFiles);
-      },
+    // Build the async stream
+    const songStream = readSongFiles(handles, reader);
+
+    // Consume the stream
+    const imported = await importSongs(songStream, (index) => {
+      setProgressIndex(index);
+      setProgressTotal(handles.length);
     });
 
+    // Store in React state
     setSongs((prev) => [...prev, ...imported]);
+
     setStatus(`Finished importing ${imported.length} files.`);
   }
 
