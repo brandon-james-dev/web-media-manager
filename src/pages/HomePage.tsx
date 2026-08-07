@@ -1,20 +1,36 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
-import { readSongFiles } from "@/lib/readSongFiles";
-import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils/TagLibMetadataReader";
-import { TagLibMetadataWriter } from "@/lib/taglib-metadata-utils";
+import {
+  TagLibMetadataReader,
+  TagLibMetadataWriter,
+} from "@/lib/taglib-metadata-utils";
 import { applySongEdits } from "@/lib/applySongEdits";
+import { readSongFiles } from "@/lib/readSongFiles";
 
 export function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [status, setStatus] = useState<string>("");
   const [directoryHandle, setDirectoryHandle] =
     useState<FileSystemDirectoryHandle | null>(null);
+
   const [progressIndex, setProgressIndex] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
 
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [selectedBatch, setSelectedBatch] = useState<Set<string>>(new Set());
+
+  function handleToggleBatch(song: Song) {
+    setSelectedBatch((prev) => {
+      const next = new Set(prev);
+      if (next.has(song.id)) {
+        next.delete(song.id);
+      } else {
+        next.add(song.id);
+      }
+      return next;
+    });
+  }
 
   async function handleEditSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,10 +56,42 @@ export function HomePage() {
         );
         setSelectedSong(updatedSong);
         setStatus("Song updated.");
-
         event.currentTarget.reset();
       },
     });
+  }
+
+  async function handleBatchSubmit(event: React.SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const updates: Partial<Song> = {};
+
+    const title = formData.get("title")?.toString();
+    const artist = formData.get("artist")?.toString();
+    const album = formData.get("album")?.toString();
+    const genre = formData.get("genre")?.toString();
+
+    if (title) updates.title = title;
+    if (artist) updates.artist = artist;
+    if (album) updates.album = album;
+    if (genre) updates.genre = genre;
+
+    const writer = new TagLibMetadataWriter();
+    const songsToEdit = songs.filter((s) => selectedBatch.has(s.id));
+
+    for (const song of songsToEdit) {
+      await applySongEdits(song, updates, writer, {
+        onSongUpdated(updatedSong) {
+          setSongs((prev) =>
+            prev.map((s) => (s.id === updatedSong.id ? updatedSong : s))
+          );
+        },
+      });
+    }
+
+    setStatus(`Batch updated ${songsToEdit.length} songs.`);
+    event.currentTarget.reset();
   }
 
   async function handlePickDirectory() {
@@ -155,6 +203,40 @@ export function HomePage() {
         </form>
       )}
 
+      {selectedBatch.size > 0 && (
+        <form
+          key={selectedBatch.size}
+          onSubmit={handleBatchSubmit}
+          style={{ marginBottom: "1rem" }}
+        >
+          <h2>Batch Edit ({selectedBatch.size} songs)</h2>
+
+          <div>
+            <label>Title</label>
+            <input name="title" placeholder="Leave blank to keep existing" />
+          </div>
+
+          <div>
+            <label>Artist</label>
+            <input name="artist" placeholder="Leave blank to keep existing" />
+          </div>
+
+          <div>
+            <label>Album</label>
+            <input name="album" placeholder="Leave blank to keep existing" />
+          </div>
+
+          <div>
+            <label>Genre</label>
+            <input name="genre" placeholder="Leave blank to keep existing" />
+          </div>
+
+          <button type="submit" style={{ marginTop: "0.5rem" }}>
+            Apply Batch Edits
+          </button>
+        </form>
+      )}
+
       <Progress fileIndex={progressIndex} totalFiles={progressTotal} />
 
       <button type="button" onClick={handlePickDirectory}>
@@ -166,10 +248,13 @@ export function HomePage() {
       </form>
 
       <div style={{ marginTop: "0.5rem" }}>{status}</div>
+
       <SongTable
         songs={songs}
         selectedSong={selectedSong}
+        selectedBatch={selectedBatch}
         onSelectSong={setSelectedSong}
+        onToggleBatch={handleToggleBatch}
       />
     </div>
   );
