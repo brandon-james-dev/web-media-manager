@@ -9,6 +9,8 @@ import { applySongEdits } from "@/lib/applySongEdits";
 import { readSongFiles } from "@/lib/readSongFiles";
 import { importSongs } from "@/lib/importSongs";
 
+import "./HomePage.css";
+
 export function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [status, setStatus] = useState<string>("");
@@ -59,6 +61,18 @@ export function HomePage() {
       genre: formData.get("genre")?.toString() ?? "",
     };
 
+    // Album art file inputs
+    const frontFile = formData.get("coverFront") as File | null;
+    const backFile = formData.get("coverBack") as File | null;
+
+    if (frontFile && frontFile.size > 0) {
+      updates.coverFront = frontFile;
+    }
+
+    if (backFile && backFile.size > 0) {
+      updates.coverBack = backFile;
+    }
+
     const writer = new TagLibMetadataWriter();
 
     await applySongEdits(selectedSong, updates, writer, {
@@ -73,10 +87,11 @@ export function HomePage() {
     });
   }
 
-  async function handleBatchSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleBatchSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formData = new FormData(event.currentTarget);
+
     const updates: Partial<Song> = {};
 
     const title = formData.get("title")?.toString();
@@ -89,15 +104,23 @@ export function HomePage() {
     if (album) updates.album = album;
     if (genre) updates.genre = genre;
 
+    // Album art file inputs
+    const frontFile = formData.get("coverFront") as File | null;
+    const backFile = formData.get("coverBack") as File | null;
+
+    if (frontFile && frontFile.size > 0) {
+      updates.coverFront = frontFile;
+    }
+
+    if (backFile && backFile.size > 0) {
+      updates.coverBack = backFile;
+    }
+
     const writer = new TagLibMetadataWriter();
 
-    let count = 0;
+    const songsToEdit = songs.filter((s) => selectedBatch.has(s.id));
 
-    // Build the batch stream
-    const batchStream = streamSelectedSongs(songs, selectedBatch);
-
-    // Consume the stream
-    for await (const song of batchStream) {
+    for (const song of songsToEdit) {
       await applySongEdits(song, updates, writer, {
         onSongUpdated(updatedSong) {
           setSongs((prev) =>
@@ -105,11 +128,9 @@ export function HomePage() {
           );
         },
       });
-
-      count++;
     }
 
-    setStatus(`Batch updated ${count} songs.`);
+    setStatus(`Batch updated ${songsToEdit.length} songs.`);
     event.currentTarget.reset();
   }
 
@@ -181,45 +202,65 @@ export function HomePage() {
         <form
           key={selectedSong.id}
           onSubmit={handleEditSubmit}
-          style={{ marginBottom: "1rem" }}
+          className="edit-form"
         >
           <h2>Edit Song</h2>
 
-          <div>
-            <label>Title</label>
-            <input name="title" defaultValue={selectedSong.title} />
+          <div className="edit-grid">
+            <div className="thumbnail-column">
+              {selectedSong.coverFront && (
+                <img
+                  src={URL.createObjectURL(selectedSong.coverFront)}
+                  alt="Front Cover"
+                  className="thumbnail-image"
+                />
+              )}
+
+              {selectedSong.coverBack && (
+                <img
+                  src={URL.createObjectURL(selectedSong.coverBack)}
+                  alt="Back Cover"
+                  className="thumbnail-image"
+                />
+              )}
+            </div>
+
+            <div className="fields-column">
+              <label>Title</label>
+              <input name="title" defaultValue={selectedSong.title} />
+
+              <label>Artist</label>
+              <input name="artist" defaultValue={selectedSong.artist} />
+
+              <label>Album</label>
+              <input name="album" defaultValue={selectedSong.album} />
+
+              <label>Track</label>
+              <input
+                name="track"
+                type="number"
+                defaultValue={selectedSong.track}
+              />
+
+              <label>Year</label>
+              <input
+                name="year"
+                type="number"
+                defaultValue={selectedSong.year}
+              />
+
+              <label>Genre</label>
+              <input name="genre" defaultValue={selectedSong.genre} />
+
+              <label>Replace Front Cover</label>
+              <input type="file" name="coverFront" accept="image/*" />
+
+              <label>Replace Back Cover</label>
+              <input type="file" name="coverBack" accept="image/*" />
+            </div>
           </div>
 
-          <div>
-            <label>Artist</label>
-            <input name="artist" defaultValue={selectedSong.artist} />
-          </div>
-
-          <div>
-            <label>Album</label>
-            <input name="album" defaultValue={selectedSong.album} />
-          </div>
-
-          <div>
-            <label>Track</label>
-            <input
-              name="track"
-              type="number"
-              defaultValue={selectedSong.track}
-            />
-          </div>
-
-          <div>
-            <label>Year</label>
-            <input name="year" type="number" defaultValue={selectedSong.year} />
-          </div>
-
-          <div>
-            <label>Genre</label>
-            <input name="genre" defaultValue={selectedSong.genre} />
-          </div>
-
-          <button type="submit" style={{ marginTop: "0.5rem" }}>
+          <button type="submit" className="save-button">
             Save Changes
           </button>
         </form>
@@ -229,31 +270,75 @@ export function HomePage() {
         <form
           key={selectedBatch.size}
           onSubmit={handleBatchSubmit}
-          style={{ marginBottom: "1rem" }}
+          className="edit-form"
         >
           <h2>Batch Edit ({selectedBatch.size} songs)</h2>
 
-          <div>
-            <label>Title</label>
-            <input name="title" placeholder="Leave blank to keep existing" />
+          <div className="edit-grid">
+            <div className="thumbnail-column">
+              {(() => {
+                const first = songs.find((s) => selectedBatch.has(s.id));
+
+                if (first == null) return;
+
+                for (const pic of first?.pictures ?? []) {
+                  const blob = new Blob([pic.data.slice().buffer], {
+                    type: pic.mimeType,
+                  });
+
+                  if (pic.type === "FrontCover") {
+                    first.coverFront = blob;
+                  } else if (pic.type === "BackCover") {
+                    first.coverBack = blob;
+                  }
+                }
+
+                if (!(first.coverFront || first.coverBack)) return <></>;
+
+                return (
+                  <>
+                    {first.coverFront && (
+                      <img
+                        src={URL.createObjectURL(first.coverFront)}
+                        alt="Front Cover"
+                        className="thumbnail-image"
+                      />
+                    )}
+
+                    {first.coverBack && (
+                      <img
+                        src={URL.createObjectURL(first.coverBack)}
+                        alt="Back Cover"
+                        className="thumbnail-image"
+                      />
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="fields-column">
+              <label>Title</label>
+              <input name="title" placeholder="Leave blank to keep existing" />
+
+              <label>Artist</label>
+              <input name="artist" placeholder="Leave blank to keep existing" />
+
+              <label>Album</label>
+              <input name="album" placeholder="Leave blank to keep existing" />
+
+              <label>Genre</label>
+              <input name="genre" placeholder="Leave blank to keep existing" />
+
+              <label>Replace Front Cover</label>
+              <input type="file" name="coverFront" accept="image/*" />
+
+              <label>Replace Back Cover</label>
+              <input type="file" name="coverBack" accept="image/*" />
+            </div>
           </div>
 
-          <div>
-            <label>Artist</label>
-            <input name="artist" placeholder="Leave blank to keep existing" />
-          </div>
-
-          <div>
-            <label>Album</label>
-            <input name="album" placeholder="Leave blank to keep existing" />
-          </div>
-
-          <div>
-            <label>Genre</label>
-            <input name="genre" placeholder="Leave blank to keep existing" />
-          </div>
-
-          <button type="submit" style={{ marginTop: "0.5rem" }}>
+          <button type="submit" className="save-button">
             Apply Batch Edits
           </button>
         </form>

@@ -13,6 +13,30 @@ export async function applySongEdits(
 
   const file = await song.fileHandle.getFile();
 
+  // Convert coverFront Blob → IPicture
+  if (updates.coverFront instanceof Blob) {
+    const buf = new Uint8Array(await updates.coverFront.arrayBuffer());
+    updates.pictures ??= [];
+    updates.pictures?.push({
+      mimeType: updates.coverFront.type || "image/jpeg",
+      data: buf,
+      type: "FrontCover", // FrontCover
+      description: "Front Cover",
+    });
+  }
+
+  // Convert coverBack Blob → IPicture
+  if (updates.coverBack instanceof Blob) {
+    const buf = new Uint8Array(await updates.coverBack.arrayBuffer());
+    updates.pictures ??= [];
+    updates.pictures?.push({
+      mimeType: updates.coverBack.type || "image/jpeg",
+      data: buf,
+      type: "BackCover", // BackCover
+      description: "Back Cover",
+    });
+  }
+
   // Metadata utils produce updated bytes
   const updatedBytes = await writer.writeTags(file, updates);
   if (!updatedBytes) return null;

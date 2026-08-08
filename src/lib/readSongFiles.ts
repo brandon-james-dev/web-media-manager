@@ -1,5 +1,6 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataReader } from "@/lib/metadata-utils";
+import { readSongFile } from "./readSongFile";
 
 export async function* readSongFiles(
   handles: FileSystemFileHandle[],
@@ -7,7 +8,7 @@ export async function* readSongFiles(
 ): AsyncGenerator<Song> {
   for (const handle of handles) {
     const file = await handle.getFile();
-    const tags = await reader.readTags(file);
+    const tags = await readSongFile(handle, reader);
 
     const song: Song = {
       id: crypto.randomUUID(),
@@ -20,6 +21,9 @@ export async function* readSongFiles(
       comment: tags?.comment ?? "",
       year: tags?.year ?? 0,
       track: tags?.track ?? 0,
+      pictures: tags?.pictures,
+      coverFront: tags?.coverFront,
+      coverBack: tags?.coverBack,
     };
 
     yield song;

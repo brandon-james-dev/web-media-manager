@@ -1,0 +1,46 @@
+.edit-form {
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.thumbnail-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.thumbnail-image {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.fields-column {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.fields-column label {
+  font-weight: 500;
+}
+
+.fields-column input {
+  padding: 0.25rem;
+  font-size: 1rem;
+}
+
+.save-button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}

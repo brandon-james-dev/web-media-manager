@@ -45,7 +45,9 @@ export class TagLibMetadataReader implements IMetadataReader {
         mbTrackId: tags?.musicbrainzTrackId?.at(0),
         mbArtistId: tags?.musicbrainzArtistId?.at(0),
         mbReleaseGroupId: tags?.musicbrainzReleaseGroupId?.at(0),
-      };
+        lyrics: tags?.lyrics?.at(0)?.text,
+        pictures: tags?.pictures,
+      } as ITagData;
     } catch {
       return null;
     }
@@ -93,6 +95,7 @@ export class TagLibMetadataReader implements IMetadataReader {
         bitrate: properties?.bitrate,
         sampleRate: properties?.sampleRate,
         channels: properties?.channels,
+        pictures: tags?.pictures,
       };
     } catch {
       return null;

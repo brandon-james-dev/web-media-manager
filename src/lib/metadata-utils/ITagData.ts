@@ -1,3 +1,5 @@
+import type { IPicture } from "./IPicture";
+
 export interface ITagData {
   title?: string;
   artist?: string;
@@ -15,6 +17,8 @@ export interface ITagData {
   encodedBy?: string;
   bpm?: number;
   isrc?: string;
+
+  pictures?: IPicture[];
 
   mbTrackId?: string;
   mbArtistId?: string;

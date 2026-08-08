@@ -1,3 +1,4 @@
+import type { IPicture } from "./IPicture";
 import type { IMetadataWriter } from "./IMedataWriter";
 import type { IAudioProperties } from "./IAudioProperties";
 import type { IMetadata } from "./IMetadata";
@@ -9,5 +10,6 @@ export type {
   IMetadata,
   IMetadataReader,
   IMetadataWriter,
+  IPicture,
   ITagData,
 };
