@@ -2,59 +2,77 @@ import type { IPicture } from "../metadata-utils";
 import type { IOnlineMetadata } from "../online-metadata-utils/IOnlineMetadata";
 import type { IOnlineMetadataService } from "../online-metadata-utils/IOnlineMetadataService";
 import { MetadataProvider } from "../online-metadata-utils/MetadataProvider";
+import type {
+  IMusicBrainzRecording,
+  IMusicBrainzRelease,
+} from "./IMusicBrainzRecording";
 
 export class MusicBrainzMetadataService implements IOnlineMetadataService {
-  async lookup(query: string): Promise<IOnlineMetadata | null> {
+  async lookup(query: string): Promise<IOnlineMetadata[] | null> {
     const url = `https://musicbrainz.org/ws/2/recording/?query=${encodeURIComponent(query)}&fmt=json`;
     const res = await fetch(url);
     const data = await res.json();
 
-    if (!data.recordings?.length) return null;
+    const recordings: IMusicBrainzRecording[] = data.recordings;
+    if (!recordings?.length) return null;
 
-    const rec = data.recordings[0];
-    const release = rec.releases?.[0];
+    const results: IOnlineMetadata[] = [];
 
-    // Fetch cover art
-    let pictures: IPicture[] = [];
+    for (const rec of recordings) {
+      const release: IMusicBrainzRelease | undefined = rec.releases?.[0];
 
-    if (release?.id) {
-      try {
-        const imgRes = await fetch(
-          `https://coverartarchive.org/release/${release.id}/front`
-        );
-        if (imgRes.ok) {
-          const data = await imgRes.bytes();
+      let pictures: IPicture[] = [];
 
-          pictures.push({
-            data: data,
-            mimeType: "image/jpeg",
-            type: "FrontCover",
-            description: "Front Cover",
-          } as IPicture);
+      if (release?.id) {
+        try {
+          const imgRes = await fetch(
+            `https://coverartarchive.org/release/${release.id}/front`
+          );
+          if (imgRes.ok) {
+            const bytes = await imgRes.bytes();
+            pictures.push({
+              data: bytes,
+              mimeType: "image/jpeg",
+              type: "FrontCover",
+              description: "Front Cover",
+            });
+          }
+        } catch {
+          // ignore artwork failures
         }
-      } catch {}
+      }
+
+      let track: number | undefined;
+      let disc: number | undefined;
+
+      const media = release?.media?.[0];
+      if (media) {
+        disc = media.position ?? undefined;
+
+        const trackEntry = media.tracks?.[0];
+        if (trackEntry?.number) {
+          const parsed = Number(trackEntry.number);
+          track = isNaN(parsed) ? undefined : parsed;
+        }
+      }
+
+      results.push({
+        source: MetadataProvider.MusicBrainz,
+
+        title: rec.title,
+        artist: rec["artist-credit"]?.[0]?.name,
+        album: release?.title,
+
+        year: release?.date ? Number(release.date.slice(0, 4)) : undefined,
+        track,
+        disc,
+
+        isrc: rec.isrcs?.[0] ?? undefined,
+
+        pictures,
+      });
     }
 
-    return {
-      source: MetadataProvider.MusicBrainz,
-
-      // Core fields
-      title: rec.title,
-      artist: rec["artist-credit"]?.[0]?.name,
-      album: release?.title,
-
-      // Numeric fields
-      year: release?.date ? Number(release.date.slice(0, 4)) : undefined,
-      track: release?.media?.[0]?.tracks?.[0]?.number
-        ? Number(release.media[0].tracks[0].number)
-        : undefined,
-      disc: release?.media?.[0]?.position ?? undefined,
-
-      // Extended fields
-      isrc: rec.isrcs?.[0] ?? undefined,
-
-      // Artwork
-      pictures,
-    };
+    return results;
   }
 }
