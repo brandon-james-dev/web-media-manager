@@ -10,8 +10,6 @@ import { readSongFiles } from "@/lib/readSongFiles";
 import { importSongs } from "@/lib/importSongs";
 
 import "./HomePage.css";
-import { ItunesMetadataService } from "@/lib/itunes-metadata-utils/ItunesMetadataService";
-import { MusicBrainzMetadataService } from "@/lib/musicbrainz-metadata-utils/MusicBrainsMetadataService";
 
 export function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
