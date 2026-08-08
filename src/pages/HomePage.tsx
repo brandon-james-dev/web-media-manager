@@ -10,6 +10,8 @@ import { readSongFiles } from "@/lib/readSongFiles";
 import { importSongs } from "@/lib/importSongs";
 
 import "./HomePage.css";
+import { ItunesMetadataService } from "@/lib/itunes-metadata-utils/ItunesMetadataService";
+import { MusicBrainzMetadataService } from "@/lib/musicbrainz-metadata-utils/MusicBrainsMetadataService";
 
 export function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -33,17 +35,6 @@ export function HomePage() {
       }
       return next;
     });
-  }
-
-  async function* streamSelectedSongs(
-    songs: Song[],
-    selectedBatch: Set<string>
-  ): AsyncGenerator<Song> {
-    for (const song of songs) {
-      if (selectedBatch.has(song.id)) {
-        yield song;
-      }
-    }
   }
 
   async function handleEditSubmit(event: React.SubmitEvent<HTMLFormElement>) {
