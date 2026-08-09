@@ -1,6 +1,6 @@
-import type { WorkerProgress } from "@/lib/background-jobs/WorkerJob";
+import type { WorkerProgress } from "@/workers/WorkerJob";
 import type { Song } from "@/models/Song";
-import { readSongFiles } from "@/lib/readSongFiles";
+import { readSongFiles } from "@/lib";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 
 export async function runBulkImport(

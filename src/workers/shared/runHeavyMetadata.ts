@@ -1,4 +1,4 @@
-import type { WorkerProgress } from "@/lib/background-jobs/WorkerJob";
+import type { WorkerProgress } from "@/workers/WorkerJob";
 import { OnlineMetadataResolver } from "@/lib/online-metadata-utils/OnlineMetadataResolver";
 
 export async function runHeavyMetadata(

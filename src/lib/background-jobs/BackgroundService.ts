@@ -1,5 +1,5 @@
 import { eventBus, type BackgroundJob } from "./eventBus";
-import { workerPool } from "./WorkerPoolInstance";
+import { workerPool } from "@/workers";
 
 export class BackgroundService {
   private queue: BackgroundJob[] = [];

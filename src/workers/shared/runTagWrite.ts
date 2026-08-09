@@ -1,5 +1,5 @@
-import { applySongEdits } from "@/lib/applySongEdits";
-import type { WorkerProgress } from "@/lib/background-jobs/WorkerJob";
+import { applySongEdits } from "@/lib";
+import type { WorkerProgress } from "@/workers/WorkerJob";
 import { TagLibMetadataWriter } from "@/lib/taglib-metadata-utils";
 
 export async function runTagWrite(

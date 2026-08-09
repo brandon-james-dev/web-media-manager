@@ -1,11 +1,11 @@
-import { runTagWrite } from "./runTagWrite";
-import { runArtworkProcess } from "./runArtworkProcess";
-import { runHeavyMetadata } from "./runHeavyMetadata";
-import type {
-  WorkerJob,
-  WorkerProgress,
-} from "@/lib/background-jobs/WorkerJob";
-import { runBulkImport } from "./runBulkImport";
+import type { WorkerJob, WorkerProgress } from "@/workers/WorkerJob";
+import {
+  runArtworkProcess,
+  runBulkEdit,
+  runHeavyMetadata,
+  runBulkImport,
+  runTagWrite,
+} from ".";
 
 export const workerStrategies: Record<
   WorkerJob["type"],
@@ -15,8 +15,9 @@ export const workerStrategies: Record<
     eportProgress: (progress: WorkerProgress) => void
   ) => Promise<any>
 > = {
-  tagWrite: runTagWrite,
   artworkProcess: runArtworkProcess,
+  bulkEdit: runBulkEdit,
   heavyMetadata: runHeavyMetadata,
   bulkImport: runBulkImport,
+  tagWrite: runTagWrite,
 };

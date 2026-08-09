@@ -1,13 +1,13 @@
-import type { WorkerJob } from "@/lib/background-jobs/WorkerJob";
-import type { WorkerAdapter } from "./IWorkerAdapter";
+import type { WorkerJob } from "@/workers";
+import type { IWorkerAdapter } from "./IWorkerAdapter";
 import { eventBus } from "@/lib/background-jobs/eventBus";
 
 export class WorkerPool {
-  private workers: WorkerAdapter[] = [];
+  private workers: IWorkerAdapter[] = [];
   private busy: Set<number> = new Set();
   private queue: WorkerJob[] = [];
 
-  constructor(createWorker: () => WorkerAdapter, size: number) {
+  constructor(createWorker: () => IWorkerAdapter, size: number) {
     for (let i = 0; i < size; i++) {
       this.workers.push(createWorker());
     }

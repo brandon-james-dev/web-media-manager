@@ -1,8 +1,7 @@
-import type { WorkerJob } from "@/lib/background-jobs/WorkerJob";
-import type { WorkerAdapter } from "./IWorkerAdapter";
+import type { WorkerJob, IWorkerAdapter } from ".";
 import WorkerFile from "./metadata.worker.ts?worker";
 
-export class BrowserWorkerAdapter implements WorkerAdapter {
+export class BrowserWorkerAdapter implements IWorkerAdapter {
   private worker: Worker;
 
   constructor() {

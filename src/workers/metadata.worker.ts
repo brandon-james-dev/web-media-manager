@@ -1,5 +1,5 @@
-import type { WorkerJob } from "@/lib/background-jobs/WorkerJob";
-import { workerStrategies } from "./shared/workerStrategies";
+import type { WorkerJob } from "@/workers";
+import { workerStrategies } from "./shared";
 
 let cancelled = false;
 

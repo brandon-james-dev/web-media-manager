@@ -7,7 +7,12 @@ export type WorkerJobState =
 
 export interface WorkerJob {
   id: string;
-  type: "tagWrite" | "artworkProcess" | "heavyMetadata" | "bulkImport";
+  type:
+    | "tagWrite"
+    | "artworkProcess"
+    | "heavyMetadata"
+    | "bulkImport"
+    | "bulkEdit";
   state: WorkerJobState;
   payload: any;
 }

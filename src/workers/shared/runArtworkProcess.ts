@@ -1,4 +1,4 @@
-import type { WorkerProgress } from "@/lib/background-jobs/WorkerJob";
+import type { WorkerProgress } from "@/workers/WorkerJob";
 
 export async function runArtworkProcess(
   payload: any,
