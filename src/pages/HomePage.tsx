@@ -1,13 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
-import {
-  TagLibMetadataReader,
-  TagLibMetadataWriter,
-} from "@/lib/taglib-metadata-utils";
+import { TagLibMetadataWriter } from "@/lib/taglib-metadata-utils";
 import { applySongEdits } from "@/lib/applySongEdits";
-import { readSongFiles } from "@/lib/readSongFiles";
-import { importSongs } from "@/lib/importSongs";
+import { backgroundService } from "@/lib/background-jobs/BackgroundService";
+import { eventBus } from "@/lib/background-jobs/eventBus";
 
 import "./HomePage.css";
 
@@ -148,7 +145,7 @@ export function HomePage() {
     }
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!directoryHandle) {
@@ -156,32 +153,62 @@ export function HomePage() {
       return;
     }
 
-    const reader = new TagLibMetadataReader();
-
     // Collect file handles
     const handles: FileSystemFileHandle[] = [];
     for await (const fileHandle of walkDirectory(directoryHandle)) {
       handles.push(fileHandle);
     }
 
-    setProgressIndex(0);
-    setProgressTotal(handles.length);
     setStatus("Starting import…");
 
-    // Build the async stream
-    const songStream = readSongFiles(handles, reader);
+    // Fire background job
+    backgroundService.enqueue({
+      id: crypto.randomUUID(),
+      type: "bulkImport",
+      state: "pending",
+      payload: {
+        handles,
+      },
+    });
+  }
 
-    // Consume the stream
-    const imported = await importSongs(songStream, (index) => {
-      setProgressIndex(index);
-      setProgressTotal(handles.length);
+  useEffect(() => {
+    const sub = eventBus.subscribe((event) => {
+      if (event.jobType == "bulkImport") {
+        if (event.type == "jobStarted") {
+          setStatus("Started importing songs...");
+        }
+
+        if (event.type === "jobProgress") {
+          const p = event.payload;
+
+          setProgressIndex(p.index ?? 0);
+          setProgressTotal(p.total ?? 0);
+          setStatus(p.label ?? "");
+        }
+
+        if (event.type === "jobComplete") {
+          const { songs } = event.payload;
+          setSongs((prev) => [...prev, ...songs]);
+          setStatus(`Finished importing ${songs.length} files.`);
+        }
+
+        if (event.type === "jobProgress") {
+          console.log("Progress:", event.payload);
+        }
+
+        if (event.type === "jobError") {
+          console.error("Error:", event.payload);
+        }
+
+        if (event.type === "jobCanceled") {
+          console.warn("Canceled:", event.jobId);
+        }
+      }
     });
 
-    // Store in React state
-    setSongs((prev) => [...prev, ...imported]);
-
-    setStatus(`Finished importing ${imported.length} files.`);
-  }
+    return () => sub.unsubscribe();
+  }, []);
 
   return (
     <div style={{ padding: "1rem" }}>

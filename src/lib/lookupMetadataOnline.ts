@@ -1,11 +1,14 @@
 import type { IOnlineMetadata } from "./online-metadata-utils/IOnlineMetadata";
 import type { MetadataProvider } from "./online-metadata-utils/MetadataProvider";
 import { OnlineMetadataResolver } from "./online-metadata-utils/OnlineMetadataResolver";
+import type { WorkerProgress } from "@/lib/background-jobs/WorkerJob";
 
 export async function lookupMetadataOnline(
   provider: MetadataProvider,
-  query: string
-): Promise<IOnlineMetadata | null> {
+  query: string,
+  isCancelled: () => boolean,
+  reportProgress: (progress: WorkerProgress) => void
+): Promise<IOnlineMetadata[] | null> {
   const service = OnlineMetadataResolver.getService(provider);
-  return await service.lookup(query);
+  return await service.lookup(query, isCancelled, reportProgress);
 }
