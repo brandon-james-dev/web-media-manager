@@ -10,7 +10,6 @@ export class BrowserWorkerAdapter implements IWorkerAdapter {
 
   runJob(job: WorkerJob, onProgress: (msg: any) => void): Promise<any> {
     this.worker.postMessage(job);
-    console.log("[WorkerAdapter] runJob called", job);
 
     return new Promise((resolve, reject) => {
       this.worker.onmessage = (event) => {

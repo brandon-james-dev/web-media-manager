@@ -1,6 +1,7 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataReader } from "@/lib/metadata-utils";
 import { readSongFile } from "./readSongFile";
+import { uuidv7 } from "uuidv7";
 
 export async function* readSongFiles(
   handles: FileSystemFileHandle[],
@@ -11,7 +12,7 @@ export async function* readSongFiles(
     const tags = await readSongFile(handle, reader);
 
     const song: Song = {
-      id: crypto.randomUUID(),
+      id: tags?.id ?? uuidv7(),
       path: file.name,
       fileHandle: handle,
       title: tags?.title ?? "",

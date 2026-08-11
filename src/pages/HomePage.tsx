@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
-import { TagLibMetadataWriter } from "@/lib/taglib-metadata-utils";
-import { applySongEdits } from "@/lib/applySongEdits";
-import { backgroundService } from "@/lib/background-jobs/BackgroundService";
-import { eventBus } from "@/lib/background-jobs/eventBus";
+import { applySongEdits } from "@/lib";
+import { backgroundService, eventBus } from "@/lib/background-jobs";
+import { getMetadataStore } from "@/lib/file-utils";
+import { uuidv7 } from "uuidv7";
 
 import "./HomePage.css";
 
@@ -19,6 +19,8 @@ export function HomePage() {
 
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Set<string>>(new Set());
+
+  const store = getMetadataStore();
 
   function handleToggleBatch(song: Song) {
     setSelectedBatch((prev) => {
@@ -59,9 +61,7 @@ export function HomePage() {
       updates.coverBack = backFile;
     }
 
-    const writer = new TagLibMetadataWriter();
-
-    await applySongEdits(selectedSong, updates, writer, {
+    await applySongEdits(selectedSong, updates, {
       onSongUpdated(updatedSong) {
         setSongs((prev) =>
           prev.map((s) => (s.id === updatedSong.id ? updatedSong : s))
@@ -78,45 +78,42 @@ export function HomePage() {
 
     const formData = new FormData(event.currentTarget);
 
-    const updates: Partial<Song> = {};
+    const edits: Partial<Song> = {};
 
-    const title = formData.get("title")?.toString();
     const artist = formData.get("artist")?.toString();
     const album = formData.get("album")?.toString();
     const genre = formData.get("genre")?.toString();
+    const year =
+      Number(formData.get("year")) == 0 ? null : Number(formData.get("year"));
 
-    if (title) updates.title = title;
-    if (artist) updates.artist = artist;
-    if (album) updates.album = album;
-    if (genre) updates.genre = genre;
+    if (artist) edits.artist = artist;
+    if (album) edits.album = album;
+    if (genre) edits.genre = genre;
+    if (year) edits.year = year;
 
     // Album art file inputs
     const frontFile = formData.get("coverFront") as File | null;
     const backFile = formData.get("coverBack") as File | null;
 
     if (frontFile && frontFile.size > 0) {
-      updates.coverFront = frontFile;
+      edits.coverFront = frontFile;
     }
 
     if (backFile && backFile.size > 0) {
-      updates.coverBack = backFile;
+      edits.coverBack = backFile;
     }
 
-    const writer = new TagLibMetadataWriter();
+    backgroundService.enqueue({
+      id: uuidv7(),
+      type: "bulkEdit",
+      state: "pending",
+      payload: {
+        songIds: selectedBatch,
+        edits,
+      },
+    });
 
-    const songsToEdit = songs.filter((s) => selectedBatch.has(s.id));
-
-    for (const song of songsToEdit) {
-      await applySongEdits(song, updates, writer, {
-        onSongUpdated(updatedSong) {
-          setSongs((prev) =>
-            prev.map((s) => (s.id === updatedSong.id ? updatedSong : s))
-          );
-        },
-      });
-    }
-
-    setStatus(`Batch updated ${songsToEdit.length} songs.`);
+    setStatus(`Batch updated ${selectedBatch.size} songs.`);
     event.currentTarget.reset();
   }
 
@@ -133,41 +130,20 @@ export function HomePage() {
     setStatus(`Directory selected: ${dirHandle.name}`);
   }
 
-  async function* walkDirectory(
-    dir: FileSystemDirectoryHandle
-  ): AsyncGenerator<FileSystemFileHandle> {
-    for await (const entry of dir.values()) {
-      if (entry.kind === "file") {
-        yield entry;
-      } else if (entry.kind === "directory") {
-        yield* walkDirectory(entry);
-      }
-    }
-  }
-
   async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!directoryHandle) {
-      setStatus("No directory selected.");
-      return;
-    }
-
-    // Collect file handles
-    const handles: FileSystemFileHandle[] = [];
-    for await (const fileHandle of walkDirectory(directoryHandle)) {
-      handles.push(fileHandle);
-    }
+    if (!directoryHandle) return;
 
     setStatus("Starting import…");
 
     // Fire background job
     backgroundService.enqueue({
-      id: crypto.randomUUID(),
+      id: uuidv7(),
       type: "bulkImport",
       state: "pending",
       payload: {
-        handles,
+        directoryHandle,
       },
     });
   }
@@ -184,31 +160,20 @@ export function HomePage() {
 
           setProgressIndex(p.index ?? 0);
           setProgressTotal(p.total ?? 0);
+          store.saveSong(p.data.id, p.data);
+          setSongs((prev) => [...prev, ...[p.data]]);
           setStatus(p.label ?? "");
         }
 
         if (event.type === "jobComplete") {
           const { songs } = event.payload;
-          setSongs((prev) => [...prev, ...songs]);
           setStatus(`Finished importing ${songs.length} files.`);
-        }
-
-        if (event.type === "jobProgress") {
-          console.log("Progress:", event.payload);
-        }
-
-        if (event.type === "jobError") {
-          console.error("Error:", event.payload);
-        }
-
-        if (event.type === "jobCanceled") {
-          console.warn("Canceled:", event.jobId);
         }
       }
     });
 
     return () => sub.unsubscribe();
-  }, []);
+  }, [store]);
 
   return (
     <div style={{ padding: "1rem" }}>
@@ -242,37 +207,53 @@ export function HomePage() {
             </div>
 
             <div className="fields-column">
-              <label>Title</label>
-              <input name="title" defaultValue={selectedSong.title} />
+              <div className="field">
+                <label>Title</label>
+                <input name="title" defaultValue={selectedSong.title} />
+              </div>
 
-              <label>Artist</label>
-              <input name="artist" defaultValue={selectedSong.artist} />
+              <div className="field">
+                <label>Artist</label>
+                <input name="artist" defaultValue={selectedSong.artist} />
+              </div>
 
-              <label>Album</label>
-              <input name="album" defaultValue={selectedSong.album} />
+              <div className="field">
+                <label>Album</label>
+                <input name="album" defaultValue={selectedSong.album} />
+              </div>
 
-              <label>Track</label>
-              <input
-                name="track"
-                type="number"
-                defaultValue={selectedSong.track}
-              />
+              <div className="field">
+                <label>Track</label>
+                <input
+                  name="track"
+                  type="number"
+                  defaultValue={selectedSong.track}
+                />
+              </div>
 
-              <label>Year</label>
-              <input
-                name="year"
-                type="number"
-                defaultValue={selectedSong.year}
-              />
+              <div className="field">
+                <label>Year</label>
+                <input
+                  name="year"
+                  type="number"
+                  defaultValue={selectedSong.year}
+                />
+              </div>
 
-              <label>Genre</label>
-              <input name="genre" defaultValue={selectedSong.genre} />
+              <div className="field">
+                <label>Genre</label>
+                <input name="genre" defaultValue={selectedSong.genre} />
+              </div>
 
-              <label>Replace Front Cover</label>
-              <input type="file" name="coverFront" accept="image/*" />
+              <div className="field">
+                <label>Replace Front Cover</label>
+                <input type="file" name="coverFront" accept="image/*" />
+              </div>
 
-              <label>Replace Back Cover</label>
-              <input type="file" name="coverBack" accept="image/*" />
+              <div className="field">
+                <label>Replace Back Cover</label>
+                <input type="file" name="coverBack" accept="image/*" />
+              </div>
             </div>
           </div>
 
@@ -332,25 +313,49 @@ export function HomePage() {
                 );
               })()}
             </div>
-
             <div className="fields-column">
-              <label>Title</label>
-              <input name="title" placeholder="Leave blank to keep existing" />
+              <div className="field">
+                <label>Artist</label>
+                <input
+                  name="artist"
+                  placeholder="Leave blank to keep existing"
+                />
+              </div>
 
-              <label>Artist</label>
-              <input name="artist" placeholder="Leave blank to keep existing" />
+              <div className="field">
+                <label>Album</label>
+                <input
+                  name="album"
+                  placeholder="Leave blank to keep existing"
+                />
+              </div>
 
-              <label>Album</label>
-              <input name="album" placeholder="Leave blank to keep existing" />
+              <div className="field">
+                <label>Genre</label>
+                <input
+                  name="genre"
+                  placeholder="Leave blank to keep existing"
+                />
+              </div>
 
-              <label>Genre</label>
-              <input name="genre" placeholder="Leave blank to keep existing" />
+              <div className="field">
+                <label>Year</label>
+                <input
+                  name="year"
+                  type="number"
+                  placeholder="Leave blank to keep existing"
+                />
+              </div>
 
-              <label>Replace Front Cover</label>
-              <input type="file" name="coverFront" accept="image/*" />
+              <div className="field">
+                <label>Replace Front Cover</label>
+                <input type="file" name="coverFront" accept="image/*" />
+              </div>
 
-              <label>Replace Back Cover</label>
-              <input type="file" name="coverBack" accept="image/*" />
+              <div className="field">
+                <label>Replace Back Cover</label>
+                <input type="file" name="coverBack" accept="image/*" />
+              </div>
             </div>
           </div>
 

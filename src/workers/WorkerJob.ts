@@ -18,6 +18,7 @@ export interface WorkerJob {
 }
 
 export interface WorkerProgress {
+  data?: any; // A freeform object
   index?: number; // current item index
   total?: number; // total items
   percent?: number; // percent of current item (0–1)

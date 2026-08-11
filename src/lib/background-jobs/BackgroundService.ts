@@ -1,9 +1,10 @@
 import { eventBus, type BackgroundJob } from "./eventBus";
-import { workerPool } from "@/workers";
+import { getWorkerPool, WorkerPool } from "@/workers";
 
 export class BackgroundService {
   private queue: BackgroundJob[] = [];
   private running = false;
+  private workerPool: WorkerPool = getWorkerPool();
 
   enqueue(job: BackgroundJob) {
     this.queue.push(job);
@@ -49,13 +50,13 @@ export class BackgroundService {
 
   private async executeWithCancellation(job: BackgroundJob) {
     if (!job.token) {
-      return workerPool.runJob(job);
+      return this.workerPool.runJob(job);
     }
 
     return new Promise((resolve, reject) => {
       const sub = job.token!.onCancel$.subscribe(() => {
         job.state = "canceled";
-        workerPool.cancel(job.id);
+        this.workerPool.cancel(job.id);
         sub.unsubscribe();
         reject(new Error("Job cancelled"));
       });
@@ -76,7 +77,7 @@ export class BackgroundService {
   }
 
   private async execute(job: BackgroundJob) {
-    return workerPool.runJob(job);
+    return this.workerPool.runJob(job);
   }
 
   cancelJob(jobId: string) {
@@ -86,7 +87,7 @@ export class BackgroundService {
 
     job.state = "canceled";
 
-    workerPool.cancel(jobId);
+    this.workerPool.cancel(jobId);
 
     eventBus.next({
       type: "jobCanceled",

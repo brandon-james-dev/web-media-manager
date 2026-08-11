@@ -14,7 +14,8 @@
     "react-dom": "^19.2.8",
     "react-router": "^8.3.0",
     "rxjs": "^7.8.2",
-    "taglib-wasm": "^1.7.2"
+    "taglib-wasm": "^1.7.2",
+    "uuidv7": "^1.2.1"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

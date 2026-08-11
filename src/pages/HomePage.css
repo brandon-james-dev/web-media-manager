@@ -26,17 +26,13 @@
 
 .fields-column {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
 }
 
-.fields-column label {
-  font-weight: 500;
-}
-
-.fields-column input {
-  padding: 0.25rem;
-  font-size: 1rem;
+.field {
+  display: flex;
+  flex-direction: column;
 }
 
 .save-button {

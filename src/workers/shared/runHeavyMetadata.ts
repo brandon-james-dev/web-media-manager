@@ -9,7 +9,6 @@ export async function runHeavyMetadata(
   reportProgress({
     percent: 0.0,
     overall: 0.0,
-    label: `Preparing lookup (${payload.provider})`,
   });
 
   if (isCancelled()) return { cancelled: true };

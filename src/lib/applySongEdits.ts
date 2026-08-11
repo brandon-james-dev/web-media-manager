@@ -1,55 +1,48 @@
 import type { Song } from "@/models/Song";
-import type { IMetadataWriter } from "./metadata-utils";
+import { createFileWriteStrategy } from "./file-utils/createFileWriteStrategy";
+import { getMetadataStore as getDirectoryMetadataStore } from "./file-utils/initMetadataStore";
+import { createCombinedWriteStrategy } from "./createCombinedWriteStrategy";
 
 export async function applySongEdits(
   song: Song,
   updates: Partial<Song>,
-  writer: IMetadataWriter,
   callbacks?: {
     onSongUpdated?: (updatedSong: Song) => void;
   }
 ): Promise<Song | null> {
-  if (!song.fileHandle) return null;
+  if (!song || !song.fileHandle) return null;
 
-  const file = await song.fileHandle.getFile();
+  const updatedSong = { ...song, ...updates };
 
-  // Convert coverFront Blob → IPicture
   if (updates.coverFront instanceof Blob) {
     const buf = new Uint8Array(await updates.coverFront.arrayBuffer());
-    updates.pictures ??= [];
-    updates.pictures?.push({
+    updatedSong.pictures ??= [];
+    updatedSong.pictures.push({
       mimeType: updates.coverFront.type || "image/jpeg",
       data: buf,
-      type: "FrontCover", // FrontCover
+      type: "FrontCover",
       description: "Front Cover",
     });
   }
 
-  // Convert coverBack Blob → IPicture
   if (updates.coverBack instanceof Blob) {
     const buf = new Uint8Array(await updates.coverBack.arrayBuffer());
-    updates.pictures ??= [];
-    updates.pictures?.push({
+    updatedSong.pictures ??= [];
+    updatedSong.pictures.push({
       mimeType: updates.coverBack.type || "image/jpeg",
       data: buf,
-      type: "BackCover", // BackCover
+      type: "BackCover",
       description: "Back Cover",
     });
   }
 
-  // Metadata utils produce updated bytes
-  const updatedBytes = await writer.writeTags(file, updates);
-  if (!updatedBytes) return null;
+  const store = getDirectoryMetadataStore();
+  const fileWriteStrategy = createFileWriteStrategy(store);
 
-  // Write patched bytes directly to the song file
-  const writable = await song.fileHandle.createWritable();
-  await writable.write(updatedBytes.slice().buffer);
-  await writable.close();
+  const writeStrategy = createCombinedWriteStrategy(fileWriteStrategy);
 
-  // Update in-memory model
-  const updatedSong = { ...song, ...updates };
+  writeStrategy.write(song.id, updatedSong);
 
-  // Emit callback
   callbacks?.onSongUpdated?.(updatedSong);
 
   return updatedSong;

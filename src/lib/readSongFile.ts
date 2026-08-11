@@ -1,5 +1,6 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataReader } from "./metadata-utils";
+import { uuidv7 } from "uuidv7";
 
 export async function readSongFile(
   fileHandle: FileSystemFileHandle,
@@ -28,7 +29,7 @@ export async function readSongFile(
   }
 
   return {
-    id: file.name,
+    id: uuidv7(),
     path: file.name,
     fileSizeBytes: file.size,
     fileHandle,

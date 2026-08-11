@@ -1,7 +1,10 @@
-import { BrowserWorkerAdapter } from "@/workers";
-import { WorkerPool } from "@/workers/WorkerPool";
+import { BrowserWorkerAdapter, WorkerPool } from "@/workers";
 
-export const workerPool = new WorkerPool(
-  () => new BrowserWorkerAdapter(),
-  4 // pool size
-);
+let instance: WorkerPool | null = null;
+
+export function getWorkerPool() {
+  if (!instance) {
+    instance = new WorkerPool(() => new BrowserWorkerAdapter(), 4);
+  }
+  return instance;
+}

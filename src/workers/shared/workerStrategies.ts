@@ -12,7 +12,7 @@ export const workerStrategies: Record<
   (
     payload: any,
     isCancelled: () => boolean,
-    eportProgress: (progress: WorkerProgress) => void
+    reportProgress: (progress: WorkerProgress) => void
   ) => Promise<any>
 > = {
   artworkProcess: runArtworkProcess,

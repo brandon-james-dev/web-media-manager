@@ -1,40 +1,28 @@
-import type { WorkerProgress } from "@/workers/WorkerJob";
 import type { Song } from "@/models/Song";
-import { readSongFiles } from "@/lib";
-import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
+import { initMetadataStore as initDirectoryMetadataStore } from "@/lib/file-utils";
+import type { WorkerProgress } from "@/workers";
 
 export async function runBulkImport(
   payload: {
-    handles: FileSystemFileHandle[];
+    directoryHandle: FileSystemDirectoryHandle;
   },
   isCancelled: () => boolean,
   reportProgress: (progress: WorkerProgress) => void
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
-  const { handles } = payload;
-  const total = handles.length;
-  const songs: Song[] = [];
+  const { directoryHandle } = payload;
 
-  let index = 0;
-
-  const reader = new TagLibMetadataReader();
-
-  for await (const song of readSongFiles(handles, reader)) {
-    if (isCancelled()) return { cancelled: true };
-
-    // Report progress for this file
+  const store = await initDirectoryMetadataStore(directoryHandle, (p) => {
     reportProgress({
-      index,
-      total,
-      percent: 1.0, // each file is atomic
-      overall: (index + 1) / total,
-      label: `Imported ${song.path}`,
+      index: p.index,
+      total: p.total,
+      percent: p.percent,
+      overall: p.overall,
+      data: p.song,
+      label: `Imported ${p.song.fileHandle?.name}`,
     });
+  });
 
-    songs.push(song);
-    index++;
-
-    if (isCancelled()) return { cancelled: true };
-  }
+  const songs = await store.getAllSongs();
 
   return { ok: true, songs };
 }

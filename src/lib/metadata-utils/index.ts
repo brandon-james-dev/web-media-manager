@@ -1,3 +1,4 @@
+import type { IMetadataStore } from "./IMetadataStore";
 import type { IAudioProperties } from "./IAudioProperties";
 import type { IMetadata } from "./IMetadata";
 import type { IMetadataWriter } from "./IMedataWriter";
@@ -10,6 +11,7 @@ export type {
   IAudioProperties,
   IMetadata,
   IMetadataReader,
+  IMetadataStore,
   IMetadataWriter,
   IMetadataWriteStrategy,
   IPicture,

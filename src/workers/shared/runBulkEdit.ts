@@ -1,22 +1,37 @@
+import { applySongEdits } from "@/lib";
+import { loadSongMetadata } from "@/lib/loadSongMetadata";
+import type { ITagData } from "@/lib/metadata-utils";
+import type { Song } from "@/models/Song";
+
 export async function runBulkEdit(
-  payload: any,
+  payload: {
+    songIds: string[];
+    edits: Partial<ITagData>;
+  },
   reportProgress: (p: any) => void
 ) {
   const { songIds, edits } = payload;
 
   let processed = 0;
+  const results: any[] = [];
 
   for (const id of songIds) {
-    // Load the song metadata (Dexie or file-based)
-    const metadata = await loadSongMetadata(id);
+    let metadata: Song | null = null;
 
-    // Apply edits
+    try {
+      metadata = await loadSongMetadata(id);
+      if (!metadata) return;
+    } catch {
+      continue;
+    }
+
     const updated = { ...metadata, ...edits };
 
-    // Save back
-    await saveSongMetadata(id, updated);
+    results.push({ id, updated });
 
     processed++;
+
+    await applySongEdits(metadata, edits);
 
     reportProgress({
       processed,
@@ -25,13 +40,5 @@ export async function runBulkEdit(
     });
   }
 
-  return { processed };
-}
-
-function loadSongMetadata(id: any): any {
-  throw new Error("Function not implemented.");
-}
-
-function saveSongMetadata(id: any, updated: any): any {
-  throw new Error("Function not implemented.");
+  return { processed, results };
 }
