@@ -1,6 +1,6 @@
 import type { Song } from "@/models/Song";
-import { initMetadataStore as initDirectoryMetadataStore } from "@/lib/file-utils";
 import type { WorkerProgress } from "@/workers";
+import { importSongsIntoStore, initMetadataStore } from "@/lib/file-utils";
 
 export async function runBulkImport(
   payload: {
@@ -11,7 +11,9 @@ export async function runBulkImport(
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
   const { directoryHandle } = payload;
 
-  const store = await initDirectoryMetadataStore(directoryHandle, (p) => {
+  const store = await initMetadataStore(directoryHandle);
+
+  await importSongsIntoStore((p) => {
     reportProgress({
       index: p.index,
       total: p.total,

@@ -3,7 +3,7 @@ import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
 import { applySongEdits } from "@/lib";
 import { backgroundService, eventBus } from "@/lib/background-jobs";
-import { getMetadataStore } from "@/lib/file-utils";
+import { getMetadataStore, initMetadataStore } from "@/lib/file-utils";
 import { uuidv7 } from "uuidv7";
 
 import "./HomePage.css";
@@ -20,7 +20,7 @@ export function HomePage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Set<string>>(new Set());
 
-  const store = getMetadataStore();
+  let store = getMetadataStore();
 
   function handleToggleBatch(song: Song) {
     setSelectedBatch((prev) => {
@@ -61,16 +61,21 @@ export function HomePage() {
       updates.coverBack = backFile;
     }
 
-    await applySongEdits(selectedSong, updates, {
-      onSongUpdated(updatedSong) {
-        setSongs((prev) =>
-          prev.map((s) => (s.id === updatedSong.id ? updatedSong : s))
-        );
-        setSelectedSong(updatedSong);
-        setStatus("Song updated.");
-        event.currentTarget.reset();
-      },
-    });
+    try {
+      await applySongEdits(selectedSong, updates, {
+        onSongUpdated(updatedSong) {
+          setSongs((prev) =>
+            prev.map((s) => (s.id === updatedSong.id ? updatedSong : s))
+          );
+          setSelectedSong(updatedSong);
+          setStatus("Song updated.");
+          event.currentTarget.reset();
+        },
+      });
+    } catch (error) {
+      const { message } = error as Error;
+      setStatus(message);
+    }
   }
 
   async function handleBatchSubmit(event: React.SubmitEvent<HTMLFormElement>) {
@@ -135,6 +140,8 @@ export function HomePage() {
 
     if (!directoryHandle) return;
 
+    store = await initMetadataStore(directoryHandle);
+
     setStatus("Starting import…");
 
     // Fire background job
@@ -149,7 +156,7 @@ export function HomePage() {
   }
 
   useEffect(() => {
-    const sub = eventBus.subscribe((event) => {
+    const sub = eventBus.subscribe(async (event) => {
       if (event.jobType == "bulkImport") {
         if (event.type == "jobStarted") {
           setStatus("Started importing songs...");
@@ -157,11 +164,12 @@ export function HomePage() {
 
         if (event.type === "jobProgress") {
           const p = event.payload;
+          const data = p.data as Song;
+          const song = await store.saveSong(data.id, data);
 
+          if (song) setSongs((prev) => [...prev, ...[song]]);
           setProgressIndex(p.index ?? 0);
           setProgressTotal(p.total ?? 0);
-          store.saveSong(p.data.id, p.data);
-          setSongs((prev) => [...prev, ...[p.data]]);
           setStatus(p.label ?? "");
         }
 
@@ -173,7 +181,7 @@ export function HomePage() {
     });
 
     return () => sub.unsubscribe();
-  }, [store]);
+  }, [store, directoryHandle]);
 
   return (
     <div style={{ padding: "1rem" }}>

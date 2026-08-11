@@ -32,22 +32,22 @@ export class FileSystemMetadataStore implements IMetadataStore {
     const song = this.songs.get(id);
     if (!song || !song.fileHandle) return null;
 
-    let dir = this.root;
+    // let dir = this.root;
 
-    if (song.path) {
-      const parts = song.path.split("/").filter(Boolean);
-      for (const part of parts) {
-        dir = await dir?.getDirectoryHandle(part);
-      }
-    }
+    // if (song.path) {
+    //   const parts = song.path.split("/").filter(Boolean);
+    //   for (const part of parts) {
+    //     dir = await dir?.getDirectoryHandle(part);
+    //   }
+    // }
 
-    const fileHandle = await dir?.getFileHandle(song.fileHandle?.name, {
-      create: false,
-    });
+    // const fileHandle = await dir?.getFileHandle(song.fileHandle?.name, {
+    //   create: false,
+    // });
 
     return {
       ...song,
-      fileHandle,
+      // fileHandle,
     };
   }
 

@@ -9,8 +9,10 @@ export async function applySongEdits(
   callbacks?: {
     onSongUpdated?: (updatedSong: Song) => void;
   }
-): Promise<Song | null> {
-  if (!song || !song.fileHandle) return null;
+): Promise<Song> {
+  if (!song.fileHandle) {
+    throw new Error("The song's file handle was null");
+  }
 
   const updatedSong = { ...song, ...updates };
 

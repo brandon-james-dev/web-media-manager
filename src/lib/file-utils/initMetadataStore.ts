@@ -1,17 +1,41 @@
 import type { Song } from "@/models/Song";
-import { readSongFiles } from "@/lib";
+import { readSongFile } from "@/lib";
 import type { IMetadataStore } from "@/lib/metadata-utils";
 import { FileSystemMetadataStore } from "./";
 import { TagLibMetadataReader } from "../taglib-metadata-utils";
+import { uuidv7 } from "uuidv7";
 
 let fileSystemMetadataStore: FileSystemMetadataStore | null = null;
 
 /**
  * Initializes the metadata store using the root directory handle.
- * Loads all songs using readSongFiles and builds the metadata map.
  */
 export async function initMetadataStore(
-  rootDirectory?: FileSystemDirectoryHandle,
+  rootDirectory?: FileSystemDirectoryHandle
+): Promise<IMetadataStore> {
+  if (!rootDirectory) {
+    fileSystemMetadataStore = new FileSystemMetadataStore();
+    return fileSystemMetadataStore;
+  }
+
+  fileSystemMetadataStore = new FileSystemMetadataStore(rootDirectory);
+
+  const handles: FileSystemFileHandle[] = [];
+  await collectFileHandles(rootDirectory, handles);
+
+  // Initialize with empty file handles. Processing begins later.
+  for (const fileHandle of handles) {
+    const song = {
+      id: uuidv7(),
+      fileHandle,
+    } as Song;
+    await fileSystemMetadataStore.saveSong(song.id, song);
+  }
+
+  return fileSystemMetadataStore;
+}
+
+export async function importSongsIntoStore(
   onProgress?: (progress: {
     song: Song;
     index: number;
@@ -19,29 +43,27 @@ export async function initMetadataStore(
     percent: number;
     overall: number;
   }) => void
-): Promise<IMetadataStore> {
-  const songs = new Map<string, Song>();
+) {
+  const store = getMetadataStore();
 
-  if (!rootDirectory) {
-    fileSystemMetadataStore = new FileSystemMetadataStore();
-    return fileSystemMetadataStore;
-  }
+  let songs = (await store.getAllSongs()) ?? [];
 
-  const handles: FileSystemFileHandle[] = [];
-  await collectFileHandles(rootDirectory, handles);
-
-  const total = handles.length;
+  const total = songs.length ?? 0;
   let index = 0;
 
   const reader = new TagLibMetadataReader();
 
-  for await (const song of readSongFiles(handles, reader)) {
-    songs.set(song.id, song);
+  for await (const song of songs) {
+    const songData = await readSongFile(song.fileHandle!, reader);
+
+    if (!songData) continue;
+
+    const updatedSong = await store.saveSong(song.id, { ...song, ...songData });
 
     if (onProgress) {
       const percent = (index + 1) / total;
       onProgress({
-        song,
+        song: updatedSong,
         index,
         total,
         percent,
@@ -51,10 +73,6 @@ export async function initMetadataStore(
 
     index++;
   }
-
-  fileSystemMetadataStore = new FileSystemMetadataStore(rootDirectory, songs);
-
-  return fileSystemMetadataStore;
 }
 
 /**
