@@ -1,44 +1,60 @@
-import { applyPictures, applyTags, type Picture } from "taglib-wasm";
+import {
+  addPicture,
+  applyPictures,
+  applyTags,
+  type Picture,
+} from "taglib-wasm";
 import type { ITagData } from "@/lib/metadata-utils";
 import type { IMetadataWriter } from "@/lib/metadata-utils/IMedataWriter";
 
 export class TagLibMetadataWriter implements IMetadataWriter {
   async writeTags(file: File, tags: Partial<ITagData>): Promise<Uint8Array> {
-    // Extract TagLib pictures
+    // Convert pictures to TagLib format
     const taglibPictures: Picture[] = [];
 
     if (tags.pictures && tags.pictures.length > 0) {
+      const seen = new Map<string, Picture>();
+
       for (const pic of tags.pictures) {
-        taglibPictures.push({
-          mimeType: pic.mimeType,
-          data: pic.data,
-          type: pic.type == "FrontCover" ? "FrontCover" : "BackCover",
-          description: pic.type === "FrontCover" ? "Front Cover" : "Back Cover",
-        });
+        const type = pic.type === "FrontCover" ? "FrontCover" : "BackCover";
+
+        // Only keep the first picture of each type
+        if (!seen.has(type)) {
+          seen.set(type, {
+            mimeType: pic.mimeType,
+            data: pic.data,
+            type,
+            description: type === "FrontCover" ? "Front Cover" : "Back Cover",
+          });
+        }
       }
+
+      taglibPictures.push(...seen.values());
     }
 
     // Remove pictures from tagInput (applyTags cannot accept them)
     const { pictures, ...textTags } = tags;
 
-    // 1. First pass: write text metadata
+    // Write text metadata
     const textUpdatedBytes = await applyTags(file, textTags);
 
-    // Wrap updated bytes into a new File for TagLib
+    // Wrap into a new File for TagLib
     let updatedFile = new File([textUpdatedBytes.slice().buffer], file.name, {
       type: file.type,
     });
 
-    // 2. Second pass: embed pictures
-    let finalBytes = textUpdatedBytes;
+    // Remove ALL existing pictures
+    const clearedBytes = await applyPictures(updatedFile, []);
+
+    updatedFile = new File([clearedBytes.slice().buffer], file.name, {
+      type: file.type,
+    });
+
+    // Add new pictures
+    let finalBytes = clearedBytes;
 
     if (taglibPictures.length > 0) {
       finalBytes = await applyPictures(updatedFile, taglibPictures);
-
-      // Wrap again for consistency (TagLib expects a File)
-      updatedFile = new File([finalBytes.slice().buffer], file.name, {
-        type: file.type,
-      });
     }
 
     return finalBytes;

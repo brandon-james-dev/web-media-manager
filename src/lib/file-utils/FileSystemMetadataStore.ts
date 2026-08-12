@@ -1,64 +1,56 @@
 import type { Song } from "@/models/Song";
-import type { IMetadataStore } from "../metadata-utils/IMetadataStore";
+import type { IMetadataStore } from "../metadata-utils";
+import { TagLibMetadataWriter } from "../taglib-metadata-utils";
 
 export class FileSystemMetadataStore implements IMetadataStore {
-  private _root?: FileSystemDirectoryHandle | undefined;
-  private songs: Map<string, Song>;
+  root: FileSystemDirectoryHandle | null = null;
+  private fileHandles = new Map<string, FileSystemFileHandle>();
+  private songs = new Map<string, Song>();
 
-  constructor(
-    rootDirectory?: FileSystemDirectoryHandle,
-    songs?: Map<string, Song>
-  ) {
-    this.root = rootDirectory;
-    this.songs = songs ?? new Map<string, Song>();
+  constructor(root?: FileSystemDirectoryHandle) {
+    if (root) this.root = root;
   }
 
-  public get root(): FileSystemDirectoryHandle | undefined {
-    return this._root;
-  }
-  public set root(value: FileSystemDirectoryHandle | undefined) {
-    this._root = value;
+  setFileHandle(id: string, handle: FileSystemFileHandle): void {
+    this.fileHandles.set(id, handle);
   }
 
-  async deleteSong(id: string): Promise<void> {
-    this.songs.delete(id);
+  getFileHandle(id: string): FileSystemFileHandle | undefined {
+    return this.fileHandles.get(id);
+  }
+
+  async saveSong(id: string, song: Song): Promise<Song> {
+    const existingFileHandle = this.fileHandles.get(id);
+    const existingSong = this.songs.get(id);
+
+    const isNew = !existingSong?.filesize;
+
+    if (!isNew && existingFileHandle) {
+      const file = await existingFileHandle.getFile();
+
+      const writer = new TagLibMetadataWriter();
+      const updatedBytes = await writer.writeTags(file, song);
+
+      const writable = await existingFileHandle.createWritable();
+      await writable.write(updatedBytes.slice().buffer);
+      await writable.close();
+    }
+
+    this.songs.set(id, song);
+
+    return song;
+  }
+
+  async getSong(id: string): Promise<Song> {
+    return this.songs.get(id)!;
   }
 
   async getAllSongs(): Promise<Song[]> {
-    return Array.from(this.songs.values());
+    return [...this.songs.values()];
   }
 
-  async getSong(id: string): Promise<Song | null> {
-    const song = this.songs.get(id);
-    if (!song || !song.fileHandle) return null;
-
-    // let dir = this.root;
-
-    // if (song.path) {
-    //   const parts = song.path.split("/").filter(Boolean);
-    //   for (const part of parts) {
-    //     dir = await dir?.getDirectoryHandle(part);
-    //   }
-    // }
-
-    // const fileHandle = await dir?.getFileHandle(song.fileHandle?.name, {
-    //   create: false,
-    // });
-
-    return {
-      ...song,
-      // fileHandle,
-    };
-  }
-
-  async saveSong(id: string, updated: Song): Promise<Song> {
-    this.songs.set(id, updated);
-    const updatedSong = await this.getSong(id);
-
-    if (!updatedSong) {
-      throw new Error("The song was not saved");
-    }
-
-    return updatedSong;
+  async deleteSong(id: string): Promise<void> {
+    this.fileHandles.delete(id);
+    this.songs.delete(id);
   }
 }

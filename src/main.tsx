@@ -1,11 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";
-import { initMetadataStore } from "./lib/file-utils/index.ts";
-import "./index.css";
+import { initFileSystemMetadataStore } from "./lib/file-utils";
 import App from "./App.tsx";
 
-await initMetadataStore();
+import "./index.css";
+
+await initFileSystemMetadataStore();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

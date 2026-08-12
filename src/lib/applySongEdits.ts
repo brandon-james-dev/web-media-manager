@@ -10,10 +10,6 @@ export async function applySongEdits(
     onSongUpdated?: (updatedSong: Song) => void;
   }
 ): Promise<Song> {
-  if (!song.fileHandle) {
-    throw new Error("The song's file handle was null");
-  }
-
   const updatedSong = { ...song, ...updates };
 
   if (updates.coverFront instanceof Blob) {
@@ -40,7 +36,6 @@ export async function applySongEdits(
 
   const store = getDirectoryMetadataStore();
   const fileWriteStrategy = createFileWriteStrategy(store);
-
   const writeStrategy = createCombinedWriteStrategy(fileWriteStrategy);
 
   writeStrategy.write(song.id, updatedSong);

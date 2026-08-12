@@ -1,7 +1,12 @@
 import type { Song } from "@/models/Song";
-import type { WorkerProgress } from "@/workers";
-import { importSongsIntoStore, initMetadataStore } from "@/lib/file-utils";
+import type { WorkerProgress } from "../WorkerJob";
+import { readSongFile } from "@/lib";
+import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 
+/**
+ * Worker bulk import job — receives a directory handle,
+ * traverses it, reads each file, extracts metadata, and returns Song objects.
+ */
 export async function runBulkImport(
   payload: {
     directoryHandle: FileSystemDirectoryHandle;
@@ -11,20 +16,67 @@ export async function runBulkImport(
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
   const { directoryHandle } = payload;
 
-  const store = await initMetadataStore(directoryHandle);
+  const reader = new TagLibMetadataReader();
+  const songs: Song[] = [];
 
-  await importSongsIntoStore((p) => {
+  const entries: Array<{ handle: FileSystemFileHandle; relativePath: string }> =
+    [];
+  await collectFileHandles(directoryHandle, entries);
+
+  const total = entries.length;
+  let index = 0;
+
+  for (const { handle, relativePath } of entries) {
+    if (isCancelled()) return { cancelled: true };
+
+    const metadata = await readSongFile(handle, reader);
+
+    const song: Song = {
+      ...metadata,
+      id: directoryHandle.name + "/" + handle.name,
+      filename: handle.name,
+      filesize: metadata?.filesize ?? 0,
+      relativePath,
+    };
+
+    songs.push(song);
+
     reportProgress({
-      index: p.index,
-      total: p.total,
-      percent: p.percent,
-      overall: p.overall,
-      data: p.song,
-      label: `Imported ${p.song.fileHandle?.name}`,
+      index,
+      total,
+      percent: 1,
+      overall: (index + 1) / total,
+      data: song,
+      label: `Imported ${handle.name}`,
     });
-  });
 
-  const songs = await store.getAllSongs();
+    index++;
+  }
 
   return { ok: true, songs };
+}
+
+/**
+ * Recursively collects file handles and relative paths.
+ */
+async function collectFileHandles(
+  dir: FileSystemDirectoryHandle,
+  out: Array<{ handle: FileSystemFileHandle; relativePath: string }>,
+  path: string = ""
+): Promise<void> {
+  for await (const entry of dir.values()) {
+    if (entry.kind === "directory") {
+      const subdir = await dir.getDirectoryHandle(entry.name);
+      await collectFileHandles(subdir, out, `${path}${entry.name}/`);
+      continue;
+    }
+
+    if (entry.kind === "file") {
+      const fileHandle = await dir.getFileHandle(entry.name);
+      out.push({
+        handle: fileHandle,
+        relativePath: `${path}${entry.name}`,
+      });
+    }
+  }
 }

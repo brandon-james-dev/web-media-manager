@@ -1,4 +1,3 @@
-import { TagLibMetadataWriter } from "../taglib-metadata-utils";
 import type { IMetadataStore } from "../metadata-utils/IMetadataStore";
 import type { IMetadataWriteStrategy } from "../metadata-utils/IMetadataWriteStrategy";
 import type { ITagData } from "../metadata-utils/ITagData";
@@ -16,19 +15,6 @@ export class FileWriteStrategy implements IMetadataWriteStrategy {
     if (!song) {
       throw new Error(`Song ${id} not found`);
     }
-
-    if (!song.fileHandle) {
-      throw new Error(`Song ${id} missing fileHandle`);
-    }
-
-    const file = await song.fileHandle.getFile();
-
-    const writer = new TagLibMetadataWriter();
-    const updatedBytes = await writer.writeTags(file, updated);
-
-    const writable = await song.fileHandle.createWritable();
-    await writable.write(updatedBytes.slice().buffer);
-    await writable.close();
 
     const updatedSong: Song = {
       ...song,

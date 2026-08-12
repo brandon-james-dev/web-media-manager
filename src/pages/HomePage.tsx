@@ -3,7 +3,10 @@ import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
 import { applySongEdits } from "@/lib";
 import { backgroundService, eventBus } from "@/lib/background-jobs";
-import { getMetadataStore, initMetadataStore } from "@/lib/file-utils";
+import {
+  getMetadataStore,
+  initFileSystemMetadataStore,
+} from "@/lib/file-utils";
 import { uuidv7 } from "uuidv7";
 
 import "./HomePage.css";
@@ -38,7 +41,9 @@ export function HomePage() {
     event.preventDefault();
     if (!selectedSong) return;
 
-    const formData = new FormData(event.currentTarget);
+    const currentTarget = event.currentTarget;
+
+    const formData = new FormData(currentTarget);
 
     const updates: Partial<Song> = {
       title: formData.get("title")?.toString() ?? "",
@@ -69,7 +74,7 @@ export function HomePage() {
           );
           setSelectedSong(updatedSong);
           setStatus("Song updated.");
-          event.currentTarget.reset();
+          currentTarget.reset();
         },
       });
     } catch (error) {
@@ -135,16 +140,17 @@ export function HomePage() {
     setStatus(`Directory selected: ${dirHandle.name}`);
   }
 
-  async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: React.SubmitEvent<HTMLFormElement>
+  ): Promise<void> {
     event.preventDefault();
 
     if (!directoryHandle) return;
 
-    store = await initMetadataStore(directoryHandle);
+    setStatus("Starting import...");
 
-    setStatus("Starting import…");
+    store = await initFileSystemMetadataStore(directoryHandle);
 
-    // Fire background job
     backgroundService.enqueue({
       id: uuidv7(),
       type: "bulkImport",
@@ -165,6 +171,7 @@ export function HomePage() {
         if (event.type === "jobProgress") {
           const p = event.payload;
           const data = p.data as Song;
+
           const song = await store.saveSong(data.id, data);
 
           if (song) setSongs((prev) => [...prev, ...[song]]);
@@ -181,7 +188,7 @@ export function HomePage() {
     });
 
     return () => sub.unsubscribe();
-  }, [store, directoryHandle]);
+  }, [store]);
 
   return (
     <div style={{ padding: "1rem" }}>

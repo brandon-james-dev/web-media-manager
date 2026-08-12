@@ -1,16 +1,14 @@
 import { FileWriteStrategy } from "./FileWriteStrategy";
 import {
   getMetadataStore,
-  importSongsIntoStore,
-  initMetadataStore,
+  initFileSystemMetadataStore,
 } from "@/lib/file-utils/initMetadataStore";
 import { createFileWriteStrategy } from "./createFileWriteStrategy";
 import { FileSystemMetadataStore } from "./FileSystemMetadataStore";
 
 export {
   createFileWriteStrategy,
-  initMetadataStore,
-  importSongsIntoStore,
+  initFileSystemMetadataStore,
   getMetadataStore,
   FileSystemMetadataStore,
   FileWriteStrategy,
