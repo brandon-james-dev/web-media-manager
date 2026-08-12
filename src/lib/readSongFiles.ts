@@ -15,11 +15,13 @@ export async function* readSongFiles(
 ): AsyncGenerator<Song> {
   for (const handle of handles) {
     const metadata = await readSongFile(handle, reader);
+    const size = (await handle.getFile()).size;
 
     const song: Song = {
       id: handle.name,
       filename: handle.name,
       relativePath: handle.name,
+      filesize: size,
       coverFront: metadata?.coverFront,
       coverBack: metadata?.coverBack,
       title: metadata?.title ?? "",

@@ -1,9 +1,4 @@
-import {
-  addPicture,
-  applyPictures,
-  applyTags,
-  type Picture,
-} from "taglib-wasm";
+import { applyPictures, applyTags, type Picture } from "taglib-wasm";
 import type { ITagData } from "@/lib/metadata-utils";
 import type { IMetadataWriter } from "@/lib/metadata-utils/IMedataWriter";
 

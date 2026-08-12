@@ -9,4 +9,5 @@ export interface IMetadataStore {
   getAllSongs(): Promise<Song[]>;
   onSongAdded(cb: SongCallback): () => void;
   onSongUpdated(cb: SongCallback): () => void;
+  onSongDeleted(cb: SongCallback): () => void;
 }

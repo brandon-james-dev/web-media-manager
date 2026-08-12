@@ -1,16 +1,25 @@
 import React, { useEffect, useState } from "react";
 import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
-import { applySongEdits } from "@/lib";
+import { applySongEdits, readSongFile } from "@/lib";
 import { backgroundService, eventBus } from "@/lib/background-jobs";
 import {
+  FileSystemMetadataStore,
   getMetadataStore,
   initFileSystemMetadataStore,
 } from "@/lib/file-utils";
 import { uuidv7 } from "uuidv7";
 import { useSongs } from "@/providers";
+import useFileSystemAccess from "use-fs-access";
+import {
+  type FileOrDirectoryInfo,
+  isApiSupported,
+  showDirectoryPicker,
+} from "use-fs-access/core";
 
 import "./HomePage.css";
+import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
+import { isValidAudioFile } from "taglib-wasm";
 
 export function HomePage() {
   const { songs } = useSongs();
@@ -24,7 +33,77 @@ export function HomePage() {
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Set<string>>(new Set());
 
-  let store = getMetadataStore();
+  const addedDebounce = new Map<string, number>();
+  const deletedDebounce = new Map<string, number>();
+  const modifiedDebounce = new Map<string, number>();
+
+  function shouldProcess(
+    map: Map<string, number>,
+    key: string,
+    windowMs = 300
+  ) {
+    const now = Date.now();
+    const last = map.get(key);
+
+    if (last && now - last < windowMs) {
+      return false; // duplicate
+    }
+
+    map.set(key, now);
+    return true;
+  }
+
+  async function handleAdded(entries: Map<string, FileOrDirectoryInfo>) {
+    const store = getMetadataStore();
+
+    for (const [name, info] of entries) {
+      if (!shouldProcess(addedDebounce, name)) continue;
+
+      if (info.handle.kind != "file") return;
+
+      const handle = info.handle as FileSystemFileHandle;
+
+      if (!(await isValidAudioFile(await handle.getFile()))) return;
+
+      const processedSong = await readSongFile(
+        handle,
+        new TagLibMetadataReader()
+      );
+
+      if (!processedSong) return;
+
+      await store.saveSong(name, processedSong);
+    }
+  }
+
+  async function handleDeleted(entries: Map<string, FileOrDirectoryInfo>) {
+    const store = getMetadataStore();
+    for (const [name] of entries) {
+      if (!shouldProcess(deletedDebounce, name)) continue;
+
+      await store.deleteSong(name);
+    }
+  }
+
+  function handleModified(entries: Map<string, FileOrDirectoryInfo>) {
+    for (const [name, info] of entries) {
+      if (!shouldProcess(modifiedDebounce, name)) continue;
+
+      // Process modified file
+      console.log("Modified:", name, info);
+    }
+  }
+
+  const { openDirectory } = useFileSystemAccess({
+    enableFileWatcher: true,
+    fileWatcherOptions: {
+      debug: false,
+      pollInterval: 250,
+    },
+    onFilesAdded: handleAdded,
+    onFilesDeleted: handleDeleted,
+    onFilesModified: handleModified,
+  });
 
   function handleToggleBatch(song: Song) {
     setSelectedBatch((prev) => {
@@ -127,28 +206,34 @@ export function HomePage() {
   }
 
   async function handlePickDirectory() {
-    if (!window.showDirectoryPicker) {
+    if (!isApiSupported) {
       throw new Error("File System Access API not supported.");
     }
 
-    const dirHandle = await window.showDirectoryPicker({
+    const dirHandle = await showDirectoryPicker({
       mode: "readwrite",
     });
 
+    if (!dirHandle) return;
+
     setDirectoryHandle(dirHandle);
+
     setStatus(`Directory selected: ${dirHandle.name}`);
   }
 
   async function handleSubmit(
     event: React.SubmitEvent<HTMLFormElement>
   ): Promise<void> {
+    const fileStore = getMetadataStore() as FileSystemMetadataStore;
     event.preventDefault();
 
     if (!directoryHandle) return;
 
     setStatus("Starting import...");
 
-    store = await initFileSystemMetadataStore(directoryHandle);
+    fileStore.root = directoryHandle;
+
+    await openDirectory(fileStore.root);
 
     backgroundService.enqueue({
       id: uuidv7(),
@@ -182,7 +267,7 @@ export function HomePage() {
     });
 
     return () => sub.unsubscribe();
-  }, [store]);
+  }, []);
 
   return (
     <div style={{ padding: "1rem" }}>

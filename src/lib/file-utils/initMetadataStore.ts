@@ -1,4 +1,3 @@
-import type { Song } from "@/models/Song";
 import type { IMetadataStore } from "@/lib/metadata-utils";
 import { FileSystemMetadataStore } from "./";
 
@@ -10,53 +9,15 @@ let fileSystemMetadataStore: FileSystemMetadataStore | null = null;
 export async function initFileSystemMetadataStore(
   rootDirectory?: FileSystemDirectoryHandle
 ): Promise<FileSystemMetadataStore> {
-  const store = new FileSystemMetadataStore(rootDirectory);
-  fileSystemMetadataStore = store;
-
-  if (!rootDirectory) return fileSystemMetadataStore;
-
-  const entries: Array<FileSystemFileHandle> = [];
-  await collectFileHandles(rootDirectory, entries);
-
-  for (const fileHandle of entries) {
-    const id = rootDirectory.name + "/" + fileHandle.name;
-    // Store file handle in memory
-    store.setFileHandle(id, fileHandle);
-
-    const filesize = (await fileHandle.getFile()).size;
-
-    const song: Song = {
-      id,
-      relativePath: rootDirectory.name,
-      filename: fileHandle.name,
-      filesize,
-    };
-
-    await store.saveSong(id, song);
+  if (fileSystemMetadataStore) {
+    if (rootDirectory) {
+      fileSystemMetadataStore.root = rootDirectory;
+    }
+    return fileSystemMetadataStore;
   }
 
-  return store;
-}
-
-/**
- * Recursively collects file handles.
- */
-async function collectFileHandles(
-  dir: FileSystemDirectoryHandle,
-  handles: FileSystemFileHandle[]
-) {
-  for await (const entry of dir.values()) {
-    if (entry.kind === "directory") {
-      const subdir = await dir.getDirectoryHandle(entry.name);
-      await collectFileHandles(subdir, handles);
-      continue;
-    }
-
-    if (entry.kind === "file") {
-      const fileHandle = await dir.getFileHandle(entry.name);
-      handles.push(fileHandle);
-    }
-  }
+  fileSystemMetadataStore = new FileSystemMetadataStore(rootDirectory);
+  return fileSystemMetadataStore;
 }
 
 /**

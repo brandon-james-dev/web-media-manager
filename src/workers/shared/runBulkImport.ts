@@ -2,6 +2,7 @@ import type { Song } from "@/models/Song";
 import type { WorkerProgress } from "../WorkerJob";
 import { readSongFile } from "@/lib";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
+import { collectFileHandles } from "@/lib/file-utils";
 
 /**
  * Worker bulk import job — receives a directory handle,
@@ -54,29 +55,4 @@ export async function runBulkImport(
   }
 
   return { ok: true, songs };
-}
-
-/**
- * Recursively collects file handles and relative paths.
- */
-async function collectFileHandles(
-  dir: FileSystemDirectoryHandle,
-  out: Array<{ handle: FileSystemFileHandle; relativePath: string }>,
-  path: string = ""
-): Promise<void> {
-  for await (const entry of dir.values()) {
-    if (entry.kind === "directory") {
-      const subdir = await dir.getDirectoryHandle(entry.name);
-      await collectFileHandles(subdir, out, `${path}${entry.name}/`);
-      continue;
-    }
-
-    if (entry.kind === "file") {
-      const fileHandle = await dir.getFileHandle(entry.name);
-      out.push({
-        handle: fileHandle,
-        relativePath: `${path}${entry.name}`,
-      });
-    }
-  }
 }

@@ -37,7 +37,6 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const store = getMetadataStore();
-
     const unsubAdd = store.onSongAdded((song) => {
       setSongs((prev) => [...prev, song]);
 
@@ -50,16 +49,22 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
       scheduleRefresh();
     });
 
+    const unsubDelete = store.onSongDeleted((song) => {
+      setSongs((prev) => prev.filter((s) => s.id != song.id));
+
+      scheduleRefresh();
+    });
+
     return () => {
       unsubAdd();
       unsubUpdate();
+      unsubDelete();
     };
   }, []);
 
   useEffect(() => {
+    const store = getMetadataStore();
     return backgroundService.onJobProgress(async (event) => {
-      const store = getMetadataStore();
-
       if (event.jobType === "bulkImport") {
         const newSong = event.payload.data;
         await store.saveSong(newSong.id, newSong);
