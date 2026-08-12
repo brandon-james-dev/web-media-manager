@@ -118,6 +118,7 @@ export function HomePage() {
       type: "bulkEdit",
       state: "pending",
       payload: {
+        directoryHandle,
         songIds: selectedBatch,
         edits,
       },
