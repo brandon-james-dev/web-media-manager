@@ -1,11 +1,15 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataStore } from "../metadata-utils";
 import { TagLibMetadataWriter } from "../taglib-metadata-utils";
+import type { SongCallback } from "../metadata-utils/IMetadataStore";
 
 export class FileSystemMetadataStore implements IMetadataStore {
   root: FileSystemDirectoryHandle | null = null;
   private fileHandles = new Map<string, FileSystemFileHandle>();
   private songs = new Map<string, Song>();
+
+  private songAddedListeners = new Set<SongCallback>();
+  private songUpdatedListeners = new Set<SongCallback>();
 
   constructor(root?: FileSystemDirectoryHandle) {
     if (root) this.root = root;
@@ -17,6 +21,25 @@ export class FileSystemMetadataStore implements IMetadataStore {
 
   getFileHandle(id: string): FileSystemFileHandle | undefined {
     return this.fileHandles.get(id);
+  }
+
+  // --- Event subscription API ---
+  onSongAdded(cb: SongCallback) {
+    this.songAddedListeners.add(cb);
+    return () => this.songAddedListeners.delete(cb);
+  }
+
+  onSongUpdated(cb: SongCallback) {
+    this.songUpdatedListeners.add(cb);
+    return () => this.songUpdatedListeners.delete(cb);
+  }
+
+  private emitSongAdded(song: Song) {
+    for (const cb of this.songAddedListeners) cb(song);
+  }
+
+  private emitSongUpdated(song: Song) {
+    for (const cb of this.songUpdatedListeners) cb(song);
   }
 
   async saveSong(id: string, song: Song): Promise<Song> {
@@ -37,6 +60,12 @@ export class FileSystemMetadataStore implements IMetadataStore {
     }
 
     this.songs.set(id, song);
+
+    if (isNew) {
+      this.emitSongAdded(song);
+    } else {
+      this.emitSongUpdated(song);
+    }
 
     return song;
   }

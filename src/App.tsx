@@ -1,6 +1,8 @@
 import { Routes, Route } from "react-router";
 import { HomePage, SettingsPage } from "./pages";
 import { NavBar } from "./layout";
+import { SongProvider } from "./providers/SongProvider";
+
 import "./App.css";
 
 function App() {
@@ -8,10 +10,12 @@ function App() {
     <>
       <NavBar />
       <main className="content-area">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
+        <SongProvider>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </SongProvider>
       </main>
     </>
   );

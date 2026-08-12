@@ -8,11 +8,12 @@ import {
   initFileSystemMetadataStore,
 } from "@/lib/file-utils";
 import { uuidv7 } from "uuidv7";
+import { useSongs } from "@/providers";
 
 import "./HomePage.css";
 
 export function HomePage() {
-  const [songs, setSongs] = useState<Song[]>([]);
+  const { songs } = useSongs();
   const [status, setStatus] = useState<string>("");
   const [directoryHandle, setDirectoryHandle] =
     useState<FileSystemDirectoryHandle | null>(null);
@@ -69,9 +70,6 @@ export function HomePage() {
     try {
       await applySongEdits(selectedSong, updates, {
         onSongUpdated(updatedSong) {
-          setSongs((prev) =>
-            prev.map((s) => (s.id === updatedSong.id ? updatedSong : s))
-          );
           setSelectedSong(updatedSong);
           setStatus("Song updated.");
           currentTarget.reset();
@@ -171,11 +169,6 @@ export function HomePage() {
 
         if (event.type === "jobProgress") {
           const p = event.payload;
-          const data = p.data as Song;
-
-          const song = await store.saveSong(data.id, data);
-
-          if (song) setSongs((prev) => [...prev, ...[song]]);
           setProgressIndex(p.index ?? 0);
           setProgressTotal(p.total ?? 0);
           setStatus(p.label ?? "");

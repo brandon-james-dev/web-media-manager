@@ -23,10 +23,13 @@ export async function initFileSystemMetadataStore(
     // Store file handle in memory
     store.setFileHandle(id, fileHandle);
 
+    const filesize = (await fileHandle.getFile()).size;
+
     const song: Song = {
       id,
       relativePath: rootDirectory.name,
       filename: fileHandle.name,
+      filesize,
     };
 
     await store.saveSong(id, song);

@@ -16,7 +16,7 @@ export async function runBulkEdit(
   await initFileSystemMetadataStore(directoryHandle);
 
   let processed = 0;
-  const results: any[] = [];
+  const results: Song[] = [];
 
   for (const id of songIds) {
     let metadata: Song | null = null;
@@ -28,9 +28,9 @@ export async function runBulkEdit(
       continue;
     }
 
-    const updated = { ...metadata, ...edits };
+    const updated = { ...metadata, ...edits } as Song;
 
-    results.push({ id, updated });
+    results.push(updated);
 
     processed++;
 

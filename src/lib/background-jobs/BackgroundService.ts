@@ -1,10 +1,32 @@
 import { eventBus, type BackgroundJob } from "./eventBus";
 import { getWorkerPool, WorkerPool } from "@/workers";
 
+export type JobCompletedCallback = (job: BackgroundJob) => void;
+export type JobProgressCallback = (event: {
+  jobId: string;
+  jobType: string;
+  payload: any;
+}) => void;
+
 export class BackgroundService {
   private queue: BackgroundJob[] = [];
   private running = false;
   private workerPool: WorkerPool = getWorkerPool();
+
+  private jobCompletedListeners = new Set<JobCompletedCallback>();
+  private jobProgressListeners = new Set<JobProgressCallback>();
+
+  constructor() {
+    eventBus.subscribe((evt) => {
+      if (evt.type === "jobProgress") {
+        this.emitJobProgress({
+          jobId: evt.jobId,
+          jobType: evt.jobType,
+          payload: evt.payload,
+        });
+      }
+    });
+  }
 
   enqueue(job: BackgroundJob) {
     this.queue.push(job);
@@ -35,12 +57,22 @@ export class BackgroundService {
         jobType: job.type,
         payload: result,
       });
+      this.emitJobCompleted({
+        ...job,
+        payload: result,
+        state: "completed",
+      });
     } catch (err) {
       eventBus.next({
         type: "jobError",
         jobId: job.id,
         jobType: job.type,
         payload: err,
+      });
+      this.emitJobCompleted({
+        ...job,
+        payload: err,
+        state: "failed",
       });
     } finally {
       this.running = false;
@@ -94,6 +126,33 @@ export class BackgroundService {
       jobId,
       jobType: job.type,
     });
+    this.emitJobCompleted(job);
+  }
+
+  onJobCompleted(cb: JobCompletedCallback) {
+    this.jobCompletedListeners.add(cb);
+    return () => {
+      this.jobCompletedListeners.delete(cb);
+    };
+  }
+
+  private emitJobCompleted(job: BackgroundJob) {
+    for (const cb of this.jobCompletedListeners) cb(job);
+  }
+
+  onJobProgress(cb: JobProgressCallback) {
+    this.jobProgressListeners.add(cb);
+    return () => {
+      this.jobProgressListeners.delete(cb);
+    };
+  }
+
+  private emitJobProgress(event: {
+    jobId: string;
+    jobType: string;
+    payload: any;
+  }) {
+    for (const cb of this.jobProgressListeners) cb(event);
   }
 }
 
