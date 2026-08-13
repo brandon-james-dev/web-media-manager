@@ -54,6 +54,7 @@ export async function readSongFile(
     coverFront,
     coverBack,
     filesize,
+    directoryId: 0,
     ...tags,
     ...props,
   } as Song;

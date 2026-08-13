@@ -38,6 +38,7 @@ export async function runBulkImport(
       filename: handle.name,
       filesize: metadata?.filesize ?? 0,
       relativePath,
+      directoryId: 0,
     };
 
     songs.push(song);

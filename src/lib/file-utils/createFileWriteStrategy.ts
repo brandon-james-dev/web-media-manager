@@ -1,9 +1,9 @@
+import { getMetadataStore } from ".";
 import type { IMetadataWriteStrategy } from "../metadata-utils";
-import type { IMetadataStore } from "./../metadata-utils/IMetadataStore";
+import { FileSystemMetadataStore } from "./FileSystemMetadataStore";
 import { FileWriteStrategy } from "./FileWriteStrategy";
 
-export function createFileWriteStrategy(
-  store: IMetadataStore
-): IMetadataWriteStrategy {
+export function createFileWriteStrategy(): IMetadataWriteStrategy {
+  const store = getMetadataStore() as FileSystemMetadataStore;
   return new FileWriteStrategy(store);
 }

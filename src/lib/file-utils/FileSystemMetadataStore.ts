@@ -4,16 +4,29 @@ import { TagLibMetadataWriter } from "../taglib-metadata-utils";
 import type { SongCallback } from "../metadata-utils/IMetadataStore";
 
 export class FileSystemMetadataStore implements IMetadataStore {
-  root: FileSystemDirectoryHandle | null = null;
+  private root: FileSystemDirectoryHandle | null = null;
   private fileHandles = new Map<string, FileSystemFileHandle>();
-  private songs = new Map<string, Song>();
+  private backingStore?: IMetadataStore;
 
   private songAddedListeners = new Set<SongCallback>();
   private songUpdatedListeners = new Set<SongCallback>();
   private songDeletedListeners = new Set<SongCallback>();
 
-  constructor(root?: FileSystemDirectoryHandle) {
-    if (root) this.root = root;
+  constructor(root?: FileSystemDirectoryHandle, backingStore?: IMetadataStore) {
+    if (root) this.setRootDirectory(root);
+    if (backingStore) this.setBackingStore(backingStore);
+  }
+
+  setBackingStore(backingStore: IMetadataStore) {
+    this.backingStore = backingStore;
+
+    this.backingStore?.onSongAdded((song) => this.emitSongAdded(song));
+    this.backingStore?.onSongUpdated((song) => this.emitSongUpdated(song));
+    this.backingStore?.onSongDeleted((song) => this.emitSongDeleted(song));
+  }
+
+  setRootDirectory(rootDirectory: FileSystemDirectoryHandle) {
+    this.root = rootDirectory;
   }
 
   setFileHandle(id: string, handle: FileSystemFileHandle): void {
@@ -53,12 +66,12 @@ export class FileSystemMetadataStore implements IMetadataStore {
 
   async saveSong(id: string, song: Song): Promise<Song> {
     let existingFileHandle = this.getFileHandle(id);
-    const existingSong = this.songs.get(id);
+    const existingSong = await this.backingStore?.getSong(id);
 
     if (!existingFileHandle && existingSong && this.root) {
       try {
         const parts = existingSong.relativePath.split("/").filter(Boolean);
-        let dir: FileSystemDirectoryHandle = this.root;
+        let dir = this.root;
 
         for (let i = 0; i < parts.length - 1; i++) {
           dir = await dir.getDirectoryHandle(parts[i]);
@@ -69,10 +82,7 @@ export class FileSystemMetadataStore implements IMetadataStore {
         this.setFileHandle(id, fileHandle);
         existingFileHandle = fileHandle;
       } catch (err) {
-        console.error(
-          "Failed to reconstruct file handle from relativePath:",
-          err
-        );
+        console.error("Failed to reconstruct file handle:", err);
       }
     }
 
@@ -89,32 +99,24 @@ export class FileSystemMetadataStore implements IMetadataStore {
       await writable.close();
     }
 
-    this.songs.set(id, song);
-
-    if (isNew) {
-      this.emitSongAdded(song);
-    } else {
-      this.emitSongUpdated(song);
-    }
+    this.backingStore?.saveSong(id, song);
 
     return song;
   }
 
-  async getSong(id: string): Promise<Song> {
-    return this.songs.get(id)!;
+  async getSong(id: string): Promise<Song | null> {
+    return (await this.backingStore?.getSong(id)) ?? null;
   }
 
   async getAllSongs(): Promise<Song[]> {
-    return [...this.songs.values()];
+    return (await this.backingStore?.getAllSongs()) ?? [];
   }
 
   async deleteSong(id: string): Promise<void> {
-    const song = this.songs.get(id);
+    const song = await this.backingStore?.getSong(id);
     if (!song) return;
 
-    this.emitSongDeleted(song);
-
     this.fileHandles.delete(id);
-    this.songs.delete(id);
+    await this.backingStore?.deleteSong(id);
   }
 }

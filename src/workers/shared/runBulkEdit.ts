@@ -1,5 +1,4 @@
-import { applySongEdits } from "@/lib";
-import { initFileSystemMetadataStore } from "@/lib/file-utils";
+import { applySongEdits, setStoreRootDirectory } from "@/lib";
 import { loadSongMetadata } from "@/lib/loadSongMetadata";
 import type { ITagData } from "@/lib/metadata-utils";
 import type { Song } from "@/models/Song";
@@ -13,7 +12,7 @@ export async function runBulkEdit(
   reportProgress: (p: any) => void
 ) {
   const { directoryHandle, songIds, edits } = payload;
-  await initFileSystemMetadataStore(directoryHandle);
+  setStoreRootDirectory(directoryHandle);
 
   let processed = 0;
   const results: Song[] = [];

@@ -1,25 +1,24 @@
+import "./HomePage.css";
 import React, { useEffect, useState } from "react";
-import type { Song } from "@/models/Song";
-import { SongTable, Progress } from "@/components";
-import { applySongEdits, readSongFile } from "@/lib";
-import { backgroundService, eventBus } from "@/lib/background-jobs";
-import {
-  FileSystemMetadataStore,
-  getMetadataStore,
-  initFileSystemMetadataStore,
-} from "@/lib/file-utils";
-import { uuidv7 } from "uuidv7";
-import { useSongs } from "@/providers";
+import { isValidAudioFile } from "taglib-wasm";
 import useFileSystemAccess from "use-fs-access";
 import {
   type FileOrDirectoryInfo,
   isApiSupported,
   showDirectoryPicker,
 } from "use-fs-access/core";
-
-import "./HomePage.css";
+import { uuidv7 } from "uuidv7";
+import type { Song } from "@/models/Song";
+import { SongTable, Progress } from "@/components";
+import {
+  applySongEdits,
+  getMetadataStore,
+  readSongFile,
+  setStoreRootDirectory,
+} from "@/lib";
+import { backgroundService, eventBus } from "@/lib/background-jobs";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
-import { isValidAudioFile } from "taglib-wasm";
+import { useSongs } from "@/providers";
 
 export function HomePage() {
   const { songs } = useSongs();
@@ -224,16 +223,14 @@ export function HomePage() {
   async function handleSubmit(
     event: React.SubmitEvent<HTMLFormElement>
   ): Promise<void> {
-    const fileStore = getMetadataStore() as FileSystemMetadataStore;
     event.preventDefault();
 
     if (!directoryHandle) return;
 
     setStatus("Starting import...");
 
-    fileStore.root = directoryHandle;
-
-    await openDirectory(fileStore.root);
+    await openDirectory(directoryHandle);
+    setStoreRootDirectory(directoryHandle);
 
     backgroundService.enqueue({
       id: uuidv7(),

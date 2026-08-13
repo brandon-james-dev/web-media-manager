@@ -1,7 +1,5 @@
 import type { Song } from "@/models/Song";
-import { createFileWriteStrategy } from "./file-utils/createFileWriteStrategy";
-import { getMetadataStore as getDirectoryMetadataStore } from "./file-utils/initMetadataStore";
-import { createCombinedWriteStrategy } from "./createCombinedWriteStrategy";
+import { createFileWriteStrategy } from "./file-utils";
 
 export async function applySongEdits(
   song: Song,
@@ -34,9 +32,7 @@ export async function applySongEdits(
     });
   }
 
-  const store = getDirectoryMetadataStore();
-  const fileWriteStrategy = createFileWriteStrategy(store);
-  const writeStrategy = createCombinedWriteStrategy(fileWriteStrategy);
+  const writeStrategy = createFileWriteStrategy();
 
   writeStrategy.write(song.id, updatedSong);
 

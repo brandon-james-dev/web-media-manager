@@ -21,6 +21,7 @@ export async function* readSongFiles(
       id: handle.name,
       filename: handle.name,
       relativePath: handle.name,
+      directoryId: 0,
       filesize: size,
       coverFront: metadata?.coverFront,
       coverBack: metadata?.coverBack,

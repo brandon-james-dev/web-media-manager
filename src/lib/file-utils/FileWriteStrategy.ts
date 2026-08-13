@@ -1,12 +1,12 @@
-import type { IMetadataStore } from "../metadata-utils/IMetadataStore";
 import type { IMetadataWriteStrategy } from "../metadata-utils/IMetadataWriteStrategy";
 import type { ITagData } from "../metadata-utils/ITagData";
 import type { Song } from "@/models/Song";
+import type { FileSystemMetadataStore } from "./FileSystemMetadataStore";
 
 export class FileWriteStrategy implements IMetadataWriteStrategy {
-  private store: IMetadataStore;
+  private store: FileSystemMetadataStore;
 
-  constructor(store: IMetadataStore) {
+  constructor(store: FileSystemMetadataStore) {
     this.store = store;
   }
 
