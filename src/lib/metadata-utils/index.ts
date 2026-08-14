@@ -6,14 +6,16 @@ import type { IMetadataWriteStrategy } from "./IMetadataWriteStrategy";
 import type { IMetadataReader } from "./IMetadataReader";
 import type { IPicture } from "./IPicture";
 import type { ITagData } from "./ITagData";
+import { MemoryMetadataStore } from "./MemoryMetadataStore";
 
-export type {
-  IAudioProperties,
-  IMetadata,
-  IMetadataReader,
-  IMetadataStore,
-  IMetadataWriter,
-  IMetadataWriteStrategy,
-  IPicture,
-  ITagData,
+export {
+  type IAudioProperties,
+  type IMetadata,
+  type IMetadataReader,
+  type IMetadataStore,
+  type IMetadataWriter,
+  type IMetadataWriteStrategy,
+  type IPicture,
+  type ITagData,
+  MemoryMetadataStore,
 };

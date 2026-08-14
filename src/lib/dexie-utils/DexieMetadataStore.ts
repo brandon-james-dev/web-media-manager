@@ -52,7 +52,7 @@ export class DexieMetadataStore implements IMetadataStore {
   async saveSong(id: string, updated: Song): Promise<Song> {
     const existing = await this.db.songs.get(id);
 
-    await this.db.songs.put(updated);
+    await this.db.songs.put(updated, id);
 
     if (existing) {
       this.emitSongUpdated(updated);

@@ -3,61 +3,61 @@ import { FileSystemMetadataStore } from "./file-utils";
 import type { IMetadataStore } from "./metadata-utils";
 import type { SongCallback } from "./metadata-utils/IMetadataStore";
 import type { DexieMetadataStore } from "./dexie-utils";
-import { MemoryMetadataStore } from "./metadata-utils/MemoryMetadataStore";
 
+/**
+ * This store uses both the file system and Dexie. It resolves retrieval and delete to Dexie, but
+ * saves to both the file system and Dexie.
+ */
 export class CombinedMetadataStore implements IMetadataStore {
-  private backend: FileSystemMetadataStore;
+  private fsStore: FileSystemMetadataStore;
+  private dexieStore: DexieMetadataStore;
 
   constructor(
     fsStore: FileSystemMetadataStore,
-    dexieStore?: DexieMetadataStore
+    dexieStore: DexieMetadataStore
   ) {
-    this.backend = fsStore;
-
-    if (dexieStore) {
-      fsStore.setBackingStore(dexieStore);
-    } else {
-      fsStore.setBackingStore(new MemoryMetadataStore());
-    }
+    this.fsStore = fsStore;
+    this.dexieStore = dexieStore;
   }
 
   getFileSystem(): FileSystemMetadataStore {
-    return this.backend;
+    return this.fsStore;
+  }
+
+  getDexieStore(): DexieMetadataStore {
+    return this.dexieStore;
   }
 
   setRootDirectory(rootDirectory: FileSystemDirectoryHandle) {
-    this.backend.setRootDirectory(rootDirectory);
-  }
-
-  setBackingStore(backingStore: IMetadataStore) {
-    this.backend.setBackingStore(backingStore);
+    this.fsStore.setRootDirectory(rootDirectory);
   }
 
   getSong(id: string): Promise<Song | null> {
-    return this.backend.getSong(id);
+    return this.dexieStore.getSong(id);
   }
 
-  saveSong(id: string, updated: Song): Promise<Song> {
-    return this.backend.saveSong(id, updated);
+  async saveSong(id: string, updated: Song): Promise<Song> {
+    await this.fsStore.saveSong(id, updated);
+    return await this.dexieStore.saveSong(id, updated);
   }
 
   deleteSong(id: string): Promise<void> {
-    return this.backend.deleteSong(id);
+    return this.dexieStore.deleteSong(id);
   }
 
   getAllSongs(): Promise<Song[]> {
-    return this.backend.getAllSongs();
+    return this.dexieStore.getAllSongs();
   }
 
   onSongAdded(cb: SongCallback): () => void {
-    return this.backend.onSongAdded(cb);
+    return this.dexieStore.onSongAdded(cb);
   }
 
   onSongUpdated(cb: SongCallback): () => void {
-    return this.backend.onSongUpdated(cb);
+    return this.dexieStore.onSongUpdated(cb);
   }
 
   onSongDeleted(cb: SongCallback): () => void {
-    return this.backend.onSongDeleted(cb);
+    return this.dexieStore.onSongDeleted(cb);
   }
 }

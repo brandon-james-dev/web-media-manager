@@ -1,4 +1,4 @@
-import { setStoreRootDirectory } from "@/lib/initMetadataStore";
+import { persistStoreRootDirectory } from "@/lib/initMetadataStore";
 import { getMetadataStore } from "@/lib/file-utils";
 import { applySongEdits } from "@/lib/applySongEdits";
 import { createCombinedWriteStrategy } from "./createCombinedWriteStrategy";
@@ -15,7 +15,7 @@ export {
   importSongs,
   initMetadataStore,
   getMetadataStore,
-  setStoreRootDirectory,
+  persistStoreRootDirectory,
   lookupMetadataOnline,
   readSongFiles,
   readSongFile,

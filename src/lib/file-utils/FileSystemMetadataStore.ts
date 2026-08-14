@@ -12,12 +12,15 @@ export class FileSystemMetadataStore implements IMetadataStore {
   private songUpdatedListeners = new Set<SongCallback>();
   private songDeletedListeners = new Set<SongCallback>();
 
-  constructor(root?: FileSystemDirectoryHandle, backingStore?: IMetadataStore) {
+  constructor(root?: FileSystemDirectoryHandle) {
     if (root) this.setRootDirectory(root);
-    if (backingStore) this.setBackingStore(backingStore);
   }
 
-  setBackingStore(backingStore: IMetadataStore) {
+  /**
+   * Sets a store that is used so that every file action is accompanied with an reference.
+   * @param backingStore Optional backing store to use when not using persistence
+   */
+  setBackingStore(backingStore: IMetadataStore | undefined) {
     this.backingStore = backingStore;
 
     this.backingStore?.onSongAdded((song) => this.emitSongAdded(song));
@@ -98,8 +101,6 @@ export class FileSystemMetadataStore implements IMetadataStore {
       await writable.write(updatedBytes.slice().buffer);
       await writable.close();
     }
-
-    this.backingStore?.saveSong(id, song);
 
     return song;
   }

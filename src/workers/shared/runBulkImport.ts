@@ -3,6 +3,7 @@ import type { WorkerProgress } from "../WorkerJob";
 import { readSongFile } from "@/lib";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { collectFileHandles } from "@/lib/file-utils";
+import { getDirectoryIdForHandle } from "@/lib/dexie-utils";
 
 /**
  * Worker bulk import job — receives a directory handle,
@@ -16,6 +17,7 @@ export async function runBulkImport(
   reportProgress: (progress: WorkerProgress) => void
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
   const { directoryHandle } = payload;
+  const directoryId = await getDirectoryIdForHandle(directoryHandle);
 
   const reader = new TagLibMetadataReader();
   const songs: Song[] = [];
@@ -38,7 +40,7 @@ export async function runBulkImport(
       filename: handle.name,
       filesize: metadata?.filesize ?? 0,
       relativePath,
-      directoryId: 0,
+      directoryId,
     };
 
     songs.push(song);

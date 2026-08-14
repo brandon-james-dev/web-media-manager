@@ -1,27 +1,15 @@
 import "./HomePage.css";
 import React, { useEffect, useState } from "react";
-import { isValidAudioFile } from "taglib-wasm";
-import useFileSystemAccess from "use-fs-access";
-import {
-  type FileOrDirectoryInfo,
-  isApiSupported,
-  showDirectoryPicker,
-} from "use-fs-access/core";
+import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
-import {
-  applySongEdits,
-  getMetadataStore,
-  readSongFile,
-  setStoreRootDirectory,
-} from "@/lib";
+import { applySongEdits, persistStoreRootDirectory } from "@/lib";
 import { backgroundService, eventBus } from "@/lib/background-jobs";
-import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { useSongs } from "@/providers";
 
 export function HomePage() {
-  const { songs } = useSongs();
+  const { songs, setRootDirectory } = useSongs();
   const [status, setStatus] = useState<string>("");
   const [directoryHandle, setDirectoryHandle] =
     useState<FileSystemDirectoryHandle | null>(null);
@@ -31,78 +19,6 @@ export function HomePage() {
 
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Set<string>>(new Set());
-
-  const addedDebounce = new Map<string, number>();
-  const deletedDebounce = new Map<string, number>();
-  const modifiedDebounce = new Map<string, number>();
-
-  function shouldProcess(
-    map: Map<string, number>,
-    key: string,
-    windowMs = 300
-  ) {
-    const now = Date.now();
-    const last = map.get(key);
-
-    if (last && now - last < windowMs) {
-      return false; // duplicate
-    }
-
-    map.set(key, now);
-    return true;
-  }
-
-  async function handleAdded(entries: Map<string, FileOrDirectoryInfo>) {
-    const store = getMetadataStore();
-
-    for (const [name, info] of entries) {
-      if (!shouldProcess(addedDebounce, name)) continue;
-
-      if (info.handle.kind != "file") return;
-
-      const handle = info.handle as FileSystemFileHandle;
-
-      if (!(await isValidAudioFile(await handle.getFile()))) return;
-
-      const processedSong = await readSongFile(
-        handle,
-        new TagLibMetadataReader()
-      );
-
-      if (!processedSong) return;
-
-      await store.saveSong(name, processedSong);
-    }
-  }
-
-  async function handleDeleted(entries: Map<string, FileOrDirectoryInfo>) {
-    const store = getMetadataStore();
-    for (const [name] of entries) {
-      if (!shouldProcess(deletedDebounce, name)) continue;
-
-      await store.deleteSong(name);
-    }
-  }
-
-  function handleModified(entries: Map<string, FileOrDirectoryInfo>) {
-    for (const [name, info] of entries) {
-      if (!shouldProcess(modifiedDebounce, name)) continue;
-
-      // Process modified file
-      console.log("Modified:", name, info);
-    }
-  }
-
-  const { openDirectory } = useFileSystemAccess({
-    enableFileWatcher: true,
-    fileWatcherOptions: {
-      debug: false,
-      pollInterval: 250,
-    },
-    onFilesAdded: handleAdded,
-    onFilesDeleted: handleDeleted,
-    onFilesModified: handleModified,
-  });
 
   function handleToggleBatch(song: Song) {
     setSelectedBatch((prev) => {
@@ -229,8 +145,8 @@ export function HomePage() {
 
     setStatus("Starting import...");
 
-    await openDirectory(directoryHandle);
-    setStoreRootDirectory(directoryHandle);
+    persistStoreRootDirectory(directoryHandle);
+    setRootDirectory(directoryHandle);
 
     backgroundService.enqueue({
       id: uuidv7(),

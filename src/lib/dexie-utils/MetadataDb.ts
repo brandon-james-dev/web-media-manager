@@ -13,10 +13,15 @@ export class MetadataDb extends Dexie {
       directories: `
         ++id,
         directoryName,
-        directoryHandle,
         createdAt
       `,
-      songs: "id, filename, relativePath",
+      songs: `
+        id,
+        title,
+        album,
+        artist,
+        genre,
+        year`,
     });
   }
 }

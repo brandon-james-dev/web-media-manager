@@ -1,5 +1,7 @@
 import type { Song } from "@/models/Song";
 import { createFileWriteStrategy } from "./file-utils";
+import { createCombinedWriteStrategy } from ".";
+import { createDexieWriteStrategy } from "./dexie-utils";
 
 export async function applySongEdits(
   song: Song,
@@ -32,7 +34,10 @@ export async function applySongEdits(
     });
   }
 
-  const writeStrategy = createFileWriteStrategy();
+  const writeStrategy = createCombinedWriteStrategy(
+    createFileWriteStrategy(),
+    createDexieWriteStrategy()
+  );
 
   writeStrategy.write(song.id, updatedSong);
 

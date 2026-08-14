@@ -4,7 +4,7 @@
 
     /* Modern target for TS7 + Vite */
     "target": "ESNext",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023", "DOM", "dom.iterable", "webworker"],
 
     "module": "ESNext",
     "types": ["vite/client"],

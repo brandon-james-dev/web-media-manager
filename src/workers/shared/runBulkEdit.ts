@@ -1,4 +1,8 @@
-import { applySongEdits, setStoreRootDirectory } from "@/lib";
+import {
+  applySongEdits,
+  initMetadataStore,
+  persistStoreRootDirectory,
+} from "@/lib";
 import { loadSongMetadata } from "@/lib/loadSongMetadata";
 import type { ITagData } from "@/lib/metadata-utils";
 import type { Song } from "@/models/Song";
@@ -12,8 +16,10 @@ export async function runBulkEdit(
   reportProgress: (p: any) => void
 ) {
   const { directoryHandle, songIds, edits } = payload;
-  setStoreRootDirectory(directoryHandle);
+  initMetadataStore();
+  persistStoreRootDirectory(directoryHandle);
 
+  const total = songIds.length;
   let processed = 0;
   const results: Song[] = [];
 
@@ -37,7 +43,7 @@ export async function runBulkEdit(
 
     reportProgress({
       processed,
-      total: songIds.length,
+      total,
       id,
     });
   }

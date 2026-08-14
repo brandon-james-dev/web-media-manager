@@ -28,3 +28,38 @@ interface DirectoryPickerOptions {
   mode?: "read" | "readwrite";
   startIn?: FileSystemHandle;
 }
+
+interface FileSystemHandle {
+  queryPermission(
+    options?: FileSystemPermissionDescriptor
+  ): Promise<PermissionState>;
+  requestPermission(
+    options?: FileSystemPermissionDescriptor
+  ): Promise<PermissionState>;
+}
+
+interface FileSystemPermissionDescriptor {
+  mode?: "read" | "readwrite";
+}
+
+interface FileSystemDirectoryHandle extends FileSystemHandle {
+  getDirectoryHandle(
+    name: string,
+    options?: { create?: boolean }
+  ): Promise<FileSystemDirectoryHandle>;
+  getFileHandle(
+    name: string,
+    options?: { create?: boolean }
+  ): Promise<FileSystemFileHandle>;
+}
+
+interface FileSystemFileHandle extends FileSystemHandle {
+  createWritable(options?: {
+    keepExistingData?: boolean;
+  }): Promise<FileSystemWritableFileStream>;
+}
+
+interface FileSystemWritableFileStream extends WritableStream {
+  write(data: BufferSource | Blob | string): Promise<void>;
+  close(): Promise<void>;
+}

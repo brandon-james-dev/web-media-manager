@@ -3,11 +3,82 @@ import { getMetadataStore } from "@/lib/file-utils";
 import { backgroundService } from "@/lib/background-jobs";
 import type { Song } from "@/models/Song";
 import { SongContext } from "./useSongs";
+import { readSongFile } from "@/lib";
+import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
+import { isValidAudioFile } from "taglib-wasm";
+import useFileSystemAccess from "use-fs-access";
+import type { FileOrDirectoryInfo } from "use-fs-access/core";
+import { getPersistedRootDirectory } from "@/lib/dexie-utils";
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
   const [songs, setSongs] = useState<Song[]>([]);
   const lastProgressTime = useRef<number>(Date.now());
   const refreshTimeout = useRef<number | null>(null);
+
+  //#region Directory Watcher
+  const persistedRootDirectory = useRef<FileSystemDirectoryHandle | null>(null);
+  const hasRestoredDirectory = useRef(false);
+
+  const addedDebounce = new Map<string, number>();
+  const deletedDebounce = new Map<string, number>();
+  const modifiedDebounce = new Map<string, number>();
+
+  function shouldProcess(
+    map: Map<string, number>,
+    key: string,
+    windowMs = 300
+  ) {
+    const now = Date.now();
+    const last = map.get(key);
+
+    if (last && now - last < windowMs) {
+      return false; // duplicate
+    }
+
+    map.set(key, now);
+    return true;
+  }
+
+  async function handleAdded(entries: Map<string, FileOrDirectoryInfo>) {
+    const store = getMetadataStore();
+
+    for (const [name, info] of entries) {
+      if (!shouldProcess(addedDebounce, name)) continue;
+
+      if (info.handle.kind != "file") return;
+
+      const handle = info.handle as FileSystemFileHandle;
+
+      if (!(await isValidAudioFile(await handle.getFile()))) return;
+
+      const processedSong = await readSongFile(
+        handle,
+        new TagLibMetadataReader()
+      );
+
+      if (!processedSong) return;
+
+      await store.saveSong(name, processedSong);
+    }
+  }
+
+  async function handleDeleted(entries: Map<string, FileOrDirectoryInfo>) {
+    const store = getMetadataStore();
+    for (const [name] of entries) {
+      if (!shouldProcess(deletedDebounce, name)) continue;
+
+      await store.deleteSong(name);
+    }
+  }
+
+  function handleModified(entries: Map<string, FileOrDirectoryInfo>) {
+    for (const [name, info] of entries) {
+      if (!shouldProcess(modifiedDebounce, name)) continue;
+
+      // Process modified file
+      console.log("Modified:", name, info);
+    }
+  }
 
   const scheduleRefresh = () => {
     const now = Date.now();
@@ -24,6 +95,40 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
       refreshSongs();
     }, delay);
   };
+
+  const { openDirectory } = useFileSystemAccess({
+    enableFileWatcher: true,
+    fileWatcherOptions: {
+      debug: false,
+      pollInterval: 250,
+    },
+    onFilesAdded: handleAdded,
+    onFilesDeleted: handleDeleted,
+    onFilesModified: handleModified,
+  });
+
+  // Set up directory event watchers
+  useEffect(() => {
+    (async () => {
+      const rootDirectory = await getPersistedRootDirectory();
+      if (rootDirectory) {
+        persistedRootDirectory.current = rootDirectory.directoryHandle;
+      }
+    })();
+
+    if (!persistedRootDirectory.current) return;
+
+    if (!hasRestoredDirectory.current) {
+      hasRestoredDirectory.current = true;
+      openDirectory(persistedRootDirectory.current);
+    }
+  }, [openDirectory, hasRestoredDirectory, persistedRootDirectory]);
+
+  const setRootDirectory = (directoryHandle: FileSystemDirectoryHandle) => {
+    openDirectory(directoryHandle);
+  };
+
+  //#endregion
 
   const refreshSongs = async () => {
     const store = getMetadataStore();
@@ -84,7 +189,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <SongContext.Provider value={{ songs, refreshSongs }}>
+    <SongContext.Provider value={{ songs, refreshSongs, setRootDirectory }}>
       {children}
     </SongContext.Provider>
   );
