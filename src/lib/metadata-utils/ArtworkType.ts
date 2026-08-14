@@ -1,0 +1,25 @@
+export const ArtworkType = {
+  Other: "Other",
+  FileIcon: "FileIcon",
+  OtherFileIcon: "OtherFileIcon",
+  FrontCover: "FrontCover",
+  BackCover: "BackCover",
+  LeafletPage: "LeafletPage",
+  Media: "Media",
+  LeadArtist: "LeadArtist",
+  Artist: "Artist",
+  Conductor: "Conductor",
+  Band: "Band",
+  Composer: "Composer",
+  Lyricist: "Lyricist",
+  RecordingLocation: "RecordingLocation",
+  DuringRecording: "DuringRecording",
+  DuringPerformance: "DuringPerformance",
+  MovieScreenCapture: "MovieScreenCapture",
+  ColouredFish: "ColouredFish",
+  Illustration: "Illustration",
+  BandLogo: "BandLogo",
+  PublisherLogo: "PublisherLogo",
+} as const;
+
+export type ArtworkType = (typeof ArtworkType)[keyof typeof ArtworkType];

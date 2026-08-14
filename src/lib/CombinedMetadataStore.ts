@@ -12,12 +12,38 @@ export class CombinedMetadataStore implements IMetadataStore {
   private fsStore: FileSystemMetadataStore;
   private dexieStore: DexieMetadataStore;
 
+  private songAddedListeners = new Set<SongCallback>();
+  private songUpdatedListeners = new Set<SongCallback>();
+  private songDeletedListeners = new Set<SongCallback>();
+  private storeClearedListeners = new Set<() => void>();
+
   constructor(
     fsStore: FileSystemMetadataStore,
     dexieStore: DexieMetadataStore
   ) {
     this.fsStore = fsStore;
     this.dexieStore = dexieStore;
+
+    this.dexieStore.onSongAdded((song) => this.emitSongAdded(song));
+    this.dexieStore.onSongUpdated((song) => this.emitSongUpdated(song));
+    this.dexieStore.onSongDeleted((song) => this.emitSongDeleted(song));
+    this.dexieStore.onStoreCleared(() => this.emitStoreCleared());
+  }
+
+  private emitSongAdded(song: Song) {
+    for (const cb of this.songAddedListeners) cb(song);
+  }
+
+  private emitSongUpdated(song: Song) {
+    for (const cb of this.songUpdatedListeners) cb(song);
+  }
+
+  private emitSongDeleted(song: Song) {
+    for (const cb of this.songDeletedListeners) cb(song);
+  }
+
+  private emitStoreCleared() {
+    for (const cb of this.storeClearedListeners) cb();
   }
 
   getFileSystem(): FileSystemMetadataStore {
@@ -59,5 +85,13 @@ export class CombinedMetadataStore implements IMetadataStore {
 
   onSongDeleted(cb: SongCallback): () => void {
     return this.dexieStore.onSongDeleted(cb);
+  }
+
+  onStoreCleared(cb: () => void): () => void {
+    return this.dexieStore.onStoreCleared(cb);
+  }
+
+  clearStore(): Promise<void> {
+    return this.dexieStore.clearStore();
   }
 }

@@ -1,3 +1,4 @@
+import { backgroundService } from "@/lib/background-jobs";
 import type { WorkerJob, IWorkerAdapter } from ".";
 import WorkerFile from "./metadata.worker.ts?worker";
 
@@ -14,6 +15,10 @@ export class BrowserWorkerAdapter implements IWorkerAdapter {
     return new Promise((resolve, reject) => {
       this.worker.onmessage = (event) => {
         const msg = event.data;
+
+        if (msg.type == "enqueueJob") {
+          backgroundService.enqueue(msg.job);
+        }
 
         if (msg.type === "progress") {
           onProgress(msg);

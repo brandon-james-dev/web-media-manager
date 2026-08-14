@@ -1,4 +1,4 @@
-import type { IPicture } from "../metadata-utils";
+import { ArtworkType, type IPicture } from "../metadata-utils";
 import type { IOnlineMetadata } from "../online-metadata-utils/IOnlineMetadata";
 import type { IOnlineMetadataService } from "../online-metadata-utils/IOnlineMetadataService";
 import { MetadataProvider } from "../online-metadata-utils/MetadataProvider";
@@ -33,7 +33,7 @@ export class MusicBrainzMetadataService implements IOnlineMetadataService {
             pictures.push({
               data: bytes,
               mimeType: "image/jpeg",
-              type: "FrontCover",
+              type: ArtworkType.FrontCover,
               description: "Front Cover",
             });
           }

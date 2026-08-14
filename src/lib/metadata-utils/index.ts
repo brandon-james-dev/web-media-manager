@@ -1,3 +1,4 @@
+import { ArtworkType } from "./ArtworkType";
 import type { IMetadataStore } from "./IMetadataStore";
 import type { IAudioProperties } from "./IAudioProperties";
 import type { IMetadata } from "./IMetadata";
@@ -9,6 +10,7 @@ import type { ITagData } from "./ITagData";
 import { MemoryMetadataStore } from "./MemoryMetadataStore";
 
 export {
+  ArtworkType,
   type IAudioProperties,
   type IMetadata,
   type IMetadataReader,

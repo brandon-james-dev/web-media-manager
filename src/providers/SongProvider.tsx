@@ -160,10 +160,17 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
       scheduleRefresh();
     });
 
+    const unsubStoreCleared = store.onStoreCleared(() => {
+      setSongs(() => []);
+
+      scheduleRefresh();
+    });
+
     return () => {
       unsubAdd();
       unsubUpdate();
       unsubDelete();
+      unsubStoreCleared();
     };
   }, []);
 
@@ -172,9 +179,11 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     return backgroundService.onJobProgress(async (event) => {
       if (event.jobType === "bulkImport") {
         const newSong = event.payload.data;
-        await store.saveSong(newSong.id, newSong);
 
-        scheduleRefresh();
+        if (newSong) {
+          await store.saveSong(newSong.id, newSong);
+          scheduleRefresh();
+        }
       }
 
       if (event.jobType === "bulkEdit") {

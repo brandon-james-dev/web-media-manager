@@ -4,6 +4,8 @@ import { readSongFile } from "@/lib";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { collectFileHandles } from "@/lib/file-utils";
 import { getDirectoryIdForHandle } from "@/lib/dexie-utils";
+import { uuidv7 } from "uuidv7";
+import type { BackgroundJob } from "@/lib/background-jobs";
 
 /**
  * Worker bulk import job — receives a directory handle,
@@ -44,6 +46,22 @@ export async function runBulkImport(
     };
 
     songs.push(song);
+
+    reportProgress({
+      label: `Queueing artwork for ${song.id}`,
+    });
+
+    self.postMessage({
+      type: "enqueueJob",
+      job: {
+        id: uuidv7(),
+        state: "pending",
+        type: "artworkProcess",
+        payload: {
+          song,
+        },
+      } as BackgroundJob,
+    });
 
     reportProgress({
       index,

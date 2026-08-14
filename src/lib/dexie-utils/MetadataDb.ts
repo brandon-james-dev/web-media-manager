@@ -1,14 +1,16 @@
 import Dexie, { type Table } from "dexie";
-import type { Directory, Song } from "@/models/";
+import type { Directory, Song, SongArtwork } from "@/models/";
 
 let db: MetadataDb | null = null;
 
 export class MetadataDb extends Dexie {
   directories!: Table<Directory, number>;
   songs!: Table<Song, string>;
+  songArtwork!: Table<SongArtwork, string>;
 
   constructor() {
     super("metadata");
+
     this.version(1).stores({
       directories: `
         ++id,
@@ -21,7 +23,13 @@ export class MetadataDb extends Dexie {
         album,
         artist,
         genre,
-        year`,
+        year
+      `,
+      songArtwork: `
+        ++id,
+        songId,
+        artworkType
+      `,
     });
   }
 }

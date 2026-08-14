@@ -11,6 +11,7 @@ export class FileSystemMetadataStore implements IMetadataStore {
   private songAddedListeners = new Set<SongCallback>();
   private songUpdatedListeners = new Set<SongCallback>();
   private songDeletedListeners = new Set<SongCallback>();
+  private storeClearedListeners = new Set<() => void>();
 
   constructor(root?: FileSystemDirectoryHandle) {
     if (root) this.setRootDirectory(root);
@@ -26,6 +27,7 @@ export class FileSystemMetadataStore implements IMetadataStore {
     this.backingStore?.onSongAdded((song) => this.emitSongAdded(song));
     this.backingStore?.onSongUpdated((song) => this.emitSongUpdated(song));
     this.backingStore?.onSongDeleted((song) => this.emitSongDeleted(song));
+    this.backingStore?.onStoreCleared(() => this.emitStoreCleared());
   }
 
   setRootDirectory(rootDirectory: FileSystemDirectoryHandle) {
@@ -55,6 +57,11 @@ export class FileSystemMetadataStore implements IMetadataStore {
     return () => this.songDeletedListeners.delete(cb);
   }
 
+  onStoreCleared(cb: () => void): () => void {
+    this.storeClearedListeners.add(cb);
+    return () => this.storeClearedListeners.delete(cb);
+  }
+
   private emitSongAdded(song: Song) {
     for (const cb of this.songAddedListeners) cb(song);
   }
@@ -67,6 +74,16 @@ export class FileSystemMetadataStore implements IMetadataStore {
     for (const cb of this.songDeletedListeners) cb(song);
   }
 
+  private emitStoreCleared() {
+    for (const cb of this.storeClearedListeners) cb();
+  }
+
+  /**
+   * Write the song to the file system only if it was loaded before
+   * @param id The song id
+   * @param song The song data
+   * @returns The saved song
+   */
   async saveSong(id: string, song: Song): Promise<Song> {
     let existingFileHandle = this.getFileHandle(id);
     const existingSong = await this.backingStore?.getSong(id);
@@ -105,19 +122,43 @@ export class FileSystemMetadataStore implements IMetadataStore {
     return song;
   }
 
+  /**
+   * Rather than read through every file in the directory, just return backing store's entry
+   * @param id The song's id
+   * @returns A song from the store
+   */
   async getSong(id: string): Promise<Song | null> {
     return (await this.backingStore?.getSong(id)) ?? null;
   }
 
+  /**
+   * Rather than read through every file in the directory, just return backing store's list
+   * @param id The song's id
+   * @returns A song list from the store
+   */
   async getAllSongs(): Promise<Song[]> {
     return (await this.backingStore?.getAllSongs()) ?? [];
   }
 
+  /**
+   * Remove the file reference
+   * @param id The file's id
+   * @returns A promise
+   */
   async deleteSong(id: string): Promise<void> {
     const song = await this.backingStore?.getSong(id);
     if (!song) return;
 
     this.fileHandles.delete(id);
     await this.backingStore?.deleteSong(id);
+  }
+
+  /**
+   * Delete all references
+   * @returns A promise
+   */
+  clearStore(): Promise<void> {
+    this.fileHandles.clear();
+    return Promise.resolve();
   }
 }

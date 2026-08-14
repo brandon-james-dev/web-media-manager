@@ -1,3 +1,5 @@
+import { getPicturesForSongOfType, ThumbnailSize } from "@/lib";
+import { ArtworkType } from "@/lib/metadata-utils";
 import type { Song } from "@/models/Song";
 
 interface SongTableProps {
@@ -15,6 +17,37 @@ export function SongTable({
   onSelectSong,
   onToggleBatch,
 }: SongTableProps) {
+  const handleSelectedSong = async (song: Song) => {
+    const coverFrontData = (
+      await getPicturesForSongOfType(
+        song.id,
+        ArtworkType.FrontCover,
+        ThumbnailSize.thumb256
+      )
+    ).at(0)?.data;
+
+    let coverFront: Blob | undefined;
+
+    if (coverFrontData) {
+      coverFront = new Blob([coverFrontData.slice()]);
+    }
+    const coverBackData = (
+      await getPicturesForSongOfType(
+        song.id,
+        ArtworkType.BackCover,
+        ThumbnailSize.thumb256
+      )
+    ).at(0)?.data;
+
+    let coverBack: Blob | undefined;
+
+    if (coverBackData) {
+      coverBack = new Blob([coverBackData.slice()]);
+    }
+
+    onSelectSong?.({ ...song, coverFront, coverBack });
+  };
+
   return (
     <div className="song-table-container">
       <table className="song-table">
@@ -39,7 +72,7 @@ export function SongTable({
               <tr
                 key={song.id}
                 className={isSelected ? "selected-row" : ""}
-                onClick={() => onSelectSong?.(song)}
+                onClick={() => handleSelectedSong(song)}
               >
                 <td>
                   <input

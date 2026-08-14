@@ -6,34 +6,38 @@ let cancelled = false;
 self.onmessage = async (event: MessageEvent<any>) => {
   const msg = event.data;
 
-  // cancellation message
-  if (msg.type === "cancel") {
-    cancelled = true;
-    return;
-  }
+  if (msg as WorkerJob) {
+    // job message
+    const job: WorkerJob = msg;
 
-  // job message
-  const job: WorkerJob = msg;
+    // cancellation message
+    if (job.state === "canceled") {
+      cancelled = true;
+      return;
+    }
 
-  const handler = workerStrategies[job.type];
+    const handler = workerStrategies[job.type];
 
-  const result = await handler(
-    job.payload,
-    () => cancelled,
-    (progress) => {
+    if (Object.hasOwn(workerStrategies, job.type)) {
+      const result = await handler(
+        job.payload,
+        () => cancelled,
+        (progress) => {
+          self.postMessage({
+            id: job.id,
+            type: "progress",
+            jobType: job.type,
+            ...progress,
+          });
+        }
+      );
+
       self.postMessage({
         id: job.id,
-        type: "progress",
+        type: "complete",
         jobType: job.type,
-        ...progress,
+        result,
       });
     }
-  );
-
-  self.postMessage({
-    id: job.id,
-    type: "complete",
-    jobType: job.type,
-    result,
-  });
+  }
 };

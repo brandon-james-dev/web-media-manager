@@ -1,7 +1,9 @@
+import type { IPicture } from "./../metadata-utils/IPicture";
 import type { Song } from "@/models/Song";
-import type { IMetadataStore } from "../metadata-utils";
+import { ArtworkType, type IMetadataStore } from "../metadata-utils";
 import type { SongCallback } from "../metadata-utils/IMetadataStore";
 import type { MetadataDb } from "./MetadataDb";
+import type { SongArtwork } from "@/models/SongArtwork";
 
 export class DexieMetadataStore implements IMetadataStore {
   private db: MetadataDb;
@@ -9,9 +11,18 @@ export class DexieMetadataStore implements IMetadataStore {
   private songAddedListeners = new Set<SongCallback>();
   private songUpdatedListeners = new Set<SongCallback>();
   private songDeletedListeners = new Set<SongCallback>();
+  private storeClearedListeners = new Set<() => void>();
 
   constructor(db: MetadataDb) {
     this.db = db;
+  }
+
+  async clearStore(): Promise<void> {
+    for (const table of this.db.tables) {
+      await table.clear();
+    }
+    this.emitStoreCleared();
+    await this.db.songs.clear();
   }
 
   onSongAdded(cb: SongCallback) {
@@ -29,6 +40,11 @@ export class DexieMetadataStore implements IMetadataStore {
     return () => this.songDeletedListeners.delete(cb);
   }
 
+  onStoreCleared(cb: () => void): () => void {
+    this.storeClearedListeners.add(cb);
+    return () => this.storeClearedListeners.delete(cb);
+  }
+
   private emitSongAdded(song: Song) {
     for (const cb of this.songAddedListeners) cb(song);
   }
@@ -41,8 +57,29 @@ export class DexieMetadataStore implements IMetadataStore {
     for (const cb of this.songDeletedListeners) cb(song);
   }
 
+  private emitStoreCleared() {
+    for (const cb of this.storeClearedListeners) cb();
+  }
+
   async getSong(id: string): Promise<Song | null> {
-    return (await this.db.songs.get(id)) ?? null;
+    const song = await this.db.songs.get(id);
+    if (!song) return null;
+
+    const artwork = await this.db.songArtwork
+      .where("songId")
+      .equals(id)
+      .toArray();
+
+    const pictures: IPicture[] = [];
+
+    for (const item of artwork) {
+      const picture = await this.artworkToPicture(item);
+      pictures.push(picture);
+    }
+
+    song.pictures = pictures;
+
+    return song;
   }
 
   async getAllSongs(): Promise<Song[]> {
@@ -51,6 +88,11 @@ export class DexieMetadataStore implements IMetadataStore {
 
   async saveSong(id: string, updated: Song): Promise<Song> {
     const existing = await this.db.songs.get(id);
+
+    // Strip artwork fields before saving
+    updated.coverFront = undefined;
+    updated.coverBack = undefined;
+    updated.pictures = undefined;
 
     await this.db.songs.put(updated, id);
 
@@ -71,7 +113,12 @@ export class DexieMetadataStore implements IMetadataStore {
     this.emitSongDeleted(existing);
   }
 
-  async clearDb() {
-    await this.db.songs.clear();
+  private async artworkToPicture(art: SongArtwork): Promise<IPicture> {
+    return {
+      type: art.artworkType ?? ArtworkType.Other,
+      mimeType: "image/jpeg",
+      description: "",
+      data: new Uint8Array(await art.full!.arrayBuffer()),
+    };
   }
 }

@@ -1,6 +1,8 @@
+import type { ArtworkType } from "./ArtworkType";
+
 export interface IPicture {
   mimeType: string;
   data: Uint8Array;
-  type: string;
+  type: ArtworkType;
   description?: string;
 }
