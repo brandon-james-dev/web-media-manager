@@ -4,7 +4,10 @@ let instance: WorkerPool | null = null;
 
 export function getWorkerPool() {
   if (!instance) {
-    instance = new WorkerPool(() => new BrowserWorkerAdapter(), 4);
+    instance = new WorkerPool(
+      () => new BrowserWorkerAdapter(),
+      navigator.hardwareConcurrency
+    );
   }
   return instance;
 }

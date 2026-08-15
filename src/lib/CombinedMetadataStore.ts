@@ -1,8 +1,9 @@
 import type { Song } from "@/models/Song";
-import { FileSystemMetadataStore } from "./file-utils";
 import type { IMetadataStore } from "./metadata-utils";
 import type { DexieMetadataStore } from "./dexie-utils";
+import type { FileSystemMetadataStore } from "./file-utils";
 import type { DataChangedCallback } from "./store";
+import type { Directory } from "@/models";
 
 /**
  * This store uses both the file system and Dexie. It resolves retrieval and delete to Dexie, but
@@ -17,6 +18,11 @@ export class CombinedMetadataStore implements IMetadataStore {
   private songDeletedListeners = new Set<DataChangedCallback<Song>>();
   private storeClearedListeners = new Set<() => void>();
 
+  private dirAddedListeners = new Set<DataChangedCallback<Directory>>();
+  private dirUpdatedListeners = new Set<DataChangedCallback<Directory>>();
+  private dirDeletedListeners = new Set<DataChangedCallback<Directory>>();
+  private dirClearedListeners = new Set<() => void>();
+
   constructor(
     fsStore: FileSystemMetadataStore,
     dexieStore: DexieMetadataStore
@@ -28,51 +34,6 @@ export class CombinedMetadataStore implements IMetadataStore {
     this.dexieStore.onUpdated((song) => this.emitUpdated(song));
     this.dexieStore.onDeleted((song) => this.emitDeleted(song));
     this.dexieStore.onStoreCleared(() => this.emitStoreCleared());
-  }
-
-  private emitAdded(song: Song) {
-    for (const cb of this.songAddedListeners) cb(song);
-  }
-
-  private emitUpdated(song: Song) {
-    for (const cb of this.songUpdatedListeners) cb(song);
-  }
-
-  private emitDeleted(song: Song) {
-    for (const cb of this.songDeletedListeners) cb(song);
-  }
-
-  private emitStoreCleared() {
-    for (const cb of this.storeClearedListeners) cb();
-  }
-
-  getFileSystem(): FileSystemMetadataStore {
-    return this.fsStore;
-  }
-
-  getDexieStore(): DexieMetadataStore {
-    return this.dexieStore;
-  }
-
-  setRootDirectory(rootDirectory: FileSystemDirectoryHandle) {
-    this.fsStore.setRootDirectory(rootDirectory);
-  }
-
-  get(id: string): Promise<Song | null> {
-    return this.dexieStore.get(id);
-  }
-
-  async save(id: string, updated: Song): Promise<Song> {
-    await this.fsStore.save(id, updated);
-    return await this.dexieStore.save(id, updated);
-  }
-
-  delete(id: string): Promise<void> {
-    return this.dexieStore.delete(id);
-  }
-
-  getAll(): Promise<Song[]> {
-    return this.dexieStore.getAll();
   }
 
   onAdded(cb: DataChangedCallback<Song>): () => void {
@@ -91,7 +52,108 @@ export class CombinedMetadataStore implements IMetadataStore {
     return this.dexieStore.onStoreCleared(cb);
   }
 
-  clearStore(): Promise<void> {
-    return this.dexieStore.clearStore();
+  onDirectoryAdded(cb: DataChangedCallback<Directory>) {
+    this.dirAddedListeners.add(cb);
+    return () => this.dirAddedListeners.delete(cb);
+  }
+
+  onDirectoryUpdated(cb: DataChangedCallback<Directory>) {
+    this.dirUpdatedListeners.add(cb);
+    return () => this.dirUpdatedListeners.delete(cb);
+  }
+
+  onDirectoryDeleted(cb: DataChangedCallback<Directory>) {
+    this.dirDeletedListeners.add(cb);
+    return () => this.dirDeletedListeners.delete(cb);
+  }
+
+  onDirectoriesCleared(cb: () => void) {
+    this.dirClearedListeners.add(cb);
+    return () => this.dirClearedListeners.delete(cb);
+  }
+
+  private emitAdded(song: Song) {
+    for (const cb of this.songAddedListeners) cb(song);
+  }
+
+  private emitUpdated(song: Song) {
+    for (const cb of this.songUpdatedListeners) cb(song);
+  }
+
+  private emitDeleted(song: Song) {
+    for (const cb of this.songDeletedListeners) cb(song);
+  }
+
+  private emitStoreCleared() {
+    for (const cb of this.storeClearedListeners) cb();
+  }
+
+  private emitDirectoryAdded(dir: Directory) {
+    for (const cb of this.dirAddedListeners) cb(dir);
+  }
+
+  private emitDirectoryDeleted(dir: Directory) {
+    for (const cb of this.dirDeletedListeners) cb(dir);
+  }
+
+  getFileSystem(): FileSystemMetadataStore {
+    return this.fsStore;
+  }
+
+  getDexieStore(): DexieMetadataStore {
+    return this.dexieStore;
+  }
+
+  async addDirectory(directory: Directory) {
+    await this.fsStore.addDirectory(directory);
+    this.emitDirectoryAdded(directory);
+  }
+
+  async deleteDirectory(id: string) {
+    const dirs = await this.fsStore.getDirectories();
+    const dir = dirs.find((d) => d.id === id);
+    await this.fsStore.deleteDirectory(id);
+    if (dir) this.emitDirectoryDeleted(dir);
+  }
+
+  getDirectories(): Promise<Directory[]> {
+    return this.fsStore.getDirectories();
+  }
+
+  get(id: string): Promise<Song | null> {
+    return this.dexieStore.get(id);
+  }
+
+  filter(predicate: (item: Song) => boolean): Promise<Song[]> {
+    return this.dexieStore.filter(predicate);
+  }
+
+  getAll(): Promise<Song[]> {
+    return this.dexieStore.getAll();
+  }
+
+  async save(id: string, updated: Song): Promise<Song> {
+    await this.fsStore.save(id, updated);
+    return await this.dexieStore.save(id, updated);
+  }
+
+  async batchUpdate(items: { id: string; updated: Song }[]): Promise<void> {
+    await this.fsStore.batchUpdate(items);
+    await this.dexieStore.batchUpdate(items);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.fsStore.delete(id);
+    return this.dexieStore.delete(id);
+  }
+
+  async batchDelete(ids: string[]): Promise<void> {
+    await this.fsStore.batchDelete(ids);
+    await this.dexieStore.batchDelete(ids);
+  }
+
+  async clearStore(): Promise<void> {
+    await this.fsStore.clearStore();
+    return await this.dexieStore.clearStore();
   }
 }

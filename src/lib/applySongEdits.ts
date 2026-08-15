@@ -1,7 +1,8 @@
 import type { Song } from "@/models/Song";
 import { createFileWriteStrategy } from "./file-utils";
-import { createCombinedWriteStrategy } from ".";
+import { createCombinedWriteStrategy, getPicturesForSongOfType } from ".";
 import { createDexieWriteStrategy } from "./dexie-utils";
+import { ArtworkType } from "./metadata-utils";
 
 export async function applySongEdits(
   song: Song,
@@ -21,6 +22,20 @@ export async function applySongEdits(
       type: "FrontCover",
       description: "Front Cover",
     });
+  } else {
+    const frontCover = (
+      await getPicturesForSongOfType(song.id, ArtworkType.FrontCover)
+    ).at(0);
+
+    if (frontCover) {
+      updatedSong.pictures ??= [];
+      updatedSong.pictures.push({
+        mimeType: "image/jpeg",
+        data: frontCover.data,
+        type: "FrontCover",
+        description: "Front Cover",
+      });
+    }
   }
 
   if (updates.coverBack instanceof Blob) {
@@ -32,6 +47,20 @@ export async function applySongEdits(
       type: "BackCover",
       description: "Back Cover",
     });
+  } else {
+    const backCover = (
+      await getPicturesForSongOfType(song.id, ArtworkType.BackCover)
+    ).at(0);
+
+    if (backCover) {
+      updatedSong.pictures ??= [];
+      updatedSong.pictures.push({
+        mimeType: "image/jpeg",
+        data: backCover.data,
+        type: "BackCover",
+        description: "Back Cover",
+      });
+    }
   }
 
   const writeStrategy = createCombinedWriteStrategy(

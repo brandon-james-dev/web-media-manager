@@ -1,12 +1,13 @@
 import "./HomePage.css";
+
 import React, { useEffect, useState } from "react";
 import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
 import { SongTable, Progress } from "@/components";
-import { applySongEdits, persistStoreRootDirectory } from "@/lib";
-import { backgroundService, eventBus } from "@/lib/background-jobs";
 import { useSongs } from "@/providers";
+import { addPersistedStoreDirectory, applySongEdits } from "@/lib";
+import { backgroundService, eventBus } from "@/lib/background-jobs";
 
 export function HomePage() {
   const { songs, setRootDirectory } = useSongs();
@@ -145,7 +146,7 @@ export function HomePage() {
 
     setStatus("Starting import...");
 
-    persistStoreRootDirectory(directoryHandle);
+    addPersistedStoreDirectory(directoryHandle);
     setRootDirectory(directoryHandle);
 
     backgroundService.enqueue({

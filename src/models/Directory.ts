@@ -5,7 +5,7 @@ export interface Directory {
   /**
    * A unique incrementing id
    */
-  id?: number;
+  id: string;
 
   /**
    * The name of the directory

@@ -4,6 +4,7 @@ import { ArtworkType, type IMetadataStore } from "../metadata-utils";
 import type { MetadataDb } from "./MetadataDb";
 import type { SongArtwork } from "@/models/SongArtwork";
 import type { DataChangedCallback } from "../store";
+import type { UpdateSpec } from "dexie";
 
 export class DexieMetadataStore implements IMetadataStore {
   private db: MetadataDb;
@@ -74,6 +75,11 @@ export class DexieMetadataStore implements IMetadataStore {
     return song;
   }
 
+  filter(predicate: (item: Song) => boolean): Promise<Song[]> {
+    const songs = this.db.songs.filter(predicate);
+    return songs.toArray();
+  }
+
   async getAll(): Promise<Song[]> {
     return await this.db.songs.toArray();
   }
@@ -105,12 +111,45 @@ export class DexieMetadataStore implements IMetadataStore {
     this.emitDeleted(existing);
   }
 
+  async batchDelete(ids: string[]): Promise<void> {
+    const songs = await this.db.songs.bulkGet(ids);
+
+    for (const song of songs.filter((s) => s != undefined)) {
+      const artwork = await this.db.songArtwork
+        .filter((art) => art.songId == song.id)
+        .toArray();
+      await this.db.songArtwork.bulkDelete(artwork.map((a) => a.id!));
+    }
+
+    await this.db.songs.bulkDelete(ids);
+
+    for (const song of songs) {
+      if (song) this.emitDeleted(song);
+    }
+  }
+
+  async batchUpdate(items: { id: string; updated: Song }[]): Promise<void> {
+    const updates = items.map(({ id, updated }) => {
+      const changes: UpdateSpec<Song> = { ...updated };
+
+      return {
+        key: id,
+        changes,
+      };
+    });
+
+    await this.db.songs.bulkUpdate(updates);
+
+    for (const { updated } of items) {
+      this.emitUpdated(updated);
+    }
+  }
+
   async clearStore(): Promise<void> {
     for (const table of this.db.tables) {
       await table.clear();
     }
     this.emitStoreCleared();
-    await this.db.songs.clear();
   }
 
   private async artworkToPicture(art: SongArtwork): Promise<IPicture> {

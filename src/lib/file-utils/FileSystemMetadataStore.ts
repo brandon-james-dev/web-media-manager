@@ -1,20 +1,21 @@
-import type { Song } from "@/models/Song";
+import { uuidv7 } from "uuidv7";
+import type { Song, Directory } from "@/models";
 import type { IMetadataStore } from "../metadata-utils";
 import { TagLibMetadataWriter } from "../taglib-metadata-utils";
-import type { DataChangedCallback } from "../store";
+import type { DataChangedCallback, IRepository } from "../store";
 
 export class FileSystemMetadataStore implements IMetadataStore {
-  private root: FileSystemDirectoryHandle | null = null;
-  private fileHandles = new Map<string, FileSystemFileHandle>();
   private backingStore?: IMetadataStore;
+  private directories: IRepository<Directory>;
+  private fileHandles = new Map<string, FileSystemFileHandle>();
 
   private songAddedListeners = new Set<DataChangedCallback<Song>>();
   private songUpdatedListeners = new Set<DataChangedCallback<Song>>();
   private songDeletedListeners = new Set<DataChangedCallback<Song>>();
   private storeClearedListeners = new Set<() => void>();
 
-  constructor(root?: FileSystemDirectoryHandle) {
-    if (root) this.setRootDirectory(root);
+  constructor(directories: IRepository<Directory>) {
+    this.directories = directories;
   }
 
   /**
@@ -28,18 +29,6 @@ export class FileSystemMetadataStore implements IMetadataStore {
     this.backingStore?.onUpdated((song) => this.emitUpdated(song));
     this.backingStore?.onDeleted((song) => this.emitDeleted(song));
     this.backingStore?.onStoreCleared(() => this.emitStoreCleared());
-  }
-
-  setRootDirectory(rootDirectory: FileSystemDirectoryHandle) {
-    this.root = rootDirectory;
-  }
-
-  setFileHandle(id: string, handle: FileSystemFileHandle): void {
-    this.fileHandles.set(id, handle);
-  }
-
-  getFileHandle(id: string): FileSystemFileHandle | undefined {
-    return this.fileHandles.get(id);
   }
 
   onAdded(cb: DataChangedCallback<Song>) {
@@ -78,6 +67,31 @@ export class FileSystemMetadataStore implements IMetadataStore {
     for (const cb of this.storeClearedListeners) cb();
   }
 
+  async addDirectory(directory: Directory) {
+    await this.directories.save(uuidv7(), directory);
+  }
+
+  async deleteDirectory(id: string): Promise<void> {
+    const songsInDirectory =
+      (await this.backingStore?.filter((s) => s.directoryId == id)) ?? [];
+    await this.backingStore?.batchDelete(songsInDirectory.map((s) => s.id));
+    await this.directories.delete(id);
+  }
+
+  async getDirectories(): Promise<Directory[]> {
+    const directories = await this.directories.getAll();
+
+    return directories;
+  }
+
+  setFileHandle(id: string, handle: FileSystemFileHandle): void {
+    this.fileHandles.set(id, handle);
+  }
+
+  getFileHandle(id: string): FileSystemFileHandle | undefined {
+    return this.fileHandles.get(id);
+  }
+
   /**
    * Write the song to the file system only if it was loaded before
    * @param id The song id
@@ -88,16 +102,23 @@ export class FileSystemMetadataStore implements IMetadataStore {
     let existingFileHandle = this.getFileHandle(id);
     const existingSong = await this.backingStore?.get(id);
 
-    if (!existingFileHandle && existingSong && this.root) {
+    if (!existingFileHandle && existingSong) {
       try {
         const parts = existingSong.relativePath.split("/").filter(Boolean);
-        let dir = this.root;
+        const dir = await this.directories?.get(
+          existingSong.directoryId.toString()
+        );
+        let directoryHandle = dir?.directoryHandle;
 
-        for (let i = 0; i < parts.length - 1; i++) {
-          dir = await dir.getDirectoryHandle(parts[i]);
+        if (!directoryHandle) {
+          throw new Error("The directory the song is from was not found");
         }
 
-        const fileHandle = await dir.getFileHandle(parts.at(-1)!);
+        for (let i = 0; i < parts.length - 1; i++) {
+          directoryHandle = await directoryHandle?.getDirectoryHandle(parts[i]);
+        }
+
+        const fileHandle = await directoryHandle?.getFileHandle(parts.at(-1)!);
 
         this.setFileHandle(id, fileHandle);
         existingFileHandle = fileHandle;
@@ -122,6 +143,16 @@ export class FileSystemMetadataStore implements IMetadataStore {
     return song;
   }
 
+  async batchUpdate(items: { id: string; updated: Song }[]): Promise<void> {
+    if (!this.backingStore) return;
+
+    await this.backingStore.batchUpdate(items);
+
+    for (const { updated } of items) {
+      this.emitUpdated(updated);
+    }
+  }
+
   /**
    * Rather than read through every file in the directory, just return backing store's entry
    * @param id The song's id
@@ -129,6 +160,11 @@ export class FileSystemMetadataStore implements IMetadataStore {
    */
   async get(id: string): Promise<Song | null> {
     return (await this.backingStore?.get(id)) ?? null;
+  }
+
+  filter(predicate: (item: Song) => boolean): Promise<Song[]> {
+    if (!this.backingStore) return Promise.resolve([]);
+    return this.backingStore.filter(predicate);
   }
 
   /**
@@ -151,6 +187,23 @@ export class FileSystemMetadataStore implements IMetadataStore {
 
     this.fileHandles.delete(id);
     await this.backingStore?.delete(id);
+  }
+
+  async batchDelete(ids: string[]): Promise<void> {
+    if (!this.backingStore) return;
+
+    const existing = await this.backingStore.filter((s) => ids.includes(s.id));
+
+    await this.backingStore.batchDelete(ids);
+
+    for (const id of ids) {
+      this.fileHandles.delete(id);
+    }
+
+    // Emit events
+    for (const song of existing) {
+      this.emitDeleted(song);
+    }
   }
 
   /**

@@ -1,6 +1,7 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataReader } from "@/lib/metadata-utils";
 import { readSongFile } from "./readSongFile";
+import { uuidv7 } from "uuidv7";
 
 /**
  * Reads metadata from a list of FileSystemFileHandles.
@@ -21,7 +22,7 @@ export async function* readSongFiles(
       id: handle.name,
       filename: handle.name,
       relativePath: handle.name,
-      directoryId: 0,
+      directoryId: uuidv7(), // Default, would be changed in the caller
       filesize: size,
       coverFront: metadata?.coverFront,
       coverBack: metadata?.coverBack,

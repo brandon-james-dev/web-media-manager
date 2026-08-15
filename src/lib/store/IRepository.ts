@@ -5,6 +5,9 @@ export interface IRepository<T> {
   save(id: string, updated: T): Promise<T>;
   delete(id: string): Promise<void>;
   getAll(): Promise<T[]>;
+  filter(predicate: (item: T) => boolean): Promise<T[]>;
+  batchDelete(ids: string[]): Promise<void>;
+  batchUpdate(items: { id: string; updated: T }[]): Promise<void>;
   clearStore(): Promise<void>;
   onAdded(cb: DataChangedCallback<T>): () => void;
   onUpdated(cb: DataChangedCallback<T>): () => void;

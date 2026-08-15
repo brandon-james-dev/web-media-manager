@@ -8,7 +8,8 @@ import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { isValidAudioFile } from "taglib-wasm";
 import useFileSystemAccess from "use-fs-access";
 import type { FileOrDirectoryInfo } from "use-fs-access/core";
-import { getPersistedRootDirectory } from "@/lib/dexie-utils";
+import type { Directory } from "@/models";
+import { getPersistedRootDirectories } from "@/lib/dexie-utils";
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -16,8 +17,8 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   const refreshTimeout = useRef<number | null>(null);
 
   //#region Directory Watcher
-  const persistedRootDirectory = useRef<FileSystemDirectoryHandle | null>(null);
-  const hasRestoredDirectory = useRef(false);
+  const persistedRootDirectories = useRef<Directory[]>([]);
+  const hasRestoredDirectories = useRef(false);
 
   const addedDebounce = new Map<string, number>();
   const deletedDebounce = new Map<string, number>();
@@ -110,24 +111,26 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   // Set up directory event watchers
   useEffect(() => {
     (async () => {
-      const rootDirectory = await getPersistedRootDirectory();
-      if (rootDirectory) {
-        persistedRootDirectory.current = rootDirectory.directoryHandle;
+      const directories = await getPersistedRootDirectories();
+      if (directories) {
+        persistedRootDirectories.current = directories;
       }
     })();
 
-    if (!persistedRootDirectory.current) return;
+    if (!persistedRootDirectories.current) return;
 
-    if (!hasRestoredDirectory.current) {
-      hasRestoredDirectory.current = true;
-      openDirectory(persistedRootDirectory.current);
+    if (!hasRestoredDirectories.current) {
+      hasRestoredDirectories.current = true;
+
+      for (const { directoryHandle } of persistedRootDirectories.current) {
+        openDirectory(directoryHandle);
+      }
     }
-  }, [openDirectory, hasRestoredDirectory, persistedRootDirectory]);
+  }, [openDirectory, hasRestoredDirectories, persistedRootDirectories]);
 
   const setRootDirectory = (directoryHandle: FileSystemDirectoryHandle) => {
     openDirectory(directoryHandle);
   };
-
   //#endregion
 
   const refreshSongs = async () => {

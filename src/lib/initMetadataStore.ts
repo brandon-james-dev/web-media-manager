@@ -1,24 +1,22 @@
 import { CombinedMetadataStore } from "./CombinedMetadataStore";
+import { DexieMetadataStore, getMetadataDb } from "./dexie-utils";
 import {
-  DexieMetadataStore,
-  getMetadataDb,
-  getPersistedRootDirectory,
-} from "./dexie-utils";
-import { FileSystemMetadataStore } from "./file-utils";
-import type { IMetadataStore } from "./metadata-utils";
+  FileSystemDirectoryStore,
+  FileSystemMetadataStore,
+} from "./file-utils";
+import { type IMetadataStore } from "./metadata-utils";
+import { DexieDirectoryStore } from "./dexie-utils/DexieDirectoryStore";
 
 let metadataStore: CombinedMetadataStore | null = null;
-
-const persistedDirectory = await getPersistedRootDirectory();
 
 export function initMetadataStore(): IMetadataStore {
   if (metadataStore) return metadataStore;
 
   const dexieStore = new DexieMetadataStore(getMetadataDb());
+  const directoryBackingStore = new DexieDirectoryStore(getMetadataDb());
+  const directoryStore = new FileSystemDirectoryStore(directoryBackingStore);
 
-  const fsStore = new FileSystemMetadataStore(
-    persistedDirectory?.directoryHandle
-  );
+  const fsStore = new FileSystemMetadataStore(directoryStore);
   fsStore.setBackingStore(dexieStore);
 
   metadataStore = new CombinedMetadataStore(fsStore, dexieStore);
@@ -28,11 +26,4 @@ export function initMetadataStore(): IMetadataStore {
 
 export function getMetadataStore(): IMetadataStore {
   return metadataStore ?? initMetadataStore();
-}
-
-export function persistStoreRootDirectory(
-  rootDirectory: FileSystemDirectoryHandle
-) {
-  const store = getMetadataStore() as CombinedMetadataStore;
-  store.setRootDirectory(rootDirectory);
 }

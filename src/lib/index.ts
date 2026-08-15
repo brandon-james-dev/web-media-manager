@@ -1,4 +1,3 @@
-import { persistStoreRootDirectory } from "@/lib/initMetadataStore";
 import { getMetadataStore } from "@/lib/file-utils";
 import { applySongEdits } from "@/lib/applySongEdits";
 import { createCombinedWriteStrategy } from "./createCombinedWriteStrategy";
@@ -13,8 +12,10 @@ import { useArtwork } from "./useArtwork";
 import { getPicturesForSongOfType } from "./getPicturesForSongOfType";
 import { getPicturesForSong } from "./getPicturesForSong";
 import { resizeBitmap, ThumbnailSize } from "./resizeBitmap";
+import { addPersistedStoreDirectory } from "./addPersistedStoreDirectory";
 
 export {
+  addPersistedStoreDirectory,
   applySongEdits,
   createCombinedWriteStrategy,
   importSongs,
@@ -23,7 +24,6 @@ export {
   getArtworkForSong,
   getPicturesForSong,
   getPicturesForSongOfType,
-  persistStoreRootDirectory,
   lookupMetadataOnline,
   readSongFiles,
   readSongFile,

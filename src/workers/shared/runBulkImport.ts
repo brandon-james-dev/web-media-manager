@@ -1,11 +1,11 @@
 import type { Song } from "@/models/Song";
 import type { WorkerProgress } from "../WorkerJob";
-import { readSongFile } from "@/lib";
+import { initMetadataStore, readSongFile } from "@/lib";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { collectFileHandles } from "@/lib/file-utils";
-import { getDirectoryIdForHandle } from "@/lib/dexie-utils";
 import { uuidv7 } from "uuidv7";
 import type { BackgroundJob } from "@/lib/background-jobs";
+import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
 
 /**
  * Worker bulk import job — receives a directory handle,
@@ -19,7 +19,17 @@ export async function runBulkImport(
   reportProgress: (progress: WorkerProgress) => void
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
   const { directoryHandle } = payload;
-  const directoryId = await getDirectoryIdForHandle(directoryHandle);
+  const store = initMetadataStore() as CombinedMetadataStore;
+  const directories = await store.getDirectories();
+  const directory = directories
+    .reverse()
+    .find((d) => d.directoryName == directoryHandle.name);
+
+  if (!directory) {
+    throw new Error("The directory was not found");
+  }
+
+  const directoryId = directory.id;
 
   const reader = new TagLibMetadataReader();
   const songs: Song[] = [];
