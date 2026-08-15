@@ -39,9 +39,9 @@ export async function readSongFile(
   for (const pic of pictures) {
     const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
 
-    if (pic.type === "3" || pic.type === "FrontCover") {
+    if (pic.type === "FrontCover") {
       coverFront = blob;
-    } else if (pic.type === "4" || pic.type === "BackCover") {
+    } else if (pic.type === "BackCover") {
       coverBack = blob;
     }
   }

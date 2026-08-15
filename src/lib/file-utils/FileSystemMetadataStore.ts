@@ -1,16 +1,16 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataStore } from "../metadata-utils";
 import { TagLibMetadataWriter } from "../taglib-metadata-utils";
-import type { SongCallback } from "../metadata-utils/IMetadataStore";
+import type { DataChangedCallback } from "../store";
 
 export class FileSystemMetadataStore implements IMetadataStore {
   private root: FileSystemDirectoryHandle | null = null;
   private fileHandles = new Map<string, FileSystemFileHandle>();
   private backingStore?: IMetadataStore;
 
-  private songAddedListeners = new Set<SongCallback>();
-  private songUpdatedListeners = new Set<SongCallback>();
-  private songDeletedListeners = new Set<SongCallback>();
+  private songAddedListeners = new Set<DataChangedCallback<Song>>();
+  private songUpdatedListeners = new Set<DataChangedCallback<Song>>();
+  private songDeletedListeners = new Set<DataChangedCallback<Song>>();
   private storeClearedListeners = new Set<() => void>();
 
   constructor(root?: FileSystemDirectoryHandle) {
@@ -24,9 +24,9 @@ export class FileSystemMetadataStore implements IMetadataStore {
   setBackingStore(backingStore: IMetadataStore | undefined) {
     this.backingStore = backingStore;
 
-    this.backingStore?.onSongAdded((song) => this.emitSongAdded(song));
-    this.backingStore?.onSongUpdated((song) => this.emitSongUpdated(song));
-    this.backingStore?.onSongDeleted((song) => this.emitSongDeleted(song));
+    this.backingStore?.onAdded((song) => this.emitAdded(song));
+    this.backingStore?.onUpdated((song) => this.emitUpdated(song));
+    this.backingStore?.onDeleted((song) => this.emitDeleted(song));
     this.backingStore?.onStoreCleared(() => this.emitStoreCleared());
   }
 
@@ -42,17 +42,17 @@ export class FileSystemMetadataStore implements IMetadataStore {
     return this.fileHandles.get(id);
   }
 
-  onSongAdded(cb: SongCallback) {
+  onAdded(cb: DataChangedCallback<Song>) {
     this.songAddedListeners.add(cb);
     return () => this.songAddedListeners.delete(cb);
   }
 
-  onSongUpdated(cb: SongCallback) {
+  onUpdated(cb: DataChangedCallback<Song>) {
     this.songUpdatedListeners.add(cb);
     return () => this.songUpdatedListeners.delete(cb);
   }
 
-  onSongDeleted(cb: SongCallback) {
+  onDeleted(cb: DataChangedCallback<Song>) {
     this.songDeletedListeners.add(cb);
     return () => this.songDeletedListeners.delete(cb);
   }
@@ -62,15 +62,15 @@ export class FileSystemMetadataStore implements IMetadataStore {
     return () => this.storeClearedListeners.delete(cb);
   }
 
-  private emitSongAdded(song: Song) {
+  private emitAdded(song: Song) {
     for (const cb of this.songAddedListeners) cb(song);
   }
 
-  private emitSongUpdated(song: Song) {
+  private emitUpdated(song: Song) {
     for (const cb of this.songUpdatedListeners) cb(song);
   }
 
-  private emitSongDeleted(song: Song) {
+  private emitDeleted(song: Song) {
     for (const cb of this.songDeletedListeners) cb(song);
   }
 
@@ -84,9 +84,9 @@ export class FileSystemMetadataStore implements IMetadataStore {
    * @param song The song data
    * @returns The saved song
    */
-  async saveSong(id: string, song: Song): Promise<Song> {
+  async save(id: string, song: Song): Promise<Song> {
     let existingFileHandle = this.getFileHandle(id);
-    const existingSong = await this.backingStore?.getSong(id);
+    const existingSong = await this.backingStore?.get(id);
 
     if (!existingFileHandle && existingSong && this.root) {
       try {
@@ -127,8 +127,8 @@ export class FileSystemMetadataStore implements IMetadataStore {
    * @param id The song's id
    * @returns A song from the store
    */
-  async getSong(id: string): Promise<Song | null> {
-    return (await this.backingStore?.getSong(id)) ?? null;
+  async get(id: string): Promise<Song | null> {
+    return (await this.backingStore?.get(id)) ?? null;
   }
 
   /**
@@ -136,8 +136,8 @@ export class FileSystemMetadataStore implements IMetadataStore {
    * @param id The song's id
    * @returns A song list from the store
    */
-  async getAllSongs(): Promise<Song[]> {
-    return (await this.backingStore?.getAllSongs()) ?? [];
+  async getAll(): Promise<Song[]> {
+    return (await this.backingStore?.getAll()) ?? [];
   }
 
   /**
@@ -145,12 +145,12 @@ export class FileSystemMetadataStore implements IMetadataStore {
    * @param id The file's id
    * @returns A promise
    */
-  async deleteSong(id: string): Promise<void> {
-    const song = await this.backingStore?.getSong(id);
+  async delete(id: string): Promise<void> {
+    const song = await this.backingStore?.get(id);
     if (!song) return;
 
     this.fileHandles.delete(id);
-    await this.backingStore?.deleteSong(id);
+    await this.backingStore?.delete(id);
   }
 
   /**

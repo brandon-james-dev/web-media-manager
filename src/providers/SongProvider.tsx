@@ -58,7 +58,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
       if (!processedSong) return;
 
-      await store.saveSong(name, processedSong);
+      await store.save(name, processedSong);
     }
   }
 
@@ -67,7 +67,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     for (const [name] of entries) {
       if (!shouldProcess(deletedDebounce, name)) continue;
 
-      await store.deleteSong(name);
+      await store.delete(name);
     }
   }
 
@@ -132,7 +132,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
   const refreshSongs = async () => {
     const store = getMetadataStore();
-    const all = await store.getAllSongs();
+    const all = await store.getAll();
     setSongs(all);
   };
 
@@ -142,19 +142,19 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const store = getMetadataStore();
-    const unsubAdd = store.onSongAdded((song) => {
+    const unsubAdd = store.onAdded((song) => {
       setSongs((prev) => [...prev, song]);
 
       scheduleRefresh();
     });
 
-    const unsubUpdate = store.onSongUpdated((song) => {
+    const unsubUpdate = store.onUpdated((song) => {
       setSongs((prev) => prev.map((s) => (s.id === song.id ? song : s)));
 
       scheduleRefresh();
     });
 
-    const unsubDelete = store.onSongDeleted((song) => {
+    const unsubDelete = store.onDeleted((song) => {
       setSongs((prev) => prev.filter((s) => s.id != song.id));
 
       scheduleRefresh();
@@ -181,16 +181,16 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
         const newSong = event.payload.data;
 
         if (newSong) {
-          await store.saveSong(newSong.id, newSong);
+          await store.save(newSong.id, newSong);
           scheduleRefresh();
         }
       }
 
       if (event.jobType === "bulkEdit") {
         const updated = event.payload.data;
-        const existing = await store.getSong(updated.id);
+        const existing = await store.get(updated.id);
         const merged = { ...existing, ...updated };
-        await store.saveSong(merged.id, merged);
+        await store.save(merged.id, merged);
 
         scheduleRefresh();
       }

@@ -19,7 +19,7 @@ export async function importSongs(
 
   try {
     for await (const song of songStream) {
-      await store.saveSong(song.id, song);
+      await store.save(song.id, song);
 
       imported.push(song);
       index++;

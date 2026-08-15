@@ -7,10 +7,11 @@ import type { IMetadataWriteStrategy } from "./IMetadataWriteStrategy";
 import type { IMetadataReader } from "./IMetadataReader";
 import type { IPicture } from "./IPicture";
 import type { ITagData } from "./ITagData";
-import { MemoryMetadataStore } from "./MemoryMetadataStore";
+import { MemoryStore } from "../store/MemoryStore";
 
 export {
   ArtworkType,
+  MemoryStore,
   type IAudioProperties,
   type IMetadata,
   type IMetadataReader,
@@ -19,5 +20,4 @@ export {
   type IMetadataWriteStrategy,
   type IPicture,
   type ITagData,
-  MemoryMetadataStore,
 };

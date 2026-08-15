@@ -14,13 +14,13 @@ export class DexieWriteStrategy {
    */
   async write(id: string, updated: Song): Promise<Song> {
     // Let the metadata store handle persistence + event emission
-    return await this.store.saveSong(id, updated);
+    return await this.store.save(id, updated);
   }
 
   /**
    * Deletes metadata from Dexie.
    */
   async delete(id: string): Promise<void> {
-    return await this.store.deleteSong(id);
+    return await this.store.delete(id);
   }
 }

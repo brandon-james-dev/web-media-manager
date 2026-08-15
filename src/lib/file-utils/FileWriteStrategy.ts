@@ -11,7 +11,7 @@ export class FileWriteStrategy implements IMetadataWriteStrategy {
   }
 
   async write(id: string, updated: Partial<ITagData>): Promise<Song> {
-    const song = await this.store.getSong(id);
+    const song = await this.store.get(id);
     if (!song) {
       throw new Error(`Song ${id} not found`);
     }
@@ -21,7 +21,7 @@ export class FileWriteStrategy implements IMetadataWriteStrategy {
       ...updated,
     };
 
-    await this.store.saveSong(id, updatedSong);
+    await this.store.save(id, updatedSong);
 
     return updatedSong;
   }

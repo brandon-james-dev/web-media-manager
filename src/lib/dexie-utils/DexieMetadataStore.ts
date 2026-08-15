@@ -1,41 +1,33 @@
 import type { IPicture } from "./../metadata-utils/IPicture";
 import type { Song } from "@/models/Song";
 import { ArtworkType, type IMetadataStore } from "../metadata-utils";
-import type { SongCallback } from "../metadata-utils/IMetadataStore";
 import type { MetadataDb } from "./MetadataDb";
 import type { SongArtwork } from "@/models/SongArtwork";
+import type { DataChangedCallback } from "../store";
 
 export class DexieMetadataStore implements IMetadataStore {
   private db: MetadataDb;
 
-  private songAddedListeners = new Set<SongCallback>();
-  private songUpdatedListeners = new Set<SongCallback>();
-  private songDeletedListeners = new Set<SongCallback>();
+  private songAddedListeners = new Set<DataChangedCallback<Song>>();
+  private songUpdatedListeners = new Set<DataChangedCallback<Song>>();
+  private songDeletedListeners = new Set<DataChangedCallback<Song>>();
   private storeClearedListeners = new Set<() => void>();
 
   constructor(db: MetadataDb) {
     this.db = db;
   }
 
-  async clearStore(): Promise<void> {
-    for (const table of this.db.tables) {
-      await table.clear();
-    }
-    this.emitStoreCleared();
-    await this.db.songs.clear();
-  }
-
-  onSongAdded(cb: SongCallback) {
+  onAdded(cb: DataChangedCallback<Song>) {
     this.songAddedListeners.add(cb);
     return () => this.songAddedListeners.delete(cb);
   }
 
-  onSongUpdated(cb: SongCallback) {
+  onUpdated(cb: DataChangedCallback<Song>) {
     this.songUpdatedListeners.add(cb);
     return () => this.songUpdatedListeners.delete(cb);
   }
 
-  onSongDeleted(cb: SongCallback) {
+  onDeleted(cb: DataChangedCallback<Song>) {
     this.songDeletedListeners.add(cb);
     return () => this.songDeletedListeners.delete(cb);
   }
@@ -45,15 +37,15 @@ export class DexieMetadataStore implements IMetadataStore {
     return () => this.storeClearedListeners.delete(cb);
   }
 
-  private emitSongAdded(song: Song) {
+  private emitAdded(song: Song) {
     for (const cb of this.songAddedListeners) cb(song);
   }
 
-  private emitSongUpdated(song: Song) {
+  private emitUpdated(song: Song) {
     for (const cb of this.songUpdatedListeners) cb(song);
   }
 
-  private emitSongDeleted(song: Song) {
+  private emitDeleted(song: Song) {
     for (const cb of this.songDeletedListeners) cb(song);
   }
 
@@ -61,7 +53,7 @@ export class DexieMetadataStore implements IMetadataStore {
     for (const cb of this.storeClearedListeners) cb();
   }
 
-  async getSong(id: string): Promise<Song | null> {
+  async get(id: string): Promise<Song | null> {
     const song = await this.db.songs.get(id);
     if (!song) return null;
 
@@ -82,11 +74,11 @@ export class DexieMetadataStore implements IMetadataStore {
     return song;
   }
 
-  async getAllSongs(): Promise<Song[]> {
+  async getAll(): Promise<Song[]> {
     return await this.db.songs.toArray();
   }
 
-  async saveSong(id: string, updated: Song): Promise<Song> {
+  async save(id: string, updated: Song): Promise<Song> {
     const existing = await this.db.songs.get(id);
 
     // Strip artwork fields before saving
@@ -97,20 +89,28 @@ export class DexieMetadataStore implements IMetadataStore {
     await this.db.songs.put(updated, id);
 
     if (existing) {
-      this.emitSongUpdated(updated);
+      this.emitUpdated(updated);
     } else {
-      this.emitSongAdded(updated);
+      this.emitAdded(updated);
     }
 
     return updated;
   }
 
-  async deleteSong(id: string): Promise<void> {
+  async delete(id: string): Promise<void> {
     const existing = await this.db.songs.get(id);
     if (!existing) return;
 
     await this.db.songs.delete(id);
-    this.emitSongDeleted(existing);
+    this.emitDeleted(existing);
+  }
+
+  async clearStore(): Promise<void> {
+    for (const table of this.db.tables) {
+      await table.clear();
+    }
+    this.emitStoreCleared();
+    await this.db.songs.clear();
   }
 
   private async artworkToPicture(art: SongArtwork): Promise<IPicture> {
