@@ -128,9 +128,6 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     }
   }, [openDirectory, hasRestoredDirectories, persistedRootDirectories]);
 
-  const setRootDirectory = (directoryHandle: FileSystemDirectoryHandle) => {
-    openDirectory(directoryHandle);
-  };
   //#endregion
 
   const refreshSongs = async () => {
@@ -201,7 +198,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <SongContext.Provider value={{ songs, refreshSongs, setRootDirectory }}>
+    <SongContext.Provider value={{ songs, refreshSongs }}>
       {children}
     </SongContext.Provider>
   );

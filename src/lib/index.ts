@@ -13,11 +13,13 @@ import { getPicturesForSongOfType } from "./getPicturesForSongOfType";
 import { getPicturesForSong } from "./getPicturesForSong";
 import { resizeBitmap, ThumbnailSize } from "./resizeBitmap";
 import { addPersistedStoreDirectory } from "./addPersistedStoreDirectory";
+import { clearDb } from "./clearDb";
 
 export {
   addPersistedStoreDirectory,
   applySongEdits,
   createCombinedWriteStrategy,
+  clearDb,
   importSongs,
   initMetadataStore,
   getMetadataStore,

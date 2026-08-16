@@ -4,7 +4,6 @@ import { createContext, useContext } from "react";
 interface SongContextValue {
   songs: Song[];
   refreshSongs: () => Promise<void>;
-  setRootDirectory: (directoryHandle: FileSystemDirectoryHandle) => void;
 }
 
 export const SongContext = createContext<SongContextValue | null>(null);

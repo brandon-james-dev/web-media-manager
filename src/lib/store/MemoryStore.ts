@@ -44,6 +44,12 @@ export class MemoryStore<T> implements IRepository<T> {
     return this.store.get(id) ?? null;
   }
 
+  async filter(predicate: (item: T) => boolean): Promise<T[]> {
+    const items = await this.getAll();
+
+    return items.filter(predicate);
+  }
+
   async getAll(): Promise<T[]> {
     return [...this.store.values()];
   }
@@ -62,12 +68,26 @@ export class MemoryStore<T> implements IRepository<T> {
     return updated;
   }
 
+  batchUpdate(items: { id: string; updated: T }[]): Promise<void> {
+    for (const { id, updated } of items) {
+      this.store.set(id, updated);
+    }
+    return Promise.resolve();
+  }
+
   async delete(id: string): Promise<void> {
     const existing = this.store.get(id);
     if (!existing) return;
 
     this.store.delete(id);
     this.emitDeleted(existing);
+  }
+
+  batchDelete(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      this.store.delete(id);
+    }
+    return Promise.resolve();
   }
 
   clearStore(): Promise<void> {

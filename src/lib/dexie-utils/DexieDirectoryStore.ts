@@ -64,12 +64,10 @@ export class DexieDirectoryStore implements IRepository<Directory> {
   async save(id: string, updated: Directory): Promise<Directory> {
     const existing = await this.db.directories.get(id);
 
-    await this.db.directories.put(updated, id);
-
     if (existing) {
-      for (const cb of this.updatedListeners) cb(updated);
+      await this.db.directories.put(updated, id);
     } else {
-      for (const cb of this.addedListeners) cb(updated);
+      await this.db.directories.add(updated, id);
     }
 
     return updated;

@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-
     /* Modern target for TS7 + Vite */
     "target": "ESNext",
     "lib": ["ES2023", "DOM", "dom.iterable", "webworker"],
@@ -19,6 +18,8 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },

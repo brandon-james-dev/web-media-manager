@@ -1,4 +1,4 @@
-import HomePage from "./HomePage";
-import SettingsPage from "./SettingsPage";
+import Main from "./Main";
+import Settings from "./Settings";
 
-export { HomePage, SettingsPage };
+export { Main, Settings };

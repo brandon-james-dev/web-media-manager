@@ -14,6 +14,9 @@ export class FileSystemMetadataStore implements IMetadataStore {
   private songDeletedListeners = new Set<DataChangedCallback<Song>>();
   private storeClearedListeners = new Set<() => void>();
 
+  private directoryAddedListeners = new Set<DataChangedCallback<Directory>>();
+  private directoryDeletedListeners = new Set<DataChangedCallback<Directory>>();
+
   constructor(directories: IRepository<Directory>) {
     this.directories = directories;
   }
@@ -29,6 +32,9 @@ export class FileSystemMetadataStore implements IMetadataStore {
     this.backingStore?.onUpdated((song) => this.emitUpdated(song));
     this.backingStore?.onDeleted((song) => this.emitDeleted(song));
     this.backingStore?.onStoreCleared(() => this.emitStoreCleared());
+
+    this.directories.onAdded((dir) => this.emitDirectoryAdded(dir));
+    this.directories.onDeleted((dir) => this.emitDirectoryDeleted(dir));
   }
 
   onAdded(cb: DataChangedCallback<Song>) {
@@ -51,6 +57,16 @@ export class FileSystemMetadataStore implements IMetadataStore {
     return () => this.storeClearedListeners.delete(cb);
   }
 
+  onDirectoryAdded(cb: DataChangedCallback<Directory>) {
+    this.directoryAddedListeners.add(cb);
+    return () => this.directoryAddedListeners.delete(cb);
+  }
+
+  onDirectoryDeleted(cb: DataChangedCallback<Directory>) {
+    this.directoryDeletedListeners.add(cb);
+    return () => this.directoryDeletedListeners.delete(cb);
+  }
+
   private emitAdded(song: Song) {
     for (const cb of this.songAddedListeners) cb(song);
   }
@@ -65,6 +81,14 @@ export class FileSystemMetadataStore implements IMetadataStore {
 
   private emitStoreCleared() {
     for (const cb of this.storeClearedListeners) cb();
+  }
+
+  private emitDirectoryAdded(directory: Directory) {
+    for (const cb of this.directoryAddedListeners) cb(directory);
+  }
+
+  private emitDirectoryDeleted(directory: Directory) {
+    for (const cb of this.directoryDeletedListeners) cb(directory);
   }
 
   async addDirectory(directory: Directory) {

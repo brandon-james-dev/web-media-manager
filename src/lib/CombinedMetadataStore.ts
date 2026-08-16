@@ -19,7 +19,6 @@ export class CombinedMetadataStore implements IMetadataStore {
   private storeClearedListeners = new Set<() => void>();
 
   private dirAddedListeners = new Set<DataChangedCallback<Directory>>();
-  private dirUpdatedListeners = new Set<DataChangedCallback<Directory>>();
   private dirDeletedListeners = new Set<DataChangedCallback<Directory>>();
   private dirClearedListeners = new Set<() => void>();
 
@@ -34,6 +33,9 @@ export class CombinedMetadataStore implements IMetadataStore {
     this.dexieStore.onUpdated((song) => this.emitUpdated(song));
     this.dexieStore.onDeleted((song) => this.emitDeleted(song));
     this.dexieStore.onStoreCleared(() => this.emitStoreCleared());
+
+    this.fsStore.onDirectoryAdded((dir) => this.emitDirectoryAdded(dir));
+    this.fsStore.onDirectoryDeleted((dir) => this.emitDirectoryDeleted(dir));
   }
 
   onAdded(cb: DataChangedCallback<Song>): () => void {
@@ -55,11 +57,6 @@ export class CombinedMetadataStore implements IMetadataStore {
   onDirectoryAdded(cb: DataChangedCallback<Directory>) {
     this.dirAddedListeners.add(cb);
     return () => this.dirAddedListeners.delete(cb);
-  }
-
-  onDirectoryUpdated(cb: DataChangedCallback<Directory>) {
-    this.dirUpdatedListeners.add(cb);
-    return () => this.dirUpdatedListeners.delete(cb);
   }
 
   onDirectoryDeleted(cb: DataChangedCallback<Directory>) {
@@ -106,14 +103,10 @@ export class CombinedMetadataStore implements IMetadataStore {
 
   async addDirectory(directory: Directory) {
     await this.fsStore.addDirectory(directory);
-    this.emitDirectoryAdded(directory);
   }
 
   async deleteDirectory(id: string) {
-    const dirs = await this.fsStore.getDirectories();
-    const dir = dirs.find((d) => d.id === id);
     await this.fsStore.deleteDirectory(id);
-    if (dir) this.emitDirectoryDeleted(dir);
   }
 
   getDirectories(): Promise<Directory[]> {

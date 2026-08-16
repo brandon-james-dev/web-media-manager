@@ -12,8 +12,9 @@ let metadataStore: CombinedMetadataStore | null = null;
 export function initMetadataStore(): IMetadataStore {
   if (metadataStore) return metadataStore;
 
-  const dexieStore = new DexieMetadataStore(getMetadataDb());
-  const directoryBackingStore = new DexieDirectoryStore(getMetadataDb());
+  const db = getMetadataDb();
+  const dexieStore = new DexieMetadataStore(db);
+  const directoryBackingStore = new DexieDirectoryStore(db);
   const directoryStore = new FileSystemDirectoryStore(directoryBackingStore);
 
   const fsStore = new FileSystemMetadataStore(directoryStore);
