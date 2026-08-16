@@ -8,7 +8,6 @@ import { readSongFile } from "./readSongFile";
 import { readSongFiles } from "@/lib/readSongFiles";
 import { renameFile } from "./renameFile";
 import { getArtworkForSong } from "./getArtworkForSong";
-import { useArtwork } from "./useArtwork";
 import { getPicturesForSongOfType } from "./getPicturesForSongOfType";
 import { getPicturesForSong } from "./getPicturesForSong";
 import { resizeBitmap, ThumbnailSize } from "./resizeBitmap";
@@ -22,15 +21,14 @@ export {
   clearDb,
   importSongs,
   initMetadataStore,
-  getMetadataStore,
   getArtworkForSong,
+  getMetadataStore,
   getPicturesForSong,
   getPicturesForSongOfType,
   lookupMetadataOnline,
-  readSongFiles,
   readSongFile,
+  readSongFiles,
   renameFile,
   resizeBitmap,
-  useArtwork,
   ThumbnailSize,
 };

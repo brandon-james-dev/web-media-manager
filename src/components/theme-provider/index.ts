@@ -1,4 +1,7 @@
-import { useTheme } from "./useTheme";
+import {
+  type ThemeProviderProps,
+  ThemeProviderContext,
+} from "./theme-provider-props";
 import { ThemeProvider } from "./theme-provider";
 
-export { ThemeProvider, useTheme };
+export { ThemeProvider, ThemeProviderContext, type ThemeProviderProps };

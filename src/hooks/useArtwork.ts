@@ -1,7 +1,7 @@
-import { ThumbnailSize } from "./resizeBitmap";
+import { ThumbnailSize } from "../lib/resizeBitmap";
 import { useState, useEffect } from "react";
-import { getPicturesForSongOfType } from ".";
-import { ArtworkType, type IPicture } from "./metadata-utils";
+import { getPicturesForSongOfType } from "../lib";
+import { ArtworkType, type IPicture } from "../lib/metadata-utils";
 
 export function useArtwork(
   songId: string,

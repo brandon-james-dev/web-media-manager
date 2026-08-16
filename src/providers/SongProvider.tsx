@@ -1,14 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getMetadataStore } from "@/lib/file-utils";
-import { backgroundService } from "@/lib/background-jobs";
-import type { Song } from "@/models/Song";
-import { SongContext } from "./useSongs";
-import { readSongFile } from "@/lib";
-import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { isValidAudioFile } from "taglib-wasm";
 import useFileSystemAccess from "use-fs-access";
+import { getMetadataStore } from "@/lib/file-utils";
+import { backgroundService } from "@/lib/background-jobs";
+import type { Directory, Song } from "@/models";
+import { SongContext } from "@/hooks";
+import { readSongFile } from "@/lib";
+import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import type { FileOrDirectoryInfo } from "use-fs-access/core";
-import type { Directory } from "@/models";
 import { getPersistedRootDirectories } from "@/lib/dexie-utils";
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
@@ -73,11 +72,10 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   }
 
   function handleModified(entries: Map<string, FileOrDirectoryInfo>) {
-    for (const [name, info] of entries) {
+    for (const [name] of entries) {
       if (!shouldProcess(modifiedDebounce, name)) continue;
 
-      // Process modified file
-      console.log("Modified:", name, info);
+      scheduleRefresh();
     }
   }
 
@@ -119,7 +117,10 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
     if (!persistedRootDirectories.current) return;
 
-    if (!hasRestoredDirectories.current) {
+    if (
+      !hasRestoredDirectories.current &&
+      persistedRootDirectories.current.length > 0
+    ) {
       hasRestoredDirectories.current = true;
 
       for (const { directoryHandle } of persistedRootDirectories.current) {

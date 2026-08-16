@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Music, Plus } from "lucide-react";
-
 import {
   addPersistedStoreDirectory,
   applySongEdits,
@@ -12,7 +11,6 @@ import {
 } from "@/lib";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
 import type { Directory, Song } from "@/models";
-
 import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import { backgroundService } from "@/lib/background-jobs";
 import { uuidv7 } from "uuidv7";
@@ -29,6 +27,8 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { SongEditForm } from "@/components/SongEditForm";
+import OnlineSearchPanel from "@/components/OnlineSearchPanel";
+import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
 
 export default function HomePage() {
   const [directories, setDirectories] = useState<Directory[]>([]);
@@ -120,6 +120,10 @@ export default function HomePage() {
   async function onSongUpdate(updates: Partial<Song>): Promise<void> {
     if (!selectedSong) return;
     await applySongEdits(selectedSong, updates);
+    toast.add({
+      type: "success",
+      title: `"${selectedSong.title}" was updated`,
+    });
     setSelectedSong(null);
   }
 
@@ -148,7 +152,7 @@ export default function HomePage() {
         <DrawerContent className="p-6">
           {selectedSong && (
             <>
-              <DrawerHeader>
+              <DrawerHeader className="select-none">
                 <DrawerTitle>Edit song data</DrawerTitle>
                 <DrawerDescription>
                   Update the metadata for the selected song
@@ -156,7 +160,11 @@ export default function HomePage() {
               </DrawerHeader>
 
               <div className="p-6 overflow-y-auto">
-                <SongEditForm song={selectedSong} onFormSubmit={onSongUpdate} />
+                <SongEditForm
+                  id="song-edit-form"
+                  song={selectedSong}
+                  onFormSubmit={onSongUpdate}
+                />
               </div>
             </>
           )}

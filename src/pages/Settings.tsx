@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,11 +27,8 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Item } from "@/components/ui/item";
-
 import { Sun, Moon, ArrowLeft, X } from "lucide-react";
-
-import { useTheme } from "@/components/theme-provider";
-
+import { useTheme } from "@/hooks";
 import { clearDb, getMetadataStore } from "@/lib";
 import type { Directory } from "@/models";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";

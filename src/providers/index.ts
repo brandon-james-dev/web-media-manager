@@ -1,4 +1,4 @@
 import { SongProvider } from "@/providers/SongProvider";
-import { useSongs } from "./useSongs";
+import { useSongs } from "../hooks/useSongs";
 
 export { SongProvider, useSongs };

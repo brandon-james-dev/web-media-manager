@@ -1,11 +1,11 @@
+import "./App.css";
+
 import { Routes, Route } from "react-router";
 import { Main, Settings } from "./pages";
 import { NavBar } from "./layout";
 import { SongProvider } from "./providers/SongProvider";
 import { ThemeProvider } from "./components/theme-provider";
 import { Toaster } from "@/components/ui/toast";
-
-import "./App.css";
 
 function App() {
   return (
