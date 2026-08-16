@@ -8,7 +8,13 @@ import {
 } from "@/components/ui/table";
 import type { Song } from "@/models";
 
-export function SongTable({ songs }: { songs: Song[] }) {
+export function SongTable({
+  songs,
+  onSelect,
+}: {
+  songs: Song[];
+  onSelect: (song: Song) => void;
+}) {
   if (songs.length === 0) {
     return (
       <div className="text-muted-foreground p-4 border rounded-md">
@@ -31,7 +37,11 @@ export function SongTable({ songs }: { songs: Song[] }) {
 
       <TableBody>
         {songs.map((song) => (
-          <TableRow key={song.id} className="border-b">
+          <TableRow
+            key={song.id}
+            className="hover:bg-muted/50"
+            onClick={() => onSelect(song)}
+          >
             <TableCell>{song.title}</TableCell>
             <TableCell>{song.artist}</TableCell>
             <TableCell>{song.album}</TableCell>

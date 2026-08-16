@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Music, Plus } from "lucide-react";
 
-import { addPersistedStoreDirectory, getMetadataStore } from "@/lib";
+import {
+  addPersistedStoreDirectory,
+  applySongEdits,
+  getMetadataStore,
+} from "@/lib";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
-import type { Directory } from "@/models";
+import type { Directory, Song } from "@/models";
 
 import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import { backgroundService } from "@/lib/background-jobs";
@@ -17,10 +21,19 @@ import { useSongs } from "@/providers";
 import { toast } from "@/components/ui/toast";
 import { Progress } from "@/components/ui/progress";
 import type { WorkerProgress } from "@/workers";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { SongEditForm } from "@/components/SongEditForm";
 
 export default function HomePage() {
   const [directories, setDirectories] = useState<Directory[]>([]);
   const { songs } = useSongs();
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   useEffect(() => {
     const store = getMetadataStore() as CombinedMetadataStore;
@@ -104,6 +117,12 @@ export default function HomePage() {
     refresh();
   }
 
+  async function onSongUpdate(updates: Partial<Song>): Promise<void> {
+    if (!selectedSong) return;
+    await applySongEdits(selectedSong, updates);
+    setSelectedSong(null);
+  }
+
   const noDirectories = directories.length === 0;
 
   return (
@@ -124,7 +143,25 @@ export default function HomePage() {
         </div>
       )}
 
-      {!noDirectories && <SongTable songs={songs} />}
+      {!noDirectories && <SongTable songs={songs} onSelect={setSelectedSong} />}
+      <Drawer open={!!selectedSong} onOpenChange={() => setSelectedSong(null)}>
+        <DrawerContent className="p-6">
+          {selectedSong && (
+            <>
+              <DrawerHeader>
+                <DrawerTitle>Edit song data</DrawerTitle>
+                <DrawerDescription>
+                  Update the metadata for the selected song
+                </DrawerDescription>
+              </DrawerHeader>
+
+              <div className="p-6 overflow-y-auto">
+                <SongEditForm song={selectedSong} onFormSubmit={onSongUpdate} />
+              </div>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
