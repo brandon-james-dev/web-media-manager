@@ -10,7 +10,9 @@ export interface ITagData {
   composer?: string;
   year?: number;
   track?: number;
+  totalTracks?: number;
   disc?: number;
+  totalDiscs?: number;
 
   lyrics?: string;
   copyright?: string;

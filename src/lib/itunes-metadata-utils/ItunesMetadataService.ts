@@ -49,7 +49,9 @@ export class ItunesMetadataService implements IOnlineMetadataService {
           ? new Date(song.releaseDate).getFullYear()
           : undefined,
         track: song.trackNumber,
+        totalTracks: song?.trackCount,
         disc: song.discNumber,
+        totalDiscs: song?.discCount,
         bpm: song.bpm ?? undefined,
 
         composer: song.composer ?? undefined,

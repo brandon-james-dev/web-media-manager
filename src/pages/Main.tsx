@@ -27,8 +27,6 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { SongEditForm } from "@/components/SongEditForm";
-import OnlineSearchPanel from "@/components/OnlineSearchPanel";
-import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
 
 export default function HomePage() {
   const [directories, setDirectories] = useState<Directory[]>([]);
@@ -153,7 +151,7 @@ export default function HomePage() {
           {selectedSong && (
             <>
               <DrawerHeader className="select-none">
-                <DrawerTitle>Edit song data</DrawerTitle>
+                <DrawerTitle>{selectedSong.filename}</DrawerTitle>
                 <DrawerDescription>
                   Update the metadata for the selected song
                 </DrawerDescription>
@@ -161,7 +159,7 @@ export default function HomePage() {
 
               <div className="p-6 overflow-y-auto">
                 <SongEditForm
-                  id="song-edit-form"
+                  formId="song-edit-form"
                   song={selectedSong}
                   onFormSubmit={onSongUpdate}
                 />
