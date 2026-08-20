@@ -1,7 +1,8 @@
 import { getMetadataDb } from "@/lib/dexie-utils";
 import type { WorkerProgress } from "../WorkerJob";
 import { resizeBitmap, ThumbnailSize } from "@/lib";
-import type { Song } from "@/models";
+import type { Song, SongArtwork } from "@/models";
+import { ArtworkType } from "@/lib/metadata-utils";
 
 export async function runArtworkProcess(
   payload: {
@@ -14,6 +15,27 @@ export async function runArtworkProcess(
   const { song } = payload;
   const songId = song.id;
   const pictures = song.pictures ?? [];
+
+  if (song.coverFront && song.coverFront.size > 0) {
+    const bytes = await song.coverFront.bytes();
+
+    pictures.push({
+      data: bytes,
+      mimeType: "image/jpeg",
+      type: ArtworkType.FrontCover,
+    });
+  }
+
+  if (song.coverBack && song.coverBack.size > 0) {
+    const bytes = await song.coverBack.bytes();
+
+    pictures.push({
+      data: bytes,
+      mimeType: "image/jpeg",
+      type: ArtworkType.BackCover,
+    });
+  }
+
   const total = pictures.length;
 
   if (!total) {
@@ -23,6 +45,10 @@ export async function runArtworkProcess(
     });
     return { ok: true };
   }
+
+  const existingPictures = await db.songArtwork
+    .filter((a) => a.songId == songId)
+    .toArray();
 
   for (let i = 0; i < pictures.length; i++) {
     const pic = pictures[i];
@@ -93,8 +119,7 @@ export async function runArtworkProcess(
 
     if (isCancelled()) return { cancelled: true };
 
-    // Save into Dexie — one row per picture
-    await db.songArtwork.put({
+    let picture = {
       songId,
       hasEmbedded: true,
 
@@ -102,7 +127,16 @@ export async function runArtworkProcess(
 
       full: fullBlob,
       ...thumbnails,
-    });
+    } as SongArtwork;
+
+    const existing = existingPictures.find((p) => p.artworkType == pic.type);
+
+    // Save into Dexie — one row per picture
+    if (existing) {
+      picture.id = existing.id;
+    }
+
+    await db.songArtwork.put(picture);
 
     reportProgress({
       index: i,

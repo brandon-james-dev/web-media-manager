@@ -44,11 +44,12 @@ export function SongEditForm({
   };
 
   function getFrontCover(): string | undefined {
-    if (!frontCover) {
+    if (!(frontCover || updatedFrontCover)) {
       return undefined;
     }
+
     const frontCoverSet =
-      updatedFrontCover ?? new Blob([frontCover.data.slice()]);
+      updatedFrontCover || new Blob([frontCover.data.slice()]);
     if (!frontCoverSet) {
       return undefined;
     }
@@ -126,8 +127,13 @@ export function SongEditForm({
     // Album art
     const frontCover = online.pictures?.find((p) => p.type === "FrontCover");
 
-    if (frontCover) {
-      setUpdatedFrontCover(new Blob([frontCover.data.slice()]));
+    if (frontCover && frontCover.data.length > 0) {
+      const coverData = [frontCover.data.slice()];
+      set(
+        "frontCover",
+        new File(coverData, frontCover.description || "Front Cover" + ".jpeg")
+      );
+      setUpdatedFrontCover(new Blob(coverData));
     }
   }
 
@@ -167,20 +173,12 @@ export function SongEditForm({
       lyrics: get("lyrics"),
     };
 
-    // Album art file inputs
-    const frontFile = formData.get("coverFront") as File | null;
-    const backFile = formData.get("coverBack") as File | null;
-
-    if (frontFile && frontFile.size > 0) {
-      updates.coverFront = frontFile;
+    if (updatedFrontCover) {
+      updates.coverFront = updatedFrontCover;
     }
 
-    if (backFile && backFile.size > 0) {
-      updates.coverBack = backFile;
-    }
-
-    currentTarget.reset();
     onFormSubmit?.(updates);
+    currentTarget.reset();
   }
 
   return (

@@ -118,6 +118,17 @@ export default function HomePage() {
   async function onSongUpdate(updates: Partial<Song>): Promise<void> {
     if (!selectedSong) return;
     await applySongEdits(selectedSong, updates);
+    backgroundService.enqueue({
+      id: uuidv7(),
+      state: "pending",
+      type: "artworkProcess",
+      payload: {
+        song: {
+          ...selectedSong,
+          ...updates,
+        },
+      },
+    });
     toast.add({
       type: "success",
       title: `"${selectedSong.title}" was updated`,

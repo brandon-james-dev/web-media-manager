@@ -56,23 +56,8 @@ export class DexieMetadataStore implements IMetadataStore {
 
   async get(id: string): Promise<Song | null> {
     const song = await this.db.songs.get(id);
-    if (!song) return null;
 
-    const artwork = await this.db.songArtwork
-      .where("songId")
-      .equals(id)
-      .toArray();
-
-    const pictures: IPicture[] = [];
-
-    for (const item of artwork) {
-      const picture = await this.artworkToPicture(item);
-      pictures.push(picture);
-    }
-
-    song.pictures = pictures;
-
-    return song;
+    return song || null;
   }
 
   filter(predicate: (item: Song) => boolean): Promise<Song[]> {
@@ -150,14 +135,5 @@ export class DexieMetadataStore implements IMetadataStore {
       await table.clear();
     }
     this.emitStoreCleared();
-  }
-
-  private async artworkToPicture(art: SongArtwork): Promise<IPicture> {
-    return {
-      type: art.artworkType ?? ArtworkType.Other,
-      mimeType: "image/jpeg",
-      description: "",
-      data: new Uint8Array(await art.full!.arrayBuffer()),
-    };
   }
 }
