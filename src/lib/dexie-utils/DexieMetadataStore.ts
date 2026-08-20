@@ -1,10 +1,10 @@
-import type { IPicture } from "./../metadata-utils/IPicture";
 import type { Song } from "@/models/Song";
-import { ArtworkType, type IMetadataStore } from "../metadata-utils";
+import { type IMetadataStore } from "../metadata-utils";
 import type { MetadataDb } from "./MetadataDb";
-import type { SongArtwork } from "@/models/SongArtwork";
 import type { DataChangedCallback } from "../store";
-import type { UpdateSpec } from "dexie";
+import type { Collection, UpdateSpec } from "dexie";
+import type { QueryOptions } from "../store/QueryOptions";
+import type { DataSourceResult } from "../store/DataSourceResult";
 
 export class DexieMetadataStore implements IMetadataStore {
   private db: MetadataDb;
@@ -60,9 +60,69 @@ export class DexieMetadataStore implements IMetadataStore {
     return song || null;
   }
 
-  filter(predicate: (item: Song) => boolean): Promise<Song[]> {
-    const songs = this.db.songs.filter(predicate);
-    return songs.toArray();
+  async filter(options: QueryOptions<Song>): Promise<DataSourceResult<Song>> {
+    const { filter, sort, skip, page } = options;
+
+    const table = this.db.songs;
+
+    const total = await table.count();
+    let collection: Collection<Song>;
+
+    if (sort && typeof sort.selector === "string") {
+      collection = table.orderBy(sort.selector);
+      if (sort.desc) collection = collection.reverse();
+    } else {
+      let array = await table.toArray();
+
+      if (sort) {
+        const { selector, desc } = sort;
+
+        array.sort((a, b) => {
+          const av = selector(a);
+          const bv = selector(b);
+          if (av < bv) return desc ? 1 : -1;
+          if (av > bv) return desc ? -1 : 1;
+          return 0;
+        });
+      }
+
+      if (filter) {
+        array = array.filter(filter);
+      }
+
+      const filteredCount = array.length;
+
+      const start = skip ?? 0;
+      const data = array.slice(start);
+
+      return {
+        data,
+        total,
+        filteredCount,
+        page,
+        skip,
+      };
+    }
+
+    if (filter) {
+      collection = collection.filter(filter);
+    }
+
+    const filteredCount = await collection.count();
+
+    if (typeof skip === "number") {
+      collection = collection.offset(skip);
+    }
+
+    const data = await collection.toArray();
+
+    return {
+      data,
+      total,
+      filteredCount,
+      page,
+      skip,
+    };
   }
 
   async getAll(): Promise<Song[]> {

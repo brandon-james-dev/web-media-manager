@@ -1,4 +1,6 @@
 import type { DataChangedCallback, IRepository } from ".";
+import type { DataSourceResult } from "./DataSourceResult";
+import type { QueryOptions } from "./QueryOptions";
 
 export class MemoryStore<T> implements IRepository<T> {
   private store = new Map<string, T>();
@@ -44,10 +46,47 @@ export class MemoryStore<T> implements IRepository<T> {
     return this.store.get(id) ?? null;
   }
 
-  async filter(predicate: (item: T) => boolean): Promise<T[]> {
-    const items = await this.getAll();
+  async filter(options: QueryOptions<T>): Promise<DataSourceResult<T>> {
+    const { filter, sort, skip, take } = options;
 
-    return items.filter(predicate);
+    let items = [...this.store.values()];
+    const total = items.length;
+
+    if (sort) {
+      const { selector, desc } = sort;
+
+      items.sort((a, b) => {
+        const av =
+          typeof selector === "string" ? (a as any)[selector] : selector(a);
+        const bv =
+          typeof selector === "string" ? (b as any)[selector] : selector(b);
+
+        if (av < bv) return desc ? 1 : -1;
+        if (av > bv) return desc ? -1 : 1;
+        return 0;
+      });
+    }
+
+    if (filter) {
+      items = items.filter(filter);
+    }
+
+    const filteredCount = items.length;
+
+    const start = skip ?? 0;
+    const end = take ? start + take : undefined;
+
+    const data = items.slice(start, end);
+
+    const page = take ? Math.floor(start / take) : undefined;
+
+    return {
+      data,
+      total,
+      filteredCount,
+      page,
+      skip,
+    };
   }
 
   async getAll(): Promise<T[]> {

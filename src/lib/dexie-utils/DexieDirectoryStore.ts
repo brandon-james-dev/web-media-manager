@@ -1,7 +1,9 @@
 import type { Directory } from "@/models/Directory";
 import type { MetadataDb } from "./MetadataDb";
 import type { IRepository, DataChangedCallback } from "../store";
-import type { UpdateSpec } from "dexie";
+import type { Collection, UpdateSpec } from "dexie";
+import type { QueryOptions } from "../store/QueryOptions";
+import type { DataSourceResult } from "../store/DataSourceResult";
 
 export class DexieDirectoryStore implements IRepository<Directory> {
   private db: MetadataDb;
@@ -52,9 +54,71 @@ export class DexieDirectoryStore implements IRepository<Directory> {
     return (await this.db.directories.get(id)) ?? null;
   }
 
-  async filter(predicate: (item: Directory) => boolean): Promise<Directory[]> {
-    const all = await this.db.directories.toArray();
-    return all.filter(predicate);
+  async filter(
+    options: QueryOptions<Directory>
+  ): Promise<DataSourceResult<Directory>> {
+    const { filter, sort, skip, page } = options;
+
+    const table = this.db.directories;
+
+    const total = await table.count();
+    let collection: Collection<Directory>;
+
+    if (sort && typeof sort.selector === "string") {
+      collection = table.orderBy(sort.selector);
+      if (sort.desc) collection = collection.reverse();
+    } else {
+      let array = await table.toArray();
+
+      if (sort) {
+        const { selector, desc } = sort;
+
+        array.sort((a, b) => {
+          const av = selector(a);
+          const bv = selector(b);
+          if (av < bv) return desc ? 1 : -1;
+          if (av > bv) return desc ? -1 : 1;
+          return 0;
+        });
+      }
+
+      if (filter) {
+        array = array.filter(filter);
+      }
+
+      const filteredCount = array.length;
+
+      const start = skip ?? 0;
+      const data = array.slice(start);
+
+      return {
+        data,
+        total,
+        filteredCount,
+        page,
+        skip,
+      };
+    }
+
+    if (filter) {
+      collection = collection.filter(filter);
+    }
+
+    const filteredCount = await collection.count();
+
+    if (typeof skip === "number") {
+      collection = collection.offset(skip);
+    }
+
+    const data = await collection.toArray();
+
+    return {
+      data,
+      total,
+      filteredCount,
+      page,
+      skip,
+    };
   }
 
   async getAll(): Promise<Directory[]> {

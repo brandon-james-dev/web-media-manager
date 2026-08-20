@@ -1,5 +1,7 @@
 import type { Directory } from "@/models";
 import type { DataChangedCallback, IRepository } from "../store";
+import type { QueryOptions } from "../store/QueryOptions";
+import type { DataSourceResult } from "../store/DataSourceResult";
 
 export class FileSystemDirectoryStore implements IRepository<Directory> {
   private directories: IRepository<Directory>;
@@ -53,8 +55,10 @@ export class FileSystemDirectoryStore implements IRepository<Directory> {
     return this.directories.get(id) ?? null;
   }
 
-  filter(predicate: (item: Directory) => boolean): Promise<Directory[]> {
-    return this.directories.filter(predicate);
+  filter(
+    options: QueryOptions<Directory>
+  ): Promise<DataSourceResult<Directory>> {
+    return this.directories.filter(options);
   }
 
   async getAll(): Promise<Directory[]> {
@@ -84,11 +88,13 @@ export class FileSystemDirectoryStore implements IRepository<Directory> {
   }
 
   async batchDelete(ids: string[]): Promise<void> {
-    const existing = await this.directories.filter((d) => ids.includes(d.id));
+    const existing = await this.directories.filter({
+      filter: (d) => ids.includes(d.id),
+    });
 
     await this.directories.batchDelete(ids);
 
-    for (const dir of existing) {
+    for (const dir of existing.data) {
       this.emitDeleted(dir);
     }
   }

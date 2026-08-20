@@ -19,7 +19,7 @@ export async function* readSongFiles(
     const size = (await handle.getFile()).size;
 
     const song: Song = {
-      id: handle.name,
+      id: uuidv7(),
       filename: handle.name,
       relativePath: handle.name,
       directoryId: uuidv7(), // Default, would be changed in the caller

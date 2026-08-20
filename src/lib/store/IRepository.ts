@@ -1,3 +1,6 @@
+import type { DataSourceResult } from "./DataSourceResult";
+import type { QueryOptions } from "./QueryOptions";
+
 export type DataChangedCallback<T> = (data: T) => void;
 
 export interface IRepository<T> {
@@ -5,7 +8,7 @@ export interface IRepository<T> {
   save(id: string, updated: T): Promise<T>;
   delete(id: string): Promise<void>;
   getAll(): Promise<T[]>;
-  filter(predicate: (item: T) => boolean): Promise<T[]>;
+  filter(options: QueryOptions<T>): Promise<DataSourceResult<T>>;
   batchDelete(ids: string[]): Promise<void>;
   batchUpdate(items: { id: string; updated: T }[]): Promise<void>;
   clearStore(): Promise<void>;

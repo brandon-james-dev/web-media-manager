@@ -23,7 +23,8 @@ export class MetadataDb extends Dexie {
         album,
         artist,
         genre,
-        year
+        year,
+        track
       `,
       songArtwork: `
         ++id,

@@ -1,6 +1,6 @@
 import "./Main.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Music, Plus } from "lucide-react";
@@ -27,11 +27,14 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { SongEditForm } from "@/components/SongEditForm";
+import { Input } from "@/components/ui/input";
+import type { QueryOptions } from "@/lib/store/QueryOptions";
 
 export default function HomePage() {
   //#region State
   const [directories, setDirectories] = useState<Directory[]>([]);
-  const { songs } = useSongs();
+  const [queryText, setQueryText] = useState<string>("");
+  const { songs, query, setQuery } = useSongs();
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
   const noDirectories = directories.length === 0;
@@ -144,6 +147,25 @@ export default function HomePage() {
     });
     setSelectedSong(null);
   }
+
+  function handleFilterTextChange(
+    evt: ChangeEvent<HTMLInputElement, HTMLInputElement>
+  ): void {
+    const text = evt.target.value;
+    setQueryText(text);
+
+    const textQuery = {
+      ...query,
+      sort: {
+        selector: (song: Song) => song.title,
+        desc: false,
+      },
+      filter: (song: Song) =>
+        song.title?.toLowerCase().includes(text.toLowerCase()),
+    } as QueryOptions<Song>;
+
+    setQuery(textQuery);
+  }
   //#endregion
 
   return (
@@ -151,7 +173,7 @@ export default function HomePage() {
       {noDirectories && (
         <div className="flex-1 flex items-center justify-center">
           <Card className="p-10 flex flex-col items-center gap-6">
-            <Music size={48} />
+            <Music color="var(--accent)" size={48} />
             <h1 className="text-3xl font-bold">Add Music</h1>
             <Button
               onClick={handlePickDirectory}
@@ -164,7 +186,18 @@ export default function HomePage() {
         </div>
       )}
 
-      {!noDirectories && <SongTable songs={songs} onSelect={setSelectedSong} />}
+      {!noDirectories && (
+        <>
+          <div className="p-4">
+            <Input
+              placeholder="Filter by title…"
+              value={queryText}
+              onChange={handleFilterTextChange}
+            />
+          </div>
+          <SongTable songs={songs} onSelect={setSelectedSong} />
+        </>
+      )}
       <Drawer open={!!selectedSong} onOpenChange={() => setSelectedSong(null)}>
         <DrawerContent className="p-6">
           {selectedSong && (

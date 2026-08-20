@@ -3,6 +3,8 @@ import type { Song, Directory } from "@/models";
 import type { IMetadataStore } from "../metadata-utils";
 import { TagLibMetadataWriter } from "../taglib-metadata-utils";
 import type { DataChangedCallback, IRepository } from "../store";
+import type { QueryOptions } from "../store/QueryOptions";
+import type { DataSourceResult } from "../store/DataSourceResult";
 
 export class FileSystemMetadataStore implements IMetadataStore {
   private backingStore?: IMetadataStore;
@@ -96,9 +98,12 @@ export class FileSystemMetadataStore implements IMetadataStore {
   }
 
   async deleteDirectory(id: string): Promise<void> {
-    const songsInDirectory =
-      (await this.backingStore?.filter((s) => s.directoryId == id)) ?? [];
-    await this.backingStore?.batchDelete(songsInDirectory.map((s) => s.id));
+    const songsInDirectory = await this.backingStore?.filter({
+      filter: (s) => s.directoryId == id,
+    });
+    await this.backingStore?.batchDelete(
+      songsInDirectory?.data?.map((s) => s.id) ?? []
+    );
     await this.directories.delete(id);
   }
 
@@ -186,9 +191,10 @@ export class FileSystemMetadataStore implements IMetadataStore {
     return (await this.backingStore?.get(id)) ?? null;
   }
 
-  filter(predicate: (item: Song) => boolean): Promise<Song[]> {
-    if (!this.backingStore) return Promise.resolve([]);
-    return this.backingStore.filter(predicate);
+  filter(options: QueryOptions<Song>): Promise<DataSourceResult<Song>> {
+    if (!this.backingStore)
+      return Promise.resolve({ data: [], total: 0, filteredCount: 0 });
+    return this.backingStore.filter(options);
   }
 
   /**
@@ -216,7 +222,9 @@ export class FileSystemMetadataStore implements IMetadataStore {
   async batchDelete(ids: string[]): Promise<void> {
     if (!this.backingStore) return;
 
-    const existing = await this.backingStore.filter((s) => ids.includes(s.id));
+    const existing = await this.backingStore.filter({
+      filter: (s) => ids.includes(s.id),
+    });
 
     await this.backingStore.batchDelete(ids);
 
@@ -225,7 +233,7 @@ export class FileSystemMetadataStore implements IMetadataStore {
     }
 
     // Emit events
-    for (const song of existing) {
+    for (const song of existing.data) {
       this.emitDeleted(song);
     }
   }

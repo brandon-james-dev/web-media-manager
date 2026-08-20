@@ -4,6 +4,8 @@ import type { DexieMetadataStore } from "./dexie-utils";
 import type { FileSystemMetadataStore } from "./file-utils";
 import type { DataChangedCallback } from "./store";
 import type { Directory } from "@/models";
+import type { QueryOptions } from "./store/QueryOptions";
+import type { DataSourceResult } from "./store/DataSourceResult";
 
 /**
  * This store uses both the file system and Dexie. It resolves retrieval and delete to Dexie, but
@@ -117,8 +119,8 @@ export class CombinedMetadataStore implements IMetadataStore {
     return this.dexieStore.get(id);
   }
 
-  filter(predicate: (item: Song) => boolean): Promise<Song[]> {
-    return this.dexieStore.filter(predicate);
+  filter(options: QueryOptions<Song>): Promise<DataSourceResult<Song>> {
+    return this.dexieStore.filter(options);
   }
 
   getAll(): Promise<Song[]> {

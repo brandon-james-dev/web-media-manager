@@ -48,7 +48,7 @@ export async function runBulkImport(
 
     const song: Song = {
       ...metadata,
-      id: directoryHandle.name + "/" + handle.name,
+      id: uuidv7(),
       filename: handle.name,
       filesize: metadata?.filesize ?? 0,
       relativePath,

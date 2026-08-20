@@ -1,5 +1,6 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataReader } from "./metadata-utils";
+import { uuidv7 } from "uuidv7";
 
 /**
  * Reads metadata from either:
@@ -47,14 +48,14 @@ export async function readSongFile(
   }
 
   return {
-    id: filename,
+    id: uuidv7(),
     filename,
     relativePath: filename,
     fileSizeBytes: file.size,
     coverFront,
     coverBack,
     filesize,
-    directoryId: 0,
+    directoryId: uuidv7(),
     ...tags,
     ...props,
   } as Song;
