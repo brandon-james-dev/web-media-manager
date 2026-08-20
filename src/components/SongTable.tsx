@@ -39,7 +39,7 @@ export function SongTable({
         {songs.map((song) => (
           <TableRow
             key={song.id}
-            className="hover:bg-muted/50"
+            className="hover:bg-(--accent)/20"
             onClick={() => onSelect(song)}
           >
             <TableCell>{song.title}</TableCell>

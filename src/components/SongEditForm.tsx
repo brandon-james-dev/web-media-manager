@@ -21,16 +21,19 @@ export function SongEditForm({
   selectedMetadata?: IOnlineMetadata | null;
   formId?: string;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
+  //#region State
+  const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
+  const [showSearch, setShowSearch] = useState(false);
+  const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const [frontCover] = useArtwork(
     song.id,
     ArtworkType.FrontCover,
     ThumbnailSize.thumb256
   );
-  const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
-  const [showSearch, setShowSearch] = useState(false);
-  const [dirty, setDirty] = useState<Record<string, boolean>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  //#endregion
 
+  //#region Helpers
   const set = (name: string, value: any) => {
     if (!formRef.current) return;
     const form = formRef.current;
@@ -56,7 +59,14 @@ export function SongEditForm({
     return URL.createObjectURL(frontCoverSet);
   }
 
-  function onResetForm() {
+  function markDirty(name: string, isDirty: boolean) {
+    setDirty((prev) => ({ ...prev, [name]: isDirty }));
+  }
+  //#endregion
+
+  //#region Interactivity handlers
+
+  function handleResetForm() {
     set("title", song.title);
     set("artist", song.artist);
     set("album", song.album);
@@ -85,11 +95,7 @@ export function SongEditForm({
     setUpdatedFrontCover(undefined);
   }
 
-  function markDirty(name: string, isDirty: boolean) {
-    setDirty((prev) => ({ ...prev, [name]: isDirty }));
-  }
-
-  function onSearchResultConfirm(online: IOnlineMetadata) {
+  function handleSearchResultConfirm(online: IOnlineMetadata) {
     if (!formRef.current) return;
 
     // Basic metadata
@@ -180,6 +186,7 @@ export function SongEditForm({
     onFormSubmit?.(updates);
     currentTarget.reset();
   }
+  //#endregion
 
   return (
     <>
@@ -194,18 +201,20 @@ export function SongEditForm({
           variant="secondary"
           type="reset"
           form="song-edit-form"
-          onClick={onResetForm}
+          onClick={handleResetForm}
           className={
-            Object.values(dirty).some((v) => v) ? "dark:border-indigo-600" : ""
+            Object.values(dirty).some((v) => v) ? "border-accent/50" : ""
           }
+          disabled={!Object.values(dirty).some((v) => v)}
         >
           <Eraser />
           Reset
         </Button>
         <Button
           type="submit"
-          className="bg-indigo-600 hover:bg-indigo-500 text-white"
+          className="bg-accent/50 hover:bg-accent text-white"
           form="song-edit-form"
+          disabled={!Object.values(dirty).some((v) => v)}
         >
           <Save /> Save Changes
         </Button>
@@ -215,7 +224,7 @@ export function SongEditForm({
           <OnlineSearchPanel
             song={song}
             onSelect={(result) => {
-              onSearchResultConfirm(result);
+              handleSearchResultConfirm(result);
               setShowSearch(false);
             }}
           />
@@ -237,19 +246,19 @@ export function SongEditForm({
               >
                 Album Art
                 {dirty.coverFront && (
-                  <span className="w-2 h-2 bg-indigo-500 rounded-full" />
+                  <span className="w-2 h-2 bg-accent/50 rounded-full" />
                 )}
               </Label>
 
               {getFrontCover() ? (
                 <Label htmlFor="coverFront" className="cursor-pointer">
-                  <div className="relative border rounded-md hover:border-indigo-500 group">
+                  <div className="relative border rounded-md hover:border-accent group">
                     <img
                       src={getFrontCover()}
                       alt={song.title}
                       className={
                         dirty.coverFront
-                          ? "w-32 h-32 object-cover rounded-md border border-indigo-500"
+                          ? "w-32 h-32 object-cover rounded-md border border-accent/50"
                           : "w-32 h-32 object-cover rounded-md border"
                       }
                     />
@@ -258,7 +267,7 @@ export function SongEditForm({
                       size={24}
                       className="
                         absolute top-0 right-0 p-1.5 rounded-md
-                        dark:bg-indigo-500
+                        dark:bg-accent
                         opacity-0
                         group-hover:opacity-100
                         transition-opacity
@@ -311,7 +320,7 @@ export function SongEditForm({
                 }
                 className={
                   dirty.title
-                    ? "dark:active:border-indigo-500 dark:border-indigo-500"
+                    ? "dark:active:border-accent/50 dark:border-accent/50"
                     : ""
                 }
               />
@@ -328,6 +337,11 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.artist ?? "")
                   )
                 }
+                className={
+                  dirty.artist
+                    ? "dark:active:border-accent/50 dark:border-accent/50"
+                    : ""
+                }
               />
             </div>
 
@@ -342,7 +356,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.album ?? "")
                   )
                 }
-                className={dirty.album ? "dark:border-indigo-500" : ""}
+                className={dirty.album ? "dark:border-accent/50" : ""}
               />
             </div>
 
@@ -357,7 +371,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.albumArtist ?? "")
                   )
                 }
-                className={dirty.albumArtist ? "dark:border-indigo-500" : ""}
+                className={dirty.albumArtist ? "dark:border-accent/50" : ""}
               />
             </div>
 
@@ -372,7 +386,7 @@ export function SongEditForm({
                     Number(evt.currentTarget.value) !== song.year
                   )
                 }
-                className={dirty.year ? "dark:border-indigo-500" : ""}
+                className={dirty.year ? "dark:border-accent/50" : ""}
               />
             </div>
 
@@ -387,7 +401,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.genre ?? "")
                   )
                 }
-                className={dirty.genre ? "dark:border-indigo-500" : ""}
+                className={dirty.genre ? "dark:border-accent/50" : ""}
               />
             </div>
           </div>
@@ -409,7 +423,7 @@ export function SongEditForm({
                         evt.currentTarget.value !== (song.track ?? "")
                       )
                     }
-                    className={dirty.track ? "dark:border-indigo-500" : ""}
+                    className={dirty.track ? "dark:border-accent/50" : ""}
                   />
                 </div>
                 <div className="text-muted-foreground flex justify-center align-middle">
@@ -426,9 +440,7 @@ export function SongEditForm({
                         evt.currentTarget.value !== (song.totalTracks ?? "")
                       )
                     }
-                    className={
-                      dirty.totalTracks ? "dark:border-indigo-500" : ""
-                    }
+                    className={dirty.totalTracks ? "dark:border-accent/50" : ""}
                   />
                 </div>
               </div>
@@ -446,7 +458,7 @@ export function SongEditForm({
                         evt.currentTarget.value !== (song.disc ?? "")
                       )
                     }
-                    className={dirty.disc ? "dark:border-indigo-500" : ""}
+                    className={dirty.disc ? "dark:border-accent/50" : ""}
                   />
                 </div>
                 <div className="text-muted-foreground flex justify-center align-middle">
@@ -463,7 +475,7 @@ export function SongEditForm({
                         evt.currentTarget.value !== (song.totalDiscs ?? "")
                       )
                     }
-                    className={dirty.totalDiscs ? "dark:border-indigo-500" : ""}
+                    className={dirty.totalDiscs ? "dark:border-accent/50" : ""}
                   />
                 </div>
               </div>
@@ -485,7 +497,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.composer ?? "")
                   )
                 }
-                className={dirty.composer ? "dark:border-indigo-500" : ""}
+                className={dirty.composer ? "dark:border-accent/50" : ""}
               />
             </div>
             <div>
@@ -499,7 +511,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.bpm ?? "")
                   )
                 }
-                className={dirty.bpm ? "dark:border-indigo-500" : ""}
+                className={dirty.bpm ? "dark:border-accent/50" : ""}
               />
             </div>
             <div>
@@ -513,7 +525,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.copyright ?? "")
                   )
                 }
-                className={dirty.copyright ? "dark:border-indigo-500" : ""}
+                className={dirty.copyright ? "dark:border-accent/50" : ""}
               />
             </div>
             <div>
@@ -527,7 +539,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.encodedBy ?? "")
                   )
                 }
-                className={dirty.encodedBy ? "dark:border-indigo-500" : ""}
+                className={dirty.encodedBy ? "dark:border-accent/50" : ""}
               />
             </div>
           </div>
@@ -547,7 +559,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.comment ?? "")
                   )
                 }
-                className={dirty.comment ? "dark:border-indigo-500" : ""}
+                className={dirty.comment ? "dark:border-accent/50" : ""}
               />
             </div>
             <div>
@@ -561,7 +573,7 @@ export function SongEditForm({
                     evt.currentTarget.value !== (song.lyrics ?? "")
                   )
                 }
-                className={dirty.lyrics ? "dark:border-indigo-500" : ""}
+                className={dirty.lyrics ? "dark:border-accent/50" : ""}
               />
             </div>
           </div>

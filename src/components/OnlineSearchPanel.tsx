@@ -15,15 +15,20 @@ export default function OnlineSearchPanel({
   song: Song;
   onSelect: (result: IOnlineMetadata) => void;
 }) {
+  //#region State
   const [query, setQuery] = useState(song.title + " " + song.artist);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<IOnlineMetadata[] | null>(null);
   const [selected, setSelected] = useState<IOnlineMetadata | null>(null);
+  //#endregion
 
+  //#region Helpers
   function coverFront(songResult: IOnlineMetadata): IPicture | undefined {
     return songResult.pictures?.find((p) => p.type == "FrontCover");
   }
+  //#endregion
 
+  //#region Interactivity handlers
   async function handleSearch(provider: MetadataProvider) {
     setLoading(true);
 
@@ -35,6 +40,7 @@ export default function OnlineSearchPanel({
     setSelected(null);
     setLoading(false);
   }
+  //#endregion
 
   return (
     <div className="flex flex-col h-full">
@@ -68,8 +74,8 @@ export default function OnlineSearchPanel({
               {results.map((r, idx) => (
                 <button
                   key={idx}
-                  className={`text-left p-3 border rounded-md hover:bg-muted ${
-                    selected === r ? "bg-muted" : ""
+                  className={`text-left p-3 border rounded-md hover:bg-accent/30 hover:border-accent/50 ${
+                    selected === r ? "bg-accent/10 border-accent/30" : ""
                   }`}
                   onClick={() => setSelected(r)}
                 >

@@ -1,5 +1,0 @@
-@container (min-width: 600px) {
-  .song-row {
-    grid-template-columns: 2fr 1fr 1fr;
-  }
-}

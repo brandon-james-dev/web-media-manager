@@ -29,10 +29,15 @@ import {
 import { SongEditForm } from "@/components/SongEditForm";
 
 export default function HomePage() {
+  //#region State
   const [directories, setDirectories] = useState<Directory[]>([]);
   const { songs } = useSongs();
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
+  const noDirectories = directories.length === 0;
+  //#endregion
+
+  //#region Global event handlers
   useEffect(() => {
     const store = getMetadataStore() as CombinedMetadataStore;
 
@@ -86,7 +91,9 @@ export default function HomePage() {
       unsubDone();
     };
   }, []);
+  //#endregion
 
+  //#region Helpers
   async function refresh() {
     const store = getMetadataStore() as CombinedMetadataStore;
     // For some reason the directory added event comes too early
@@ -94,7 +101,9 @@ export default function HomePage() {
     const dirs = await store.getDirectories();
     setDirectories(dirs);
   }
+  //#endregion
 
+  //#region Interactivity handlers
   async function handlePickDirectory() {
     if (!isApiSupported) {
       throw new Error("File System Access API not supported.");
@@ -115,7 +124,7 @@ export default function HomePage() {
     refresh();
   }
 
-  async function onSongUpdate(updates: Partial<Song>): Promise<void> {
+  async function handleSongUpdate(updates: Partial<Song>): Promise<void> {
     if (!selectedSong) return;
     await applySongEdits(selectedSong, updates);
     backgroundService.enqueue({
@@ -135,8 +144,7 @@ export default function HomePage() {
     });
     setSelectedSong(null);
   }
-
-  const noDirectories = directories.length === 0;
+  //#endregion
 
   return (
     <div className="h-full w-full flex flex-col">
@@ -172,7 +180,7 @@ export default function HomePage() {
                 <SongEditForm
                   formId="song-edit-form"
                   song={selectedSong}
-                  onFormSubmit={onSongUpdate}
+                  onFormSubmit={handleSongUpdate}
                 />
               </div>
             </>

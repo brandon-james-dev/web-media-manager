@@ -8,16 +8,22 @@ import {
 export function ThemeProvider({
   children,
   defaultTheme = "system",
-  storageKey = "vite-ui-theme",
+  defaultAccentColor = "#3b82f6",
+  storageKey = "ui-theme",
+  accentStorageKey = "ui-accent",
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   );
 
-  useEffect(() => {
-    const root = window.document.documentElement;
+  const [accentColor, setAccentColorState] = useState<string>(
+    () => localStorage.getItem(accentStorageKey) || defaultAccentColor
+  );
 
+  // Apply theme (existing behavior)
+  useEffect(() => {
+    const root = document.documentElement;
     root.classList.remove("light", "dark");
 
     if (theme === "system") {
@@ -25,7 +31,6 @@ export function ThemeProvider({
         .matches
         ? "dark"
         : "light";
-
       root.classList.add(systemTheme);
       return;
     }
@@ -33,12 +38,25 @@ export function ThemeProvider({
     root.classList.add(theme);
   }, [theme]);
 
+  // Apply accent color
+  useEffect(() => {
+    document.documentElement.style.setProperty("--accent", accentColor);
+  }, [accentColor]);
+
+  const setAccentColor = (color: string) => {
+    localStorage.setItem(accentStorageKey, color);
+    setAccentColorState(color);
+  };
+
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: (t: Theme) => {
+      localStorage.setItem(storageKey, t);
+      setTheme(t);
     },
+
+    accentColor,
+    setAccentColor,
   };
 
   const Context = ThemeProviderContext;

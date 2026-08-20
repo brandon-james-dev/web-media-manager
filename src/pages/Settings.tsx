@@ -33,19 +33,22 @@ import { clearDb, getMetadataStore } from "@/lib";
 import type { Directory } from "@/models";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
 import { toast } from "@/components/ui/toast";
+import { AccentColorSelector } from "@/components/theme-provider";
 
 export default function Settings() {
-  const { setTheme, theme } = useTheme();
-
+  //#region State
+  const { setTheme, theme, accentColor, setAccentColor } = useTheme();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-
   const [directories, setDirectories] = useState<Directory[]>([]);
   const [settings, setSettings] = useState({
     theme: theme || "system",
+    accentColor: accentColor || "#3b82f6",
   });
+  //#endregion
 
+  //#region Global event listeners
   useEffect(() => {
     const store = getMetadataStore() as CombinedMetadataStore;
     store.getDirectories().then(setDirectories);
@@ -58,7 +61,9 @@ export default function Settings() {
       unsubDirCleared();
     };
   }, []);
+  //#endregion
 
+  //#region Helpers
   async function refresh(dir?: Directory) {
     const store = getMetadataStore() as CombinedMetadataStore;
     const all = await store.getDirectories();
@@ -69,27 +74,9 @@ export default function Settings() {
       setDirectories(all);
     }
   }
+  //#endregion
 
-  const clearSongs = async () => {
-    await clearDb();
-    await refresh();
-    setClearSongsDialogOpen(false);
-    toast.add({
-      type: "success",
-      title: "All songs cleared from the database",
-    });
-  };
-
-  const deleteDirectory = async () => {
-    if (!pendingDeleteId) return;
-
-    const store = getMetadataStore() as CombinedMetadataStore;
-    await store.deleteDirectory(pendingDeleteId);
-
-    setPendingDeleteId(null);
-    setDeleteDirDialogOpen(false);
-  };
-
+  //#region Getters
   const getUserThemePreference = (): "dark" | "light" => {
     if (
       typeof window === "undefined" ||
@@ -109,18 +96,43 @@ export default function Settings() {
   const showMoon = () =>
     settings.theme === "dark" ||
     (settings.theme === "system" && getUserThemePreference() === "dark");
+  //#endregion
 
+  //#region Interactivity handlers
   const handleChange = (field: string, value: string | boolean) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = () => {
     setTheme(settings.theme as "light" | "dark" | "system");
+    setAccentColor(settings.accentColor);
+
     toast.add({
       type: "success",
       title: "Settings saved",
     });
   };
+
+  const handleClearSongs = async () => {
+    await clearDb();
+    await refresh();
+    setClearSongsDialogOpen(false);
+    toast.add({
+      type: "success",
+      title: "All songs cleared from the database",
+    });
+  };
+
+  const handleDeleteDirectory = async () => {
+    if (!pendingDeleteId) return;
+
+    const store = getMetadataStore() as CombinedMetadataStore;
+    await store.deleteDirectory(pendingDeleteId);
+
+    setPendingDeleteId(null);
+    setDeleteDirDialogOpen(false);
+  };
+  //#endregion
 
   return (
     <div className="max-w-2xl mx-auto p-8 space-y-8 select-none">
@@ -174,6 +186,20 @@ export default function Settings() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label>Accent Color</Label>
+          </div>
+
+          <AccentColorSelector
+            value={settings.accentColor}
+            onChange={(color) => handleChange("accentColor", color)}
+          />
+
+          <div>
+            <Button onClick={handleSave} className="w-full">
+              Save Settings
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -237,7 +263,7 @@ export default function Settings() {
                   render={<Button variant="outline">Cancel</Button>}
                 ></DialogClose>
 
-                <Button variant="destructive" onClick={deleteDirectory}>
+                <Button variant="destructive" onClick={handleDeleteDirectory}>
                   Remove Directory
                 </Button>
               </DialogFooter>
@@ -271,7 +297,7 @@ export default function Settings() {
                   <DialogClose
                     render={<Button variant="outline">Cancel</Button>}
                   ></DialogClose>
-                  <Button variant="destructive" onClick={clearSongs}>
+                  <Button variant="destructive" onClick={handleClearSongs}>
                     Clear
                   </Button>
                 </DialogFooter>
@@ -280,10 +306,6 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
-
-      <Button onClick={handleSave} className="w-full">
-        Save Settings
-      </Button>
     </div>
   );
 }

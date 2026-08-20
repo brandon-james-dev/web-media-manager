@@ -3,5 +3,11 @@ import {
   ThemeProviderContext,
 } from "./theme-provider-props";
 import { ThemeProvider } from "./theme-provider";
+import { AccentColorSelector } from "./AccentColorSelector";
 
-export { ThemeProvider, ThemeProviderContext, type ThemeProviderProps };
+export {
+  AccentColorSelector,
+  ThemeProvider,
+  ThemeProviderContext,
+  type ThemeProviderProps,
+};
