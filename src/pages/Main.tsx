@@ -14,7 +14,7 @@ import type { Directory, Song } from "@/models";
 import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import { backgroundService } from "@/lib/background-jobs";
 import { uuidv7 } from "uuidv7";
-import { SongTable } from "@/components/SongTable";
+import { SongTable } from "@/components/song-table/SongTable";
 import { useSongs } from "@/providers";
 import { toast } from "@/components/ui/toast";
 import { Progress } from "@/components/ui/progress";
@@ -28,14 +28,18 @@ import {
 } from "@/components/ui/drawer";
 import { SongEditForm } from "@/components/SongEditForm";
 import { Input } from "@/components/ui/input";
-import type { QueryOptions } from "@/lib/store/QueryOptions";
+import { selectors, type QueryOptions, type SortableColumn } from "@/lib/store";
 
-export default function HomePage() {
+export default function Main() {
   //#region State
   const [directories, setDirectories] = useState<Directory[]>([]);
   const [queryText, setQueryText] = useState<string>("");
-  const { songs, query, setQuery } = useSongs();
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [sort, setSort] = useState<{
+    selector: (item: Song) => any;
+    desc: boolean;
+  }>();
+  const { songs, query, setQuery } = useSongs();
 
   const noDirectories = directories.length === 0;
   //#endregion
@@ -156,15 +160,36 @@ export default function HomePage() {
 
     const textQuery = {
       ...query,
-      sort: {
-        selector: (song: Song) => song.title,
-        desc: false,
-      },
+      sort,
       filter: (song: Song) =>
-        song.title?.toLowerCase().includes(text.toLowerCase()),
+        song.title?.toLowerCase().includes(text.toLowerCase()) ||
+        song.album?.toLowerCase().includes(text.toLowerCase()) ||
+        song.artist?.toLowerCase().includes(text.toLowerCase()),
     } as QueryOptions<Song>;
 
     setQuery(textQuery);
+  }
+
+  function handleSort(column: SortableColumn) {
+    const selector = selectors[column];
+
+    const isSame = sort?.selector === selector;
+    const nextSort = {
+      selector,
+      desc: isSame ? !sort?.desc : false,
+    };
+
+    setSort(nextSort);
+
+    const nextQuery: QueryOptions<Song> = {
+      ...query,
+      sort: nextSort,
+      filter: query.filter,
+      skip: 0,
+      page: 0,
+    };
+
+    setQuery(nextQuery);
   }
   //#endregion
 
@@ -187,16 +212,28 @@ export default function HomePage() {
       )}
 
       {!noDirectories && (
-        <>
-          <div className="p-4">
-            <Input
-              placeholder="Filter by title…"
-              value={queryText}
-              onChange={handleFilterTextChange}
+        <div className="flex flex-col h-full">
+          <div className="flex justify-center p-4">
+            <div className="w-full md:w-120">
+              <Input
+                placeholder="Filter…"
+                value={queryText}
+                onChange={handleFilterTextChange}
+                autoComplete="false"
+                autoCorrect="false"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <SongTable
+              songs={songs}
+              onSelect={setSelectedSong}
+              onSort={handleSort}
+              sort={sort}
             />
           </div>
-          <SongTable songs={songs} onSelect={setSelectedSong} />
-        </>
+        </div>
       )}
       <Drawer open={!!selectedSong} onOpenChange={() => setSelectedSong(null)}>
         <DrawerContent className="p-6">
