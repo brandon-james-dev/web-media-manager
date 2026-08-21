@@ -312,6 +312,7 @@ export function SongEditForm({
               <Input
                 name="title"
                 defaultValue={song.title}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "title",
@@ -331,6 +332,7 @@ export function SongEditForm({
               <Input
                 name="artist"
                 defaultValue={song.artist}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "artist",
@@ -350,6 +352,7 @@ export function SongEditForm({
               <Input
                 name="album"
                 defaultValue={song.album}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "album",
@@ -365,6 +368,7 @@ export function SongEditForm({
               <Input
                 name="albumArtist"
                 defaultValue={song.albumArtist ?? ""}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "albumArtist",
@@ -380,6 +384,7 @@ export function SongEditForm({
               <Input
                 name="year"
                 defaultValue={song.year}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "year",
@@ -395,6 +400,7 @@ export function SongEditForm({
               <Input
                 name="genre"
                 defaultValue={song.genre ?? ""}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "genre",
@@ -417,6 +423,7 @@ export function SongEditForm({
                   <Input
                     name="track"
                     defaultValue={song.track}
+                    autoComplete="off"
                     onChange={(evt) =>
                       markDirty(
                         "track",
@@ -434,6 +441,7 @@ export function SongEditForm({
                   <Input
                     name="totalTracks"
                     defaultValue={song.totalTracks}
+                    autoComplete="off"
                     onChange={(evt) =>
                       markDirty(
                         "totalTracks",
@@ -452,6 +460,7 @@ export function SongEditForm({
                   <Input
                     name="disc"
                     defaultValue={song.disc}
+                    autoComplete="off"
                     onChange={(evt) =>
                       markDirty(
                         "disc",
@@ -469,6 +478,7 @@ export function SongEditForm({
                   <Input
                     name="totalDiscs"
                     defaultValue={song.totalDiscs}
+                    autoComplete="off"
                     onChange={(evt) =>
                       markDirty(
                         "totalDiscs",
@@ -491,6 +501,7 @@ export function SongEditForm({
               <Input
                 name="composer"
                 defaultValue={song.composer ?? ""}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "composer",
@@ -505,6 +516,7 @@ export function SongEditForm({
               <Input
                 name="bpm"
                 defaultValue={song.bpm ?? ""}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "album",
@@ -519,6 +531,7 @@ export function SongEditForm({
               <Input
                 name="copyright"
                 defaultValue={song.copyright ?? ""}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "copyright",
@@ -533,6 +546,7 @@ export function SongEditForm({
               <Input
                 name="encodedBy"
                 defaultValue={song.encodedBy ?? ""}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "encodedBy",
@@ -553,6 +567,7 @@ export function SongEditForm({
               <Textarea
                 name="comment"
                 defaultValue={song.comment ?? ""}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "comment",
@@ -567,6 +582,7 @@ export function SongEditForm({
               <Textarea
                 name="lyrics"
                 defaultValue={song.lyrics ?? ""}
+                autoComplete="off"
                 onChange={(evt) =>
                   markDirty(
                     "lyrics",

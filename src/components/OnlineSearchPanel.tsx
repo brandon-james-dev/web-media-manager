@@ -48,6 +48,7 @@ export default function OnlineSearchPanel({
         <div className="lg:w-4xl mx-auto flex gap-2 my-2">
           <Input
             value={query}
+            autoComplete="off"
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search online…"
           />
