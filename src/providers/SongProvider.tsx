@@ -2,13 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { isValidAudioFile } from "taglib-wasm";
 import useFileSystemAccess from "use-fs-access";
 import type { FileOrDirectoryInfo } from "use-fs-access/core";
+import { readSongFile } from "@/lib";
 import { getMetadataStore } from "@/lib/file-utils";
 import { backgroundService } from "@/lib/background-jobs";
-import type { Directory, Song } from "@/models";
-import { SongContext } from "@/hooks";
-import { readSongFile } from "@/lib";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { getPersistedRootDirectories } from "@/lib/dexie-utils";
+import type { QueryOptions } from "@/lib/store";
+import type { Directory, Song } from "@/models";
+import { SongContext } from "@/hooks";
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
   //#region State
@@ -17,7 +18,9 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   const [filtered, setFiltered] = useState<number>(0);
   const [page, setPage] = useState<number | undefined>();
   const [skip, setSkip] = useState<number | undefined>();
-  const [query, setQuery] = useState({});
+  const [query, setQuery] = useState<QueryOptions<Song>>({
+    sort: { selector: (song: Song) => song.title, desc: false },
+  });
   const lastProgressTime = useRef<number>(Date.now());
   const refreshTimeout = useRef<number | null>(null);
   //#endregion

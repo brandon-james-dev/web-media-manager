@@ -62,7 +62,7 @@ export default function OnlineSearchPanel({
           </Button>
         </div>
       </div>
-      <div className="flex-1 pt-2">
+      <div className="flex-1 py-2">
         {loading && (
           <div className="text-center space-y-2">
             <Loader2 className="inline-block animate-spin" /> Searching…

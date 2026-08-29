@@ -4,7 +4,19 @@ import type { SongTableProps } from "./SongTableProps";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 export function SongTable(props: SongTableProps) {
-  const { songs, sort, onSelect, onSort } = props;
+  const { songs, sort, onSelect, onSort, selectedSongs } = props;
+  const selectedSongIds = selectedSongs.map((s) => s.id);
+
+  const sortableColumns: [SortableColumn, string][] = [
+    ["title", "Title"],
+    ["artist", "Artist"],
+    ["album", "Album"],
+    ["track", "Track"],
+    ["genre", "Genre"],
+    ["year", "Year"],
+  ];
+
+  const sortableColumnKeys = sortableColumns.map((key) => key);
 
   if (songs.length === 0) {
     return (
@@ -19,15 +31,7 @@ export function SongTable(props: SongTableProps) {
       <table className="w-full border-collapse text-sm select-none">
         <thead className="sticky top-0 bg-background z-10">
           <tr className="border-b">
-            {(
-              [
-                ["title", "Title"],
-                ["artist", "Artist"],
-                ["album", "Album"],
-                ["track", "Track"],
-                ["year", "Year"],
-              ] as [SortableColumn, string][]
-            ).map(([key, label]) => {
+            {sortableColumns.map(([key, label]) => {
               const isActive = sort?.selector === selectors[key];
               const Icon = isActive
                 ? sort?.desc
@@ -56,7 +60,13 @@ export function SongTable(props: SongTableProps) {
 
         <tbody className="font-light">
           {songs.map((song) => (
-            <SongRow key={song.id} song={song} onSelect={onSelect} />
+            <SongRow
+              key={song.id}
+              columns={sortableColumnKeys}
+              song={song}
+              onSelect={onSelect}
+              isSelected={selectedSongIds.includes(song.id)}
+            />
           ))}
         </tbody>
       </table>

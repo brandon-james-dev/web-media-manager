@@ -100,10 +100,10 @@ export async function runArtworkProcess(
 
     if (isCancelled()) return { cancelled: true };
 
-    // Full-size (2160x2160)
-    const fullCanvas = new OffscreenCanvas(2160, 2160);
+    // Full-size (1000x1000)
+    const fullCanvas = new OffscreenCanvas(1000, 1000);
     const fullCtx = fullCanvas.getContext("2d")!;
-    fullCtx.drawImage(bitmap, 0, 0, 2160, 2160);
+    fullCtx.drawImage(bitmap, 0, 0, 1000, 1000);
     const fullBlob = await fullCanvas.convertToBlob({
       type: "image/jpeg",
       quality: 0.9,

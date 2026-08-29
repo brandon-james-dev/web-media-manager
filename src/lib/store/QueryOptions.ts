@@ -18,6 +18,7 @@ export const selectors = {
   artist: (s: Song) => s.artist,
   album: (s: Song) => s.album,
   track: (s: Song) => s.track,
+  genre: (s: Song) => s.genre,
   year: (s: Song) => s.year,
 } as const;
 

@@ -6,22 +6,15 @@ import { ArtworkType } from "@/lib/metadata-utils";
 import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
 import type { Song } from "@/models";
 import { useRef, useState } from "react";
-import OnlineSearchPanel from "./OnlineSearchPanel";
-import { Button } from "./ui/button";
+import OnlineSearchPanel from "../OnlineSearchPanel";
+import { Button } from "../ui/button";
 import { Eraser, Globe, Pen, Save } from "lucide-react";
 import { useArtwork } from "@/hooks";
+import type { SongEditFormProps } from "./SongEditFormProps";
 
-export function SongEditForm({
-  song,
-  onFormSubmit,
-  formId,
-}: {
-  song: Song;
-  onFormSubmit: (updates: Partial<Song>) => void;
-  selectedMetadata?: IOnlineMetadata | null;
-  formId?: string;
-}) {
+export function SongEditForm(props: SongEditFormProps) {
   //#region State
+  const { song, formId, onFormSubmit } = props;
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
   const [showSearch, setShowSearch] = useState(false);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
@@ -200,7 +193,7 @@ export function SongEditForm({
         <Button
           variant="secondary"
           type="reset"
-          form="song-edit-form"
+          form={formId || "song-edit-form"}
           onClick={handleResetForm}
           className={
             Object.values(dirty).some((v) => v) ? "border-accent/50" : ""
@@ -213,7 +206,7 @@ export function SongEditForm({
         <Button
           type="submit"
           className="bg-accent/50 hover:bg-accent text-white"
-          form="song-edit-form"
+          form={formId || "song-edit-form"}
           disabled={!Object.values(dirty).some((v) => v)}
         >
           <Save /> Save Changes
@@ -232,9 +225,9 @@ export function SongEditForm({
       </div>
 
       <form
-        id={formId}
+        id={formId || "song-edit-form"}
         ref={formRef}
-        className="lg:w-4xl mx-auto flex-1 flex flex-col gap-4"
+        className="lg:w-4xl mx-auto pt-4 flex-1 flex flex-col gap-4"
         onSubmit={handleEditSubmit}
       >
         <section>

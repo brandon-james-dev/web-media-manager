@@ -1,24 +1,25 @@
 import "./Main.css";
 
 import { useEffect, useState, type ChangeEvent } from "react";
+import { uuidv7 } from "uuidv7";
+import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Music,
+  PencilRuler,
+  Plus,
+  Save,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Music, Plus } from "lucide-react";
-import {
-  addPersistedStoreDirectory,
-  applySongEdits,
-  getMetadataStore,
-} from "@/lib";
-import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
-import type { Directory, Song } from "@/models";
-import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
-import { backgroundService } from "@/lib/background-jobs";
-import { uuidv7 } from "uuidv7";
-import { SongTable } from "@/components/song-table/SongTable";
-import { useSongs } from "@/providers";
 import { toast } from "@/components/ui/toast";
 import { Progress } from "@/components/ui/progress";
-import type { WorkerProgress } from "@/workers";
+import { Input } from "@/components/ui/input";
+import { SongEditForm } from "@/components/song-edit-form/SongEditForm";
+import { QuickEditForm } from "@/components/quick-edit-form/QuickEditForm";
+import { SongTable } from "@/components/song-table/SongTable";
 import {
   Drawer,
   DrawerContent,
@@ -26,15 +27,26 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { SongEditForm } from "@/components/SongEditForm";
-import { Input } from "@/components/ui/input";
+import {
+  addPersistedStoreDirectory,
+  applySongEdits,
+  getMetadataStore,
+} from "@/lib";
+import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
+import { backgroundService } from "@/lib/background-jobs";
 import { selectors, type QueryOptions, type SortableColumn } from "@/lib/store";
+import { useSongs } from "@/providers";
+import type { WorkerProgress } from "@/workers";
+import type { Directory, Song } from "@/models";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export default function Main() {
   //#region State
   const [directories, setDirectories] = useState<Directory[]>([]);
   const [queryText, setQueryText] = useState<string>("");
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
+  const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
+  const [isMultiEdit, setIsMultiEdit] = useState<boolean>(false);
   const [sort, setSort] = useState<{
     selector: (item: Song) => any;
     desc: boolean;
@@ -132,7 +144,8 @@ export default function Main() {
   }
 
   async function handleSongUpdate(updates: Partial<Song>): Promise<void> {
-    if (!selectedSong) return;
+    if (!selectedSongs) return;
+    const selectedSong = selectedSongs[0];
     await applySongEdits(selectedSong, updates);
     backgroundService.enqueue({
       id: uuidv7(),
@@ -149,7 +162,8 @@ export default function Main() {
       type: "success",
       title: `"${selectedSong.title}" was updated`,
     });
-    setSelectedSong(null);
+    setSelectedSongs([]);
+    setIsFormVisible(false);
   }
 
   function handleFilterTextChange(
@@ -191,6 +205,68 @@ export default function Main() {
 
     setQuery(nextQuery);
   }
+
+  function handleSongSelected(song: Song) {
+    setSelectedSongs((prev) => {
+      const exists = prev.some((s) => s.id == song.id);
+
+      if (!isMultiEdit) {
+        return exists ? [] : [song];
+      }
+
+      if (exists) {
+        return prev.filter((s) => s.id != song.id);
+      }
+
+      return [...prev, song];
+    });
+  }
+
+  async function handleApply(updates: Partial<Song>) {
+    for (const song of selectedSongs) {
+      await applySongEdits(song, updates);
+    }
+    setSelectedSongs([]);
+    toast.add({
+      type: "success",
+      title: `Updated ${selectedSongs.length} songs`,
+    });
+  }
+
+  function isPrevButtonDisabled() {
+    const selectedSong = selectedSongs[0];
+    const selectedSongIndex = songs.findIndex((s) => s.id === selectedSong.id);
+
+    return selectedSongIndex === 0;
+  }
+
+  function isNextButtonDisabled() {
+    const selectedSong = selectedSongs[0];
+    const selectedSongIndex = songs.findIndex((s) => s.id === selectedSong.id);
+
+    return selectedSongIndex === songs.length - 1;
+  }
+
+  function handlePrevClick() {
+    const selectedSong = selectedSongs[0];
+    const selectedSongIndex = songs.findIndex((s) => s.id === selectedSong.id);
+
+    if (selectedSongIndex === -1) return;
+
+    const prevIndex = Math.max(0, selectedSongIndex - 1);
+    setSelectedSongs([songs[prevIndex]]);
+  }
+
+  function handleNextClick() {
+    const selectedSong = selectedSongs[0];
+    const selectedSongIndex = songs.findIndex((s) => s.id === selectedSong.id);
+
+    if (selectedSongIndex === -1) return;
+
+    const nextIndex = Math.min(songs.length - 1, selectedSongIndex + 1);
+    setSelectedSongs([songs[nextIndex]]);
+  }
+
   //#endregion
 
   return (
@@ -210,9 +286,8 @@ export default function Main() {
           </Card>
         </div>
       )}
-
       {!noDirectories && (
-        <div className="flex flex-col h-full">
+        <>
           <div className="flex justify-center p-4">
             <div className="w-full md:w-120">
               <Input
@@ -225,38 +300,109 @@ export default function Main() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
             <SongTable
               songs={songs}
-              onSelect={setSelectedSong}
+              selectedSongs={selectedSongs}
+              onSelect={handleSongSelected}
               onSort={handleSort}
               sort={sort}
+            />
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </>
+      )}
+      {selectedSongs.length > 0 && !isFormVisible && (
+        <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">
+          <div className="max-w-240 mx-auto w-full">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <h3 className="font-medium">Quick Edit</h3>
+
+                {!isMultiEdit && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handlePrevClick}
+                      disabled={isPrevButtonDisabled()}
+                    >
+                      <ChevronLeft />
+                      Prev
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleNextClick}
+                      disabled={isNextButtonDisabled()}
+                    >
+                      Next
+                      <ChevronRight />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => setIsFormVisible(true)}
+                  disabled={isMultiEdit}
+                >
+                  <PencilRuler />
+                  Advanced Edit
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="default"
+                  type="submit"
+                  form="quick-edit-form"
+                  className="bg-accent hover:bg-accent/70 text-white"
+                >
+                  <Save />
+                  Save
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedSongs([])}
+                >
+                  <X />
+                  Close
+                </Button>
+              </div>
+            </div>
+
+            <QuickEditForm
+              formId="quick-edit-form"
+              songs={songs.filter((s) => selectedSongs.includes(s))}
+              onApply={handleApply}
             />
           </div>
         </div>
       )}
-      <Drawer open={!!selectedSong} onOpenChange={() => setSelectedSong(null)}>
-        <DrawerContent className="p-6">
-          {selectedSong && (
-            <>
-              <DrawerHeader className="select-none">
-                <DrawerTitle>{selectedSong.filename}</DrawerTitle>
-                <DrawerDescription>
-                  Update the metadata for the selected song
-                </DrawerDescription>
-              </DrawerHeader>
 
-              <div className="p-6 overflow-y-auto">
-                <SongEditForm
-                  formId="song-edit-form"
-                  song={selectedSong}
-                  onFormSubmit={handleSongUpdate}
-                />
-              </div>
-            </>
-          )}
-        </DrawerContent>
-      </Drawer>
+      {selectedSongs.length === 1 && (
+        <Drawer open={!!isFormVisible} onOpenChange={setIsFormVisible}>
+          <DrawerContent className="p-6">
+            <DrawerHeader className="select-none">
+              <DrawerTitle>{selectedSongs[0].filename}</DrawerTitle>
+              <DrawerDescription>
+                Update the metadata for the selected song
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <div className="overflow-y-auto">
+              <SongEditForm
+                song={selectedSongs[0]}
+                onFormSubmit={handleSongUpdate}
+              />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }
