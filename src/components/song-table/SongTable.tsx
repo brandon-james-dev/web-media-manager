@@ -4,8 +4,7 @@ import type { SongTableProps } from "./SongTableProps";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 export function SongTable(props: SongTableProps) {
-  const { songs, sort, onSelect, onSort, selectedSongs } = props;
-  const selectedSongIds = selectedSongs.map((s) => s.id);
+  const { songs, sort, onSelect, onSort, selectedSongIds } = props;
 
   const sortableColumns: [SortableColumn, string][] = [
     ["title", "Title"],

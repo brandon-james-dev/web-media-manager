@@ -39,12 +39,14 @@ import { useSongs } from "@/providers";
 import type { WorkerProgress } from "@/workers";
 import type { Directory, Song } from "@/models";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export default function Main() {
   //#region State
   const [directories, setDirectories] = useState<Directory[]>([]);
   const [queryText, setQueryText] = useState<string>("");
-  const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
+  const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
   const [isMultiEdit, setIsMultiEdit] = useState<boolean>(false);
   const [sort, setSort] = useState<{
@@ -52,6 +54,7 @@ export default function Main() {
     desc: boolean;
   }>();
   const { songs, query, setQuery } = useSongs();
+  const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
 
   const noDirectories = directories.length === 0;
   //#endregion
@@ -144,8 +147,8 @@ export default function Main() {
   }
 
   async function handleSongUpdate(updates: Partial<Song>): Promise<void> {
-    if (!selectedSongs) return;
-    const selectedSong = selectedSongs[0];
+    if (!selectedSongIds) return;
+    const selectedSong = songs.filter((s) => selectedSongIds.includes(s.id))[0];
     await applySongEdits(selectedSong, updates);
     backgroundService.enqueue({
       id: uuidv7(),
@@ -162,7 +165,7 @@ export default function Main() {
       type: "success",
       title: `"${selectedSong.title}" was updated`,
     });
-    setSelectedSongs([]);
+    setSelectedSongIds([]);
     setIsFormVisible(false);
   }
 
@@ -206,27 +209,31 @@ export default function Main() {
     setQuery(nextQuery);
   }
 
-  function handleSongSelected(song: Song) {
-    setSelectedSongs((prev) => {
-      const exists = prev.some((s) => s.id == song.id);
+  function handleSongSelected(songId: string) {
+    setSelectedSongIds((prev) => {
+      const exists = prev.some((s) => s == songId);
 
       if (!isMultiEdit) {
-        return exists ? [] : [song];
+        return exists ? [] : [songId];
       }
 
       if (exists) {
-        return prev.filter((s) => s.id != song.id);
+        return prev.filter((s) => s != songId);
       }
 
-      return [...prev, song];
+      return [...prev, songId];
     });
   }
 
   async function handleApply(updates: Partial<Song>) {
+    const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
+
     for (const song of selectedSongs) {
       await applySongEdits(song, updates);
     }
-    setSelectedSongs([]);
+
+    setSelectedSongIds([]);
+
     toast.add({
       type: "success",
       title: `Updated ${selectedSongs.length} songs`,
@@ -234,37 +241,46 @@ export default function Main() {
   }
 
   function isPrevButtonDisabled() {
-    const selectedSong = selectedSongs[0];
-    const selectedSongIndex = songs.findIndex((s) => s.id === selectedSong.id);
-
+    const selectedSongIndex = songs.findIndex(
+      (s) => s.id === selectedSongIds[0]
+    );
     return selectedSongIndex === 0;
   }
 
   function isNextButtonDisabled() {
-    const selectedSong = selectedSongs[0];
-    const selectedSongIndex = songs.findIndex((s) => s.id === selectedSong.id);
-
+    const selectedSongIndex = songs.findIndex(
+      (s) => s.id === selectedSongIds[0]
+    );
     return selectedSongIndex === songs.length - 1;
   }
 
   function handlePrevClick() {
-    const selectedSong = selectedSongs[0];
-    const selectedSongIndex = songs.findIndex((s) => s.id === selectedSong.id);
+    const selectedSongIndex = songs.findIndex(
+      (s) => s.id === selectedSongIds[0]
+    );
 
     if (selectedSongIndex === -1) return;
 
     const prevIndex = Math.max(0, selectedSongIndex - 1);
-    setSelectedSongs([songs[prevIndex]]);
+    setSelectedSongIds([songs[prevIndex]].map((s) => s.id));
   }
 
   function handleNextClick() {
-    const selectedSong = selectedSongs[0];
-    const selectedSongIndex = songs.findIndex((s) => s.id === selectedSong.id);
+    const selectedSongIndex = songs.findIndex(
+      (s) => s.id === selectedSongIds[0]
+    );
 
     if (selectedSongIndex === -1) return;
 
     const nextIndex = Math.min(songs.length - 1, selectedSongIndex + 1);
-    setSelectedSongs([songs[nextIndex]]);
+    setSelectedSongIds([songs[nextIndex]].map((s) => s.id));
+  }
+
+  function handleEditMultipleChecked(checked: boolean) {
+    if (selectedSongIds.length > 1) {
+      setSelectedSongIds([]);
+    }
+    setIsMultiEdit(checked);
   }
 
   //#endregion
@@ -303,7 +319,7 @@ export default function Main() {
           <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
             <SongTable
               songs={songs}
-              selectedSongs={selectedSongs}
+              selectedSongIds={selectedSongIds}
               onSelect={handleSongSelected}
               onSort={handleSort}
               sort={sort}
@@ -312,7 +328,7 @@ export default function Main() {
           </ScrollArea>
         </>
       )}
-      {selectedSongs.length > 0 && !isFormVisible && (
+      {selectedSongIds.length > 0 && !isFormVisible && (
         <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">
           <div className="max-w-240 mx-auto w-full">
             <div className="flex items-center justify-between mb-3">
@@ -344,6 +360,15 @@ export default function Main() {
               </div>
 
               <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline">
+                  <Label htmlFor="is-multi-edit">
+                    <Checkbox
+                      id="is-multi-edit"
+                      onCheckedChange={handleEditMultipleChecked}
+                    />
+                    Edit Multiple
+                  </Label>
+                </Button>
                 <Button
                   size="sm"
                   onClick={() => setIsFormVisible(true)}
@@ -367,7 +392,7 @@ export default function Main() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setSelectedSongs([])}
+                  onClick={() => setSelectedSongIds([])}
                 >
                   <X />
                   Close
@@ -377,14 +402,14 @@ export default function Main() {
 
             <QuickEditForm
               formId="quick-edit-form"
-              songs={songs.filter((s) => selectedSongs.includes(s))}
+              songs={songs.filter((s) => selectedSongIds.includes(s.id))}
               onApply={handleApply}
             />
           </div>
         </div>
       )}
 
-      {selectedSongs.length === 1 && (
+      {selectedSongIds.length === 1 && (
         <Drawer open={!!isFormVisible} onOpenChange={setIsFormVisible}>
           <DrawerContent className="p-6">
             <DrawerHeader className="select-none">
