@@ -251,39 +251,39 @@ export default function Main() {
   }
 
   function isPrevButtonDisabled() {
-    const selectedSongIndex = songs.findIndex(
+    const selectedSongIndex = filteredSongs.findIndex(
       (s) => s.id === selectedSongIds[0]
     );
     return selectedSongIndex === 0;
   }
 
   function isNextButtonDisabled() {
-    const selectedSongIndex = songs.findIndex(
+    const selectedSongIndex = filteredSongs.findIndex(
       (s) => s.id === selectedSongIds[0]
     );
-    return selectedSongIndex === songs.length - 1;
+    return selectedSongIndex === filteredSongs.length - 1;
   }
 
   function handlePrevClick() {
-    const selectedSongIndex = songs.findIndex(
+    const selectedSongIndex = filteredSongs.findIndex(
       (s) => s.id === selectedSongIds[0]
     );
 
     if (selectedSongIndex === -1) return;
 
     const prevIndex = Math.max(0, selectedSongIndex - 1);
-    setSelectedSongIds([songs[prevIndex]].map((s) => s.id));
+    setSelectedSongIds([filteredSongs[prevIndex]].map((s) => s.id));
   }
 
   function handleNextClick() {
-    const selectedSongIndex = songs.findIndex(
+    const selectedSongIndex = filteredSongs.findIndex(
       (s) => s.id === selectedSongIds[0]
     );
 
     if (selectedSongIndex === -1) return;
 
-    const nextIndex = Math.min(songs.length - 1, selectedSongIndex + 1);
-    setSelectedSongIds([songs[nextIndex]].map((s) => s.id));
+    const nextIndex = Math.min(filteredSongs.length - 1, selectedSongIndex + 1);
+    setSelectedSongIds([filteredSongs[nextIndex]].map((s) => s.id));
   }
 
   function handleEditMultipleChecked(checked: boolean) {
