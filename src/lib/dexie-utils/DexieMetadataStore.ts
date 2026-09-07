@@ -66,55 +66,48 @@ export class DexieMetadataStore implements IMetadataStore {
     const table = this.db.songs;
 
     const total = await table.count();
-    let collection: Collection<Song>;
 
-    if (sort && typeof sort.selector === "string") {
-      collection = table.orderBy(sort.selector);
-      if (sort.desc) collection = collection.reverse();
-    } else {
-      let array = await table.toArray();
+    // Always go through array for case-insensitive sorting
+    let array = await table.toArray();
 
-      if (sort) {
-        const { selector, desc } = sort;
+    if (sort) {
+      const { selector, desc } = sort;
 
+      if (typeof selector === "string") {
         array.sort((a, b) => {
-          const av = selector(a);
-          const bv = selector(b);
-          if (av < bv) return desc ? 1 : -1;
-          if (av > bv) return desc ? -1 : 1;
-          return 0;
+          const av = String(a[selector]).localeCompare(
+            String(b[selector]),
+            undefined,
+            {
+              sensitivity: "accent",
+            }
+          );
+
+          return desc ? -av : av;
+        });
+      } else {
+        array.sort((a, b) => {
+          const av = String(selector(a)).localeCompare(
+            String(selector(b)),
+            undefined,
+            {
+              sensitivity: "accent",
+            }
+          );
+
+          return desc ? -av : av;
         });
       }
-
-      if (filter) {
-        array = array.filter(filter);
-      }
-
-      const filteredCount = array.length;
-
-      const start = skip ?? 0;
-      const data = array.slice(start);
-
-      return {
-        data,
-        total,
-        filteredCount,
-        page,
-        skip,
-      };
     }
 
     if (filter) {
-      collection = collection.filter(filter);
+      array = array.filter(filter);
     }
 
-    const filteredCount = await collection.count();
+    const filteredCount = array.length;
 
-    if (typeof skip === "number") {
-      collection = collection.offset(skip);
-    }
-
-    const data = await collection.toArray();
+    const start = skip ?? 0;
+    const data = array.slice(start);
 
     return {
       data,

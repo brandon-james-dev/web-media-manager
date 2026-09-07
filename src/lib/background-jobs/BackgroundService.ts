@@ -1,3 +1,4 @@
+import { uuidv7 } from "uuidv7";
 import { eventBus, type BackgroundJob } from "./eventBus";
 import { getWorkerPool, WorkerPool } from "@/workers";
 
@@ -28,8 +29,12 @@ export class BackgroundService {
     });
   }
 
-  enqueue(job: BackgroundJob) {
-    this.queue.push(job);
+  enqueue(job: Omit<BackgroundJob, "id" | "state">) {
+    this.queue.push({
+      id: uuidv7(),
+      state: "pending",
+      ...job,
+    });
     this.runNext();
   }
 

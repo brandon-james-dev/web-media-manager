@@ -1,4 +1,4 @@
-import { applySongEdits, initMetadataStore } from "@/lib";
+import { applySongEdits } from "@/lib";
 import { loadSongMetadata } from "@/lib/loadSongMetadata";
 import type { ITagData } from "@/lib/metadata-utils";
 import type { Song } from "@/models/Song";
@@ -11,29 +11,23 @@ export async function runBulkEdit(
   reportProgress: (p: any) => void
 ) {
   const { songIds, edits } = payload;
-  initMetadataStore();
 
   const total = songIds.length;
   let processed = 0;
-  const results: Song[] = [];
 
   for (const id of songIds) {
     let metadata: Song | null = null;
 
     try {
       metadata = await loadSongMetadata(id);
-      if (!metadata) return;
+      if (!metadata) continue;
     } catch {
       continue;
     }
 
-    const updated = { ...metadata, ...edits } as Song;
-
-    results.push(updated);
+    await applySongEdits(metadata, edits);
 
     processed++;
-
-    await applySongEdits(metadata, edits);
 
     reportProgress({
       processed,
@@ -42,5 +36,5 @@ export async function runBulkEdit(
     });
   }
 
-  return { processed, results };
+  return { processed };
 }

@@ -137,9 +137,7 @@ export default function Main() {
     addPersistedStoreDirectory(dirHandle);
 
     backgroundService.enqueue({
-      id: uuidv7(),
       type: "bulkImport",
-      state: "pending",
       payload: { directoryHandle: dirHandle },
     });
 
@@ -151,8 +149,6 @@ export default function Main() {
     const selectedSong = songs.filter((s) => selectedSongIds.includes(s.id))[0];
     await applySongEdits(selectedSong, updates);
     backgroundService.enqueue({
-      id: uuidv7(),
-      state: "pending",
       type: "artworkProcess",
       payload: {
         song: {
@@ -228,16 +224,31 @@ export default function Main() {
   async function handleApply(updates: Partial<Song>) {
     const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
 
-    for (const song of selectedSongs) {
-      await applySongEdits(song, updates);
+    if (selectedSongs.length == 0) return;
+
+    if (selectedSongs.length === 1) {
+      await applySongEdits(selectedSongs[0], updates);
+
+      toast.add({
+        type: "success",
+        title: `Updated "${selectedSongs[0].title}"`,
+      });
+    } else {
+      backgroundService.enqueue({
+        type: "bulkEdit",
+        payload: {
+          songIds: selectedSongIds,
+          edits: updates,
+        },
+      });
+
+      toast.add({
+        type: "info",
+        title: `Bulk edit started (${selectedSongs.length} songs)`,
+      });
     }
 
     setSelectedSongIds([]);
-
-    toast.add({
-      type: "success",
-      title: `Updated ${selectedSongs.length} songs`,
-    });
   }
 
   function isPrevButtonDisabled() {
