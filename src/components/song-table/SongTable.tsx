@@ -17,14 +17,6 @@ export function SongTable(props: SongTableProps) {
 
   const sortableColumnKeys = sortableColumns.map((key) => key);
 
-  if (songs.length === 0) {
-    return (
-      <div className="text-muted-foreground p-4 border rounded-md">
-        No songs imported yet.
-      </div>
-    );
-  }
-
   return (
     <div className="rounded-md">
       <table className="w-full border-collapse text-sm select-none">
