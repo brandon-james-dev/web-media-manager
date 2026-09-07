@@ -15,7 +15,8 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   //#region State
   const [songs, setSongs] = useState<Song[]>([]);
   const [total, setTotal] = useState<number>(0);
-  const [filtered, setFiltered] = useState<number>(0);
+  const [filteredSongs, setFilteredSongs] = useState<Song[]>([]);
+  const [filteredTotal, setFilteredTotal] = useState<number>(0);
   const [page, setPage] = useState<number | undefined>();
   const [skip, setSkip] = useState<number | undefined>();
   const [query, setQuery] = useState<QueryOptions<Song>>({
@@ -142,13 +143,17 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   //#endregion
 
   //#region Helpers
+  useEffect(() => {
+    const store = getMetadataStore();
+    store.getAll().then(setSongs);
+  }, []);
+
   const refreshSongs = async () => {
     const store = getMetadataStore();
     const result = await store.filter(query);
-
-    setSongs(result.data);
+    setFilteredSongs(result.data);
     setTotal(result.total);
-    setFiltered(result.filteredCount);
+    setFilteredTotal(result.filteredCount);
     setPage(result.page);
     setSkip(result.skip);
   };
@@ -157,7 +162,6 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshSongs();
   }, [query]);
-
   //#endregion
 
   //#region Global event listeners
@@ -165,19 +169,16 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     const store = getMetadataStore();
     const unsubAdd = store.onAdded((song) => {
       setSongs((prev) => [...prev, song]);
-
       scheduleRefresh();
     });
 
     const unsubUpdate = store.onUpdated((song) => {
       setSongs((prev) => prev.map((s) => (s.id === song.id ? song : s)));
-
       scheduleRefresh();
     });
 
     const unsubDelete = store.onDeleted((song) => {
-      setSongs((prev) => prev.filter((s) => s.id != song.id));
-
+      setSongs((prev) => prev.filter((s) => s.id !== song.id));
       scheduleRefresh();
     });
 
@@ -223,11 +224,12 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     <SongContext.Provider
       value={{
         songs,
+        filteredSongs,
         query,
         total,
         skip,
         page,
-        filtered,
+        filteredTotal,
         refreshSongs,
         setQuery,
       }}

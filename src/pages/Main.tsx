@@ -53,9 +53,8 @@ export default function Main() {
     selector: (item: Song) => any;
     desc: boolean;
   }>();
-  const { songs, query, setQuery } = useSongs();
+  const { songs, filteredSongs, query, setQuery } = useSongs();
   const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
-
   const noDirectories = directories.length === 0;
   //#endregion
 
@@ -329,7 +328,7 @@ export default function Main() {
 
           <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
             <SongTable
-              songs={songs}
+              songs={filteredSongs}
               selectedSongIds={selectedSongIds}
               onSelect={handleSongSelected}
               onSort={handleSort}
@@ -344,7 +343,14 @@ export default function Main() {
           <div className="max-w-240 mx-auto w-full">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <h3 className="font-medium">Quick Edit</h3>
+                <h3 className="font-medium">
+                  Quick Edit
+                  {isMultiEdit && (
+                    <span className="pl-1">
+                      ({selectedSongIds.length} selected)
+                    </span>
+                  )}
+                </h3>
 
                 {!isMultiEdit && (
                   <div className="flex gap-2">
@@ -414,7 +420,7 @@ export default function Main() {
 
             <QuickEditForm
               formId="quick-edit-form"
-              songs={songs.filter((s) => selectedSongIds.includes(s.id))}
+              songs={selectedSongs}
               onApply={handleApply}
             />
           </div>

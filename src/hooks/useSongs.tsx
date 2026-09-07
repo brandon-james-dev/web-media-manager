@@ -4,7 +4,8 @@ import { createContext, useContext } from "react";
 
 interface SongContextValue {
   songs: Song[];
-  filtered?: number;
+  filteredSongs: Song[];
+  filteredTotal?: number;
   query: QueryOptions<Song>;
   refreshSongs: () => Promise<void>;
   setQuery: (query: QueryOptions<Song>) => void;

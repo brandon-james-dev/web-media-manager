@@ -2,7 +2,7 @@ import type { Song } from "@/models/Song";
 import { type IMetadataStore } from "../metadata-utils";
 import type { MetadataDb } from "./MetadataDb";
 import type { DataChangedCallback } from "../store";
-import type { Collection, UpdateSpec } from "dexie";
+import type { UpdateSpec } from "dexie";
 import type { QueryOptions } from "../store/QueryOptions";
 import type { DataSourceResult } from "../store/DataSourceResult";
 
