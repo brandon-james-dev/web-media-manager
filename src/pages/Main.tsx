@@ -364,6 +364,7 @@ export default function Main() {
                   <Label htmlFor="is-multi-edit">
                     <Checkbox
                       id="is-multi-edit"
+                      checked={isMultiEdit}
                       onCheckedChange={handleEditMultipleChecked}
                     />
                     Edit Multiple
@@ -383,7 +384,7 @@ export default function Main() {
                   variant="default"
                   type="submit"
                   form="quick-edit-form"
-                  className="bg-accent hover:bg-accent/70 text-white"
+                  className="bg-accent/50 hover:bg-accent/70 text-white"
                 >
                   <Save />
                   Save

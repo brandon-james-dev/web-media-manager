@@ -1,21 +1,10 @@
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/shadcn-utils/utils";
-import type { EditableField } from "./QuickEditFormProps";
-import type { Song } from "@/models";
+import type { QuickEditFieldProps } from "./QuickEditFieldProps";
+import { AutocompleteInput } from "@/components/autocomplete-input";
 
-interface QuickEditFieldProps {
-  field: EditableField;
-  songs: Song[];
-  value: string | number | undefined;
-  onChange: (value: string) => void;
-}
+export function QuickEditField(props: QuickEditFieldProps) {
+  const { field, songs, value, onChange } = props;
 
-export function QuickEditField({
-  field,
-  songs,
-  value,
-  onChange,
-}: QuickEditFieldProps) {
   const unique = (() => {
     const set = new Set<string>();
     for (const s of songs) {
@@ -29,9 +18,9 @@ export function QuickEditField({
 
   const placeholder =
     unique.length > 1
-      ? `${capitalize(field)} (Multiple Values…)`
+      ? `(Multiple Values…)`
       : unique[0]
-        ? capitalize(unique[0])
+        ? unique[0]
         : capitalize(field);
 
   const isDirty = value !== undefined && value !== "";
@@ -42,26 +31,13 @@ export function QuickEditField({
         {capitalize(field)}
       </label>
 
-      <Input
-        placeholder={placeholder}
+      <AutocompleteInput
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn("w-full transition-colors", isDirty && "border-primary")}
+        onChange={onChange}
+        suggestions={unique}
+        placeholder={placeholder}
+        className={cn("transition-colors", isDirty && "border-primary")}
       />
-
-      {unique.length > 1 && (
-        <select
-          className="text-xs bg-transparent border rounded px-1 py-0.5 w-full"
-          onChange={(e) => onChange(e.target.value)}
-        >
-          <option value="">Choose Existing…</option>
-          {unique.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
-      )}
     </div>
   );
 }

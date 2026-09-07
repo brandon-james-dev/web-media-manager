@@ -6,7 +6,7 @@ import { ArtworkType } from "@/lib/metadata-utils";
 import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
 import type { Song } from "@/models";
 import { useRef, useState } from "react";
-import OnlineSearchPanel from "../OnlineSearchPanel";
+import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
 import { Eraser, Globe, Pen, Save } from "lucide-react";
 import { useArtwork } from "@/hooks";
@@ -39,6 +39,10 @@ export function SongEditForm(props: SongEditFormProps) {
     markDirty(name, el?.value != originalValue);
   };
 
+  function markDirty(name: string, isDirty: boolean) {
+    setDirty((prev) => ({ ...prev, [name]: isDirty }));
+  }
+
   function getFrontCover(): string | undefined {
     if (!(frontCover || updatedFrontCover)) {
       return undefined;
@@ -50,10 +54,6 @@ export function SongEditForm(props: SongEditFormProps) {
       return undefined;
     }
     return URL.createObjectURL(frontCoverSet);
-  }
-
-  function markDirty(name: string, isDirty: boolean) {
-    setDirty((prev) => ({ ...prev, [name]: isDirty }));
   }
   //#endregion
 

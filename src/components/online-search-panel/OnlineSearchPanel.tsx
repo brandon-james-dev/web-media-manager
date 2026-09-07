@@ -1,20 +1,15 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
 import { MetadataProvider } from "@/lib/online-metadata-utils/MetadataProvider";
 import { OnlineMetadataResolver } from "@/lib/online-metadata-utils/OnlineMetadataResolver";
-import type { Song } from "@/models";
 import type { IPicture } from "@/lib/metadata-utils";
 import { Loader2 } from "lucide-react";
+import type { OnlineSearchPanelProps } from "./OnlineSearchPanelProps";
 
-export default function OnlineSearchPanel({
-  song,
-  onSelect,
-}: {
-  song: Song;
-  onSelect: (result: IOnlineMetadata) => void;
-}) {
+export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
+  const { song, onSelect } = props;
   //#region State
   const [query, setQuery] = useState(song.title + " " + song.artist);
   const [loading, setLoading] = useState(false);

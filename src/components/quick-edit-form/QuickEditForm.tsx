@@ -24,7 +24,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
     <>
       <form
         id={formId || "quick-edit-form"}
-        className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-0.5 w-full"
+        className="grid grid-cols-1 sm:grid-cols-3 gap-0.5 w-full"
         onSubmit={handleQuickEditFormSubmit}
       >
         {quickEditFields.map((field) => (
