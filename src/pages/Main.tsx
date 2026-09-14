@@ -1,7 +1,6 @@
 import "./Main.css";
 
 import { useEffect, useState, type ChangeEvent } from "react";
-import { uuidv7 } from "uuidv7";
 import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import {
   ChevronLeft,
@@ -19,7 +18,6 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { SongEditForm } from "@/components/song-edit-form/SongEditForm";
 import { QuickEditForm } from "@/components/quick-edit-form/QuickEditForm";
-import { SongTable } from "@/components/song-table/SongTable";
 import {
   Drawer,
   DrawerContent,
@@ -41,6 +39,7 @@ import type { Directory, Song } from "@/models";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { TanstackSongTable } from "@/components/song-table";
 
 export default function Main() {
   //#region State
@@ -48,7 +47,7 @@ export default function Main() {
   const [queryText, setQueryText] = useState<string>("");
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
-  const [isMultiEdit, setIsMultiEdit] = useState<boolean>(false);
+  const [isEditMultiple, setIsEditMultiple] = useState<boolean>(false);
   const [sort, setSort] = useState<{
     selector: (item: Song) => any;
     desc: boolean;
@@ -145,7 +144,7 @@ export default function Main() {
 
   async function handleSongUpdate(updates: Partial<Song>): Promise<void> {
     if (!selectedSongIds) return;
-    const selectedSong = songs.filter((s) => selectedSongIds.includes(s.id))[0];
+    const selectedSong = selectedSongs[0];
     await applySongEdits(selectedSong, updates);
     backgroundService.enqueue({
       type: "artworkProcess",
@@ -204,25 +203,11 @@ export default function Main() {
     setQuery(nextQuery);
   }
 
-  function handleSongSelected(songId: string) {
-    setSelectedSongIds((prev) => {
-      const exists = prev.some((s) => s == songId);
-
-      if (!isMultiEdit) {
-        return exists ? [] : [songId];
-      }
-
-      if (exists) {
-        return prev.filter((s) => s != songId);
-      }
-
-      return [...prev, songId];
-    });
+  function handleSongsSelected(selectedSongIds: string[]) {
+    setSelectedSongIds(selectedSongIds);
   }
 
   async function handleApply(updates: Partial<Song>) {
-    const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
-
     if (selectedSongs.length == 0) return;
 
     if (selectedSongs.length === 1) {
@@ -290,9 +275,8 @@ export default function Main() {
     if (selectedSongIds.length > 1) {
       setSelectedSongIds([]);
     }
-    setIsMultiEdit(checked);
+    setIsEditMultiple(checked);
   }
-
   //#endregion
 
   return (
@@ -327,10 +311,11 @@ export default function Main() {
           </div>
 
           <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
-            <SongTable
+            <TanstackSongTable
               songs={filteredSongs}
               selectedSongIds={selectedSongIds}
-              onSelect={handleSongSelected}
+              isEditMultiple={isEditMultiple}
+              onSelect={handleSongsSelected}
               onSort={handleSort}
               sort={sort}
             />
@@ -345,14 +330,14 @@ export default function Main() {
               <div className="flex items-center gap-3">
                 <h3 className="font-medium">
                   Quick Edit
-                  {isMultiEdit && (
+                  {isEditMultiple && (
                     <span className="pl-1">
                       ({selectedSongIds.length} selected)
                     </span>
                   )}
                 </h3>
 
-                {!isMultiEdit && (
+                {!isEditMultiple && (
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -381,7 +366,7 @@ export default function Main() {
                   <Label htmlFor="is-multi-edit">
                     <Checkbox
                       id="is-multi-edit"
-                      checked={isMultiEdit}
+                      checked={isEditMultiple}
                       onCheckedChange={handleEditMultipleChecked}
                     />
                     Edit Multiple
@@ -390,7 +375,7 @@ export default function Main() {
                 <Button
                   size="sm"
                   onClick={() => setIsFormVisible(true)}
-                  disabled={isMultiEdit}
+                  disabled={isEditMultiple}
                 >
                   <PencilRuler />
                   Advanced Edit

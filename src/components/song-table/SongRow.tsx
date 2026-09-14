@@ -11,12 +11,12 @@ export const SongRow = React.memo(function SongRow({
   song: Song;
   columns: [SortableColumn, string][];
   isSelected: boolean;
-  onSelect: (s: string) => void;
+  onSelect: (selectedSongIds: string[]) => void;
 }) {
   return (
     <tr
       className={`${isSelected ? "bg-accent/25 odd:bg-accent/35" : "odd:bg-muted/15"} hover:bg-accent/45 transition-colors`}
-      onClick={() => onSelect(song.id)}
+      onClick={() => onSelect([song.id])}
     >
       {columns.map(([key]) => (
         <td

@@ -4,7 +4,8 @@ import type { Song } from "@/models";
 export interface SongTableProps {
   songs: Song[];
   selectedSongIds: string[];
-  onSelect: (songId: string) => void;
+  isEditMultiple: boolean;
+  onSelect: (songIds: string[]) => void;
   onSort?: (column: SortableColumn) => void;
   sort?: QueryOptions<Song>["sort"];
 }

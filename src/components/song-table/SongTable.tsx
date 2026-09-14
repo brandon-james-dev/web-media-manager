@@ -4,7 +4,8 @@ import type { SongTableProps } from "./SongTableProps";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 export function SongTable(props: SongTableProps) {
-  const { songs, sort, onSelect, onSort, selectedSongIds } = props;
+  const { songs, sort, isEditMultiple, onSelect, onSort, selectedSongIds } =
+    props;
 
   const sortableColumns: [SortableColumn, string][] = [
     ["title", "Title"],
@@ -16,6 +17,14 @@ export function SongTable(props: SongTableProps) {
   ];
 
   const sortableColumnKeys = sortableColumns.map((key) => key);
+
+  function handleSelect(selectedSongs: string[]) {
+    if (isEditMultiple) {
+      onSelect([...selectedSongIds, ...selectedSongs]);
+    } else {
+      onSelect(selectedSongs);
+    }
+  }
 
   return (
     <div className="rounded-md">
@@ -55,7 +64,7 @@ export function SongTable(props: SongTableProps) {
               key={song.id}
               columns={sortableColumnKeys}
               song={song}
-              onSelect={onSelect}
+              onSelect={handleSelect}
               isSelected={selectedSongIds.includes(song.id)}
             />
           ))}
