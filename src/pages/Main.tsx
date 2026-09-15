@@ -52,7 +52,7 @@ export default function Main() {
     selector: (item: Song) => any;
     desc: boolean;
   }>();
-  const { songs, filteredSongs, query, setQuery } = useSongs();
+  const { songs, filteredSongs, query, setQuery, refreshSongs } = useSongs();
   const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
   const noDirectories = directories.length === 0;
   //#endregion
@@ -139,7 +139,7 @@ export default function Main() {
       payload: { directoryHandle: dirHandle },
     });
 
-    refresh();
+    await refresh();
   }
 
   async function handleSongUpdate(updates: Partial<Song>): Promise<void> {
@@ -160,6 +160,7 @@ export default function Main() {
       title: `"${selectedSong.title}" was updated`,
     });
     setSelectedSongIds([]);
+    await refreshSongs();
     setIsFormVisible(false);
   }
 

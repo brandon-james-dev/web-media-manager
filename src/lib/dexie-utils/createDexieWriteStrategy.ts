@@ -1,9 +1,10 @@
+import { getMetadataStore } from "../initMetadataStore";
+import type { CombinedMetadataStore } from "../CombinedMetadataStore";
 import type { IMetadataWriteStrategy } from "../metadata-utils";
-import { DexieMetadataStore } from "./DexieMetadataStore";
 import { DexieWriteStrategy } from "./DexieWriteStrategy";
-import { getMetadataDb } from "./MetadataDb";
 
 export function createDexieWriteStrategy(): IMetadataWriteStrategy {
-  const store = new DexieMetadataStore(getMetadataDb());
-  return new DexieWriteStrategy(store);
+  const store = getMetadataStore() as CombinedMetadataStore;
+  const dexieStore = store.getDexieStore();
+  return new DexieWriteStrategy(dexieStore);
 }

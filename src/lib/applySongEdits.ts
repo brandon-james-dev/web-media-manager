@@ -1,7 +1,6 @@
 import type { Song } from "@/models/Song";
-import { createFileWriteStrategy } from "./file-utils";
-import { createCombinedWriteStrategy, getPicturesForSongOfType } from ".";
-import { createDexieWriteStrategy } from "./dexie-utils";
+import { getMetadataStore } from "./file-utils";
+import { getPicturesForSongOfType } from ".";
 import { ArtworkType } from "./metadata-utils";
 
 export async function applySongEdits(
@@ -63,12 +62,7 @@ export async function applySongEdits(
     }
   }
 
-  const writeStrategy = createCombinedWriteStrategy(
-    createFileWriteStrategy(),
-    createDexieWriteStrategy()
-  );
-
-  writeStrategy.write(song.id, updatedSong);
+  await getMetadataStore().save(song.id, updatedSong);
 
   callbacks?.onSongUpdated?.(updatedSong);
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isValidAudioFile } from "taglib-wasm";
 import useFileSystemAccess from "use-fs-access";
 import type { FileOrDirectoryInfo } from "use-fs-access/core";
@@ -22,7 +22,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   const [query, setQuery] = useState<QueryOptions<Song>>({
     sort: { selector: (song: Song) => song.title, desc: false },
   });
-  const lastProgressTime = useRef<number>(Date.now());
+  const lastProgressTime = useRef<number>(new Date().getMilliseconds());
   const refreshTimeout = useRef<number | null>(null);
   //#endregion
 
@@ -86,12 +86,12 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     for (const [name] of entries) {
       if (!shouldProcess(modifiedDebounce, name)) continue;
 
-      scheduleRefresh();
+      scheduleRefresh.current();
     }
   }
 
-  const scheduleRefresh = () => {
-    const now = Date.now();
+  const scheduleRefresh = useRef(() => {
+    const now = new Date().getMilliseconds();
     const delta = now - lastProgressTime.current;
     lastProgressTime.current = now;
 
@@ -104,7 +104,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     refreshTimeout.current = window.setTimeout(() => {
       refreshSongs();
     }, delay);
-  };
+  });
 
   const { openDirectory } = useFileSystemAccess({
     enableFileWatcher: true,
@@ -169,23 +169,23 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     const store = getMetadataStore();
     const unsubAdd = store.onAdded((song) => {
       setSongs((prev) => [...prev, song]);
-      scheduleRefresh();
+      scheduleRefresh.current();
     });
 
     const unsubUpdate = store.onUpdated((song) => {
       setSongs((prev) => prev.map((s) => (s.id === song.id ? song : s)));
-      scheduleRefresh();
+      scheduleRefresh.current();
     });
 
     const unsubDelete = store.onDeleted((song) => {
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
-      scheduleRefresh();
+      scheduleRefresh.current();
     });
 
     const unsubStoreCleared = store.onStoreCleared(() => {
       setSongs(() => []);
 
-      scheduleRefresh();
+      scheduleRefresh.current();
     });
 
     return () => {
@@ -204,7 +204,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
         if (newSong) {
           await store.save(newSong.id, newSong);
-          scheduleRefresh();
+          scheduleRefresh.current();
         }
       }
 
@@ -214,7 +214,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
         const merged = { ...existing, ...updated };
         await store.save(merged.id, merged);
 
-        scheduleRefresh();
+        scheduleRefresh.current();
       }
     });
   }, []);

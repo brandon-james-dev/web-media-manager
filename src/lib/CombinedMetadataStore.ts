@@ -40,19 +40,23 @@ export class CombinedMetadataStore implements IMetadataStore {
     this.fsStore.onDirectoryDeleted((dir) => this.emitDirectoryDeleted(dir));
   }
 
-  onAdded(cb: DataChangedCallback<Song>): () => void {
-    return this.dexieStore.onAdded(cb);
+  onAdded(cb: DataChangedCallback<Song>) {
+    this.songAddedListeners.add(cb);
+    return () => this.songAddedListeners.delete(cb);
   }
 
   onUpdated(cb: DataChangedCallback<Song>): () => void {
+    this.songUpdatedListeners.add(cb);
     return this.dexieStore.onUpdated(cb);
   }
 
   onDeleted(cb: DataChangedCallback<Song>): () => void {
+    this.songDeletedListeners.add(cb);
     return this.dexieStore.onDeleted(cb);
   }
 
   onStoreCleared(cb: () => void): () => void {
+    this.storeClearedListeners.add(cb);
     return this.dexieStore.onStoreCleared(cb);
   }
 
@@ -129,20 +133,34 @@ export class CombinedMetadataStore implements IMetadataStore {
 
   async save(id: string, updated: Song): Promise<Song> {
     await this.fsStore.save(id, updated);
-    return await this.dexieStore.save(id, updated);
+    const updatedSong = await this.dexieStore.save(id, updated);
+    this.emitUpdated(updated);
+    return updatedSong;
   }
 
   async batchUpdate(items: { id: string; updated: Song }[]): Promise<void> {
     await this.fsStore.batchUpdate(items);
     await this.dexieStore.batchUpdate(items);
+
+    for (const { updated } of items) {
+      this.emitUpdated(updated);
+    }
   }
 
   async delete(id: string): Promise<void> {
+    const songToDelete = await this.dexieStore.get(id);
+    if (!songToDelete) return;
     await this.fsStore.delete(id);
-    return this.dexieStore.delete(id);
+    await this.dexieStore.delete(id);
+    this.emitDeleted(songToDelete);
   }
 
   async batchDelete(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      const songToDelete = await this.dexieStore.get(id);
+      if (!songToDelete) continue;
+      this.emitDeleted(songToDelete);
+    }
     await this.fsStore.batchDelete(ids);
     await this.dexieStore.batchDelete(ids);
   }
