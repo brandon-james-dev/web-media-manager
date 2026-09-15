@@ -1,5 +1,6 @@
-import { memo, useMemo, useLayoutEffect, useRef } from "react";
+import { memo, useMemo, useLayoutEffect, useRef, useState } from "react";
 import {
+  columnOrderingFeature,
   columnResizingFeature,
   columnSizingFeature,
   columnVisibilityFeature,
@@ -11,13 +12,30 @@ import {
   sortFn_text,
   tableFeatures,
   useTable,
+  type ColumnOrderState,
   type RowSelectionState,
 } from "@tanstack/react-table";
+import {
+  DndContext,
+  closestCenter,
+  useSensor,
+  useSensors,
+  MouseSensor,
+  TouchSensor,
+  KeyboardSensor,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { Song } from "@/models";
 import { selectors, type SortableColumn } from "@/lib/store";
 import { Button } from "../ui/button";
 import type { SongTableProps } from "./SongTableProps";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 
 const features = tableFeatures({
   rowSelectionFeature,
@@ -25,6 +43,7 @@ const features = tableFeatures({
   columnResizingFeature,
   columnSizingFeature,
   columnVisibilityFeature,
+  columnOrderingFeature,
   sortedRowModel: createSortedRowModel(),
   sortFns: {
     alphanumeric: sortFn_alphanumeric,
@@ -108,6 +127,10 @@ export function TanstackSongTable(props: SongTableProps) {
     []
   );
 
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
+    columns.map((c) => c.id) as ColumnOrderState
+  );
+
   const table = useTable(
     {
       key: "song-table",
@@ -116,6 +139,7 @@ export function TanstackSongTable(props: SongTableProps) {
       data: songs,
       state: {
         rowSelection,
+        columnOrder,
       },
       defaultColumn: {
         minSize: 50,
@@ -143,14 +167,32 @@ export function TanstackSongTable(props: SongTableProps) {
 
         if (col) onSort?.(col);
       },
+      onColumnOrderChange: setColumnOrder,
     },
     (state) => ({
       sorting: state.sorting,
       rowSelection: state.rowSelection,
       columnVisibility: state.columnVisibility,
+      columnOrder: state.columnOrder,
     })
   );
 
+  const sensors = useSensors(
+    useSensor(MouseSensor),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor)
+  );
+
+  function handleDragEnd(event: any) {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setColumnOrder((old) => {
+        const oldIndex = old.indexOf(active.id);
+        const newIndex = old.indexOf(over.id);
+        return arrayMove(old, oldIndex, newIndex);
+      });
+    }
+  }
   const tableRef = useRef<HTMLTableElement>(null);
 
   useLayoutEffect(() => {
@@ -177,6 +219,63 @@ export function TanstackSongTable(props: SongTableProps) {
     const { unsubscribe } = table.atoms.columnSizing.subscribe(writeVars);
     return () => unsubscribe();
   }, [table]);
+
+  function DraggableHeader({ header }: any) {
+    const { attributes, listeners, setNodeRef, transform, isDragging } =
+      useSortable({ id: header.column.id });
+
+    const style = {
+      transform: CSS.Translate.toString(transform),
+      opacity: isDragging ? 0.8 : 1,
+      width: `calc(var(--header-${header.id}-size) * 1px)`,
+      transition: "transform 0.15s ease",
+    };
+
+    const key = header.id as SortableColumn;
+    const isActive = sort?.selector === selectors[key];
+    const Icon = isActive ? (sort?.desc ? ChevronDown : ChevronUp) : null;
+
+    return (
+      <th
+        ref={setNodeRef}
+        style={style}
+        colSpan={header.colSpan}
+        className="
+      relative whitespace-nowrap bg-accent/10 dark:hover:bg-accent/40
+      group  /* enables group-hover */
+    "
+      >
+        {!header.isPlaceholder && (
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full justify-start rounded-none"
+            onClick={header.column.getToggleSortingHandler()}
+          >
+            <table.FlexRender header={header} />
+            {Icon && <Icon size=".75lh" className="text-primary" />}
+          </Button>
+        )}
+
+        <button
+          {...attributes}
+          {...listeners}
+          className="
+        absolute right-0 top-0 px-1 h-full cursor-grab
+        opacity-0 group-hover:opacity-100 transition-opacity
+      "
+        >
+          <GripVertical size=".75lh" className="text-muted-foreground" />
+        </button>
+
+        <div
+          onMouseDown={header.getResizeHandler()}
+          onTouchStart={header.getResizeHandler()}
+          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-accent/70"
+        />
+      </th>
+    );
+  }
 
   const SongRow = memo(
     function SongRow({
@@ -226,75 +325,44 @@ export function TanstackSongTable(props: SongTableProps) {
   );
 
   return (
-    <table
-      ref={tableRef}
-      className="border-collapse text-sm select-none table-fixed"
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
     >
-      <thead className="sticky top-0 bg-background">
-        {table.getHeaderGroups().map((headerGroup) => (
-          <tr key={headerGroup.id}>
-            {headerGroup.headers.map((header) => {
-              const key = header.id as SortableColumn;
-              const isActive = sort?.selector === selectors[key];
-              const Icon = isActive
-                ? sort?.desc
-                  ? ChevronDown
-                  : ChevronUp
-                : null;
+      <table
+        ref={tableRef}
+        className="border-collapse text-sm select-none table-fixed"
+      >
+        <thead className="sticky top-0 bg-background">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              <SortableContext
+                items={columnOrder}
+                strategy={horizontalListSortingStrategy}
+              >
+                {headerGroup.headers.map((header) => (
+                  <DraggableHeader key={header.id} header={header} />
+                ))}
+              </SortableContext>
+            </tr>
+          ))}
+        </thead>
 
-              return (
-                <th
-                  key={header.id}
-                  colSpan={header.colSpan}
-                  style={{
-                    width: `calc(var(--header-${header.id}-size) * 1px)`,
-                  }}
-                  className={[
-                    "bg-accent/5 font-medium relative select-none transition-colors rounded-none",
-                    isActive ? "text-white" : "text-muted-foreground",
-                  ].join(" ")}
-                >
-                  {header.isPlaceholder || header.id == "filler" ? null : (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full justify-start rounded-none dark:hover:bg-accent/10 light:hover:bg-accent/10"
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      <table.FlexRender header={header} />
-                      {Icon && <Icon size=".75lh" className="text-primary" />}
-                    </Button>
-                  )}
-
-                  <div
-                    onMouseDown={header.getResizeHandler()}
-                    onTouchStart={header.getResizeHandler()}
-                    className="
-                      absolute right-0 top-0 h-full w-1
-                      cursor-col-resize
-                      hover:bg-accent
-                    "
-                  />
-                </th>
-              );
-            })}
-          </tr>
-        ))}
-      </thead>
-
-      <tbody>
-        {table.getRowModel().rows.length === 0 ? (
-          <tr>
-            <td colSpan={columns.length} className="h-24 text-center">
-              No results.
-            </td>
-          </tr>
-        ) : (
-          table
-            .getRowModel()
-            .rows.map((row) => <SongRow key={row.id} row={row} />)
-        )}
-      </tbody>
-    </table>
+        <tbody>
+          {table.getRowModel().rows.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="h-24 text-center">
+                No results.
+              </td>
+            </tr>
+          ) : (
+            table
+              .getRowModel()
+              .rows.map((row) => <SongRow key={row.id} row={row} />)
+          )}
+        </tbody>
+      </table>
+    </DndContext>
   );
 }
