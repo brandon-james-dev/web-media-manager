@@ -225,7 +225,7 @@ export function TanstackSongTable(props: SongTableProps) {
       useSortable({ id: header.column.id });
 
     const style = {
-      transform: CSS.Translate.toString(transform),
+      transform: CSS.Transform.toString(transform),
       opacity: isDragging ? 0.8 : 1,
       width: `calc(var(--header-${header.id}-size) * 1px)`,
       transition: "transform 0.15s ease",
@@ -236,20 +236,20 @@ export function TanstackSongTable(props: SongTableProps) {
     const Icon = isActive ? (sort?.desc ? ChevronDown : ChevronUp) : null;
 
     return (
-      <th
+      <div
         ref={setNodeRef}
         style={style}
-        colSpan={header.colSpan}
         className="
-      relative whitespace-nowrap bg-accent/10 dark:hover:bg-accent/40
-      group  /* enables group-hover */
-    "
+        relative flex items-center whitespace-nowrap
+        bg-accent/10 dark:hover:bg-accent/40
+        group
+      "
       >
         {!header.isPlaceholder && (
           <Button
             type="button"
             variant="ghost"
-            className="w-full justify-start rounded-none"
+            className="flex-1 justify-start rounded-none"
             onClick={header.column.getToggleSortingHandler()}
           >
             <table.FlexRender header={header} />
@@ -261,9 +261,9 @@ export function TanstackSongTable(props: SongTableProps) {
           {...attributes}
           {...listeners}
           className="
-        absolute right-0 top-0 px-1 h-full cursor-grab
-        opacity-0 group-hover:opacity-100 transition-opacity
-      "
+          absolute right-1 top-0 px-1 h-full cursor-grab
+          opacity-0 group-hover:opacity-100 transition-opacity
+        "
         >
           <GripVertical size=".75lh" className="text-muted-foreground" />
         </button>
@@ -271,9 +271,9 @@ export function TanstackSongTable(props: SongTableProps) {
         <div
           onMouseDown={header.getResizeHandler()}
           onTouchStart={header.getResizeHandler()}
-          className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-accent/70"
+          className="absolute right-0 top-0 h-full w-1 cursor-col-resize group-hover:bg-accent/70"
         />
-      </th>
+      </div>
     );
   }
 
@@ -287,25 +287,22 @@ export function TanstackSongTable(props: SongTableProps) {
       const isSelected = row.getIsSelected();
 
       return (
-        <tr
+        <div
           key={song.id}
           onClick={() => {
             const selection: RowSelectionState = isEditMultiple
-              ? {
-                  ...rowSelection,
-                  [song.id]: true,
-                }
+              ? { ...rowSelection, [song.id]: true }
               : { [row.id]: true };
             table.setRowSelection(selection);
           }}
           className={
             isSelected
-              ? "bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
-              : "odd:bg-muted/15 hover:bg-accent/45"
+              ? "flex bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
+              : "flex odd:bg-muted/15 hover:bg-accent/45"
           }
         >
           {row.getAllCells().map((cell) => (
-            <td
+            <div
               key={cell.id}
               style={{
                 width: `calc(var(--col-${cell.column.id}-size) * 1px)`,
@@ -313,12 +310,11 @@ export function TanstackSongTable(props: SongTableProps) {
               className="px-4 py-1 whitespace-nowrap overflow-hidden text-ellipsis"
             >
               <table.FlexRender cell={cell} />
-            </td>
+            </div>
           ))}
-        </tr>
+        </div>
       );
     },
-
     (prev, next) =>
       prev.row.original === next.row.original &&
       prev.row.getIsSelected() === next.row.getIsSelected()
@@ -330,13 +326,10 @@ export function TanstackSongTable(props: SongTableProps) {
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <table
-        ref={tableRef}
-        className="border-collapse text-sm select-none table-fixed"
-      >
-        <thead className="sticky top-0 bg-background">
+      <div ref={tableRef} className="text-sm select-none min-w-full">
+        <div className="sticky top-0 w-full bg-primary-foreground">
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
+            <div key={headerGroup.id} className="flex bg-accent/30">
               <SortableContext
                 items={columnOrder}
                 strategy={horizontalListSortingStrategy}
@@ -345,24 +338,22 @@ export function TanstackSongTable(props: SongTableProps) {
                   <DraggableHeader key={header.id} header={header} />
                 ))}
               </SortableContext>
-            </tr>
+            </div>
           ))}
-        </thead>
+        </div>
 
-        <tbody>
+        <div>
           {table.getRowModel().rows.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} className="h-24 text-center">
-                No results.
-              </td>
-            </tr>
+            <div className="h-24 flex items-center justify-center">
+              No results.
+            </div>
           ) : (
             table
               .getRowModel()
               .rows.map((row) => <SongRow key={row.id} row={row} />)
           )}
-        </tbody>
-      </table>
+        </div>
+      </div>
     </DndContext>
   );
 }
