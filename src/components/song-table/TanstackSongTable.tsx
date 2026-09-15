@@ -31,6 +31,15 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuCheckboxItem,
+  ContextMenuSeparator,
+  ContextMenuGroup,
+} from "@/components/ui/context-menu";
 import type { Song } from "@/models";
 import { selectors, type SortableColumn } from "@/lib/store";
 import { Button } from "../ui/button";
@@ -131,6 +140,10 @@ export function TanstackSongTable(props: SongTableProps) {
     columns.map((c) => c.id) as ColumnOrderState
   );
 
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(() => Object.fromEntries(columns.map((c) => [c.id!, true])));
+
   const table = useTable(
     {
       key: "song-table",
@@ -140,7 +153,9 @@ export function TanstackSongTable(props: SongTableProps) {
       state: {
         rowSelection,
         columnOrder,
+        columnVisibility,
       },
+
       defaultColumn: {
         minSize: 50,
         maxSize: 800,
@@ -168,6 +183,7 @@ export function TanstackSongTable(props: SongTableProps) {
         if (col) onSort?.(col);
       },
       onColumnOrderChange: setColumnOrder,
+      onColumnVisibilityChange: setColumnVisibility,
     },
     (state) => ({
       sorting: state.sorting,
@@ -240,10 +256,9 @@ export function TanstackSongTable(props: SongTableProps) {
         ref={setNodeRef}
         style={style}
         className="
-        relative flex items-center whitespace-nowrap
-        bg-accent/10 dark:hover:bg-accent/40
-        group
-      "
+          relative flex items-center whitespace-nowrap
+          group
+        "
       >
         {!header.isPlaceholder && (
           <Button
@@ -301,7 +316,7 @@ export function TanstackSongTable(props: SongTableProps) {
               : "flex odd:bg-muted/15 hover:bg-accent/45"
           }
         >
-          {row.getAllCells().map((cell) => (
+          {row.getVisibleCells().map((cell) => (
             <div
               key={cell.id}
               style={{
@@ -327,20 +342,49 @@ export function TanstackSongTable(props: SongTableProps) {
       onDragEnd={handleDragEnd}
     >
       <div ref={tableRef} className="text-sm select-none min-w-full">
-        <div className="sticky top-0 w-full bg-primary-foreground">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <div key={headerGroup.id} className="flex bg-accent/30">
-              <SortableContext
-                items={columnOrder}
-                strategy={horizontalListSortingStrategy}
-              >
-                {headerGroup.headers.map((header) => (
-                  <DraggableHeader key={header.id} header={header} />
+        <ContextMenu>
+          <ContextMenuTrigger
+            render={
+              <div className="sticky top-0 bg-background">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <div key={headerGroup.id} className="flex bg-accent/30">
+                    <SortableContext
+                      items={columnOrder}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      {headerGroup.headers.map((header) => (
+                        <DraggableHeader key={header.id} header={header} />
+                      ))}
+                    </SortableContext>
+                  </div>
                 ))}
-              </SortableContext>
-            </div>
-          ))}
-        </div>
+              </div>
+            }
+          ></ContextMenuTrigger>
+
+          <ContextMenuContent className="w-48">
+            <ContextMenuGroup>
+              {table.getAllLeafColumns().map((col) => (
+                <ContextMenuCheckboxItem
+                  key={col.id}
+                  checked={col.getIsVisible()}
+                  onCheckedChange={(checked) => col.toggleVisibility(!!checked)}
+                  className="capitalize"
+                >
+                  {col.columnDef.header as string}
+                </ContextMenuCheckboxItem>
+              ))}
+            </ContextMenuGroup>
+
+            <ContextMenuSeparator />
+
+            <ContextMenuGroup>
+              <ContextMenuItem onClick={() => table.toggleAllColumnsVisible()}>
+                Reset
+              </ContextMenuItem>
+            </ContextMenuGroup>
+          </ContextMenuContent>
+        </ContextMenu>
 
         <div>
           {table.getRowModel().rows.length === 0 ? (
