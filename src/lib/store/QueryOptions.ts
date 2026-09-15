@@ -20,6 +20,8 @@ export const selectors = {
   track: (s: Song) => s.track,
   genre: (s: Song) => s.genre,
   year: (s: Song) => s.year,
+  duration: (s: Song) => s.length,
+  bitrate: (s: Song) => s.bitrate,
 } as const;
 
 export type SortableColumn = keyof typeof selectors;

@@ -305,8 +305,7 @@ export default function Main() {
                 placeholder="Filter…"
                 value={queryText}
                 onChange={handleFilterTextChange}
-                autoComplete="false"
-                autoCorrect="false"
+                autoCorrect="off"
               />
             </div>
           </div>

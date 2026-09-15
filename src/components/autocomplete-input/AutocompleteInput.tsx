@@ -59,6 +59,7 @@ export function AutocompleteInput(props: AutocompleteInputProps) {
         <InputGroupInput
           value={value ?? ""}
           placeholder={placeholder}
+          autoComplete="off"
           onFocus={() => setActive(true)}
           onBlur={() => {
             setTimeout(() => setActive(false), 100);

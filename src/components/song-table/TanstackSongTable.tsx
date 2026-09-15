@@ -1,5 +1,8 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useLayoutEffect, useRef } from "react";
 import {
+  columnResizingFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
   createColumnHelper,
   createSortedRowModel,
   rowSelectionFeature,
@@ -19,6 +22,9 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 const features = tableFeatures({
   rowSelectionFeature,
   rowSortingFeature,
+  columnResizingFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
   sortedRowModel: createSortedRowModel(),
   sortFns: {
     alphanumeric: sortFn_alphanumeric,
@@ -47,21 +53,25 @@ export function TanstackSongTable(props: SongTableProps) {
         columnHelper.accessor("title", {
           id: "title",
           header: "Title",
+          size: 240,
           cell: (info) => info.getValue(),
         }),
         columnHelper.accessor("artist", {
           id: "artist",
           header: "Artist",
+          size: 240,
           cell: (info) => info.getValue(),
         }),
         columnHelper.accessor("album", {
           id: "album",
           header: "Album",
+          size: 240,
           cell: (info) => info.getValue(),
         }),
         columnHelper.accessor("track", {
           id: "track",
           header: "Track",
+          maxSize: 50,
           cell: (info) => info.getValue(),
         }),
         columnHelper.accessor("genre", {
@@ -72,7 +82,27 @@ export function TanstackSongTable(props: SongTableProps) {
         columnHelper.accessor("year", {
           id: "year",
           header: "Year",
+          maxSize: 70,
           cell: (info) => info.getValue(),
+        }),
+        columnHelper.accessor("length", {
+          id: "duration",
+          header: "Duration",
+          minSize: 90,
+          maxSize: 90,
+          cell: ({ getValue }) => {
+            const d = getValue<number>();
+            const m = Math.floor(d / 60);
+            const s = `${Math.floor(d % 60)}`.padStart(2, "0");
+            return `${m}:${s}`;
+          },
+        }),
+        columnHelper.accessor("bitrate", {
+          id: "bitrate",
+          header: "Bitrate",
+          size: 100,
+          minSize: 80,
+          cell: (info) => `${info.getValue()} kbps`,
         }),
       ]),
     []
@@ -87,6 +117,11 @@ export function TanstackSongTable(props: SongTableProps) {
       state: {
         rowSelection,
       },
+      defaultColumn: {
+        minSize: 50,
+        maxSize: 800,
+      },
+      columnResizeMode: "onChange",
       getRowId: (row) => row.id,
       enableRowSelection: true,
       onRowSelectionChange: (next) => {
@@ -109,8 +144,39 @@ export function TanstackSongTable(props: SongTableProps) {
         if (col) onSort?.(col);
       },
     },
-    (state) => state
+    (state) => ({
+      sorting: state.sorting,
+      rowSelection: state.rowSelection,
+      columnVisibility: state.columnVisibility,
+    })
   );
+
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  useLayoutEffect(() => {
+    const writeVars = () => {
+      const el = tableRef.current;
+      if (!el) return;
+
+      for (const header of table.getFlatHeaders()) {
+        el.style.setProperty(
+          `--header-${header.id}-size`,
+          String(header.getSize())
+        );
+        el.style.setProperty(
+          `--col-${header.column.id}-size`,
+          String(header.column.getSize())
+        );
+      }
+
+      el.style.width = `${table.getTotalSize()}px`;
+    };
+
+    writeVars();
+
+    const { unsubscribe } = table.atoms.columnSizing.subscribe(writeVars);
+    return () => unsubscribe();
+  }, [table]);
 
   const SongRow = memo(
     function SongRow({
@@ -125,18 +191,13 @@ export function TanstackSongTable(props: SongTableProps) {
         <tr
           key={song.id}
           onClick={() => {
-            if (isEditMultiple) {
-              const selectedSongIds = Object.keys(rowSelection);
-              table.setRowSelection({
-                ...rowSelection,
-                [song.id]: true,
-              });
-
-              onSelect?.([...selectedSongIds, row.id]);
-            } else {
-              table.setRowSelection({ [row.id]: true });
-              onSelect?.([row.id]);
-            }
+            const selection: RowSelectionState = isEditMultiple
+              ? {
+                  ...rowSelection,
+                  [song.id]: true,
+                }
+              : { [row.id]: true };
+            table.setRowSelection(selection);
           }}
           className={
             isSelected
@@ -147,6 +208,9 @@ export function TanstackSongTable(props: SongTableProps) {
           {row.getAllCells().map((cell) => (
             <td
               key={cell.id}
+              style={{
+                width: `calc(var(--col-${cell.column.id}-size) * 1px)`,
+              }}
               className="px-4 py-1 whitespace-nowrap overflow-hidden text-ellipsis"
             >
               <table.FlexRender cell={cell} />
@@ -162,7 +226,10 @@ export function TanstackSongTable(props: SongTableProps) {
   );
 
   return (
-    <table className="border-collapse text-sm select-none">
+    <table
+      ref={tableRef}
+      className="border-collapse text-sm select-none table-fixed"
+    >
       <thead className="sticky top-0 bg-background">
         {table.getHeaderGroups().map((headerGroup) => (
           <tr key={headerGroup.id}>
@@ -179,23 +246,35 @@ export function TanstackSongTable(props: SongTableProps) {
                 <th
                   key={header.id}
                   colSpan={header.colSpan}
+                  style={{
+                    width: `calc(var(--header-${header.id}-size) * 1px)`,
+                  }}
                   className={[
-                    "bg-accent/5 dark:hover:bg-accent/10 light:hover:bg-accent/10 font-medium select-none transition-colors rounded-none",
+                    "bg-accent/5 font-medium relative select-none transition-colors rounded-none",
                     isActive ? "text-white" : "text-muted-foreground",
                   ].join(" ")}
-                  onContextMenu={(e) => e.preventDefault()}
                 >
-                  {header.isPlaceholder ? null : (
+                  {header.isPlaceholder || header.id == "filler" ? null : (
                     <Button
                       type="button"
                       variant="ghost"
-                      className="w-full justify-start text-left dark:hover:bg-transparent light:hover:bg-transparent"
+                      className="w-full justify-start rounded-none dark:hover:bg-accent/10 light:hover:bg-accent/10"
                       onClick={header.column.getToggleSortingHandler()}
                     >
                       <table.FlexRender header={header} />
                       {Icon && <Icon size=".75lh" className="text-primary" />}
                     </Button>
                   )}
+
+                  <div
+                    onMouseDown={header.getResizeHandler()}
+                    onTouchStart={header.getResizeHandler()}
+                    className="
+                      absolute right-0 top-0 h-full w-1
+                      cursor-col-resize
+                      hover:bg-accent
+                    "
+                  />
                 </th>
               );
             })}
