@@ -1,6 +1,4 @@
-import "./Main.css";
-
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useState } from "react";
 import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import {
   ChevronLeft,
@@ -15,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
 import { SongEditForm } from "@/components/song-edit-form/SongEditForm";
 import { QuickEditForm } from "@/components/quick-edit-form/QuickEditForm";
 import {
@@ -40,19 +37,17 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { TanstackSongTable } from "@/components/song-table";
+import { useOutletContext } from "react-router";
+import type { MainContext } from "./MainLayout";
 
-export default function Main() {
+export default function Songs() {
   //#region State
   const [directories, setDirectories] = useState<Directory[]>([]);
-  const [queryText, setQueryText] = useState<string>("");
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
   const [isEditMultiple, setIsEditMultiple] = useState<boolean>(false);
-  const [sort, setSort] = useState<{
-    selector: (item: Song) => any;
-    desc: boolean;
-  }>();
   const { songs, filteredSongs, query, setQuery, refreshSongs } = useSongs();
+  const { sort, setSort } = useOutletContext<MainContext>();
   const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
   const noDirectories = directories.length === 0;
   //#endregion
@@ -162,24 +157,6 @@ export default function Main() {
     setSelectedSongIds([]);
     await refreshSongs();
     setIsFormVisible(false);
-  }
-
-  function handleFilterTextChange(
-    evt: ChangeEvent<HTMLInputElement, HTMLInputElement>
-  ): void {
-    const text = evt.target.value;
-    setQueryText(text);
-
-    const textQuery = {
-      ...query,
-      sort,
-      filter: (song: Song) =>
-        song.title?.toLowerCase().includes(text.toLowerCase()) ||
-        song.album?.toLowerCase().includes(text.toLowerCase()) ||
-        song.artist?.toLowerCase().includes(text.toLowerCase()),
-    } as QueryOptions<Song>;
-
-    setQuery(textQuery);
   }
 
   function handleSort(column: SortableColumn) {
@@ -298,30 +275,17 @@ export default function Main() {
         </div>
       )}
       {!noDirectories && (
-        <>
-          <div className="flex justify-center p-4">
-            <div className="w-full md:w-120">
-              <Input
-                placeholder="Filter…"
-                value={queryText}
-                onChange={handleFilterTextChange}
-                autoCorrect="off"
-              />
-            </div>
-          </div>
-
-          <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
-            <TanstackSongTable
-              songs={filteredSongs}
-              selectedSongIds={selectedSongIds}
-              isEditMultiple={isEditMultiple}
-              onSelect={handleSongsSelected}
-              onSort={handleSort}
-              sort={sort}
-            />
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </>
+        <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
+          <TanstackSongTable
+            songs={filteredSongs}
+            selectedSongIds={selectedSongIds}
+            isEditMultiple={isEditMultiple}
+            onSelect={handleSongsSelected}
+            onSort={handleSort}
+            sort={sort}
+          />
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       )}
       {selectedSongIds.length > 0 && !isFormVisible && (
         <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">

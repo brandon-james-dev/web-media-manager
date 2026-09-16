@@ -1,4 +1,5 @@
-import Main from "./Main";
+import Albums from "./Main/Albums";
+import Songs from "./Main/Songs";
 import Settings from "./Settings";
 
-export { Main, Settings };
+export { Albums, Songs, Settings };

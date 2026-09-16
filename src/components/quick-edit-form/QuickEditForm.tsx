@@ -11,6 +11,7 @@ import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 
 export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
+  //#region State
   const [values, setValues] = useState<
     Partial<Record<EditableField, string | number>>
   >({});
@@ -24,7 +25,9 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
   const [updatedCoverFront, setUpdatedCoverFront] = useState<
     Blob | undefined
   >();
+  //#endregion
 
+  //#region Helpers
   function getQuickEditArtwork(): string | undefined {
     if (!artwork || artwork.length === 0) return undefined;
 
@@ -54,7 +57,9 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
 
     return result;
   }
+  //#endregion
 
+  //#region Interactivity handlers
   function handleQuickEditFormSubmit(
     event: React.SubmitEvent<HTMLFormElement>
   ) {
@@ -72,6 +77,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
     setValues({});
     setUpdatedCoverFront(undefined);
   }
+  //#endregion
 
   return (
     <>
