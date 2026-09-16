@@ -9,8 +9,8 @@ export function SongTable(props: SongTableProps) {
 
   const sortableColumns: [SortableColumn, string][] = [
     ["title", "Title"],
-    ["artist", "Artist"],
     ["album", "Album"],
+    ["artist", "Artist"],
     ["track", "Track"],
     ["genre", "Genre"],
     ["year", "Year"],

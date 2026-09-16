@@ -39,27 +39,32 @@ export function AlbumDetailDialog({
 
   const artUrl = getAlbumArt();
 
+  function formatLength(length: number | undefined): string {
+    if (!length) return "0:00";
+    const m = Math.floor(length / 60);
+    const s = `${Math.floor(length % 60)}`.padStart(2, "0");
+    return `${m}:${s}`;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl w-full max-h-4/5 p-0 select-none overflow-auto">
         <div className="flex flex-col sm:flex-row h-full">
           <div className="w-full sm:w-1/3 bg-muted/30 flex flex-col items-center">
-            <div className="w-full">
-              {artUrl ? (
-                <img
-                  src={artUrl}
-                  alt={album.album}
-                  className="object-cover rounded-md shadow"
-                  draggable="false"
-                />
-              ) : (
-                <div className="w-full aspect-square rounded-md border flex items-center justify-center text-muted-foreground">
-                  No Art
-                </div>
-              )}
-            </div>
+            {artUrl ? (
+              <img
+                src={artUrl}
+                alt={album.album}
+                className="object-cover rounded-md shadow"
+                draggable="false"
+              />
+            ) : (
+              <div className="w-full aspect-square rounded-md border flex items-center justify-center text-muted-foreground">
+                No Art
+              </div>
+            )}
 
-            <div className="my-3 text-center">
+            <div className="p-3 text-center">
               <div className="text-xl font-semibold">{album.album}</div>
               <div className="text-sm text-muted-foreground">
                 {album.artist}
@@ -73,23 +78,25 @@ export function AlbumDetailDialog({
             </DialogHeader>
 
             <div className="space-y-2">
-              {album.songs.map((s) => (
-                <div
-                  key={s.id}
-                  className="
-                    flex items-center justify-between
-                    p-2 rounded-md
-                  "
-                >
-                  <div className="flex flex-col">
-                    <span className="font-medium">{s.title}</span>
+              {album.songs
+                .sort((a, b) => (a.track ?? 0) - (b.track ?? 0))
+                .map((s) => (
+                  <div
+                    key={s.id}
+                    className="
+                      flex items-center justify-between
+                      p-2 gap-3 rounded-md
+                    "
+                  >
+                    <span className="text-xs text-muted-foreground">
+                      {s.track}
+                    </span>
+                    <span className="font-medium flex-1">{s.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatLength(s.length)}
+                    </span>
                   </div>
-
-                  <span className="text-xs text-muted-foreground">
-                    {s.track}
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         </div>

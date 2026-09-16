@@ -54,20 +54,6 @@ export default function Songs() {
 
   //#region Global event handlers
   useEffect(() => {
-    const store = getMetadataStore() as CombinedMetadataStore;
-
-    store.getDirectories().then(setDirectories);
-
-    const unsubDirAdded = store.onDirectoryAdded(refresh);
-    const unsubSongsCleared = store.onStoreCleared(refresh);
-
-    return () => {
-      unsubDirAdded();
-      unsubSongsCleared();
-    };
-  }, []);
-
-  useEffect(() => {
     const unsub = backgroundService.onJobProgress(async (job) => {
       if (job.jobType !== "bulkImport") return;
       const jobProgress = job.payload as WorkerProgress;
@@ -116,6 +102,20 @@ export default function Songs() {
     const dirs = await store.getDirectories();
     setDirectories(dirs);
   }
+
+  useEffect(() => {
+    const store = getMetadataStore() as CombinedMetadataStore;
+
+    store.getDirectories().then(setDirectories);
+
+    const unsubDirAdded = store.onDirectoryAdded(refresh);
+    const unsubSongsCleared = store.onStoreCleared(refresh);
+
+    return () => {
+      unsubDirAdded();
+      unsubSongsCleared();
+    };
+  }, []);
   //#endregion
 
   //#region Interactivity handlers
@@ -154,8 +154,8 @@ export default function Songs() {
       type: "success",
       title: `"${selectedSong.title}" was updated`,
     });
-    setSelectedSongIds([]);
     await refreshSongs();
+    setSelectedSongIds([selectedSong.id]);
     setIsFormVisible(false);
   }
 
@@ -377,7 +377,7 @@ export default function Songs() {
       )}
 
       {selectedSongIds.length === 1 && (
-        <Drawer open={!!isFormVisible} onOpenChange={setIsFormVisible}>
+        <Drawer open={isFormVisible} onOpenChange={setIsFormVisible}>
           <DrawerContent className="p-6">
             <DrawerHeader className="select-none">
               <DrawerTitle>{selectedSongs[0].filename}</DrawerTitle>

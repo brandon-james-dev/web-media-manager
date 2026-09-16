@@ -5,7 +5,7 @@ import { useArtwork } from "@/hooks";
 import { ArtworkType } from "@/lib/metadata-utils";
 import { ThumbnailSize } from "@/lib";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlbumDetailDialog } from "@/components/album-detail-modal/AlbumDetailDialog";
+import { AlbumDetailDialog } from "@/components/album-detail-dialog";
 import type { Song } from "@/models";
 
 export default function Albums() {

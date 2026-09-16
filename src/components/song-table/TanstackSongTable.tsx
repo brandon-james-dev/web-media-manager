@@ -84,15 +84,15 @@ export function TanstackSongTable(props: SongTableProps) {
           size: 240,
           cell: (info) => info.getValue(),
         }),
-        columnHelper.accessor("artist", {
-          id: "artist",
-          header: "Artist",
-          size: 240,
-          cell: (info) => info.getValue(),
-        }),
         columnHelper.accessor("album", {
           id: "album",
           header: "Album",
+          size: 240,
+          cell: (info) => info.getValue(),
+        }),
+        columnHelper.accessor("artist", {
+          id: "artist",
+          header: "Artist",
           size: 240,
           cell: (info) => info.getValue(),
         }),
@@ -379,7 +379,9 @@ export function TanstackSongTable(props: SongTableProps) {
             <ContextMenuSeparator />
 
             <ContextMenuGroup>
-              <ContextMenuItem onClick={() => table.toggleAllColumnsVisible()}>
+              <ContextMenuItem
+                onClick={() => table.toggleAllColumnsVisible(true)}
+              >
                 Reset
               </ContextMenuItem>
             </ContextMenuGroup>
