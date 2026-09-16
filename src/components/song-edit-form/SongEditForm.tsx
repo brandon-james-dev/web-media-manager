@@ -24,6 +24,7 @@ export function SongEditForm(props: SongEditFormProps) {
     ThumbnailSize.thumb256
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const albumArt = getFrontCover();
   //#endregion
 
   //#region Helpers
@@ -243,11 +244,11 @@ export function SongEditForm(props: SongEditFormProps) {
                 )}
               </Label>
 
-              {getFrontCover() ? (
+              {albumArt ? (
                 <Label htmlFor="coverFront" className="cursor-pointer">
                   <div className="relative border rounded-md hover:border-accent group">
                     <img
-                      src={getFrontCover()}
+                      src={albumArt}
                       alt={song.title}
                       className={
                         dirty.coverFront

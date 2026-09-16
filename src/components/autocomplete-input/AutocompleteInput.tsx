@@ -16,7 +16,7 @@ import {
 } from "../ui/input-group";
 
 export function AutocompleteInput(props: AutocompleteInputProps) {
-  const { value, onChange, suggestions, className, placeholder } = props;
+  const { name, value, onChange, suggestions, className, placeholder } = props;
 
   const [active, setActive] = useState(false);
 
@@ -57,7 +57,7 @@ export function AutocompleteInput(props: AutocompleteInputProps) {
 
       <InputGroup>
         <InputGroupInput
-          value={value ?? ""}
+          name={name}
           placeholder={placeholder}
           autoComplete="off"
           onFocus={() => setActive(true)}

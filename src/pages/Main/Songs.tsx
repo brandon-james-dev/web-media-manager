@@ -3,6 +3,7 @@ import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import {
   ChevronLeft,
   ChevronRight,
+  Eraser,
   Music,
   PencilRuler,
   Plus,
@@ -48,11 +49,23 @@ export default function Songs() {
   const [isEditMultiple, setIsEditMultiple] = useState<boolean>(false);
   const { songs, filteredSongs, query, setQuery, refreshSongs } = useSongs();
   const { sort, setSort } = useOutletContext<MainContext>();
+  const [songSort] = useState<{
+    selector: (song: Song) => void;
+    desc: boolean;
+  }>({
+    selector: (song: Song) => song.album,
+    desc: false,
+  });
   const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
   const noDirectories = directories.length === 0;
   //#endregion
 
   //#region Global event handlers
+  useEffect(() => {
+    setQuery({ sort: songSort });
+    setSort(songSort);
+  }, [setQuery, setSort, songSort]);
+
   useEffect(() => {
     const unsub = backgroundService.onJobProgress(async (job) => {
       if (job.jobType !== "bulkImport") return;
@@ -343,6 +356,17 @@ export default function Songs() {
                 >
                   <PencilRuler />
                   Advanced Edit
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  type="reset"
+                  form="quick-edit-form"
+                  className="border-accent/50 hover:border-accent/70 text-white"
+                >
+                  <Eraser />
+                  Reset
                 </Button>
 
                 <Button

@@ -93,6 +93,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
 
           <input
             id="quick-edit-art-input"
+            name="quick-edit-cover-front"
             type="file"
             accept="image/*"
             className="hidden"
@@ -142,6 +143,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
             field={field}
             songs={songs}
             value={values[field]}
+            name={`quick-edit-${field}`}
             onChange={(v) =>
               setValues((prev) => ({
                 ...prev,
