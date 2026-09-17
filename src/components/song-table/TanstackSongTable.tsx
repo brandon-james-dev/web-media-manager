@@ -114,7 +114,7 @@ export function TanstackSongTable(props: SongTableProps) {
           cell: (info) => info.getValue(),
         }),
         columnHelper.accessor("length", {
-          id: "duration",
+          id: "length",
           header: "Duration",
           minSize: 90,
           maxSize: 90,

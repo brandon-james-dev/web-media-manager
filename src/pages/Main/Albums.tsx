@@ -10,7 +10,7 @@ import { backgroundService } from "@/lib/background-jobs";
 import type { Album, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
 
-export default function Albums() {
+function Albums() {
   //#region State
   const { filteredSongs } = useSongs();
   const [isAlbumDetailsDialogOpen, setIsAlbumDetailsDialogOpen] =
@@ -198,3 +198,5 @@ export default function Albums() {
     </div>
   );
 }
+
+export { Albums };

@@ -117,18 +117,8 @@ export class FileSystemMetadataStore implements IMetadataStore {
     this.fileHandles.set(id, handle);
   }
 
-  getFileHandle(id: string): FileSystemFileHandle | undefined {
-    return this.fileHandles.get(id);
-  }
-
-  /**
-   * Write the song to the file system only if it was loaded before
-   * @param id The song id
-   * @param song The song data
-   * @returns The saved song
-   */
-  async save(id: string, song: Song): Promise<Song> {
-    let existingFileHandle = this.getFileHandle(id);
+  async getFileHandle(id: string): Promise<FileSystemFileHandle | undefined> {
+    let existingFileHandle = this.fileHandles.get(id);
     const existingSong = await this.backingStore?.get(id);
 
     if (!existingFileHandle && existingSong) {
@@ -155,6 +145,19 @@ export class FileSystemMetadataStore implements IMetadataStore {
         console.error("Failed to reconstruct file handle:", err);
       }
     }
+
+    return existingFileHandle;
+  }
+
+  /**
+   * Write the song to the file system only if it was loaded before
+   * @param id The song id
+   * @param song The song data
+   * @returns The saved song
+   */
+  async save(id: string, song: Song): Promise<Song> {
+    let existingFileHandle = await this.getFileHandle(id);
+    const existingSong = await this.backingStore?.get(id);
 
     const isNew = existingSong == undefined;
 

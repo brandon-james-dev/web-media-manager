@@ -1,5 +1,7 @@
 import { MainLayout } from "./MainLayout";
-import Albums from "./Albums";
-import Songs from "./Songs";
+import { Songs } from "./Songs";
+import { Albums } from "./Albums";
+import { SongEdit } from "./SongEdit";
+import { SongPlayback } from "./SongPlayback";
 
-export { Albums, MainLayout, Songs };
+export { Albums, MainLayout, Songs, SongEdit, SongPlayback };
