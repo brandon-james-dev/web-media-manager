@@ -263,12 +263,12 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       startPlaybackAt(newTime);
     } else {
       setCurrentTime(newTime);
-      navigator.mediaSession.setPositionState?.({
-        duration: nowPlaying.length,
-        playbackRate: 1,
-        position: newTime,
-      });
     }
+    navigator.mediaSession.setPositionState?.({
+      duration: nowPlaying.length,
+      playbackRate: 1,
+      position: newTime,
+    });
   }
 
   function prevTrack() {
