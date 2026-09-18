@@ -67,8 +67,15 @@ const selectorIds = Object.fromEntries(
 const columnHelper = createColumnHelper<typeof features, Song>();
 
 export function TanstackSongTable(props: SongTableProps) {
-  const { songs, sort, isEditMultiple, selectedSongIds, onSort, onSelect } =
-    props;
+  const {
+    songs,
+    sort,
+    isEditMultiple,
+    selectedSongIds,
+    onSort,
+    onSelect,
+    onSongDoubleClicked,
+  } = props;
 
   const rowSelection: RowSelectionState = useMemo(
     () => Object.fromEntries(selectedSongIds.map((id) => [id, true])),
@@ -301,15 +308,21 @@ export function TanstackSongTable(props: SongTableProps) {
       const song = row.original;
       const isSelected = row.getIsSelected();
 
+      const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if (e.detail === 1) {
+          const selection: RowSelectionState = isEditMultiple
+            ? { ...rowSelection, [song.id]: true }
+            : { [row.id]: true };
+          table.setRowSelection(selection);
+        } else if (e.detail === 2) {
+          onSongDoubleClicked?.(song);
+        }
+      };
+
       return (
         <div
           key={song.id}
-          onClick={() => {
-            const selection: RowSelectionState = isEditMultiple
-              ? { ...rowSelection, [song.id]: true }
-              : { [row.id]: true };
-            table.setRowSelection(selection);
-          }}
+          onClick={handleClick}
           className={
             isSelected
               ? "flex bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"

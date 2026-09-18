@@ -12,6 +12,7 @@ import {
   ListMusic,
   PauseCircle,
   PlayCircle,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArtworkType } from "@/lib/metadata-utils";
@@ -34,6 +35,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
 import type { Song } from "@/models";
 
 function SongPlayback() {
@@ -49,8 +51,8 @@ function SongPlayback() {
   }
 
   const selectedSong = songs.find((s) => s.id == selectedSongIds.at(0));
-
   const [coverFront, setCoverFront] = useState<string | undefined>();
+  const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const {
     playlist,
     setPlaylist,
@@ -108,10 +110,6 @@ function SongPlayback() {
     };
   }, [nowPlaying]);
 
-  useEffect(() => {
-    setPlaylist(songs);
-  }, [songs, setPlaylist]);
-
   function formatTime(time: number) {
     const d = time;
     const m = Math.floor(d / 60);
@@ -165,18 +163,29 @@ function SongPlayback() {
       setNowPlaying(song);
     }
   }
+
+  function handlePlaylistItemRemove(song: Song) {
+    const index = playlist.findIndex((s) => s.id == song.id);
+    if (index !== -1) {
+      const result = [
+        ...playlist.slice(0, index),
+        ...playlist.slice(index + 1),
+      ];
+      setPlaylist(result);
+    }
+  }
   //#endregion
 
   return (
     <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">
-      <div className="mx-auto w-full flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="w-full flex items-center justify-between">
+        <div className="w-60 flex items-center gap-3">
           {coverFront ? (
             <img
               src={coverFront ?? "/placeholder.png"}
               alt={nowPlaying?.title}
               draggable="false"
-              className="h-12 w-12 rounded-md object-cover border"
+              className="h-12 aspect-square rounded-md object-cover border"
             />
           ) : (
             <div className="w-12 aspect-square rounded-md border flex items-center justify-center">
@@ -280,7 +289,7 @@ function SongPlayback() {
         </div>
 
         <div className="w-60 flex items-center justify-end gap-3">
-          <Popover>
+          <Popover open={isPlaylistOpen} onOpenChange={setIsPlaylistOpen}>
             <PopoverTrigger
               disabled={playlist.length === 0}
               render={
@@ -294,33 +303,81 @@ function SongPlayback() {
                 </Button>
               }
             />
-            <PopoverContent
-              align="center"
-              className="w-80 max-h-80 overflow-y-auto select-none"
-            >
-              <h3>Playlist - {playlist.length} items</h3>
-              {playlist.map((s) => (
-                <Item key={s.id} variant="outline" size="xs">
-                  <ItemContent>
-                    <ItemTitle>{s.title}</ItemTitle>
-                    <ItemDescription>{s.artist}</ItemDescription>
-                  </ItemContent>
-                  <ItemActions>
+            <PopoverContent align="center" className="w-80 select-none">
+              <div className="flex flex-col h-80 gap-2">
+                <div className="shrink-0">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      {`Playlist - ${playlist.length} ${playlist.length == 1 ? "song" : "songs"}`}
+                    </div>
                     <Button
-                      variant="ghost"
-                      onClick={() => handlePlaylistItemClick(s)}
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setPlaylist([])}
                     >
-                      {s.id === nowPlaying?.id && isPlaying && <PauseCircle />}
-                      {s.id === nowPlaying?.id && !isPlaying && <PlayCircle />}
-                      {s.id !== nowPlaying?.id && <PlayCircle />}
+                      Clear
                     </Button>
-                  </ItemActions>
-                </Item>
-              ))}
+                  </div>
+                </div>
+                <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
+                  {playlist.map((s) => (
+                    <Item
+                      key={s.id}
+                      variant="outline"
+                      data-now-playing={
+                        s.id === nowPlaying?.id ? "true" : "false"
+                      }
+                      className={s.id == nowPlaying?.id ? "bg-accent/15" : ""}
+                      size="xs"
+                    >
+                      <ItemContent className="overflow-hidden">
+                        <ItemTitle className="w-full min-w-0">
+                          <span className="truncate">{s.title}</span>
+                        </ItemTitle>
+
+                        <ItemDescription className="w-full min-w-0">
+                          <span className="truncate">{s.artist}</span>
+                        </ItemDescription>
+                      </ItemContent>
+
+                      <ItemActions className="gap-0.5">
+                        <Button
+                          variant="ghost"
+                          title="Remove"
+                          size="sm"
+                          onClick={() => handlePlaylistItemRemove(s)}
+                        >
+                          <XCircle className="stroke-destructive" />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className={
+                            s.id === nowPlaying?.id
+                              ? "bg-accent hover:bg-accent/70 text-white"
+                              : ""
+                          }
+                          onClick={() => handlePlaylistItemClick(s)}
+                        >
+                          {s.id === nowPlaying?.id && isPlaying && (
+                            <PauseCircle />
+                          )}
+                          {s.id === nowPlaying?.id && !isPlaying && (
+                            <PlayCircle />
+                          )}
+                          {s.id !== nowPlaying?.id && <PlayCircle />}
+                        </Button>
+                      </ItemActions>
+                    </Item>
+                  ))}
+                </ScrollArea>
+              </div>
             </PopoverContent>
           </Popover>
 
-          <Volume2 className="fill-secondary-foreground w-6" />
+          <Button variant="ghost" onClick={() => setVolume(0)}>
+            <Volume2 className="fill-secondary-foreground w-6" />
+          </Button>
 
           <Slider
             min={0}

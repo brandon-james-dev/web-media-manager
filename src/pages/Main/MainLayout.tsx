@@ -71,7 +71,10 @@ function MainLayout() {
 
   return (
     <div className="flex flex-col h-full select-none">
-      <div className="border-b px-4 py-2 flex gap-2 items-center justify-between">
+      <div
+        className="border-b px-4 py-2 flex gap-2 items-center justify-between"
+        hidden={(total ?? 0) == 0}
+      >
         <div className="w-45 sm:flex">
           <Tabs className="w-45 flex justify-end">
             <TabsList>
@@ -105,7 +108,6 @@ function MainLayout() {
             </TabsList>
           </Tabs>
         </div>
-
         <div className="w-full md:w-120">
           <InputGroup className="max-w-xs mx-auto">
             <InputGroupInput

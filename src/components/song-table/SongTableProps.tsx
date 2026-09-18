@@ -8,4 +8,5 @@ export interface SongTableProps {
   onSelect: (songIds: string[]) => void;
   onSort?: (column: SortableColumn) => void;
   sort?: QueryOptions<Song>["sort"];
+  onSongDoubleClicked?: (song: Song) => void;
 }

@@ -16,6 +16,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { TanstackSongTable } from "@/components/song-table";
 import { Outlet, useOutletContext } from "react-router";
 import type { MainContext } from "./MainLayout";
+import { usePlayback } from "@/hooks";
 
 type SongsContext = {
   songs: Song[];
@@ -161,6 +162,17 @@ function Songs() {
   function handleSongsSelected(selectedSongIds: string[]) {
     setSelectedSongIds(selectedSongIds);
   }
+
+  const { setPlaylist, setNowPlaying } = usePlayback();
+  const { mode } = useOutletContext<MainContext>();
+
+  function handleSongDoubleClicked(song: Song) {
+    if (mode == "playback") {
+      const index = filteredSongs.indexOf(song);
+      setPlaylist([...filteredSongs.slice(index)]);
+      setNowPlaying(song);
+    }
+  }
   //#endregion
 
   return (
@@ -189,6 +201,7 @@ function Songs() {
             onSelect={handleSongsSelected}
             onSort={handleSort}
             sort={sort}
+            onSongDoubleClicked={handleSongDoubleClicked}
           />
           <ScrollBar orientation="horizontal" />
         </ScrollArea>

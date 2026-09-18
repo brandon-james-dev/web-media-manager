@@ -56,11 +56,12 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     source.connect(gain);
 
     const offset = Math.max(0, Math.min(time, buffer.duration - 0.001));
-
     const startCtxTime = ctx.currentTime;
+
     source.start(0, offset);
 
     sourceRef.current = source;
+
     setIsPlaying(true);
 
     source.onended = () => {
@@ -108,11 +109,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
       if (!songFileHandle) return;
 
-      const ctx = audioCtxRef.current;
-
       const songFile = await songFileHandle.getFile();
       const arrayBuffer = await songFile.arrayBuffer();
 
+      const ctx = audioCtxRef.current;
       const decoded = await ctx.decodeAudioData(arrayBuffer);
 
       if (cancelled) return;
@@ -155,7 +155,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       newTime = nowPlaying.length - 0.001;
     }
 
-    startPlaybackAt(newTime);
+    if (isPlaying) {
+      startPlaybackAt(newTime);
+    } else {
+      setCurrentTime(newTime);
+    }
   }
 
   function prevTrack() {
