@@ -7,15 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSongs } from "@/hooks";
 import type { QueryOptions } from "@/lib/store";
 import type { Song } from "@/models";
-import {
-  Music,
-  DiscAlbum,
-  Search,
-  PenLineIcon,
-  Pen,
-  Play,
-  Smartphone,
-} from "lucide-react";
+import { Music, DiscAlbum, Search, Pen, Play } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
 import { Outlet, NavLink, useLocation } from "react-router";
 

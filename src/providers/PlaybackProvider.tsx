@@ -5,8 +5,13 @@ import {
   shuffleState,
   repeatState,
 } from "@/hooks/usePlayback";
-import { getMetadataStore } from "@/lib";
+import {
+  getMetadataStore,
+  getPicturesForSongOfType,
+  ThumbnailSize,
+} from "@/lib";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
+import { ArtworkType } from "@/lib/metadata-utils";
 import type { Song } from "@/models";
 import { useEffect, useRef, useState } from "react";
 
@@ -49,6 +54,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
     if (!ctx || !buffer || !gain) return;
 
+    // ensure context is running
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+
     stopPlayback();
 
     const source = ctx.createBufferSource();
@@ -61,13 +71,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     source.start(0, offset);
 
     sourceRef.current = source;
-
     setIsPlaying(true);
+    navigator.mediaSession.playbackState = "playing";
 
     source.onended = () => {
       if (sourceRef.current === source) {
         sourceRef.current = null;
         setIsPlaying(false);
+        navigator.mediaSession.playbackState = "paused";
         nextTrack();
       }
     };
@@ -82,12 +93,21 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
       if (t < buffer.duration) {
         requestAnimationFrame(update);
+      } else {
+        navigator.mediaSession.setPositionState?.({
+          duration: buffer.duration,
+          playbackRate: 1,
+          position: buffer.duration,
+        });
       }
     };
 
     requestAnimationFrame(update);
   }
 
+  //#endregion
+
+  //#region Effects
   useEffect(() => {
     let cancelled = false;
 
@@ -103,6 +123,28 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         gainRef.current.connect(audioCtxRef.current.destination);
       }
 
+      let artworkUrl256: string | undefined = "";
+      let artworkUrl512: string | undefined = "";
+
+      async function getArtwork(
+        thumbnailSize: ThumbnailSize
+      ): Promise<string | undefined> {
+        if (!nowPlaying) return;
+
+        const artwork = await getPicturesForSongOfType(
+          nowPlaying.id,
+          ArtworkType.FrontCover,
+          thumbnailSize
+        );
+
+        if (!artwork || artwork.length === 0) return undefined;
+
+        const pic = artwork[0];
+        const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
+
+        return URL.createObjectURL(blob);
+      }
+
       const metadataStore = getMetadataStore() as CombinedMetadataStore;
       const fsMetadataStore = metadataStore.getFileSystem();
       const songFileHandle = await fsMetadataStore.getFileHandle(nowPlaying.id);
@@ -112,14 +154,38 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       const songFile = await songFileHandle.getFile();
       const arrayBuffer = await songFile.arrayBuffer();
 
-      const ctx = audioCtxRef.current;
+      const ctx = audioCtxRef.current!;
       const decoded = await ctx.decodeAudioData(arrayBuffer);
 
       if (cancelled) return;
 
       bufferRef.current = decoded;
+      setCurrentTime(0);
 
       startPlaybackAt(0);
+
+      artworkUrl256 = await getArtwork(ThumbnailSize.thumb256);
+      artworkUrl512 = await getArtwork(ThumbnailSize.thumb512);
+
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: nowPlaying?.title ?? "",
+          artist: nowPlaying?.artist ?? "",
+          album: nowPlaying?.album ?? "",
+          artwork: [
+            { src: artworkUrl256 ?? "", sizes: "256x256", type: "image/png" },
+            { src: artworkUrl512 ?? "", sizes: "512x512", type: "image/png" },
+          ],
+        });
+
+        navigator.mediaSession.playbackState = "playing";
+
+        navigator.mediaSession.setPositionState?.({
+          duration: decoded.duration,
+          playbackRate: 1,
+          position: 0,
+        });
+      }
     }
 
     load();
@@ -134,14 +200,52 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     if (gainRef.current) {
       gainRef.current.gain.value = volume;
     }
+    volumeRef.current = volume;
   }, [volume]);
 
+  // Media Session action handlers
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    navigator.mediaSession.setActionHandler("play", () => {
+      playPause();
+    });
+
+    navigator.mediaSession.setActionHandler("pause", () => {
+      playPause();
+    });
+
+    navigator.mediaSession.setActionHandler("nexttrack", () => {
+      nextTrack();
+    });
+
+    navigator.mediaSession.setActionHandler("previoustrack", () => {
+      prevTrack();
+    });
+
+    navigator.mediaSession.setActionHandler("seekto", (details) => {
+      if (details.seekTime != null) {
+        const buffer = bufferRef.current;
+        if (!buffer) return;
+
+        const pct = (details.seekTime / buffer.duration) * 100;
+        seek(pct);
+      }
+    });
+  }, [playlist, nowPlaying, currentTime, isPlaying, shuffle, repeat, volume]);
+  //#endregion
+
+  //#region Controls
   function playPause() {
+    if (!bufferRef.current) return;
+
     if (isPlaying) {
       stopPlayback();
       setIsPlaying(false);
+      navigator.mediaSession.playbackState = "paused";
     } else {
       startPlaybackAt(currentTime);
+      navigator.mediaSession.playbackState = "playing";
     }
   }
 
@@ -159,6 +263,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       startPlaybackAt(newTime);
     } else {
       setCurrentTime(newTime);
+      navigator.mediaSession.setPositionState?.({
+        duration: nowPlaying.length,
+        playbackRate: 1,
+        position: newTime,
+      });
     }
   }
 
@@ -256,7 +365,6 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       return;
     }
   }
-
   //#endregion
 
   return (
