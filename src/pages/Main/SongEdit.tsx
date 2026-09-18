@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,12 +20,12 @@ import {
 } from "@/components/ui/drawer";
 import { applySongEdits } from "@/lib";
 import { backgroundService } from "@/lib/background-jobs";
-import { useSongs } from "@/providers";
+import { useSongs, usePlayback } from "@/hooks";
 import type { Song } from "@/models";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useOutletContext } from "react-router";
-import { type SongsContext } from "./Songs";
+import type { SongsContext } from "./Songs";
 
 function SongEdit() {
   //#region State
@@ -40,6 +40,15 @@ function SongEdit() {
   } = useOutletContext<SongsContext>();
   const selectedSongs = songs.filter((s) => selectedSongIds.includes(s.id));
   const [isFormVisible, setIsFormVisible] = useState<boolean>(false);
+  const { isPlaying, playPause } = usePlayback();
+  //#endregion
+
+  //#region Helpers
+  useEffect(() => {
+    if (isPlaying) {
+      playPause();
+    }
+  }, [isPlaying, playPause]);
   //#endregion
 
   //#region Interactivity handlers

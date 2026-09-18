@@ -1,105 +1,116 @@
-import { useEffect, useRef, useState } from "react";
 import {
   Play,
   Pause,
   SkipBack,
   SkipForward,
-  Image,
   Volume2,
+  RepeatOff,
+  Repeat1,
+  Repeat2,
+  Disc3,
+  Shuffle,
+  ListMusic,
+  PauseCircle,
+  PlayCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ArtworkType } from "@/lib/metadata-utils";
+import { getPicturesForSongOfType, ThumbnailSize } from "@/lib";
+import { Slider } from "@/components/ui/slider";
+import { repeatState, shuffleState, usePlayback } from "@/hooks/usePlayback";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import type { SongsContext } from "./Songs";
-import { useArtwork } from "@/hooks";
-import { ArtworkType } from "@/lib/metadata-utils";
-import { getMetadataStore, ThumbnailSize } from "@/lib";
-import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
-import { Slider } from "@/components/ui/slider";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "@/components/ui/item";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Song } from "@/models";
 
 function SongPlayback() {
   //#region State
-  const { songs, filteredSongs, selectedSongIds, setSelectedSongIds } =
+  const { songs, selectedSongIds, setSelectedSongIds } =
     useOutletContext<SongsContext>();
 
   if (selectedSongIds.length == 0) {
-    setSelectedSongIds([filteredSongs[0].id]);
+    setSelectedSongIds([songs[0].id]);
   }
   if (selectedSongIds.length > 1) {
     setSelectedSongIds(selectedSongIds.slice(-1));
   }
 
-  const selectedSong = songs.find((s) => s.id === selectedSongIds[0])!;
+  const selectedSong = songs.find((s) => s.id == selectedSongIds.at(0));
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(selectedSong?.length ?? 0);
-  const [progress, setProgress] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState<number>(0.75);
-  const volumeRef = useRef<number>(volume);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const bufferRef = useRef<AudioBuffer | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-
+  const [coverFront, setCoverFront] = useState<string | undefined>();
+  const {
+    playlist,
+    setPlaylist,
+    nowPlaying,
+    setNowPlaying,
+    playPause,
+    prevTrack,
+    nextTrack,
+    shuffle,
+    setShuffle,
+    repeat,
+    setRepeat,
+    volume,
+    setVolume,
+    currentTime,
+    seek,
+    isPlaying,
+  } = usePlayback();
   //#endregion
-  useEffect(() => {
-    if (!selectedSong) return;
 
+  //#region Helpers
+  useEffect(() => {
+    if (!nowPlaying) return;
     let cancelled = false;
 
-    async function load() {
-      // Create audio context if needed
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext();
-
-        gainRef.current = audioCtxRef.current.createGain();
-        gainRef.current.gain.value = volumeRef.current;
-
-        // Connect gain → destination
-        gainRef.current.connect(audioCtxRef.current.destination);
-      }
-
-      const metadataStore = getMetadataStore() as CombinedMetadataStore;
-      const fsMetadataStore = metadataStore.getFileSystem();
-      const songFileHandle = await fsMetadataStore.getFileHandle(
-        selectedSong.id
-      );
-
-      if (!songFileHandle) {
-        return;
-      }
-
-      const ctx = audioCtxRef.current;
-
-      // Load file from disk
-      const songFile = await songFileHandle.getFile();
-      const arrayBuffer = await songFile.arrayBuffer();
-
-      // Decode into AudioBuffer
-      const decoded = await ctx.decodeAudioData(arrayBuffer);
-
+    async function getArtwork(): Promise<string | undefined> {
+      if (!nowPlaying) return;
       if (cancelled) return;
 
-      bufferRef.current = decoded;
-      setDuration(decoded.duration);
+      const artwork = await getPicturesForSongOfType(
+        nowPlaying.id,
+        ArtworkType.FrontCover,
+        ThumbnailSize.thumb64
+      );
 
-      // Autoplay new track
-      startPlaybackAt.current(0);
+      if (!artwork || artwork.length === 0) return undefined;
+      if (cancelled) return;
+
+      const pic = artwork[0];
+      const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
+
+      return URL.createObjectURL(blob);
+    }
+
+    async function load() {
+      if (!nowPlaying) return;
+      const cover = await getArtwork();
+      setCoverFront(cover);
     }
 
     load();
 
     return () => {
       cancelled = true;
-      stopPlayback();
     };
-  }, [selectedSong]);
+  }, [nowPlaying]);
 
   useEffect(() => {
-    if (gainRef.current) {
-      gainRef.current.gain.value = volume;
-    }
-  }, [volume]);
+    setPlaylist(songs);
+  }, [songs, setPlaylist]);
 
   function formatTime(time: number) {
     const d = time;
@@ -107,131 +118,78 @@ function SongPlayback() {
     const s = `${Math.floor(d % 60)}`.padStart(2, "0");
     return `${m}:${s}`;
   }
+  //#endregion
 
+  //#region Interactivity handlers
   function handleVolumeChange(v: number | readonly number[]) {
     setVolume(Number(v));
   }
 
-  function stopPlayback() {
-    if (sourceRef.current) {
-      try {
-        sourceRef.current.stop();
-      } catch {}
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
-  }
-
-  const startPlaybackAt = useRef((time: number) => {
-    const ctx = audioCtxRef.current;
-    const buffer = bufferRef.current;
-    const gain = gainRef.current;
-
-    if (!ctx || !buffer || !gain) return;
-
-    stopPlayback();
-
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-
-    source.connect(gain);
-
-    const startTime = ctx.currentTime - time;
-    source.start(0, time);
-
-    sourceRef.current = source;
-    setIsPlaying(true);
-
-    // Track progress
-    const update = () => {
-      if (!sourceRef.current) return;
-
-      const t = ctx.currentTime - startTime;
-      setCurrentTime(t);
-      setProgress((t / buffer.duration) * 100);
-
-      if (t < buffer.duration) {
-        requestAnimationFrame(update);
-      } else {
-        handleNext();
-      }
-    };
-
-    requestAnimationFrame(update);
-  });
-
   function handlePlayPause() {
-    if (isPlaying) {
-      stopPlayback();
-      setIsPlaying(false);
-    } else {
-      startPlaybackAt.current(currentTime);
+    if (!nowPlaying && selectedSong != undefined) {
+      setNowPlaying(selectedSong);
     }
+    playPause();
   }
 
   function handlePrev() {
-    const index = filteredSongs.findIndex((s) => s.id === selectedSong?.id);
-    if (index <= 0) return;
-
-    const prevSong = filteredSongs[index - 1];
-    setSelectedSongIds([prevSong.id]);
+    prevTrack();
   }
 
   function handleNext() {
-    const index = filteredSongs.findIndex((s) => s.id === selectedSong?.id);
-    if (index === -1 || index >= filteredSongs.length - 1) return;
-
-    const nextSong = filteredSongs[index + 1];
-    setSelectedSongIds([nextSong.id]);
+    nextTrack();
   }
 
   function handleSeek(v: number | readonly number[]) {
-    const pct = Number(v);
-    const newTime = (pct / 100) * duration;
-
-    startPlaybackAt.current(newTime);
+    seek(Number(v));
   }
 
-  const artwork = useArtwork(
-    selectedSong.id,
-    ArtworkType.FrontCover,
-    ThumbnailSize.thumb64
-  );
+  function handleShuffle() {
+    const nextState = shuffle == "Off" ? shuffleState.On : shuffleState.Off;
 
-  function getArtwork(): string | undefined {
-    if (!artwork || artwork.length === 0) return undefined;
-
-    const pic = artwork[0];
-    const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
-
-    return URL.createObjectURL(blob);
+    setShuffle(nextState);
   }
 
-  const coverFront = getArtwork();
+  function handleRepeat() {
+    const allStates = Object.keys(repeatState).map(
+      (k) => k as keyof typeof repeatState
+    );
+    const next = allStates[(allStates.indexOf(repeat) + 1) % allStates.length];
+    setRepeat(next);
+  }
+
+  function handlePlaylistItemClick(song: Song) {
+    if (nowPlaying?.id == song.id) {
+      playPause();
+    } else {
+      setNowPlaying(song);
+    }
+  }
+  //#endregion
 
   return (
     <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">
       <div className="mx-auto w-full flex items-center justify-between">
-        <div className="flex w-60 items-center gap-3">
+        <div className="flex items-center gap-3">
           {coverFront ? (
             <img
               src={coverFront ?? "/placeholder.png"}
-              alt={selectedSong?.title}
+              alt={nowPlaying?.title}
               draggable="false"
               className="h-12 w-12 rounded-md object-cover border"
             />
           ) : (
             <div className="w-12 aspect-square rounded-md border flex items-center justify-center">
-              <Image color="var(--accent)" />
+              <Disc3 className="text-accent" />
             </div>
           )}
 
           <div className="flex flex-col overflow-hidden">
             <span className="font-medium truncate">
-              {selectedSong?.title ?? "No song selected"}
+              {nowPlaying?.title ?? "Nothing is playing"}
             </span>
             <span className="text-sm text-muted-foreground truncate">
-              {selectedSong?.artist ?? ""}
+              {nowPlaying?.artist ?? ""}
             </span>
           </div>
         </div>
@@ -241,10 +199,23 @@ function SongPlayback() {
             <Button
               size="lg"
               variant="ghost"
+              title={shuffle}
+              onClick={handleShuffle}
+            >
+              <Shuffle
+                className={
+                  shuffle === shuffleState.On
+                    ? "stroke-accent"
+                    : "stroke-foreground"
+                }
+              />
+            </Button>
+
+            <Button
+              size="lg"
+              variant="ghost"
               onClick={handlePrev}
-              disabled={
-                !selectedSong || filteredSongs[0].id === selectedSong.id
-              }
+              disabled={!nowPlaying}
             >
               <SkipBack className="fill-secondary-foreground" />
             </Button>
@@ -266,12 +237,24 @@ function SongPlayback() {
               size="lg"
               variant="ghost"
               onClick={handleNext}
-              disabled={
-                !selectedSong ||
-                filteredSongs[filteredSongs.length - 1].id === selectedSong.id
-              }
+              disabled={!nowPlaying}
             >
               <SkipForward className="fill-secondary-foreground" />
+            </Button>
+
+            <Button
+              size="lg"
+              variant="ghost"
+              onClick={handleRepeat}
+              title={repeat}
+            >
+              {repeat === repeatState.Off && <RepeatOff />}
+              {repeat === repeatState.One && (
+                <Repeat1 className="stroke-accent" />
+              )}
+              {repeat === repeatState.All && (
+                <Repeat2 className="stroke-accent" />
+              )}
             </Button>
           </div>
 
@@ -285,16 +268,58 @@ function SongPlayback() {
               min={0}
               max={100}
               step={1}
-              value={progress}
+              value={(currentTime / (nowPlaying?.length ?? 0)) * 100}
               onValueChange={handleSeek}
               className="flex-1"
             />
 
-            <span className="text-xs w-10">{formatTime(duration)}</span>
+            <span className="text-xs w-10">
+              {formatTime(nowPlaying?.length ?? 0)}
+            </span>
           </div>
         </div>
 
         <div className="w-60 flex items-center justify-end gap-3">
+          <Popover>
+            <PopoverTrigger
+              disabled={playlist.length === 0}
+              render={
+                <Button
+                  variant="ghost"
+                  title="Playlist"
+                  className="w-6"
+                  disabled={playlist.length === 0}
+                >
+                  <ListMusic className="fill-secondary-foreground" />
+                </Button>
+              }
+            />
+            <PopoverContent
+              align="center"
+              className="w-80 max-h-80 overflow-y-auto select-none"
+            >
+              <h3>Playlist - {playlist.length} items</h3>
+              {playlist.map((s) => (
+                <Item key={s.id} variant="outline" size="xs">
+                  <ItemContent>
+                    <ItemTitle>{s.title}</ItemTitle>
+                    <ItemDescription>{s.artist}</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Button
+                      variant="ghost"
+                      onClick={() => handlePlaylistItemClick(s)}
+                    >
+                      {s.id === nowPlaying?.id && isPlaying && <PauseCircle />}
+                      {s.id === nowPlaying?.id && !isPlaying && <PlayCircle />}
+                      {s.id !== nowPlaying?.id && <PlayCircle />}
+                    </Button>
+                  </ItemActions>
+                </Item>
+              ))}
+            </PopoverContent>
+          </Popover>
+
           <Volume2 className="fill-secondary-foreground w-6" />
 
           <Slider
