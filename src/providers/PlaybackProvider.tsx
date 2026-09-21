@@ -137,10 +137,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
           thumbnailSize
         );
 
-        if (!artwork || artwork.length === 0) return undefined;
+        if (!artwork) return undefined;
 
-        const pic = artwork[0];
-        const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
+        const blob = new Blob([artwork.data.slice()], {
+          type: artwork.mimeType,
+        });
 
         return URL.createObjectURL(blob);
       }

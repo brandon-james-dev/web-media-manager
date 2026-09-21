@@ -147,6 +147,7 @@ function SongPlayback() {
           <AlbumArtImage
             songId={nowPlaying?.id}
             thumbSize={ThumbnailSize.thumb64}
+            className="w-12"
             fallback={
               <div className="w-12 aspect-square rounded-md border flex items-center justify-center">
                 <Disc3 className="text-accent" />
