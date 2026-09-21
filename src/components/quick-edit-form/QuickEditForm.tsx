@@ -1,7 +1,5 @@
-import { useArtwork } from "@/hooks";
-import { ArtworkType } from "@/lib/metadata-utils";
 import type { Song } from "@/models";
-import { Save } from "lucide-react";
+import { Pen, Save } from "lucide-react";
 import { useState } from "react";
 import { QuickEditField } from "./QuickEditField";
 import { quickEditFields } from "./quickEditFields";
@@ -9,34 +7,17 @@ import type { QuickEditFormProps, EditableField } from "./QuickEditFormProps";
 import { ThumbnailSize } from "@/lib";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
+import { AlbumArtImage } from "../album-art-image";
 
 export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
   //#region State
   const [values, setValues] = useState<
     Partial<Record<EditableField, string | number>>
   >({});
-
-  const firstSong = songs[0];
-  const artwork = useArtwork(
-    firstSong.id,
-    ArtworkType.FrontCover,
-    ThumbnailSize.thumb128
-  );
-  const [updatedCoverFront, setUpdatedCoverFront] = useState<
-    Blob | undefined
-  >();
+  const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob | null>(null);
   //#endregion
 
   //#region Helpers
-  function getQuickEditArtwork(): string | undefined {
-    if (!artwork || artwork.length === 0) return undefined;
-
-    const pic = artwork[0];
-    const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
-
-    return URL.createObjectURL(blob);
-  }
-
   function stripEmptyFields<T extends Record<string, any>>(obj: T): Partial<T> {
     const result: Partial<T> = {};
 
@@ -67,7 +48,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
 
     const rawUpdates = {
       ...values,
-      coverFront: updatedCoverFront,
+      coverFront: updatedFrontCover,
     };
 
     const updates = stripEmptyFields(rawUpdates) as Partial<Song>;
@@ -75,7 +56,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
     onApply(updates);
 
     setValues({});
-    setUpdatedCoverFront(undefined);
+    setUpdatedFrontCover(null);
   }
   //#endregion
 
@@ -85,6 +66,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
         id={formId || "quick-edit-form"}
         className="grid grid-cols-1 sm:grid-cols-[auto_1fr_1fr_1fr] gap-2 w-full"
         onSubmit={handleQuickEditFormSubmit}
+        onReset={() => setUpdatedFrontCover(null)}
       >
         <div className="row-span-2 flex flex-col items-center gap-2">
           <Label className="text-xs font-medium text-muted-foreground mt-1">
@@ -102,13 +84,13 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
               if (!file) return;
 
               const blob = file.slice(0, file.size, file.type);
-              setUpdatedCoverFront(blob);
+              setUpdatedFrontCover(blob);
             }}
           />
 
-          <label
+          <Label
             htmlFor="quick-edit-art-input"
-            className="relative w-24 h-24 cursor-pointer"
+            className="relative w-24 aspect-square cursor-pointer"
           >
             {songs.length > 1 && (
               <>
@@ -116,25 +98,47 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
                 <div className="absolute inset-0 rounded-md bg-secondary-foreground opacity-40 translate-x-2 translate-y-2" />
               </>
             )}
+            <div className="relative w-full h-full border rounded-md hover:border-accent group">
+              <Pen
+                size={24}
+                className="
+                  absolute top-1 right-1 p-1 rounded-md
+                  dark:bg-accent
+                  opacity-0
+                  group-hover:opacity-100
+                  transition-opacity
+                "
+              />
 
-            {updatedCoverFront ? (
-              <img
-                src={URL.createObjectURL(updatedCoverFront)}
-                alt="Album Art"
-                className="absolute inset-0 w-full h-full object-cover rounded-md shadow pointer-events-none"
-              />
-            ) : getQuickEditArtwork() ? (
-              <img
-                src={getQuickEditArtwork()}
-                alt="Album Art"
-                className="absolute inset-0 w-full h-full object-cover rounded-md shadow pointer-events-none"
-              />
-            ) : (
-              <div className="absolute inset-0 rounded-md border flex items-center justify-center text-sm text-muted-foreground bg-background pointer-events-none">
-                No Art
-              </div>
-            )}
-          </label>
+              {updatedFrontCover ? (
+                <img
+                  src={URL.createObjectURL(updatedFrontCover)}
+                  alt={songs[0].album}
+                  className="object-cover rounded-md border"
+                />
+              ) : (
+                <AlbumArtImage
+                  songId={songs[0].id}
+                  thumbSize={ThumbnailSize.thumb256}
+                  fallback={
+                    <div
+                      className="w-full h-full rounded-md border
+                                 flex flex-col
+                                 items-center justify-center
+                                 text-xs text-foreground text-center
+                                 bg-background
+                                "
+                    >
+                      <div>No cover art</div>
+                      <div className="text-muted-foreground">
+                        Click to select
+                      </div>
+                    </div>
+                  }
+                />
+              )}
+            </div>
+          </Label>
         </div>
 
         {quickEditFields.map((field) => (

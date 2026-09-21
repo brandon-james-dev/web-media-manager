@@ -37,6 +37,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import type { Song } from "@/models";
+import { AlbumArtImage } from "@/components/album-art-image";
 
 function SongPlayback() {
   //#region State
@@ -51,7 +52,6 @@ function SongPlayback() {
   }
 
   const selectedSong = songs.find((s) => s.id == selectedSongIds.at(0));
-  const [coverFront, setCoverFront] = useState<string | undefined>();
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const {
     playlist,
@@ -74,42 +74,6 @@ function SongPlayback() {
   //#endregion
 
   //#region Helpers
-  useEffect(() => {
-    if (!nowPlaying) return;
-    let cancelled = false;
-
-    async function getArtwork(): Promise<string | undefined> {
-      if (!nowPlaying) return;
-      if (cancelled) return;
-
-      const artwork = await getPicturesForSongOfType(
-        nowPlaying.id,
-        ArtworkType.FrontCover,
-        ThumbnailSize.thumb64
-      );
-
-      if (!artwork || artwork.length === 0) return undefined;
-      if (cancelled) return;
-
-      const pic = artwork[0];
-      const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
-
-      return URL.createObjectURL(blob);
-    }
-
-    async function load() {
-      if (!nowPlaying) return;
-      const cover = await getArtwork();
-      setCoverFront(cover);
-    }
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [nowPlaying]);
-
   function formatTime(time: number) {
     const d = time;
     const m = Math.floor(d / 60);
@@ -180,18 +144,15 @@ function SongPlayback() {
     <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">
       <div className="w-full flex items-center justify-between">
         <div className="w-60 flex items-center gap-3">
-          {coverFront ? (
-            <img
-              src={coverFront ?? "/placeholder.png"}
-              alt={nowPlaying?.title}
-              draggable="false"
-              className="h-12 aspect-square rounded-md object-cover border"
-            />
-          ) : (
-            <div className="w-12 aspect-square rounded-md border flex items-center justify-center">
-              <Disc3 className="text-accent" />
-            </div>
-          )}
+          <AlbumArtImage
+            songId={nowPlaying?.id}
+            thumbSize={ThumbnailSize.thumb64}
+            fallback={
+              <div className="w-12 aspect-square rounded-md border flex items-center justify-center">
+                <Disc3 className="text-accent" />
+              </div>
+            }
+          />
 
           <div className="flex flex-col overflow-hidden">
             <span className="font-medium truncate">

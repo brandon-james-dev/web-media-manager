@@ -1,9 +1,9 @@
+import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
 import type { WorkerProgress } from "../WorkerJob";
 import { initMetadataStore, readSongFile } from "@/lib";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { collectFileHandles } from "@/lib/file-utils";
-import { uuidv7 } from "uuidv7";
 import type { BackgroundJob } from "@/lib/background-jobs";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
 
@@ -39,6 +39,9 @@ export async function runBulkImport(
   await collectFileHandles(directoryHandle, entries);
 
   const total = entries.length;
+  const pictureCountMap = new Map<string, number>();
+  const songsWithPictures: Song[] = [];
+
   let index = 0;
 
   for (const { handle, relativePath } of entries) {
@@ -57,9 +60,34 @@ export async function runBulkImport(
 
     songs.push(song);
 
+    const pictureCount = metadata?.pictures?.length ?? 0;
+
+    pictureCountMap.set(song.id, pictureCount);
+
+    if (pictureCount > 0) {
+      songsWithPictures.push(song);
+    }
+
+    const totalPictureCount = [...pictureCountMap.values()].reduce(
+      (prev, current) => prev + current
+    );
+
     reportProgress({
-      label: `Queueing artwork for ${song.id}`,
+      index,
+      total,
+      percent: (index + 1) / total,
+      data: {
+        song,
+        totalPictureCount,
+      },
+      label: `Imported ${handle.name}`,
     });
+
+    index++;
+  }
+
+  for (const song of songsWithPictures) {
+    if (isCancelled()) return { cancelled: true };
 
     self.postMessage({
       type: "enqueueJob",
@@ -72,17 +100,6 @@ export async function runBulkImport(
         },
       } as BackgroundJob,
     });
-
-    reportProgress({
-      index,
-      total,
-      percent: 1,
-      overall: (index + 1) / total,
-      data: song,
-      label: `Imported ${handle.name}`,
-    });
-
-    index++;
   }
 
   return { ok: true, songs };

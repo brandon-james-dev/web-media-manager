@@ -200,7 +200,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     const store = getMetadataStore();
     return backgroundService.onJobProgress(async (event) => {
       if (event.jobType === "bulkImport") {
-        const newSong = event.payload.data;
+        const newSong = event.payload.data.song;
 
         if (newSong) {
           await store.save(newSong.id, newSong);

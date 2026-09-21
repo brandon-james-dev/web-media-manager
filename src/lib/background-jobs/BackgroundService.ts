@@ -8,6 +8,7 @@ export type JobProgressCallback = (event: {
   jobType: string;
   payload: any;
 }) => void;
+import { Subject } from "rxjs"; // add at top
 
 export class BackgroundService {
   private queue: BackgroundJob[] = [];
@@ -16,6 +17,11 @@ export class BackgroundService {
 
   private jobCompletedListeners = new Set<JobCompletedCallback>();
   private jobProgressListeners = new Set<JobProgressCallback>();
+
+  private customEventBus = new Subject<{
+    eventName: string;
+    payload: any;
+  }>();
 
   constructor() {
     eventBus.subscribe((evt) => {
@@ -26,7 +32,23 @@ export class BackgroundService {
           payload: evt.payload,
         });
       }
+
+      if (evt.type?.startsWith("custom:")) {
+        const eventName = evt.type.substring("custom:".length);
+        this.emitCustom(eventName, evt.payload);
+      }
     });
+  }
+
+  emitCustom(eventName: string, payload: any) {
+    this.customEventBus.next({ eventName, payload });
+  }
+
+  onCustom(eventName: string, cb: (payload: any) => void) {
+    const sub = this.customEventBus.subscribe((evt) => {
+      if (evt.eventName === eventName) cb(evt.payload);
+    });
+    return () => sub.unsubscribe();
   }
 
   enqueue(job: Omit<BackgroundJob, "id" | "state">) {

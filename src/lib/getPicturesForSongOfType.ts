@@ -4,25 +4,25 @@ import { ThumbnailSize } from "./resizeBitmap";
 
 export async function getPicturesForSongOfType(
   songId: string,
-  type: ArtworkType,
-  thumbSize: ThumbnailSize | undefined = ThumbnailSize.thumb256
-): Promise<IPicture[]> {
+  type: ArtworkType = ArtworkType.FrontCover,
+  thumbSize: ThumbnailSize = ThumbnailSize.thumb256
+): Promise<IPicture | undefined> {
   const db = getMetadataDb();
 
-  const rows = await db.songArtwork
+  const artwork = await db.songArtwork
     .where("songId")
     .equals(songId)
     .filter((row) => row.artworkType === type)
-    .toArray();
+    .first();
+
+  if (!artwork) return undefined;
 
   const key = thumbSize == undefined ? "full" : "thumb" + thumbSize;
 
-  return Promise.all(
-    rows.map(async (art) => ({
-      type: art.artworkType ?? ArtworkType.Other,
-      mimeType: "image/jpeg",
-      description: "",
-      data: new Uint8Array(await (art as any)[key].arrayBuffer()),
-    }))
-  );
+  return {
+    type: artwork?.artworkType ?? ArtworkType.Other,
+    mimeType: "image/jpeg",
+    description: "",
+    data: new Uint8Array(await (artwork as any)[key].arrayBuffer()),
+  };
 }

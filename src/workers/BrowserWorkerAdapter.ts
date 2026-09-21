@@ -16,20 +16,32 @@ export class BrowserWorkerAdapter implements IWorkerAdapter {
       this.worker.onmessage = (event) => {
         const msg = event.data;
 
-        if (msg.type == "enqueueJob") {
+        // Forward enqueueJob
+        if (msg.type === "enqueueJob") {
           backgroundService.enqueue(msg.job);
+          return;
         }
 
+        // Workers send: { type: "custom:artwork-complete:<songId>", payload: {...} }
+        if (msg.type?.startsWith("custom:")) {
+          const eventName = msg.type.substring("custom:".length);
+          backgroundService.emitCustom(eventName, msg.payload);
+          return;
+        }
+
+        // Normal progress event
         if (msg.type === "progress") {
           onProgress(msg);
           return;
         }
 
+        // Job completed inside worker
         if (msg.type === "complete") {
           resolve(msg.result);
           return;
         }
 
+        // Worker error
         if (msg.type === "error") {
           reject(msg.error);
           return;

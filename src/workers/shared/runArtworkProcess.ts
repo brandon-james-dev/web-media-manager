@@ -2,7 +2,6 @@ import { getMetadataDb } from "@/lib/dexie-utils";
 import type { WorkerProgress } from "../WorkerJob";
 import { resizeBitmap, ThumbnailSize } from "@/lib";
 import type { Song, SongArtwork } from "@/models";
-import { ArtworkType } from "@/lib/metadata-utils";
 
 export async function runArtworkProcess(
   payload: {
@@ -16,26 +15,6 @@ export async function runArtworkProcess(
   const songId = song.id;
   const pictures = song.pictures ?? [];
 
-  if (song.coverFront && song.coverFront.size > 0) {
-    const bytes = await song.coverFront.bytes();
-
-    pictures.push({
-      data: bytes,
-      mimeType: "image/jpeg",
-      type: ArtworkType.FrontCover,
-    });
-  }
-
-  if (song.coverBack && song.coverBack.size > 0) {
-    const bytes = await song.coverBack.bytes();
-
-    pictures.push({
-      data: bytes,
-      mimeType: "image/jpeg",
-      type: ArtworkType.BackCover,
-    });
-  }
-
   const total = pictures.length;
 
   if (!total) {
@@ -43,6 +22,7 @@ export async function runArtworkProcess(
       songId,
       hasEmbedded: false,
     });
+
     return { ok: true };
   }
 
@@ -56,8 +36,6 @@ export async function runArtworkProcess(
     reportProgress({
       index: i,
       total,
-      percent: 0.0,
-      overall: i / total,
       label: `Decoding picture ${i + 1}`,
     });
 
@@ -68,8 +46,6 @@ export async function runArtworkProcess(
     reportProgress({
       index: i,
       total,
-      percent: 0.25,
-      overall: (i + 0.25) / total,
       label: `Generating thumbnails for picture ${i + 1}`,
     });
 
@@ -93,8 +69,6 @@ export async function runArtworkProcess(
     reportProgress({
       index: i,
       total,
-      percent: 0.75,
-      overall: (i + 0.75) / total,
       label: `Encoding full-size artwork for picture ${i + 1}`,
     });
 
@@ -112,8 +86,6 @@ export async function runArtworkProcess(
     reportProgress({
       index: i,
       total,
-      percent: 0.9,
-      overall: (i + 0.9) / total,
       label: `Saving artwork for picture ${i + 1}`,
     });
 
@@ -122,9 +94,7 @@ export async function runArtworkProcess(
     let picture = {
       songId,
       hasEmbedded: true,
-
       artworkType: pic.type,
-
       full: fullBlob,
       ...thumbnails,
     } as SongArtwork;
@@ -132,20 +102,31 @@ export async function runArtworkProcess(
     const existing = existingPictures.find((p) => p.artworkType == pic.type);
 
     // Save into Dexie — one row per picture
-    if (existing) {
+    if (existing && existing.id) {
       picture.id = existing.id;
+      await db.songArtwork.update(existing.id, picture);
+    } else {
+      await db.songArtwork.put(picture);
     }
-
-    await db.songArtwork.put(picture);
 
     reportProgress({
       index: i,
       total,
-      percent: 1.0,
-      overall: (i + 1.0) / total,
       label: `Picture ${i + 1} complete`,
+      data: {
+        songId,
+        artworkId: picture.id,
+      },
     });
   }
 
-  return { ok: true };
+  self.postMessage({
+    type: `custom:artwork-complete:${songId}`,
+    songId,
+  });
+
+  return {
+    ok: true,
+    songId,
+  };
 }

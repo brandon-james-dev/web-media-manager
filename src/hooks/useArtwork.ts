@@ -8,7 +8,7 @@ export function useArtwork(
   artworkType: ArtworkType,
   thumbSize?: ThumbnailSize
 ) {
-  const [artwork, setArtwork] = useState<IPicture[]>([]);
+  const [artwork, setArtwork] = useState<IPicture>();
 
   useEffect(() => {
     let cancelled = false;

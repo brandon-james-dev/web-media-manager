@@ -2,15 +2,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbnailSize } from "@/lib";
-import { ArtworkType } from "@/lib/metadata-utils";
 import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
 import type { Song } from "@/models";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
-import { Eraser, Globe, Pen, Save } from "lucide-react";
-import { useArtwork } from "@/hooks";
+import { Eraser, Globe, Pen, Save, X } from "lucide-react";
 import type { SongEditFormProps } from "./SongEditFormProps";
+import { AlbumArtImage } from "../album-art-image";
 
 export function SongEditForm(props: SongEditFormProps) {
   //#region State
@@ -18,13 +17,7 @@ export function SongEditForm(props: SongEditFormProps) {
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
   const [showSearch, setShowSearch] = useState(false);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
-  const [frontCover] = useArtwork(
-    song.id,
-    ArtworkType.FrontCover,
-    ThumbnailSize.thumb256
-  );
   const formRef = useRef<HTMLFormElement>(null);
-  const albumArt = getFrontCover();
   //#endregion
 
   //#region Helpers
@@ -42,19 +35,6 @@ export function SongEditForm(props: SongEditFormProps) {
 
   function markDirty(name: string, isDirty: boolean) {
     setDirty((prev) => ({ ...prev, [name]: isDirty }));
-  }
-
-  function getFrontCover(): string | undefined {
-    if (!(frontCover || updatedFrontCover)) {
-      return undefined;
-    }
-
-    const frontCoverSet =
-      updatedFrontCover || new Blob([frontCover.data.slice()]);
-    if (!frontCoverSet) {
-      return undefined;
-    }
-    return URL.createObjectURL(frontCoverSet);
   }
   //#endregion
 
@@ -232,8 +212,8 @@ export function SongEditForm(props: SongEditFormProps) {
         onSubmit={handleEditSubmit}
       >
         <section>
-          <div className="grid xl:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 gap-4">
-            <div className="hidden md:block row-span-2">
+          <div className="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-4">
+            <div className="row-span-2">
               <Label
                 htmlFor="coverFront"
                 className="pb-1 flex items-center gap-2"
@@ -244,36 +224,49 @@ export function SongEditForm(props: SongEditFormProps) {
                 )}
               </Label>
 
-              {albumArt ? (
-                <Label htmlFor="coverFront" className="cursor-pointer">
-                  <div className="relative border rounded-md hover:border-accent group">
-                    <img
-                      src={albumArt}
-                      alt={song.title}
-                      className={
-                        dirty.coverFront
-                          ? "w-32 h-32 object-cover rounded-md border border-accent/50"
-                          : "w-32 h-32 object-cover rounded-md border"
-                      }
-                    />
-
+              <Label htmlFor="coverFront">
+                <div
+                  className="flex flex-col 
+                             items-center justify-center 
+                             text-sm 
+                             text-muted-foreground bg-background
+                            "
+                >
+                  <div className="w-32 aspect-square relative border rounded-md hover:border-accent group cursor-pointer">
                     <Pen
                       size={24}
                       className="
-                        absolute top-0 right-0 p-1.5 rounded-md
-                        dark:bg-accent
+                        absolute top-1 right-1 p-1 rounded-md
+                        dark:bg-accent text-white
                         opacity-0
                         group-hover:opacity-100
                         transition-opacity
                       "
                     />
+                    {updatedFrontCover ? (
+                      <img
+                        src={URL.createObjectURL(updatedFrontCover)}
+                        alt={song.album}
+                        className="object-cover rounded border border-accent/50"
+                      />
+                    ) : (
+                      <AlbumArtImage
+                        songId={song.id}
+                        thumbSize={ThumbnailSize.thumb128}
+                        className="object-cover rounded"
+                        fallback={
+                          <>
+                            <div>No cover art</div>
+                            <div className="text-muted-foreground">
+                              Click to select
+                            </div>
+                          </>
+                        }
+                      />
+                    )}
                   </div>
-                </Label>
-              ) : (
-                <Label htmlFor="coverFront" className="cursor-pointer p-2">
-                  No cover art. Click to select.
-                </Label>
-              )}
+                </div>
+              </Label>
 
               <Input
                 hidden

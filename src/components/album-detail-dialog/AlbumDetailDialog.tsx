@@ -14,6 +14,7 @@ import { Label } from "../ui/label";
 import { ChevronLeft, ChevronRight, Eraser, Pen, Save, X } from "lucide-react";
 import { Button } from "../ui/button";
 import type { AlbumDetailDialogProps } from "./AlbumDetailDialogProps";
+import { AlbumArtImage } from "../album-art-image";
 
 export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
   //#region State
@@ -28,23 +29,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
     handleNextClick,
     handlePrevClick,
   } = props;
-
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob | null>(null);
-
-  const artwork = useArtwork(
-    album.pictureSongId!,
-    ArtworkType.FrontCover,
-    ThumbnailSize.thumb512
-  );
-
-  function getAlbumArt(): string | undefined {
-    if (!artwork || artwork.length === 0) return undefined;
-    const pic = artwork[0];
-    const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
-    return URL.createObjectURL(blob);
-  }
-
-  const albumArt = getAlbumArt();
   //#endregion
 
   //#region Helpers
@@ -66,6 +51,16 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
   function handleOpenChange(open: boolean) {
     setUpdatedFrontCover(null);
     onOpenChange(open);
+  }
+
+  function handlePrevClicked() {
+    setUpdatedFrontCover(null);
+    handlePrevClick?.();
+  }
+
+  function handleNextClicked() {
+    setUpdatedFrontCover(null);
+    handleNextClick?.();
   }
   //#endregion
 
@@ -92,35 +87,46 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                            rounded-lg
                           "
               >
-                {albumArt || updatedFrontCover ? (
-                  <div className="relative border rounded-md hover:border-accent group">
-                    <img
-                      src={
-                        updatedFrontCover != null
-                          ? URL.createObjectURL(updatedFrontCover)
-                          : albumArt
-                      }
-                      alt={album.title}
-                      className="object-cover rounded-md border"
-                    />
-
-                    <Pen
-                      size={32}
-                      className="
+                <div className="relative w-full h-full border rounded-md hover:border-accent group">
+                  <Pen
+                    size={32}
+                    className="
                       absolute top-3 right-3 p-2 rounded-md
                       dark:bg-accent
                       opacity-0
                       group-hover:opacity-100
                       transition-opacity
                     "
+                  />
+                  {updatedFrontCover ? (
+                    <img
+                      src={URL.createObjectURL(updatedFrontCover)}
+                      alt={album.title}
+                      className="object-cover rounded-md border"
                     />
-                  </div>
-                ) : (
-                  <>
-                    <div>No cover art</div>
-                    <div className="text-muted-foreground">Click to select</div>
-                  </>
-                )}
+                  ) : (
+                    <AlbumArtImage
+                      songId={album.pictureSongId}
+                      thumbSize={ThumbnailSize.thumb512}
+                      fallback={
+                        <div
+                          className="
+                            w-full h-full rounded-md border
+                            flex flex-col
+                            items-center justify-center
+                            text-sm text-foreground text-center
+                            bg-background
+                          "
+                        >
+                          <div>No cover art</div>
+                          <div className="text-muted-foreground">
+                            Click to select
+                          </div>
+                        </div>
+                      }
+                    />
+                  )}
+                </div>
               </Label>
             </div>
 
@@ -149,7 +155,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={handlePrevClick}
+                    onClick={handlePrevClicked}
                     disabled={!!isPrevButtonDisabled}
                   >
                     <ChevronLeft />
@@ -161,7 +167,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={handleNextClick}
+                    onClick={handleNextClicked}
                     disabled={!!isNextButtonDisabled}
                   >
                     Next
