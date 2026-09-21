@@ -92,7 +92,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
     <img
       src={artwork}
       draggable={false}
-      className={className ?? "rounded object-cover"}
+      className={className ?? "rounded object-cover w-full"}
     />
   );
 }
