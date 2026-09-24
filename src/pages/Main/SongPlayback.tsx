@@ -15,11 +15,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArtworkType } from "@/lib/metadata-utils";
-import { getPicturesForSongOfType, ThumbnailSize } from "@/lib";
+import { ThumbnailSize } from "@/lib";
 import { Slider } from "@/components/ui/slider";
 import { repeatState, shuffleState, usePlayback } from "@/hooks/usePlayback";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useOutletContext } from "react-router";
 import type { SongsContext } from "./Songs";
 import {

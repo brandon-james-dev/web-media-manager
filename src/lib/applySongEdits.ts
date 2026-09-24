@@ -22,9 +22,10 @@ export async function applySongEdits(
       description: "Front Cover",
     });
   } else {
-    const frontCover = (
-      await getPicturesForSongOfType(song.id, ArtworkType.FrontCover)
-    ).at(0);
+    const frontCover = await getPicturesForSongOfType(
+      song.id,
+      ArtworkType.FrontCover
+    );
 
     if (frontCover) {
       updatedSong.pictures ??= [];
@@ -47,9 +48,10 @@ export async function applySongEdits(
       description: "Back Cover",
     });
   } else {
-    const backCover = (
-      await getPicturesForSongOfType(song.id, ArtworkType.BackCover)
-    ).at(0);
+    const backCover = await getPicturesForSongOfType(
+      song.id,
+      ArtworkType.BackCover
+    );
 
     if (backCover) {
       updatedSong.pictures ??= [];
