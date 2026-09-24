@@ -1,7 +1,7 @@
 import "./App.css";
 
 import { Routes, Route } from "react-router";
-import { Songs, Albums, Settings, SongEdit, SongPlayback } from "./pages";
+import { Songs, Albums, Settings } from "./pages";
 import { NavBar } from "./layout";
 import { SongProvider } from "./providers/SongProvider";
 import { ThemeProvider } from "./components/theme-provider";
@@ -22,16 +22,13 @@ function App() {
             <PlaybackProvider>
               <Routes>
                 <Route path="/" element={<MainLayout />}>
-                  <Route path="/" element={<Songs />}>
-                    <Route path="/" element={<SongEdit />} />
-                    <Route path="/playback" element={<SongPlayback />} />
-                  </Route>
-                  <Route path="/songs" element={<Songs />}>
-                    <Route path="" element={<SongEdit />} />
-                    <Route path="playback" element={<SongPlayback />} />
-                  </Route>
-                  <Route path="/albums" element={<Albums />} />
+                  <Route path="/" element={<Songs />} />
+                  <Route path="songs" element={<Songs />} />
+                  <Route path="songs/:mode" element={<Songs />} />
+                  <Route path="albums" element={<Albums />} />
+                  <Route path="albums/:mode" element={<Albums />} />
                 </Route>
+
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </PlaybackProvider>

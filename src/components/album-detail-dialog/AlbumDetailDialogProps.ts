@@ -5,7 +5,7 @@ export interface AlbumDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 
-  album: Album;
+  album?: Album;
 
   onSubmit?: (form: FormData) => void;
 

@@ -70,210 +70,212 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
         showCloseButton={false}
         className="sm:max-w-4xl w-full max-h-4/5 p-0 select-none overflow-auto"
       >
-        <form
-          key={album.id}
-          id={formId || "album-details-dialog-form"}
-          className="flex flex-col sm:flex-row h-full"
-          onSubmit={handleFormSubmit}
-        >
-          <div className="w-full sm:w-1/3 bg-muted/30 flex flex-col items-center gap-3">
-            <div className="w-full aspect-square p-3">
-              <Label
-                htmlFor="coverFront"
-                className="border border-muted-foreground
+        {album && (
+          <form
+            key={album.id}
+            id={formId || "album-details-dialog-form"}
+            className="flex flex-col sm:flex-row h-full"
+            onSubmit={handleFormSubmit}
+          >
+            <div className="w-full sm:w-1/3 bg-muted/30 flex flex-col items-center gap-3">
+              <div className="w-full aspect-square p-3">
+                <Label
+                  htmlFor="coverFront"
+                  className="border border-muted-foreground
                            h-full
                            flex flex-col justify-center
                            hover:bg-accent/10 cursor-pointer
                            rounded-lg
                           "
-              >
-                <div className="relative w-full h-full border rounded-md hover:border-accent group">
-                  <Pen
-                    size={32}
-                    className="
+                >
+                  <div className="relative w-full h-full border rounded-md hover:border-accent group">
+                    <Pen
+                      size={32}
+                      className="
                       absolute top-3 right-3 p-2 rounded-md
                       dark:bg-accent
                       opacity-0
                       group-hover:opacity-100
                       transition-opacity
                     "
-                  />
-                  {updatedFrontCover ? (
-                    <img
-                      src={URL.createObjectURL(updatedFrontCover)}
-                      alt={album.title}
-                      className="object-cover rounded-md border"
                     />
-                  ) : (
-                    <AlbumArtImage
-                      songId={album.pictureSongId}
-                      thumbSize={ThumbnailSize.thumb512}
-                      fallback={
-                        <div
-                          className="
+                    {updatedFrontCover ? (
+                      <img
+                        src={URL.createObjectURL(updatedFrontCover)}
+                        alt={album.title}
+                        className="object-cover rounded-md border"
+                      />
+                    ) : (
+                      <AlbumArtImage
+                        songId={album.pictureSongId}
+                        thumbSize={ThumbnailSize.thumb512}
+                        fallback={
+                          <div
+                            className="
                             w-full h-full rounded-md border
                             flex flex-col
                             items-center justify-center
                             text-sm text-foreground text-center
                             bg-background
                           "
-                        >
-                          <div>No cover art</div>
-                          <div className="text-muted-foreground">
-                            Click to select
+                          >
+                            <div>No cover art</div>
+                            <div className="text-muted-foreground">
+                              Click to select
+                            </div>
                           </div>
-                        </div>
-                      }
-                    />
+                        }
+                      />
+                    )}
+                  </div>
+                </Label>
+              </div>
+
+              <Input
+                hidden
+                id="coverFront"
+                type="file"
+                name="coverFront"
+                accept="image/*"
+                onChange={(evt) => {
+                  const file = evt.currentTarget.files?.[0];
+
+                  if (file) {
+                    // Create preview URL
+                    setUpdatedFrontCover(file);
+                  }
+                }}
+                className="mt-2"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex justify-between">
+                <div className="flex gap-2">
+                  {handlePrevClick && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handlePrevClicked}
+                      disabled={!!isPrevButtonDisabled}
+                    >
+                      <ChevronLeft />
+                      Prev
+                    </Button>
+                  )}
+
+                  {handleNextClick && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleNextClicked}
+                      disabled={!!isNextButtonDisabled}
+                    >
+                      Next
+                      <ChevronRight />
+                    </Button>
                   )}
                 </div>
-              </Label>
-            </div>
 
-            <Input
-              hidden
-              id="coverFront"
-              type="file"
-              name="coverFront"
-              accept="image/*"
-              onChange={(evt) => {
-                const file = evt.currentTarget.files?.[0];
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    type="submit"
+                    className="bg-accent/50 hover:bg-accent/70 text-white"
+                  >
+                    <Save />
+                    Save
+                  </Button>
 
-                if (file) {
-                  // Create preview URL
-                  setUpdatedFrontCover(file);
-                }
-              }}
-              className="mt-2"
-            />
-          </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    type="reset"
+                    className="border-accent/50 hover:border-accent/70 text-white"
+                    onClick={() => setUpdatedFrontCover(null)}
+                  >
+                    <Eraser />
+                    Reset
+                  </Button>
 
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="flex justify-between">
-              <div className="flex gap-2">
-                {handlePrevClick && (
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={handlePrevClicked}
-                    disabled={!!isPrevButtonDisabled}
+                    onClick={() => handleOpenChange(false)}
                   >
-                    <ChevronLeft />
-                    Prev
+                    <X />
+                    Close
                   </Button>
-                )}
+                </div>
+              </div>
+              <DialogHeader>
+                <DialogTitle className="mb-3 mt-4 pb-3 flex flex-col gap-1 border-b">
+                  <Input
+                    type="text"
+                    name="albumTitle"
+                    className="text-sm md:text-xl"
+                    defaultValue={album.title}
+                    autoComplete="off"
+                  />
 
-                {handleNextClick && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleNextClicked}
-                    disabled={!!isNextButtonDisabled}
-                  >
-                    Next
-                    <ChevronRight />
-                  </Button>
-                )}
+                  <Input
+                    type="text"
+                    name="albumArtist"
+                    className="text-sm text-muted-foreground"
+                    defaultValue={album.artist}
+                    autoComplete="off"
+                  />
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="grid grid-cols-[60px_1fr_60px] bg-muted/40 text-xs font-medium py-1 rounded-md w-full">
+                <div>Track</div>
+                <div>Title</div>
+                <div>Duration</div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="default"
-                  type="submit"
-                  className="bg-accent/50 hover:bg-accent/70 text-white"
-                >
-                  <Save />
-                  Save
-                </Button>
+              <div className="divide-y w-full">
+                {album.songs
+                  .sort((a, b) => (a.track ?? 0) - (b.track ?? 0))
+                  .map((s, index) => (
+                    <div
+                      key={s.id}
+                      className="grid grid-cols-[60px_1fr_60px] items-center py-1 gap-2"
+                    >
+                      <Input
+                        type="hidden"
+                        name={`songs[${index}].id`}
+                        className="w-full text-xs border rounded px-1 py-0.5 bg-background"
+                        defaultValue={s.id}
+                        autoComplete="off"
+                      />
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  type="reset"
-                  className="border-accent/50 hover:border-accent/70 text-white"
-                  onClick={() => setUpdatedFrontCover(null)}
-                >
-                  <Eraser />
-                  Reset
-                </Button>
+                      <Input
+                        type="number"
+                        name={`songs[${index}].track`}
+                        className="w-full text-xs border rounded px-1 py-0.5 bg-background"
+                        defaultValue={s.track ?? 0}
+                        autoComplete="off"
+                      />
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleOpenChange(false)}
-                >
-                  <X />
-                  Close
-                </Button>
+                      <Input
+                        type="text"
+                        name={`songs[${index}].title`}
+                        className="w-full text-xs border rounded px-1 py-0.5 bg-background"
+                        defaultValue={s.title}
+                        autoComplete="off"
+                      />
+
+                      <span className="w-full px-1 text-right">
+                        {formatLength(s.length)}
+                      </span>
+                    </div>
+                  ))}
               </div>
             </div>
-            <DialogHeader>
-              <DialogTitle className="mb-3 mt-4 pb-3 flex flex-col gap-1 border-b">
-                <Input
-                  type="text"
-                  name="albumTitle"
-                  className="text-sm md:text-xl"
-                  defaultValue={album.title}
-                  autoComplete="off"
-                />
-
-                <Input
-                  type="text"
-                  name="albumArtist"
-                  className="text-sm text-muted-foreground"
-                  defaultValue={album.artist}
-                  autoComplete="off"
-                />
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="grid grid-cols-[60px_1fr_60px] bg-muted/40 text-xs font-medium py-1 rounded-md w-full">
-              <div>Track</div>
-              <div>Title</div>
-              <div>Duration</div>
-            </div>
-
-            <div className="divide-y w-full">
-              {album.songs
-                .sort((a, b) => (a.track ?? 0) - (b.track ?? 0))
-                .map((s, index) => (
-                  <div
-                    key={s.id}
-                    className="grid grid-cols-[60px_1fr_60px] items-center py-1 gap-2"
-                  >
-                    <Input
-                      type="hidden"
-                      name={`songs[${index}].id`}
-                      className="w-full text-xs border rounded px-1 py-0.5 bg-background"
-                      defaultValue={s.id}
-                      autoComplete="off"
-                    />
-
-                    <Input
-                      type="number"
-                      name={`songs[${index}].track`}
-                      className="w-full text-xs border rounded px-1 py-0.5 bg-background"
-                      defaultValue={s.track ?? 0}
-                      autoComplete="off"
-                    />
-
-                    <Input
-                      type="text"
-                      name={`songs[${index}].title`}
-                      className="w-full text-xs border rounded px-1 py-0.5 bg-background"
-                      defaultValue={s.title}
-                      autoComplete="off"
-                    />
-
-                    <span className="w-full px-1 text-right">
-                      {formatLength(s.length)}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </form>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

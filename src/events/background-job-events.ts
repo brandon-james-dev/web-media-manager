@@ -1,5 +1,5 @@
 import { Subject } from "rxjs";
-import type { CancellationToken } from "./CancellationToken";
+import type { CancellationToken } from "../lib/background-jobs/CancellationToken";
 import type { WorkerJob } from "@/workers";
 
 export interface BackgroundJob extends WorkerJob {

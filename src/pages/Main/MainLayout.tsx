@@ -1,3 +1,4 @@
+import { PlayerControls } from "@/components/player-controls";
 import {
   InputGroup,
   InputGroupAddon,
@@ -9,7 +10,8 @@ import type { QueryOptions } from "@/lib/store";
 import type { Song } from "@/models";
 import { Music, DiscAlbum, Search, Pen, Play } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
-import { Outlet, NavLink, useLocation } from "react-router";
+import { Outlet, NavLink, useLocation, useParams } from "react-router";
+import { Editor } from "@/components/editor";
 
 type MainContext = {
   queryText: string;
@@ -23,16 +25,17 @@ type MainContext = {
       desc: boolean;
     }>
   >;
-  mode: "edit" | "playback";
 };
 
 function MainLayout() {
   //#region State
-  const location = useLocation();
-  const activeTab = location.pathname.includes("albums") ? "albums" : "songs";
-  const activeMode = location.pathname.includes("playback")
-    ? "playback"
-    : "edit";
+  const { pathname } = useLocation();
+  const { mode } = useParams();
+  const activeTab =
+    pathname.includes("songs") || pathname === "/" ? "songs" : "albums";
+  const activeMode =
+    mode === "edit" || mode === undefined ? "edit" : "playback";
+
   const { query, setQuery, total, filteredTotal } = useSongs();
   const [sort, setSort] = useState<{
     selector: (item: Song) => any;
@@ -68,13 +71,13 @@ function MainLayout() {
         hidden={(total ?? 0) == 0}
       >
         <div className="w-45 sm:flex">
-          <Tabs className="w-45 flex justify-end">
+          <Tabs value={activeMode} className="w-45 flex justify-end">
             <TabsList>
               <TabsTrigger
                 value="edit"
                 render={
                   <NavLink
-                    to={activeTab}
+                    to={`${activeTab}/edit`}
                     draggable="false"
                     className="flex items-center gap-2 cursor-default group"
                   >
@@ -124,9 +127,8 @@ function MainLayout() {
               value="songs"
               render={
                 <NavLink
-                  to="/"
+                  to={`songs/${activeMode}`}
                   draggable="false"
-                  end
                   className="flex items-center gap-2 cursor-default"
                 >
                   <Music className="h-4 w-4" />
@@ -139,7 +141,7 @@ function MainLayout() {
               value="albums"
               render={
                 <NavLink
-                  to="albums"
+                  to={`albums/${activeMode}`}
                   draggable="false"
                   className="flex items-center gap-2 cursor-default"
                 >
@@ -153,7 +155,12 @@ function MainLayout() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <Outlet context={{ queryText, sort, setSort, mode: activeMode }} />
+        <Outlet context={{ queryText, sort, setSort }} />
+      </div>
+
+      <div className="shrink-0">
+        {activeMode === "edit" && <Editor mode={activeTab} />}
+        {activeMode === "playback" && <PlayerControls />}
       </div>
     </div>
   );

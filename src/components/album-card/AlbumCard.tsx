@@ -6,18 +6,27 @@ import { ThumbnailSize } from "@/lib";
 function AlbumCard({
   album,
   onClick,
+  onDoubleClick,
   className,
 }: {
   album: Album;
   onClick?: (album: Album) => void;
+  onDoubleClick?: (album: Album) => void;
   className?: string;
 }) {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    if (e.detail === 1) {
+      onClick?.(album);
+    } else if (e.detail === 2) {
+      onDoubleClick?.(album);
+    }
+  };
   return (
     <Card
       className={
         className ?? "aspect-square p-0 relative border hover:border-accent/50"
       }
-      onClick={() => onClick?.(album)}
+      onClick={handleClick}
     >
       <div className="absolute top-0 left-0 h-full w-full hover:bg-accent/15 transition duration-100"></div>
       <CardContent className="flex flex-col items-center justify-center p-0 h-full">

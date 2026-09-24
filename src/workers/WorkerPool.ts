@@ -1,6 +1,6 @@
 import type { WorkerJob } from "@/workers";
 import type { IWorkerAdapter } from "./IWorkerAdapter";
-import { eventBus } from "@/lib/background-jobs/eventBus";
+import { eventBus } from "@/events/background-job-events";
 
 export class WorkerPool {
   private workers: IWorkerAdapter[] = [];

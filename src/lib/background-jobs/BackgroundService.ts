@@ -1,5 +1,8 @@
 import { uuidv7 } from "uuidv7";
-import { eventBus, type BackgroundJob } from "./eventBus";
+import {
+  eventBus,
+  type BackgroundJob,
+} from "../../events/background-job-events";
 import { getWorkerPool, WorkerPool } from "@/workers";
 
 export type JobCompletedCallback = (job: BackgroundJob) => void;

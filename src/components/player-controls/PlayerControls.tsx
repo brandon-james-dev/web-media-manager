@@ -18,9 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ThumbnailSize } from "@/lib";
 import { Slider } from "@/components/ui/slider";
 import { repeatState, shuffleState, usePlayback } from "@/hooks/usePlayback";
-import { useState } from "react";
-import { useOutletContext } from "react-router";
-import type { SongsContext } from "./Songs";
+import { useEffect, useState } from "react";
 import {
   Popover,
   PopoverContent,
@@ -34,23 +32,13 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
 import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
+import { songDoubleClicked$ } from "@/events/song-events";
+import { playlistSet$ } from "@/events/player-events";
 
-function SongPlayback() {
+function PlayerControls() {
   //#region State
-  const { songs, selectedSongIds, setSelectedSongIds } =
-    useOutletContext<SongsContext>();
-
-  if (selectedSongIds.length == 0) {
-    setSelectedSongIds([songs[0].id]);
-  }
-  if (selectedSongIds.length > 1) {
-    setSelectedSongIds(selectedSongIds.slice(-1));
-  }
-
-  const selectedSong = songs.find((s) => s.id == selectedSongIds.at(0));
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const {
     playlist,
@@ -72,6 +60,23 @@ function SongPlayback() {
   } = usePlayback();
   //#endregion
 
+  //#region Subscribe to domain events
+  useEffect(() => {
+    const subDouble = songDoubleClicked$.subscribe((song) => {
+      setNowPlaying(song);
+    });
+
+    const subPlaylistSet = playlistSet$.subscribe((songs) => {
+      setPlaylist(songs);
+    });
+
+    return () => {
+      subDouble.unsubscribe();
+      subPlaylistSet.unsubscribe();
+    };
+  }, [playlist, nowPlaying, setPlaylist, setNowPlaying]);
+  //#endregion
+
   //#region Helpers
   function formatTime(time: number) {
     const d = time;
@@ -87,9 +92,6 @@ function SongPlayback() {
   }
 
   function handlePlayPause() {
-    if (!nowPlaying && selectedSong != undefined) {
-      setNowPlaying(selectedSong);
-    }
     playPause();
   }
 
@@ -105,13 +107,13 @@ function SongPlayback() {
     seek(Number(v));
   }
 
-  function handleShuffle() {
+  function handleShuffleToggle() {
     const nextState = shuffle == "Off" ? shuffleState.On : shuffleState.Off;
 
     setShuffle(nextState);
   }
 
-  function handleRepeat() {
+  function handleRepeatToggle() {
     const allStates = Object.keys(repeatState).map(
       (k) => k as keyof typeof repeatState
     );
@@ -170,7 +172,7 @@ function SongPlayback() {
               size="lg"
               variant="ghost"
               title={shuffle}
-              onClick={handleShuffle}
+              onClick={handleShuffleToggle}
             >
               <Shuffle
                 className={
@@ -215,7 +217,7 @@ function SongPlayback() {
             <Button
               size="lg"
               variant="ghost"
-              onClick={handleRepeat}
+              onClick={handleRepeatToggle}
               title={repeat}
             >
               {repeat === repeatState.Off && <RepeatOff />}
@@ -354,4 +356,4 @@ function SongPlayback() {
   );
 }
 
-export { SongPlayback };
+export { PlayerControls };

@@ -53,11 +53,6 @@ const features = tableFeatures({
   columnSizingFeature,
   columnVisibilityFeature,
   columnOrderingFeature,
-  sortedRowModel: createSortedRowModel(),
-  sortFns: {
-    alphanumeric: sortFn_alphanumeric,
-    text: sortFn_text,
-  },
 });
 
 const selectorIds = Object.fromEntries(

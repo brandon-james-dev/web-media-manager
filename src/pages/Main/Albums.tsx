@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { uuidv7 } from "uuidv7";
 import { useSongs } from "@/providers";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlbumCard } from "@/components/album-card";
-import { AlbumDetailDialog } from "@/components/album-detail-dialog";
 import { useOutletContext } from "react-router";
-import { applySongEdits } from "@/lib";
-import { backgroundService } from "@/lib/background-jobs";
 import type { Album, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,14 +20,14 @@ import {
   GalleryHorizontal,
   Grid2x2,
 } from "lucide-react";
+import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
+import { playlistSet$ } from "@/events/player-events";
+import { isEditMultipleChanged$ } from "@/events/editor-events";
 
 function Albums() {
   //#region State
   const { filteredSongs } = useSongs();
-  const [isAlbumDetailsDialogOpen, setIsAlbumDetailsDialogOpen] =
-    useState<boolean>(false);
-  const [selectedAlbum, setSelectedAlbum] = useState<Album | undefined>();
-  const { setQuery, refreshSongs } = useSongs();
+  const { setQuery } = useSongs();
   const [albumSort] = useState<{
     selector: (song: Song) => void;
     desc: boolean;
@@ -46,9 +42,10 @@ function Albums() {
     album: "Album Title",
     artist: "Artist",
   } as const;
-
   const { setSort } = useOutletContext<MainContext>();
+  //#endregion
 
+  //#region Helpers
   useEffect(() => {
     setQuery({ sort: albumSort });
     setSort(albumSort);
@@ -76,7 +73,7 @@ function Albums() {
 
       if (!map.has(key)) {
         map.set(key, {
-          id: uuidv7(),
+          id: key,
           title,
           artist,
           pictureSongId: song.id,
@@ -93,105 +90,16 @@ function Albums() {
 
   //#region Interactivity handlers
   function handleAlbumCardClick(album: Album) {
-    setSelectedAlbum(album);
-    setIsAlbumDetailsDialogOpen(true);
+    const ids = album.songs.map((s) => s.id);
+    isEditMultipleChanged$.next(true);
+    songsSelected$.next(ids);
   }
 
-  function isAlbumDetailsPrevButtonDisabled(): boolean {
-    if (!selectedAlbum) return false;
-
-    const albumIds = albums.map((a) => a.id);
-    const albumIndex = albumIds.indexOf(selectedAlbum.id);
-
-    return albumIndex === 0;
+  function handleAlbumCardDoubleClick(album: Album) {
+    playlistSet$.next(album.songs);
+    isEditMultipleChanged$.next(true);
+    songDoubleClicked$.next(album.songs[0]);
   }
-
-  function isAlbumDetailsNextButtonDisabled(): boolean {
-    if (!selectedAlbum) return false;
-
-    const albumIds = albums.map((a) => a.id);
-    const albumIndex = albumIds.indexOf(selectedAlbum.id);
-
-    return albumIndex === albumIds.length - 1;
-  }
-
-  function handleAlbumDetailsPrevClicked() {
-    if (!selectedAlbum) return;
-
-    const albumIds = albums.map((a) => a.id);
-    const albumIndex = albumIds.indexOf(selectedAlbum.id);
-
-    setSelectedAlbum(albums.at(albumIndex - 1));
-  }
-
-  function handleAlbumDetailsNextClicked() {
-    if (!selectedAlbum) return;
-
-    const albumIds = albums.map((a) => a.id);
-    const albumIndex = albumIds.indexOf(selectedAlbum.id);
-
-    setSelectedAlbum(albums.at(albumIndex + 1));
-  }
-
-  async function handleAlbumDetailFormSubmit(form: FormData) {
-    const result: any = {};
-
-    for (const [key, value] of form.entries()) {
-      // Example key: "songs[0].title"
-      const path = key.replace(/\]/g, "").split(/\[|\./g);
-
-      let current = result;
-
-      for (let i = 0; i < path.length; i++) {
-        const part = path[i];
-        const isLast = i === path.length - 1;
-
-        if (isLast) {
-          current[part] = value;
-        } else {
-          const nextPart = path[i + 1];
-          const isArrayIndex = /^\d+$/.test(nextPart);
-
-          if (!current[part]) {
-            current[part] = isArrayIndex ? [] : {};
-          }
-
-          current = current[part];
-        }
-      }
-    }
-
-    for (const song of result.songs) {
-      let currentSong = filteredSongs.find((s) => s.id == song.id);
-
-      if (currentSong) {
-        const updatedSong: Partial<Song> = {
-          ...song,
-        };
-
-        if (result.coverFront) {
-          updatedSong.coverFront = new Blob([result.coverFront as File]);
-        }
-
-        delete updatedSong.id;
-
-        await applySongEdits(currentSong, updatedSong);
-        backgroundService.enqueue({
-          type: "artworkProcess",
-          payload: {
-            song: {
-              ...currentSong,
-              ...updatedSong,
-            },
-          },
-        });
-      }
-    }
-
-    await refreshSongs();
-    setIsAlbumDetailsDialogOpen(false);
-  }
-
   //#endregion
 
   return (
@@ -260,23 +168,12 @@ function Albums() {
                 key={`${a.title}-${a.artist}`}
                 album={a}
                 onClick={handleAlbumCardClick}
+                onDoubleClick={handleAlbumCardDoubleClick}
               />
             ))}
           </div>
         )}
       </ScrollArea>
-      {selectedAlbum && (
-        <AlbumDetailDialog
-          open={isAlbumDetailsDialogOpen}
-          onOpenChange={setIsAlbumDetailsDialogOpen}
-          album={selectedAlbum}
-          isPrevButtonDisabled={isAlbumDetailsPrevButtonDisabled()}
-          isNextButtonDisabled={isAlbumDetailsNextButtonDisabled()}
-          handlePrevClick={handleAlbumDetailsPrevClicked}
-          handleNextClick={handleAlbumDetailsNextClicked}
-          onSubmit={handleAlbumDetailFormSubmit}
-        />
-      )}
     </div>
   );
 }
