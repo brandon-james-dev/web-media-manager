@@ -33,14 +33,14 @@ export function registerDefaultShortcuts() {
   registerShortcut({
     id: "queue",
     description: "Queue selected song",
-    combo: { key: "q" },
+    combo: { key: "q", ctrl: true },
     action: () => keyShortcut$.next("queue"),
   });
 
   registerShortcut({
     id: "edit",
     description: "Open advanced edit",
-    combo: { key: "e" },
+    combo: { key: "e", ctrl: true },
     action: () => keyShortcut$.next("edit"),
   });
 
