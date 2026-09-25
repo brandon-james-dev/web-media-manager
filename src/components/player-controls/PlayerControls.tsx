@@ -35,7 +35,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { songDoubleClicked$ } from "@/events/song-events";
-import { playlistSet$ } from "@/events/player-events";
+import { playlistSet$, songAddedToPlaylist$ } from "@/events/player-events";
+import { keyShortcut$ } from "@/events/keyboard-events";
 
 function PlayerControls() {
   //#region State
@@ -75,6 +76,20 @@ function PlayerControls() {
       subPlaylistSet.unsubscribe();
     };
   }, [playlist, nowPlaying, setPlaylist, setNowPlaying]);
+
+  useEffect(() => {
+    const sub = keyShortcut$.subscribe((shortcut) => {
+      if (shortcut === "playpause") playPause();
+      if (shortcut === "next") nextTrack();
+      if (shortcut === "prev") prevTrack();
+      if (shortcut === "queue") {
+        if (nowPlaying) songAddedToPlaylist$.next(nowPlaying);
+      }
+    });
+
+    return () => sub.unsubscribe();
+  }, [nowPlaying, playlist, playPause, nextTrack, prevTrack]);
+
   //#endregion
 
   //#region Helpers

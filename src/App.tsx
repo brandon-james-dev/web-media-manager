@@ -8,8 +8,30 @@ import { ThemeProvider } from "./components/theme-provider";
 import { Toaster } from "@/components/ui/toast";
 import { MainLayout } from "./pages/Main/MainLayout";
 import { PlaybackProvider } from "./providers/PlaybackProvider";
+import { useEffect, useState } from "react";
+import { keyShortcut$ } from "./events/keyboard-events";
+import { registerDefaultShortcuts } from "./lib/registerDefaultShortcuts";
+import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
+import { handleKey } from "./lib";
 
 function App() {
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+
+  useEffect(() => {
+    registerDefaultShortcuts();
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
+  useEffect(() => {
+    const sub = keyShortcut$.subscribe((shortcut) => {
+      if (shortcut === "openShortcuts") setIsShortcutsOpen(!isShortcutsOpen);
+    });
+
+    return () => sub.unsubscribe();
+  });
+
   return (
     <ThemeProvider>
       <div className="flex flex-col h-screen">
@@ -33,6 +55,11 @@ function App() {
               </Routes>
             </PlaybackProvider>
           </SongProvider>
+
+          <KeyboardShortcutsModal
+            open={isShortcutsOpen}
+            onOpenChange={setIsShortcutsOpen}
+          />
         </main>
       </div>
       <Toaster />

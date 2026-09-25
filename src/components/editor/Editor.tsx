@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
 import { isEditMultipleChanged$, songEditSaved$ } from "@/events/editor-events";
 import { AlbumDetailDialog } from "../album-detail-dialog";
+import { keyShortcut$ } from "@/events/keyboard-events";
 
 function Editor({ mode }: { mode: "songs" | "albums" }) {
   //#region Songs
@@ -351,7 +352,20 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       subDouble.unsubscribe();
     };
   }, [filteredSongs, albums, mode]);
+
+  useEffect(() => {
+    const sub = keyShortcut$.subscribe((shortcut) => {
+      if (shortcut === "next") handleNextClick();
+      if (shortcut === "prev") handlePrevClick();
+      if (shortcut === "edit") setIsAdvancedEdit(true);
+      if (shortcut === "close") setSelectedSongIds([]);
+    });
+
+    return () => sub.unsubscribe();
+  });
+
   //#endregion
+
   return (
     <>
       {selectedSongIds.length > 0 && !isAdvancedEdit && (

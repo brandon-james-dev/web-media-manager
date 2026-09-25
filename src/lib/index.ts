@@ -1,3 +1,4 @@
+import { type Shortcut, getShortcuts } from "./keyboardShortcuts";
 import { getMetadataStore } from "@/lib/file-utils";
 import { applySongEdits } from "@/lib/applySongEdits";
 import { createCombinedWriteStrategy } from "./createCombinedWriteStrategy";
@@ -13,12 +14,14 @@ import { getPicturesForSong } from "./getPicturesForSong";
 import { resizeBitmap, ThumbnailSize } from "./resizeBitmap";
 import { addPersistedStoreDirectory } from "./addPersistedStoreDirectory";
 import { clearDb } from "./clearDb";
+import { handleKey } from "./handleKey";
 
 export {
   addPersistedStoreDirectory,
   applySongEdits,
   createCombinedWriteStrategy,
   clearDb,
+  handleKey,
   importSongs,
   initMetadataStore,
   getArtworkForSong,
@@ -30,5 +33,7 @@ export {
   readSongFiles,
   renameFile,
   resizeBitmap,
+  getShortcuts,
   ThumbnailSize,
+  type Shortcut,
 };

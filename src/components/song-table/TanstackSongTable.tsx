@@ -1,15 +1,19 @@
-import { memo, useMemo, useLayoutEffect, useRef, useState } from "react";
+import {
+  memo,
+  useMemo,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
 import {
   columnOrderingFeature,
   columnResizingFeature,
   columnSizingFeature,
   columnVisibilityFeature,
   createColumnHelper,
-  createSortedRowModel,
   rowSelectionFeature,
   rowSortingFeature,
-  sortFn_alphanumeric,
-  sortFn_text,
   tableFeatures,
   useTable,
   type ColumnOrderState,
@@ -71,6 +75,14 @@ export function TanstackSongTable(props: SongTableProps) {
     onSelect,
     onSongDoubleClicked,
   } = props;
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (selectedSongIds.length === 1) {
+      const id = selectedSongIds[0];
+      scrollRowIntoView(id);
+    }
+  }, [selectedSongIds]);
 
   const rowSelection: RowSelectionState = useMemo(
     () => Object.fromEntries(selectedSongIds.map((id) => [id, true])),
@@ -146,6 +158,16 @@ export function TanstackSongTable(props: SongTableProps) {
     Record<string, boolean>
   >(() => Object.fromEntries(columns.map((c) => [c.id!, true])));
 
+  function scrollRowIntoView(rowId: string) {
+    const el = rowRefs.current[rowId];
+    if (!el) return;
+
+    el.scrollIntoView({
+      block: "nearest",
+      behavior: "smooth",
+    });
+  }
+
   const table = useTable(
     {
       key: "song-table",
@@ -168,7 +190,14 @@ export function TanstackSongTable(props: SongTableProps) {
       onRowSelectionChange: (next) => {
         const selectedIds = Object.keys(next);
         onSelect?.(selectedIds);
+
+        if (selectedIds.length === 1) {
+          const id = selectedIds[0];
+
+          scrollRowIntoView(id);
+        }
       },
+
       onSortingChange: (updater) => {
         const next =
           typeof updater === "function"
@@ -317,6 +346,9 @@ export function TanstackSongTable(props: SongTableProps) {
       return (
         <div
           key={song.id}
+          ref={(el) => {
+            rowRefs.current[row.id] = el;
+          }}
           onClick={handleClick}
           className={
             isSelected
