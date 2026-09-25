@@ -107,11 +107,11 @@ export class CombinedMetadataStore implements IMetadataStore {
     return this.dexieStore;
   }
 
-  async addDirectory(directory: Directory) {
-    await this.fsStore.addDirectory(directory);
+  addDirectory(directory: Directory): Promise<Directory> {
+    return this.fsStore.addDirectory(directory);
   }
 
-  async deleteDirectory(id: string) {
+  async deleteDirectory(id: string): Promise<void> {
     await this.fsStore.deleteDirectory(id);
   }
 

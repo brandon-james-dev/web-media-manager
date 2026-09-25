@@ -15,9 +15,9 @@ export const workerStrategies: Record<
     reportProgress: (progress: WorkerProgress) => void
   ) => Promise<any>
 > = {
-  artworkProcess: runArtworkProcess,
-  bulkEdit: runBulkEdit,
-  heavyMetadata: runHeavyMetadata,
-  bulkImport: runBulkImport,
-  tagWrite: runTagWrite,
+  "Thumbnail Generation": runArtworkProcess,
+  "Bulk Edit": runBulkEdit,
+  "Heavy Metadata": runHeavyMetadata,
+  "Bulk Import": runBulkImport,
+  "Online Tag Write": runTagWrite,
 };

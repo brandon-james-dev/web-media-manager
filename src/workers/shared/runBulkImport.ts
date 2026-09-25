@@ -6,6 +6,7 @@ import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { collectFileHandles } from "@/lib/file-utils";
 import type { BackgroundJob } from "@/lib/background-jobs";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
+import type { Directory } from "@/models";
 
 /**
  * Worker bulk import job — receives a directory handle,
@@ -13,21 +14,14 @@ import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
  */
 export async function runBulkImport(
   payload: {
-    directoryHandle: FileSystemDirectoryHandle;
+    directory: Directory;
   },
   isCancelled: () => boolean,
   reportProgress: (progress: WorkerProgress) => void
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
-  const { directoryHandle } = payload;
+  const { directory } = payload;
+  const { directoryHandle } = directory;
   const store = initMetadataStore() as CombinedMetadataStore;
-  const directories = await store.getDirectories();
-  const directory = directories
-    .reverse()
-    .find((d) => d.directoryName == directoryHandle.name);
-
-  if (!directory) {
-    throw new Error("The directory was not found");
-  }
 
   const directoryId = directory.id;
 
@@ -40,7 +34,6 @@ export async function runBulkImport(
 
   const total = entries.length;
   const pictureCountMap = new Map<string, number>();
-  const songsWithPictures: Song[] = [];
 
   let index = 0;
 
@@ -58,19 +51,27 @@ export async function runBulkImport(
       directoryId,
     };
 
-    songs.push(song);
-
-    const pictureCount = metadata?.pictures?.length ?? 0;
+    const pictureCount = song?.pictures?.length ?? 0;
 
     pictureCountMap.set(song.id, pictureCount);
-
-    if (pictureCount > 0) {
-      songsWithPictures.push(song);
-    }
 
     const totalPictureCount = [...pictureCountMap.values()].reduce(
       (prev, current) => prev + current
     );
+
+    songs.push(song);
+
+    self.postMessage({
+      type: "enqueueJob",
+      job: {
+        id: uuidv7(),
+        state: "pending",
+        type: "Thumbnail Generation",
+        payload: {
+          song,
+        },
+      } as BackgroundJob,
+    });
 
     reportProgress({
       index,
@@ -84,22 +85,8 @@ export async function runBulkImport(
     });
 
     index++;
-  }
 
-  for (const song of songsWithPictures) {
-    if (isCancelled()) return { cancelled: true };
-
-    self.postMessage({
-      type: "enqueueJob",
-      job: {
-        id: uuidv7(),
-        state: "pending",
-        type: "artworkProcess",
-        payload: {
-          song,
-        },
-      } as BackgroundJob,
-    });
+    store.save(song.id, song);
   }
 
   return { ok: true, songs };

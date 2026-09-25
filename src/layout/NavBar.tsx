@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { NavLink } from "react-router";
+import NotificationPopover from "./NotificationPopover";
 
 export default function NavBar() {
   return (
@@ -8,6 +9,7 @@ export default function NavBar() {
       <div className="font-semibold select-none">Web Media Manager</div>
 
       <div className="flex items-center gap-2">
+        <NotificationPopover />
         <NavLink to={"/settings"}>
           <Button variant="ghost" size="icon">
             <Settings className="h-5 w-5" />

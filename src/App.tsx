@@ -13,6 +13,7 @@ import { keyShortcut$ } from "./events/keyboard-events";
 import { registerDefaultShortcuts } from "./lib/registerDefaultShortcuts";
 import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
 import { handleKey } from "./lib";
+import "./events/job-notifications";
 
 function App() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);

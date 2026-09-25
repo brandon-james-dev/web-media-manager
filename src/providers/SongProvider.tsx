@@ -199,16 +199,15 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const store = getMetadataStore();
     return backgroundService.onJobProgress(async (event) => {
-      if (event.jobType === "bulkImport") {
+      if (event.jobType === "Bulk Import") {
         const newSong = event.payload.data.song;
 
         if (newSong) {
-          await store.save(newSong.id, newSong);
           scheduleRefresh.current();
         }
       }
 
-      if (event.jobType === "bulkEdit") {
+      if (event.jobType === "Bulk Edit") {
         const updated = event.payload.data;
         const existing = await store.get(updated.id);
         const merged = { ...existing, ...updated };

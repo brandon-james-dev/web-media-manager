@@ -8,7 +8,6 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
 import { SongEditForm } from "@/components/song-edit-form/SongEditForm";
 import { QuickEditForm } from "@/components/quick-edit-form/QuickEditForm";
 import {
@@ -28,6 +27,8 @@ import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
 import { isEditMultipleChanged$, songEditSaved$ } from "@/events/editor-events";
 import { AlbumDetailDialog } from "../album-detail-dialog";
 import { keyShortcut$ } from "@/events/keyboard-events";
+import { notification$ } from "@/events/notification-events";
+import { uuidv7 } from "uuidv7";
 
 function Editor({ mode }: { mode: "songs" | "albums" }) {
   //#region Songs
@@ -50,23 +51,23 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
   async function handleSongUpdate(updates: Partial<Song>): Promise<void> {
     if (!selectedSongIds) return;
     const selectedSong = selectedSongs[0];
-    await applySongEdits(selectedSong, updates);
+    const updatedSong = await applySongEdits(selectedSong, updates);
+    notification$.next({
+      id: uuidv7(),
+      title: `Updated "${updatedSong.title} - ${updatedSong.artist}"`,
+      type: "success",
+    });
 
     songEditSaved$.next(selectedSong);
 
     backgroundService.enqueue({
-      type: "artworkProcess",
+      type: "Thumbnail Generation",
       payload: {
         song: {
           ...selectedSong,
           ...updates,
         },
       },
-    });
-
-    toast.add({
-      type: "success",
-      title: `"${selectedSong.title}" was updated`,
     });
 
     await refreshSongs();
@@ -79,24 +80,20 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     if (selectedSongs.length == 0) return;
 
     if (selectedSongs.length === 1) {
-      await applySongEdits(selectedSongs[0], updates);
+      const updatedSong = await applySongEdits(selectedSongs[0], updates);
 
-      toast.add({
+      notification$.next({
+        id: uuidv7(),
+        title: `Updated "${updatedSong.title} - ${updatedSong.artist}"`,
         type: "success",
-        title: `Updated "${selectedSongs[0].title}"`,
       });
     } else {
       backgroundService.enqueue({
-        type: "bulkEdit",
+        type: "Bulk Edit",
         payload: {
           songIds: selectedSongIds,
           edits: updates,
         },
-      });
-
-      toast.add({
-        type: "info",
-        title: `Bulk edit started (${selectedSongs.length} songs)`,
       });
     }
 
@@ -238,7 +235,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
         await applySongEdits(currentSong, updatedSong);
         songEditSaved$.next(currentSong);
         backgroundService.enqueue({
-          type: "artworkProcess",
+          type: "Thumbnail Generation",
           payload: {
             song: {
               ...currentSong,

@@ -93,8 +93,8 @@ export class FileSystemMetadataStore implements IMetadataStore {
     for (const cb of this.directoryDeletedListeners) cb(directory);
   }
 
-  async addDirectory(directory: Directory) {
-    await this.directories.save(uuidv7(), directory);
+  async addDirectory(directory: Directory): Promise<Directory> {
+    return await this.directories.save(uuidv7(), directory);
   }
 
   async deleteDirectory(id: string): Promise<void> {

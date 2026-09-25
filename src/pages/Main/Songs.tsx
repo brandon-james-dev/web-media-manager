@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
 import { FolderOpen, Music } from "lucide-react";
@@ -14,8 +14,6 @@ import { useSongs } from "@/providers";
 import type { Directory, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
 import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "@/components/ui/toast";
 import { isEditMultipleChanged$ } from "@/events/editor-events";
 
 function Songs() {
@@ -32,11 +30,6 @@ function Songs() {
     desc: false,
   });
 
-  const progressRef = useRef({
-    bulk: { totalSongs: 0, importedSongs: 0 },
-    artwork: { totalPictures: 0, completedPictures: 0 },
-  });
-
   const noDirectories = directories.length === 0;
   //#endregion
 
@@ -45,87 +38,6 @@ function Songs() {
     setQuery({ sort: songSort });
     setSort(songSort);
   }, [setQuery, setSort, songSort]);
-
-  // background job progress
-  useEffect(() => {
-    let bulkPct = 0;
-
-    let artworkPct = 0;
-
-    const unsub = backgroundService.onJobProgress((job) => {
-      const p = job.payload;
-
-      if (job.jobType === "bulkImport") {
-        const { index, total, data } = p;
-
-        progressRef.current = {
-          bulk: {
-            totalSongs: total,
-            importedSongs: index + 1,
-          },
-          artwork: {
-            ...progressRef.current.artwork,
-            totalPictures: data.totalPictureCount,
-          },
-        };
-      }
-
-      if (job.jobType === "artworkProcess") {
-        if (job.payload?.data?.artworkId) {
-          progressRef.current = {
-            ...progressRef.current,
-            artwork: {
-              ...progressRef.current.artwork,
-              completedPictures:
-                progressRef.current.artwork.completedPictures + 1,
-            },
-          };
-        }
-      }
-
-      bulkPct =
-        progressRef.current.bulk.totalSongs > 0
-          ? progressRef.current.bulk.importedSongs /
-            progressRef.current.bulk.totalSongs
-          : 0;
-
-      artworkPct =
-        progressRef.current.artwork.totalPictures > 0
-          ? progressRef.current.artwork.completedPictures /
-            progressRef.current.artwork.totalPictures
-          : 0;
-
-      toast.add({
-        id: "import-progress",
-        title: "Importing songs…",
-        description: (
-          <div className="flex flex-col gap-2">
-            <div>
-              {`Songs: ${progressRef.current.bulk.importedSongs} / ${progressRef.current.bulk.totalSongs}`}
-            </div>
-            <Progress value={bulkPct * 100} />
-            <div>
-              {`Thumbnails: ${progressRef.current.artwork.completedPictures} / ${progressRef.current.artwork.totalPictures}`}
-            </div>
-            <Progress value={artworkPct * 100} />
-          </div>
-        ),
-      });
-    });
-
-    if (artworkPct === 1 && bulkPct === 1) {
-      toast.add({
-        id: "import-progress",
-        title: "Import complete",
-        description: <></>,
-        timeout: 5000,
-      });
-    }
-
-    return () => {
-      unsub();
-    };
-  }, []);
   //#endregion
 
   //#region Helpers
@@ -175,11 +87,11 @@ function Songs() {
     const dirHandle = await showDirectoryPicker({ mode: "readwrite" });
     if (!dirHandle) return;
 
-    addPersistedStoreDirectory(dirHandle);
+    const directory = await addPersistedStoreDirectory(dirHandle);
 
     backgroundService.enqueue({
-      type: "bulkImport",
-      payload: { directoryHandle: dirHandle },
+      type: "Bulk Import",
+      payload: { directory },
     });
 
     await refresh();

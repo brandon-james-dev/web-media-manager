@@ -5,14 +5,16 @@ export type WorkerJobState =
   | "failed"
   | "canceled";
 
+export type WorkerJobType =
+  | "Online Tag Write"
+  | "Thumbnail Generation"
+  | "Heavy Metadata"
+  | "Bulk Import"
+  | "Bulk Edit";
+
 export interface WorkerJob {
   id: string;
-  type:
-    | "tagWrite"
-    | "artworkProcess"
-    | "heavyMetadata"
-    | "bulkImport"
-    | "bulkEdit";
+  type: WorkerJobType;
   state: WorkerJobState;
   payload: any;
 }
