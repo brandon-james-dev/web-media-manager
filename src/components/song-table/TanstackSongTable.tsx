@@ -240,7 +240,7 @@ export function TanstackSongTable(props: SongTableProps) {
       });
     }
   }
-  const tableRef = useRef<HTMLTableElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const writeVars = () => {

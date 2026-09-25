@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
 import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
-import { FolderOpen, Music } from "lucide-react";
+import { FolderOpen, Loader2, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -21,6 +21,7 @@ function Songs() {
   const [directories, setDirectories] = useState<Directory[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isEditMultiple, setIsEditMultiple] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const { filteredSongs, query, setQuery } = useSongs();
   const { sort, setSort } = useOutletContext<MainContext>();
@@ -51,7 +52,10 @@ function Songs() {
   useEffect(() => {
     const store = getMetadataStore() as CombinedMetadataStore;
 
-    store.getDirectories().then(setDirectories);
+    store.getDirectories().then((next) => {
+      setDirectories(next);
+      setIsLoading(false);
+    });
 
     const unsubDirAdded = store.onDirectoryAdded(refresh);
     const unsubSongsCleared = store.onStoreCleared(refresh);
@@ -130,35 +134,45 @@ function Songs() {
 
   return (
     <div className="h-full w-full flex flex-col">
-      {noDirectories && (
-        <div className="flex-1 flex items-center justify-center">
-          <Card className="p-10 flex flex-col items-center gap-6">
-            <Music color="var(--accent)" size={48} />
-            <h1 className="text-3xl font-bold">Add Music</h1>
-            <Button
-              onClick={handlePickDirectory}
-              className="flex items-center gap-2"
-            >
-              <FolderOpen className="h-5 w-5" />
-              Select a directory…
-            </Button>
-          </Card>
+      {isLoading ? (
+        <div className="flex flex-col justify-center items-center h-full w-full">
+          <span>
+            <Loader2 className="inline-block animate-spin" /> Loading…
+          </span>
         </div>
-      )}
+      ) : (
+        <>
+          {noDirectories && (
+            <div className="flex-1 flex items-center justify-center">
+              <Card className="p-10 flex flex-col items-center gap-6">
+                <Music color="var(--accent)" size={48} />
+                <h1 className="text-3xl font-bold">Add Music</h1>
+                <Button
+                  onClick={handlePickDirectory}
+                  className="flex items-center gap-2"
+                >
+                  <FolderOpen className="h-5 w-5" />
+                  Select a directory…
+                </Button>
+              </Card>
+            </div>
+          )}
 
-      {!noDirectories && (
-        <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
-          <TanstackSongTable
-            songs={filteredSongs}
-            selectedSongIds={selectedSongIds}
-            isEditMultiple={isEditMultiple}
-            onSelect={handleSongsSelected}
-            onSort={handleSort}
-            sort={sort}
-            onSongDoubleClicked={handleSongDoubleClicked}
-          />
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+          {!noDirectories && (
+            <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
+              <TanstackSongTable
+                songs={filteredSongs}
+                selectedSongIds={selectedSongIds}
+                isEditMultiple={isEditMultiple}
+                onSelect={handleSongsSelected}
+                onSort={handleSort}
+                sort={sort}
+                onSongDoubleClicked={handleSongDoubleClicked}
+              />
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          )}
+        </>
       )}
     </div>
   );
