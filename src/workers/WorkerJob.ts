@@ -14,6 +14,7 @@ export type WorkerJobType =
 
 export interface WorkerJob {
   id: string;
+  parentJobId?: string;
   type: WorkerJobType;
   state: WorkerJobState;
   payload: any;

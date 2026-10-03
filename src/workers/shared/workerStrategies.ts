@@ -1,4 +1,4 @@
-import type { WorkerJob, WorkerProgress } from "@/workers/WorkerJob";
+import type { WorkerJobType, WorkerProgress } from "@/workers/WorkerJob";
 import {
   runArtworkProcess,
   runBulkEdit,
@@ -8,11 +8,13 @@ import {
 } from ".";
 
 export const workerStrategies: Record<
-  WorkerJob["type"],
+  WorkerJobType,
   (
     payload: any,
     isCancelled: () => boolean,
-    reportProgress: (progress: WorkerProgress) => void
+    reportProgress: (progress: WorkerProgress) => void,
+    id?: string,
+    parentJobId?: string
   ) => Promise<any>
 > = {
   "Thumbnail Generation": runArtworkProcess,

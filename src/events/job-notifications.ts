@@ -2,6 +2,7 @@ import { eventBus } from "./background-job-events";
 import { notification$ } from "./notification-events";
 
 eventBus.subscribe((evt) => {
+  if (evt.parentJobId) return;
   switch (evt.type) {
     case "jobStarted":
       notification$.next({

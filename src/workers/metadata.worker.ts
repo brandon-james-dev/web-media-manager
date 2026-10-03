@@ -29,7 +29,9 @@ self.onmessage = async (event: MessageEvent<any>) => {
             jobType: job.type,
             ...progress,
           });
-        }
+        },
+        job.id,
+        job.parentJobId
       );
 
       self.postMessage({

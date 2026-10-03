@@ -1,6 +1,7 @@
 import { Subject } from "rxjs";
 import type { CancellationToken } from "../lib/background-jobs/CancellationToken";
 import type { WorkerJob } from "@/workers";
+import type { WorkerJobType } from "@/workers/WorkerJob";
 
 export interface BackgroundJob extends WorkerJob {
   token?: CancellationToken;
@@ -13,8 +14,9 @@ export interface BackgroundEvent {
     | "jobComplete"
     | "jobError"
     | "jobCanceled";
-  jobType: WorkerJob["type"];
+  jobType: WorkerJobType;
   jobId: string;
+  parentJobId?: string;
   payload?: any;
 }
 

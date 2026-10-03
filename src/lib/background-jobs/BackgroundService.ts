@@ -1,17 +1,8 @@
 import { uuidv7 } from "uuidv7";
-import {
-  eventBus,
-  type BackgroundJob,
-} from "../../events/background-job-events";
+import { Subject } from "rxjs";
+import { eventBus, type BackgroundJob } from "@/events/background-job-events";
 import { getWorkerPool, WorkerPool } from "@/workers";
-
-export type JobCompletedCallback = (job: BackgroundJob) => void;
-export type JobProgressCallback = (event: {
-  jobId: string;
-  jobType: string;
-  payload: any;
-}) => void;
-import { Subject } from "rxjs"; // add at top
+import type { JobCompletedCallback, JobProgressCallback } from "./callbacks";
 
 export class BackgroundService {
   private queue: BackgroundJob[] = [];
@@ -26,8 +17,14 @@ export class BackgroundService {
     payload: any;
   }>();
 
+  private childMap = new Map<string, Set<string>>();
+  private waitingParents = new Map<string, BackgroundJob>();
+
   constructor() {
     eventBus.subscribe((evt) => {
+      // Ignore child job notifications entirely
+      if (evt.parentJobId) return;
+
       if (evt.type === "jobProgress") {
         this.emitJobProgress({
           jobId: evt.jobId,
@@ -54,22 +51,32 @@ export class BackgroundService {
     return () => sub.unsubscribe();
   }
 
-  enqueue(job: Omit<BackgroundJob, "id" | "state">) {
-    this.queue.push({
-      id: uuidv7(),
+  enqueue(job: Omit<BackgroundJob, "id" | "state">, jobId: string = uuidv7()) {
+    const fullJob: BackgroundJob = {
       state: "pending",
       ...job,
-    });
+      id: jobId,
+    };
+
+    // If this job has a parent, register it
+    if (fullJob.parentJobId) {
+      if (!this.childMap.has(fullJob.parentJobId)) {
+        this.childMap.set(fullJob.parentJobId, new Set());
+      }
+      this.childMap.get(fullJob.parentJobId)!.add(fullJob.id);
+    }
+
+    this.queue.push(fullJob);
     this.runNext();
   }
 
   private async runNext() {
     if (this.running) return;
+
     const job = this.queue.shift();
     if (!job) return;
 
     job.state = "running";
-
     this.running = true;
 
     eventBus.next({
@@ -77,37 +84,83 @@ export class BackgroundService {
       jobId: job.id,
       payload: job.payload,
       jobType: job.type,
+      parentJobId: job.parentJobId,
     });
 
     try {
       const result = await this.executeWithCancellation(job);
-      eventBus.next({
-        type: "jobComplete",
-        jobId: job.id,
-        jobType: job.type,
-        payload: result,
-      });
-      this.emitJobCompleted({
-        ...job,
-        payload: result,
-        state: "completed",
-      });
+
+      this.handleCompletion(job, undefined, result);
     } catch (err) {
-      eventBus.next({
-        type: "jobError",
-        jobId: job.id,
-        jobType: job.type,
-        payload: err,
-      });
-      this.emitJobCompleted({
-        ...job,
-        payload: err,
-        state: "failed",
-      });
+      this.handleCompletion(job, err);
     } finally {
       this.running = false;
       this.runNext();
     }
+  }
+
+  private handleCompletion(job: BackgroundJob, error?: any, result?: any) {
+    job.state = error ? "failed" : "completed";
+
+    // Child job
+    if (job.parentJobId) {
+      const parentId = job.parentJobId;
+      const children = this.childMap.get(parentId);
+
+      if (children) {
+        children.delete(job.id);
+
+        eventBus.next({
+          type: "jobProgress",
+          jobId: parentId,
+          jobType: "Bulk Import",
+          payload: {
+            completed: [...children].length === 0 ? 100 : undefined,
+            remaining: children.size,
+          },
+        });
+
+        if (children.size === 0) {
+          this.childMap.delete(parentId);
+
+          const parentJob = this.waitingParents.get(parentId);
+
+          if (parentJob) {
+            this.waitingParents.delete(parentId);
+
+            eventBus.next({
+              type: "jobComplete",
+              jobId: parentJob.id,
+              jobType: parentJob.type,
+              payload: result,
+            });
+
+            this.emitJobCompleted(parentJob);
+          }
+        }
+      }
+
+      return;
+    }
+
+    // Parent job with children still running
+    const children = this.childMap.get(job.id);
+
+    if (children && children.size > 0) {
+      this.waitingParents.set(job.id, job);
+      return;
+    }
+
+    // Normal completion
+
+    eventBus.next({
+      type: "jobComplete",
+      jobId: job.id,
+      jobType: job.type,
+      payload: result,
+    });
+
+    this.emitJobCompleted(job);
   }
 
   private async executeWithCancellation(job: BackgroundJob) {
@@ -143,19 +196,19 @@ export class BackgroundService {
   }
 
   cancelJob(jobId: string) {
-    // Find job in queue or running
     const job = this.queue.find((j) => j.id === jobId);
     if (!job) return;
 
     job.state = "canceled";
-
     this.workerPool.cancel(jobId);
 
     eventBus.next({
       type: "jobCanceled",
       jobId,
       jobType: job.type,
+      parentJobId: job.parentJobId,
     });
+
     this.emitJobCompleted(job);
   }
 

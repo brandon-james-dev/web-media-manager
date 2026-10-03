@@ -75,24 +75,21 @@ function NotificationPopover() {
         <div hidden={items.length > 0}>
           <span>No notifications</span>
         </div>
-        {items.map((n, i) => (
-          <>
-            <Item key={n.id} className="p-0.5">
-              {n.render ? (
-                n.render()
-              ) : (
-                <ItemContent>
-                  <div className="font-medium">{n.title}</div>
-                  {n.detail && (
-                    <div className="text-sm text-muted-foreground">
-                      {n.detail}
-                    </div>
-                  )}
-                </ItemContent>
-              )}
-            </Item>
-            {i < items.length - 1 && <ItemSeparator />}
-          </>
+        {items.map((n) => (
+          <Item key={n.id} className="p-0.5 border-b last:border-b-0">
+            {n.render ? (
+              n.render()
+            ) : (
+              <ItemContent>
+                <div className="font-medium">{n.title}</div>
+                {n.detail && (
+                  <div className="text-sm text-muted-foreground">
+                    {n.detail}
+                  </div>
+                )}
+              </ItemContent>
+            )}
+          </Item>
         ))}
       </PopoverContent>
     </Popover>

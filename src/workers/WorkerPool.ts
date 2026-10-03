@@ -26,6 +26,7 @@ export class WorkerPool {
                   type: "jobProgress",
                   jobId: job.id,
                   jobType: job.type,
+                  parentJobId: job.parentJobId,
                   payload: progressMsg,
                 });
               })
@@ -35,6 +36,7 @@ export class WorkerPool {
                   type: "jobError",
                   jobId: job.id,
                   jobType: job.type,
+                  parentJobId: job.parentJobId,
                   payload: reason,
                 });
                 reject(reason);

@@ -17,10 +17,13 @@ export async function runBulkImport(
     directory: Directory;
   },
   isCancelled: () => boolean,
-  reportProgress: (progress: WorkerProgress) => void
+  reportProgress: (progress: WorkerProgress) => void,
+  id?: string
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
   const { directory } = payload;
   const { directoryHandle } = directory;
+  if (!id) return { cancelled: true };
+
   const store = initMetadataStore() as CombinedMetadataStore;
 
   const directoryId = directory.id;
@@ -65,6 +68,7 @@ export async function runBulkImport(
       type: "enqueueJob",
       job: {
         id: uuidv7(),
+        parentJobId: id,
         state: "pending",
         type: "Thumbnail Generation",
         payload: {

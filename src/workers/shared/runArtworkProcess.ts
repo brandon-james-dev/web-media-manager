@@ -8,12 +8,15 @@ export async function runArtworkProcess(
     song: Song;
   },
   isCancelled: () => boolean,
-  reportProgress: (progress: WorkerProgress) => void
-) {
+  reportProgress: (progress: WorkerProgress) => void,
+  parentJobId?: string
+): Promise<{ ok: true; songId: string } | { cancelled: true }> {
   const db = getMetadataDb();
   const { song } = payload;
   const songId = song.id;
   const pictures = song.pictures ?? [];
+
+  if (!parentJobId) return { cancelled: true };
 
   const total = pictures.length;
 
@@ -23,7 +26,7 @@ export async function runArtworkProcess(
       hasEmbedded: false,
     });
 
-    return { ok: true };
+    return { ok: true, songId };
   }
 
   const existingPictures = await db.songArtwork
