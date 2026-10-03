@@ -35,10 +35,11 @@ function NotificationPopover() {
 
       toast.add({
         id: toastId,
-        type: event.kind,
-        data: event.payload,
+        type: event.state == "completed" ? "success" : "info",
         title: event.title,
-        description: <NotificationRenderer notification={event} />,
+        description: (
+          <NotificationRenderer notification={event} showTitle={false} />
+        ),
       });
     });
 

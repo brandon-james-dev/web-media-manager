@@ -10,8 +10,15 @@ import type { QueryOptions } from "@/lib/store";
 import type { Song } from "@/models";
 import { Music, DiscAlbum, Search, Pen, Play } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
-import { Outlet, NavLink, useLocation, useParams } from "react-router";
+import {
+  Outlet,
+  NavLink,
+  useLocation,
+  useParams,
+  useNavigate,
+} from "react-router";
 import { Editor } from "@/components/editor";
+import { Toggle } from "@/components/ui/toggle";
 
 type MainContext = {
   queryText: string;
@@ -31,10 +38,11 @@ function MainLayout() {
   //#region State
   const { pathname } = useLocation();
   const { mode } = useParams();
+  const navigate = useNavigate();
   const activeTab =
     pathname.includes("songs") || pathname === "/" ? "songs" : "albums";
   const activeMode =
-    mode === "edit" || mode === undefined ? "edit" : "playback";
+    mode === "playback" || mode === undefined ? "playback" : "edit";
 
   const { query, setQuery, total, filteredTotal } = useSongs();
   const [sort, setSort] = useState<{
@@ -71,37 +79,17 @@ function MainLayout() {
         hidden={(total ?? 0) == 0}
       >
         <div className="w-45 sm:flex">
-          <Tabs value={activeMode} className="w-45 flex justify-end">
-            <TabsList>
-              <TabsTrigger
-                value="edit"
-                render={
-                  <NavLink
-                    to={`${activeTab}/edit`}
-                    draggable="false"
-                    className="flex items-center gap-2 cursor-default group"
-                  >
-                    <Pen className="group-data-active:fill-secondary-foreground group-hover:fill-secondary-foreground fill-muted-foreground" />
-                    Edit
-                  </NavLink>
-                }
-              />
-
-              <TabsTrigger
-                value="playback"
-                render={
-                  <NavLink
-                    to={`${activeTab}/playback`}
-                    draggable="false"
-                    className="flex items-center gap-2 cursor-default group"
-                  >
-                    <Play className="group-data-active:fill-secondary-foreground group-hover:fill-secondary-foreground fill-muted-foreground" />
-                    Playback
-                  </NavLink>
-                }
-              />
-            </TabsList>
-          </Tabs>
+          <Toggle
+            variant="outline"
+            className="bg-muted aria-pressed:bg-accent"
+            pressed={activeMode === "edit"}
+            onPressedChange={(pressed) => {
+              navigate(`${activeTab}/${pressed ? "edit" : "playback"}`);
+            }}
+          >
+            <Pen className="h-4 w-4" />
+            Edit
+          </Toggle>
         </div>
         <div className="w-full md:w-120">
           <InputGroup className="max-w-xs mx-auto">
@@ -158,7 +146,7 @@ function MainLayout() {
         <Outlet context={{ queryText, sort, setSort }} />
       </div>
 
-      <div className="shrink-0">
+      <div className="shrink-0" hidden={(total ?? 0) === 0}>
         {activeMode === "edit" && <Editor mode={activeTab} />}
         {activeMode === "playback" && <PlayerControls />}
       </div>

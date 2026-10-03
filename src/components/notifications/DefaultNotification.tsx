@@ -3,12 +3,14 @@ import type { AppNotificationEvent } from "@/events/notification-events";
 
 export function DefaultNotification({
   notification,
+  showTitle = true,
 }: {
   notification: AppNotificationEvent;
+  showTitle: boolean;
 }) {
   return (
     <ItemContent>
-      <div className="font-medium">{notification.title}</div>
+      {showTitle && <div className="font-medium">{notification.title}</div>}
 
       {notification.detail && (
         <div className="text-sm text-muted-foreground">

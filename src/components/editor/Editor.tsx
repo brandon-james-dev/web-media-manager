@@ -54,8 +54,10 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     const updatedSong = await applySongEdits(selectedSong, updates);
     notification$.next({
       id: uuidv7(),
-      title: `Updated "${updatedSong.title} - ${updatedSong.artist}"`,
-      type: "success",
+      title: "Song Updated",
+      detail: `Updated "${updatedSong.title} - ${updatedSong.artist}"`,
+      state: "completed",
+      kind: "Song Edit",
     });
 
     songEditSaved$.next(selectedSong);
@@ -84,8 +86,10 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
 
       notification$.next({
         id: uuidv7(),
-        title: `Updated "${updatedSong.title} - ${updatedSong.artist}"`,
-        type: "success",
+        title: "Song Updated",
+        detail: `Updated "${updatedSong.title} - ${updatedSong.artist}"`,
+        state: "completed",
+        kind: "Song Edit",
       });
     } else {
       backgroundService.enqueue({
