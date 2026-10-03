@@ -284,7 +284,7 @@ export default function Settings() {
                 }
               ></DialogTrigger>
 
-              <DialogContent className="select-none">
+              <DialogContent className="select-none w-lg">
                 <DialogHeader>
                   <DialogTitle>Are you absolutely sure?</DialogTitle>
                   <DialogDescription>

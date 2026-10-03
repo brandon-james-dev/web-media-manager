@@ -7,6 +7,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
   const { songId, artworkType, thumbSize, fallback, className } = props;
   const [artwork, setArtwork] = useState<string | null>(null);
   const loadingRef = useRef(false);
+  const objectUrlRef = useRef<string | null>(null);
 
   // Load artwork once
   useEffect(() => {
@@ -42,6 +43,11 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
     load();
     return () => {
       cancelled = true;
+
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
     };
   }, [songId, artworkType, thumbSize]);
 
@@ -67,7 +73,15 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
 
       if (picture) {
         const blob = new Blob([picture.data.slice()]);
-        setArtwork(URL.createObjectURL(blob));
+
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current);
+        }
+
+        const url = URL.createObjectURL(blob);
+
+        objectUrlRef.current = url;
+        setArtwork(url);
       } else {
         setArtwork(null);
       }

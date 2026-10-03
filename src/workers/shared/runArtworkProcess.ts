@@ -125,7 +125,9 @@ export async function runArtworkProcess(
 
   self.postMessage({
     type: `custom:artwork-complete:${songId}`,
-    songId,
+    payload: {
+      songId,
+    },
   });
 
   return {

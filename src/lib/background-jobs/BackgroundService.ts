@@ -2,7 +2,11 @@ import { uuidv7 } from "uuidv7";
 import { Subject } from "rxjs";
 import { eventBus, type BackgroundJob } from "@/events/background-job-events";
 import { getWorkerPool, WorkerPool } from "@/workers";
-import type { JobCompletedCallback, JobProgressCallback } from "./callbacks";
+import type {
+  JobCompletedCallback,
+  JobProgressCallback,
+  ProgressPayload,
+} from "./callbacks";
 
 export class BackgroundService {
   private queue: BackgroundJob[] = [];
@@ -17,7 +21,13 @@ export class BackgroundService {
     payload: any;
   }>();
 
-  private childMap = new Map<string, Set<string>>();
+  private childMap = new Map<
+    string,
+    {
+      total: number;
+      remaining: Set<string>;
+    }
+  >();
   private waitingParents = new Map<string, BackgroundJob>();
 
   constructor() {
@@ -25,7 +35,7 @@ export class BackgroundService {
       // Ignore child job notifications entirely
       if (evt.parentJobId) return;
 
-      if (evt.type === "jobProgress") {
+      if (evt.state === "progress") {
         this.emitJobProgress({
           jobId: evt.jobId,
           jobType: evt.jobType,
@@ -33,8 +43,8 @@ export class BackgroundService {
         });
       }
 
-      if (evt.type?.startsWith("custom:")) {
-        const eventName = evt.type.substring("custom:".length);
+      if (evt.state?.startsWith("custom:")) {
+        const eventName = evt.state.substring("custom:".length);
         this.emitCustom(eventName, evt.payload);
       }
     });
@@ -60,10 +70,17 @@ export class BackgroundService {
 
     // If this job has a parent, register it
     if (fullJob.parentJobId) {
-      if (!this.childMap.has(fullJob.parentJobId)) {
-        this.childMap.set(fullJob.parentJobId, new Set());
+      const parent = this.childMap.get(fullJob.parentJobId);
+
+      if (!parent) {
+        this.childMap.set(fullJob.parentJobId, {
+          total: 1,
+          remaining: new Set([fullJob.id]),
+        });
+      } else {
+        parent.total++;
+        parent.remaining.add(fullJob.id);
       }
-      this.childMap.get(fullJob.parentJobId)!.add(fullJob.id);
     }
 
     this.queue.push(fullJob);
@@ -80,7 +97,7 @@ export class BackgroundService {
     this.running = true;
 
     eventBus.next({
-      type: "jobStarted",
+      state: "started",
       jobId: job.id,
       payload: job.payload,
       jobType: job.type,
@@ -105,39 +122,62 @@ export class BackgroundService {
     // Child job
     if (job.parentJobId) {
       const parentId = job.parentJobId;
-      const children = this.childMap.get(parentId);
+      const childInfo = this.childMap.get(parentId);
 
-      if (children) {
-        children.delete(job.id);
+      if (childInfo) {
+        childInfo.remaining.delete(job.id);
+      }
 
-        eventBus.next({
-          type: "jobProgress",
-          jobId: parentId,
-          jobType: "Bulk Import",
-          payload: {
-            completed: [...children].length === 0 ? 100 : undefined,
-            remaining: children.size,
-          },
-        });
+      if (job.parentJobId) {
+        const parentId = job.parentJobId;
+        const childInfo = this.childMap.get(parentId);
 
-        if (children.size === 0) {
-          this.childMap.delete(parentId);
+        if (childInfo) {
+          childInfo.remaining.delete(job.id);
 
-          const parentJob = this.waitingParents.get(parentId);
+          const parentJob = this.waitingParents.get(parentId)!;
 
-          if (parentJob) {
-            this.waitingParents.delete(parentId);
+          const childCompleted = childInfo.total - childInfo.remaining.size;
 
-            eventBus.next({
-              type: "jobComplete",
-              jobId: parentJob.id,
-              jobType: parentJob.type,
-              payload: result,
-            });
+          const childOverall =
+            childInfo.total === 0 ? 1 : childCompleted / childInfo.total;
 
-            this.emitJobCompleted(parentJob);
+          eventBus.next({
+            state: "progress",
+            jobId: parentId,
+            jobType: parentJob.type,
+            payload: {
+              parent: {
+                state: parentJob.state,
+                completed: parentJob.payload?.index,
+                total: parentJob.payload?.total,
+                overall:
+                  parentJob.payload?.overall ?? parentJob.payload?.percent,
+                label: parentJob.payload?.label,
+              },
+
+              child: {
+                state: job.state,
+                completed: childCompleted,
+                remaining: childInfo.remaining.size,
+                total: childInfo.total,
+                overall: childOverall,
+              },
+            },
+          });
+
+          if (childInfo.remaining.size === 0) {
+            this.childMap.delete(parentId);
+
+            if (parentJob) {
+              this.waitingParents.delete(parentId);
+
+              this.emitJobCompleted(parentJob);
+            }
           }
         }
+
+        return;
       }
 
       return;
@@ -146,7 +186,7 @@ export class BackgroundService {
     // Parent job with children still running
     const children = this.childMap.get(job.id);
 
-    if (children && children.size > 0) {
+    if (children && children.remaining.size > 0) {
       this.waitingParents.set(job.id, job);
       return;
     }
@@ -154,7 +194,7 @@ export class BackgroundService {
     // Normal completion
 
     eventBus.next({
-      type: "jobComplete",
+      state: "completed",
       jobId: job.id,
       jobType: job.type,
       payload: result,
@@ -203,7 +243,7 @@ export class BackgroundService {
     this.workerPool.cancel(jobId);
 
     eventBus.next({
-      type: "jobCanceled",
+      state: "canceled",
       jobId,
       jobType: job.type,
       parentJobId: job.parentJobId,
@@ -233,7 +273,7 @@ export class BackgroundService {
   private emitJobProgress(event: {
     jobId: string;
     jobType: string;
-    payload: any;
+    payload: ProgressPayload;
   }) {
     for (const cb of this.jobProgressListeners) cb(event);
   }

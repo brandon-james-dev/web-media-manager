@@ -23,7 +23,7 @@ export class WorkerPool {
             this.workers[i]
               .runJob(job, (progressMsg) => {
                 eventBus.next({
-                  type: "jobProgress",
+                  state: "progress",
                   jobId: job.id,
                   jobType: job.type,
                   parentJobId: job.parentJobId,
@@ -33,7 +33,7 @@ export class WorkerPool {
               .then(resolve)
               .catch((reason) => {
                 eventBus.next({
-                  type: "jobError",
+                  state: "error",
                   jobId: job.id,
                   jobType: job.type,
                   parentJobId: job.parentJobId,

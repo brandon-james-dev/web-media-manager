@@ -1,5 +1,6 @@
+import { NotificationRenderer } from "@/components/notifications";
 import { Button } from "@/components/ui/button";
-import { Item, ItemContent, ItemSeparator } from "@/components/ui/item";
+import { Item } from "@/components/ui/item";
 import {
   Popover,
   PopoverContent,
@@ -21,21 +22,28 @@ function NotificationPopover() {
   useEffect(() => {
     const sub = notification$.subscribe((event) => {
       setItems((prev) => {
-        toast.add({
-          id: event.id,
-          type: event.type,
-          title: event.title,
-          description: event.render?.() ?? event.detail,
-        });
         const next = prev.filter((i) => i.id !== event.id);
         next.push(event);
-        setUnreadCount(unreadCount + 1);
         return next;
+      });
+
+      const toastId = event.parentId ?? event.id;
+
+      if (items.findIndex((i) => i.id == toastId) === -1) {
+        setUnreadCount((count) => count + 1);
+      }
+
+      toast.add({
+        id: toastId,
+        type: event.kind,
+        data: event.payload,
+        title: event.title,
+        description: <NotificationRenderer notification={event} />,
       });
     });
 
     return () => sub.unsubscribe();
-  }, [unreadCount]);
+  }, [items]);
 
   function handleOpen(openState: boolean) {
     setUnreadCount(0);
@@ -77,18 +85,7 @@ function NotificationPopover() {
         </div>
         {items.map((n) => (
           <Item key={n.id} className="p-0.5 border-b last:border-b-0">
-            {n.render ? (
-              n.render()
-            ) : (
-              <ItemContent>
-                <div className="font-medium">{n.title}</div>
-                {n.detail && (
-                  <div className="text-sm text-muted-foreground">
-                    {n.detail}
-                  </div>
-                )}
-              </ItemContent>
-            )}
+            <NotificationRenderer notification={n} />
           </Item>
         ))}
       </PopoverContent>
