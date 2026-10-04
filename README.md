@@ -1,6 +1,14 @@
 # Web Media Manager
 
-A modern web-based media management application focused on local media libraries, portable device synchronization, metadata management, and high-performance playback.
+A modern web-based media management application focused on local media libraries, portable device synchronization, metadata management, and high-performance playback. 
+
+## Live Demo
+
+The application is deployed on GitHub Pages:
+
+https://brandon-james-dev.github.io/web-media-manager/
+
+Open it directly in your browser — no installation required.
 
 ## Features
 
