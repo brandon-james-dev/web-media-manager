@@ -1,0 +1,28 @@
+import type { IMetadataWriteStrategy } from "../metadata-utils/IMetadataWriteStrategy";
+import type { ITagData } from "../metadata-utils/ITagData";
+import type { Song } from "@/models/Song";
+import type { FileSystemMetadataStore } from "./FileSystemMetadataStore";
+
+export class FileWriteStrategy implements IMetadataWriteStrategy {
+  private store: FileSystemMetadataStore;
+
+  constructor(store: FileSystemMetadataStore) {
+    this.store = store;
+  }
+
+  async write(id: string, updated: Partial<ITagData>): Promise<Song> {
+    const song = await this.store.get(id);
+    if (!song) {
+      throw new Error(`Song ${id} not found`);
+    }
+
+    const updatedSong: Song = {
+      ...song,
+      ...updated,
+    };
+
+    await this.store.save(id, updatedSong);
+
+    return updatedSong;
+  }
+}

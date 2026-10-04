@@ -1,0 +1,311 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenu,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Item } from "@/components/ui/item";
+import { Sun, Moon, ArrowLeft, X } from "lucide-react";
+import { useTheme } from "@/hooks";
+import { clearDb, getMetadataStore } from "@/lib";
+import type { Directory } from "@/models";
+import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
+import { toast } from "@/components/ui/toast";
+import { AccentColorSelector } from "@/components/theme-provider";
+
+export default function Settings() {
+  //#region State
+  const { setTheme, theme, accentColor, setAccentColor } = useTheme();
+  const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
+  const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [directories, setDirectories] = useState<Directory[]>([]);
+  const [settings, setSettings] = useState({
+    theme: theme || "system",
+    accentColor: accentColor || "#3b82f6",
+  });
+  //#endregion
+
+  //#region Global event listeners
+  useEffect(() => {
+    const store = getMetadataStore() as CombinedMetadataStore;
+    store.getDirectories().then(setDirectories);
+
+    const unsubDirDeleted = store.onDirectoryDeleted(refresh);
+    const unsubDirCleared = store.onDirectoriesCleared(refresh);
+
+    return () => {
+      unsubDirDeleted();
+      unsubDirCleared();
+    };
+  }, []);
+  //#endregion
+
+  //#region Helpers
+  async function refresh(dir?: Directory) {
+    const store = getMetadataStore() as CombinedMetadataStore;
+    const all = await store.getDirectories();
+
+    if (dir) {
+      setDirectories(all.filter((d) => d.id !== dir.id));
+    } else {
+      setDirectories(all);
+    }
+  }
+  //#endregion
+
+  //#region Getters
+  const getUserThemePreference = (): "dark" | "light" => {
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
+      return "light";
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  };
+
+  const showSun = () =>
+    settings.theme === "light" ||
+    (settings.theme === "system" && getUserThemePreference() === "light");
+
+  const showMoon = () =>
+    settings.theme === "dark" ||
+    (settings.theme === "system" && getUserThemePreference() === "dark");
+  //#endregion
+
+  //#region Interactivity handlers
+  const handleChange = (field: string, value: string | boolean) => {
+    setSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    setTheme(settings.theme as "light" | "dark" | "system");
+    setAccentColor(settings.accentColor);
+
+    toast.add({
+      type: "success",
+      title: "Settings saved",
+    });
+  };
+
+  const handleClearSongs = async () => {
+    await clearDb();
+    await refresh();
+    setClearSongsDialogOpen(false);
+    toast.add({
+      type: "success",
+      title: "All songs cleared from the database",
+    });
+  };
+
+  const handleDeleteDirectory = async () => {
+    if (!pendingDeleteId) return;
+
+    const store = getMetadataStore() as CombinedMetadataStore;
+    await store.deleteDirectory(pendingDeleteId);
+
+    setPendingDeleteId(null);
+    setDeleteDirDialogOpen(false);
+  };
+  //#endregion
+
+  return (
+    <div className="max-w-2xl mx-auto p-8 space-y-8 select-none">
+      <div className="flex gap-3 items-center">
+        <Link to="/">
+          <Button variant="outline">
+            <ArrowLeft />
+          </Button>
+        </Link>
+        <h1 className="text-3xl font-bold">Settings and Data</h1>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Settings</CardTitle>
+          <CardDescription>Manage your application preferences</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="theme">Theme</Label>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                id="theme"
+                render={
+                  <Button variant="outline" size="icon">
+                    <Sun
+                      className={`h-[1.2rem] w-[1.2rem] transition-all ${showSun() ? "scale-100 rotate-0" : "scale-0 -rotate-90"}`}
+                    />
+                    <Moon
+                      className={`absolute h-[1.2rem] w-[1.2rem] transition-all ${showMoon() ? "scale-100 rotate-0" : "scale-0 rotate-90"}`}
+                    />
+                  </Button>
+                }
+              ></DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => handleChange("theme", "light")}
+                >
+                  Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleChange("theme", "dark")}>
+                  Dark
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleChange("theme", "system")}
+                >
+                  System
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label>Accent Color</Label>
+          </div>
+
+          <AccentColorSelector
+            value={settings.accentColor}
+            onChange={(color) => handleChange("accentColor", color)}
+          />
+
+          <div>
+            <Button onClick={handleSave} className="w-full">
+              Save Settings
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Data</CardTitle>
+          <CardDescription>
+            Manage all song data and the folders used for scanning and importing
+            music
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <label>Directories</label>
+          {directories.length === 0 && (
+            <p className="text-sm text-muted-foreground my-2">
+              No directories added.
+            </p>
+          )}
+
+          <ScrollArea className="max-h-75 my-2">
+            <div className="border rounded-sm">
+              {directories.map((dir) => (
+                <Item
+                  key={dir.id}
+                  className="flex items-center justify-between p-0"
+                >
+                  <span className="pl-2">{dir.directoryName}</span>
+
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={() => {
+                      setPendingDeleteId(dir.id);
+                      setDeleteDirDialogOpen(true);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </Item>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <Dialog
+            open={deleteDirDialogOpen}
+            onOpenChange={setDeleteDirDialogOpen}
+          >
+            <DialogContent className="select-none">
+              <DialogHeader>
+                <DialogTitle>Remove Directory</DialogTitle>
+                <DialogDescription>
+                  This will remove the directory from your library. Songs
+                  already imported will remain.
+                </DialogDescription>
+              </DialogHeader>
+
+              <DialogFooter>
+                <DialogClose
+                  render={<Button variant="outline">Cancel</Button>}
+                ></DialogClose>
+
+                <Button variant="destructive" onClick={handleDeleteDirectory}>
+                  Remove Directory
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="clearDb">Clear Song Database</Label>
+
+            <Dialog
+              open={clearSongsDialogOpen}
+              onOpenChange={setClearSongsDialogOpen}
+            >
+              <DialogTrigger
+                render={
+                  <Button id="clearDb" variant="destructive">
+                    Clear
+                  </Button>
+                }
+              ></DialogTrigger>
+
+              <DialogContent className="select-none w-lg">
+                <DialogHeader>
+                  <DialogTitle>Are you absolutely sure?</DialogTitle>
+                  <DialogDescription>
+                    This action cannot be undone. This will remove all song data
+                    from this machine.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter>
+                  <DialogClose
+                    render={<Button variant="outline">Cancel</Button>}
+                  ></DialogClose>
+                  <Button variant="destructive" onClick={handleClearSongs}>
+                    Clear
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

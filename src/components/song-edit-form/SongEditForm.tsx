@@ -1,0 +1,587 @@
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ThumbnailSize } from "@/lib";
+import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
+import type { Song } from "@/models";
+import { useRef, useState } from "react";
+import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
+import { Button } from "../ui/button";
+import { Eraser, Globe, Pen, Save, X } from "lucide-react";
+import type { SongEditFormProps } from "./SongEditFormProps";
+import { AlbumArtImage } from "../album-art-image";
+
+export function SongEditForm(props: SongEditFormProps) {
+  //#region State
+  const { song, formId, onFormSubmit } = props;
+  const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
+  const [showSearch, setShowSearch] = useState(false);
+  const [dirty, setDirty] = useState<Record<string, boolean>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  //#endregion
+
+  //#region Helpers
+  const set = (name: string, value: any) => {
+    if (!formRef.current) return;
+    const form = formRef.current;
+    const el = form.elements.namedItem(name) as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null;
+    if (el) el.value = value ?? "";
+    const originalValue = (song as any)[name];
+    markDirty(name, el?.value != originalValue);
+  };
+
+  function markDirty(name: string, isDirty: boolean) {
+    setDirty((prev) => ({ ...prev, [name]: isDirty }));
+  }
+  //#endregion
+
+  //#region Interactivity handlers
+
+  function handleResetForm() {
+    set("title", song.title);
+    set("artist", song.artist);
+    set("album", song.album);
+    set("albumArtist", song.albumArtist);
+    set("genre", song.genre);
+
+    // Year
+    set("year", song.year ? Number(song.year) : undefined);
+
+    // Track / Disc
+    set("track", song.track ? Number(song.track) : undefined);
+    set("totalTracks", song.totalTracks ? Number(song.totalTracks) : undefined);
+    set("disc", song.disc ? Number(song.disc) : undefined);
+    set("totalDiscs", song.totalDiscs ? Number(song.totalDiscs) : undefined);
+
+    // Credits
+    set("composer", song.composer);
+    set("bpm", song.bpm ? Number(song.bpm) : undefined);
+    set("copyright", song.copyright);
+    set("encodedBy", song.encodedBy);
+
+    // Text fields
+    set("comment", song.comment);
+    set("lyrics", song.lyrics);
+    setDirty({});
+    setUpdatedFrontCover(undefined);
+  }
+
+  function handleSearchResultConfirm(online: IOnlineMetadata) {
+    if (!formRef.current) return;
+
+    // Basic metadata
+    set("title", online.title);
+    set("artist", online.artist);
+    set("album", online.album);
+    set("albumArtist", online.albumArtist);
+    set("genre", online.genre);
+
+    // Year
+    set("year", online.year ? Number(online.year) : undefined);
+
+    // Track / Disc
+    set("track", online.track ? Number(online.track) : undefined);
+    set(
+      "totalTracks",
+      online.totalTracks ? Number(online.totalTracks) : undefined
+    );
+    set("disc", online.disc ? Number(online.disc) : undefined);
+    set(
+      "totalDiscs",
+      online.totalDiscs ? Number(online.totalDiscs) : undefined
+    );
+
+    // Credits
+    set("composer", online.composer);
+    set("bpm", online.bpm ? Number(online.bpm) : undefined);
+    set("copyright", online.copyright);
+    set("encodedBy", online.encodedBy);
+
+    // Text fields
+    set("comment", online.comment);
+    set("lyrics", online.lyrics);
+
+    // Album art
+    const frontCover = online.pictures?.find((p) => p.type === "FrontCover");
+
+    if (frontCover && frontCover.data.length > 0) {
+      const coverData = [frontCover.data.slice()];
+      set(
+        "frontCover",
+        new File(coverData, frontCover.description || "Front Cover" + ".jpeg")
+      );
+      setUpdatedFrontCover(new Blob(coverData));
+    }
+  }
+
+  async function handleEditSubmit(event: React.SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const currentTarget = event.currentTarget;
+    const formData = new FormData(currentTarget);
+
+    const get = (key: string) => formData.get(key)?.toString().trim() ?? "";
+    const num = (key: string, fallback: number | undefined) =>
+      formData.get(key) ? Number(formData.get(key)) : fallback;
+
+    const updates: Partial<Song> = {
+      // Metadata
+      title: get("title"),
+      artist: get("artist"),
+      album: get("album"),
+      albumArtist: get("albumArtist"),
+      year: num("year", undefined),
+      genre: get("genre"),
+
+      // Track Position
+      track: num("track", undefined),
+      totalTracks: num("totalTracks", undefined),
+      disc: num("disc", undefined),
+      totalDiscs: num("totalDiscs", undefined),
+
+      // Credits
+      composer: get("composer"),
+      bpm: num("bpm", undefined),
+      copyright: get("copyright"),
+      encodedBy: get("encodedBy"),
+
+      // Text Fields
+      comment: get("comment"),
+      lyrics: get("lyrics"),
+    };
+
+    if (updatedFrontCover) {
+      updates.coverFront = updatedFrontCover;
+    }
+
+    onFormSubmit?.(updates);
+    currentTarget.reset();
+  }
+  //#endregion
+
+  return (
+    <>
+      <div className="flex justify-center gap-3 px-6 py-2">
+        <Button
+          variant={showSearch ? "default" : "secondary"}
+          onClick={() => setShowSearch(!showSearch)}
+        >
+          <Globe /> Online Search
+        </Button>
+        <Button
+          variant="secondary"
+          type="reset"
+          form={formId || "song-edit-form"}
+          onClick={handleResetForm}
+          className={
+            Object.values(dirty).some((v) => v) ? "border-accent/50" : ""
+          }
+          disabled={!Object.values(dirty).some((v) => v)}
+        >
+          <Eraser />
+          Reset
+        </Button>
+        <Button
+          type="submit"
+          className="bg-accent/50 hover:bg-accent text-white"
+          form={formId || "song-edit-form"}
+          disabled={!Object.values(dirty).some((v) => v)}
+        >
+          <Save /> Save Changes
+        </Button>
+      </div>
+      <div className="max-h-80 overflow-y-auto my-4 border rounded-md">
+        {showSearch && (
+          <OnlineSearchPanel
+            song={song}
+            onSelect={(result) => {
+              handleSearchResultConfirm(result);
+              setShowSearch(false);
+            }}
+          />
+        )}
+      </div>
+
+      <form
+        id={formId || "song-edit-form"}
+        ref={formRef}
+        className="lg:w-4xl mx-auto pt-4 flex-1 flex flex-col gap-4"
+        onSubmit={handleEditSubmit}
+      >
+        <section>
+          <div className="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-4">
+            <div className="row-span-2">
+              <Label
+                htmlFor="coverFront"
+                className="pb-1 flex items-center gap-2"
+              >
+                Album Art
+                {dirty.coverFront && (
+                  <span className="w-2 h-2 bg-accent/50 rounded-full" />
+                )}
+              </Label>
+
+              <Label htmlFor="coverFront">
+                <div
+                  className="flex flex-col 
+                             items-center justify-center 
+                             text-sm 
+                             text-muted-foreground bg-background
+                            "
+                >
+                  <div className="w-32 aspect-square relative border rounded-md hover:border-accent group cursor-pointer">
+                    <Pen
+                      size={24}
+                      className="
+                        absolute top-1 right-1 p-1 rounded-md
+                        dark:bg-accent text-white
+                        opacity-0
+                        group-hover:opacity-100
+                        transition-opacity
+                      "
+                    />
+                    {updatedFrontCover ? (
+                      <img
+                        src={URL.createObjectURL(updatedFrontCover)}
+                        alt={song.album}
+                        className="object-cover rounded border border-accent/50"
+                      />
+                    ) : (
+                      <AlbumArtImage
+                        songId={song.id}
+                        thumbSize={ThumbnailSize.thumb128}
+                        className="object-cover rounded"
+                        fallback={
+                          <>
+                            <div>No cover art</div>
+                            <div className="text-muted-foreground">
+                              Click to select
+                            </div>
+                          </>
+                        }
+                      />
+                    )}
+                  </div>
+                </div>
+              </Label>
+
+              <Input
+                hidden
+                id="coverFront"
+                type="file"
+                name="coverFront"
+                accept="image/*"
+                onChange={(evt) => {
+                  const file = evt.currentTarget.files?.[0];
+
+                  if (file) {
+                    // Create preview URL
+                    setUpdatedFrontCover(file);
+
+                    // Mark dirty
+                    markDirty("coverFront", true);
+                  } else {
+                    // No file selected → revert dirty state
+                    markDirty("coverFront", false);
+                  }
+                }}
+                className="mt-2"
+              />
+            </div>
+
+            <div>
+              <Label className="pb-1" htmlFor="title">
+                Title
+              </Label>
+              <Input
+                name="title"
+                defaultValue={song.title}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "title",
+                    evt.currentTarget.value !== (song.title ?? "")
+                  )
+                }
+                className={
+                  dirty.title
+                    ? "dark:active:border-accent/50 dark:border-accent/50"
+                    : ""
+                }
+              />
+            </div>
+
+            <div>
+              <Label className="pb-1">Artist</Label>
+              <Input
+                name="artist"
+                defaultValue={song.artist}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "artist",
+                    evt.currentTarget.value !== (song.artist ?? "")
+                  )
+                }
+                className={
+                  dirty.artist
+                    ? "dark:active:border-accent/50 dark:border-accent/50"
+                    : ""
+                }
+              />
+            </div>
+
+            <div>
+              <Label className="pb-1">Album</Label>
+              <Input
+                name="album"
+                defaultValue={song.album}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "album",
+                    evt.currentTarget.value !== (song.album ?? "")
+                  )
+                }
+                className={dirty.album ? "dark:border-accent/50" : ""}
+              />
+            </div>
+
+            <div>
+              <Label className="pb-1">Album Artist</Label>
+              <Input
+                name="albumArtist"
+                defaultValue={song.albumArtist ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "albumArtist",
+                    evt.currentTarget.value !== (song.albumArtist ?? "")
+                  )
+                }
+                className={dirty.albumArtist ? "dark:border-accent/50" : ""}
+              />
+            </div>
+
+            <div>
+              <Label className="pb-1">Year</Label>
+              <Input
+                name="year"
+                defaultValue={song.year}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "year",
+                    Number(evt.currentTarget.value) !== song.year
+                  )
+                }
+                className={dirty.year ? "dark:border-accent/50" : ""}
+              />
+            </div>
+
+            <div>
+              <Label className="pb-1">Genre</Label>
+              <Input
+                name="genre"
+                defaultValue={song.genre ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "genre",
+                    evt.currentTarget.value !== (song.genre ?? "")
+                  )
+                }
+                className={dirty.genre ? "dark:border-accent/50" : ""}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">Track Position</h2>
+          <div className="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
+            <div>
+              <div className="grid grid-cols-3">
+                <div>
+                  <Label className="pb-1">Track</Label>
+                  <Input
+                    name="track"
+                    defaultValue={song.track}
+                    autoComplete="off"
+                    onChange={(evt) =>
+                      markDirty(
+                        "track",
+                        evt.currentTarget.value !== (song.track ?? "")
+                      )
+                    }
+                    className={dirty.track ? "dark:border-accent/50" : ""}
+                  />
+                </div>
+                <div className="text-muted-foreground flex justify-center align-middle">
+                  <Label className="pt-4 inline-flex">of</Label>
+                </div>
+                <div>
+                  <Label className="pb-1">Tracks</Label>
+                  <Input
+                    name="totalTracks"
+                    defaultValue={song.totalTracks}
+                    autoComplete="off"
+                    onChange={(evt) =>
+                      markDirty(
+                        "totalTracks",
+                        evt.currentTarget.value !== (song.totalTracks ?? "")
+                      )
+                    }
+                    className={dirty.totalTracks ? "dark:border-accent/50" : ""}
+                  />
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="grid grid-cols-3">
+                <div>
+                  <Label className="pb-1">Disc</Label>
+                  <Input
+                    name="disc"
+                    defaultValue={song.disc}
+                    autoComplete="off"
+                    onChange={(evt) =>
+                      markDirty(
+                        "disc",
+                        evt.currentTarget.value !== (song.disc ?? "")
+                      )
+                    }
+                    className={dirty.disc ? "dark:border-accent/50" : ""}
+                  />
+                </div>
+                <div className="text-muted-foreground flex justify-center align-middle">
+                  <Label className="pt-4 inline-flex">of</Label>
+                </div>
+                <div>
+                  <Label className="pb-1">Discs</Label>
+                  <Input
+                    name="totalDiscs"
+                    defaultValue={song.totalDiscs}
+                    autoComplete="off"
+                    onChange={(evt) =>
+                      markDirty(
+                        "totalDiscs",
+                        evt.currentTarget.value !== (song.totalDiscs ?? "")
+                      )
+                    }
+                    className={dirty.totalDiscs ? "dark:border-accent/50" : ""}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">Credits</h2>
+          <div className="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
+            <div>
+              <Label className="pb-1">Composer</Label>
+              <Input
+                name="composer"
+                defaultValue={song.composer ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "composer",
+                    evt.currentTarget.value !== (song.composer ?? "")
+                  )
+                }
+                className={dirty.composer ? "dark:border-accent/50" : ""}
+              />
+            </div>
+            <div>
+              <Label className="pb-1">BPM</Label>
+              <Input
+                name="bpm"
+                defaultValue={song.bpm ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "album",
+                    evt.currentTarget.value !== (song.bpm ?? "")
+                  )
+                }
+                className={dirty.bpm ? "dark:border-accent/50" : ""}
+              />
+            </div>
+            <div>
+              <Label className="pb-1">Copyright</Label>
+              <Input
+                name="copyright"
+                defaultValue={song.copyright ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "copyright",
+                    evt.currentTarget.value !== (song.copyright ?? "")
+                  )
+                }
+                className={dirty.copyright ? "dark:border-accent/50" : ""}
+              />
+            </div>
+            <div>
+              <Label className="pb-1">Encoder</Label>
+              <Input
+                name="encodedBy"
+                defaultValue={song.encodedBy ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "encodedBy",
+                    evt.currentTarget.value !== (song.encodedBy ?? "")
+                  )
+                }
+                className={dirty.encodedBy ? "dark:border-accent/50" : ""}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-4">Text Fields</h2>
+          <div className="grid xl:grid-cols-2 gap-4">
+            <div>
+              <Label className="pb-1">Comment</Label>
+              <Textarea
+                name="comment"
+                defaultValue={song.comment ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "comment",
+                    evt.currentTarget.value !== (song.comment ?? "")
+                  )
+                }
+                className={dirty.comment ? "dark:border-accent/50" : ""}
+              />
+            </div>
+            <div>
+              <Label className="pb-1">Lyrics</Label>
+              <Textarea
+                name="lyrics"
+                defaultValue={song.lyrics ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "lyrics",
+                    evt.currentTarget.value !== (song.lyrics ?? "")
+                  )
+                }
+                className={dirty.lyrics ? "dark:border-accent/50" : ""}
+              />
+            </div>
+          </div>
+        </section>
+      </form>
+    </>
+  );
+}
