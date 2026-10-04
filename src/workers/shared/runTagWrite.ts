@@ -3,7 +3,6 @@ import type { WorkerProgress } from "@/workers/WorkerJob";
 
 export async function runTagWrite(
   payload: any,
-  isCancelled: () => boolean,
   reportProgress: (progress: WorkerProgress) => void
 ) {
   reportProgress({

@@ -4,10 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useArtwork } from "@/hooks";
-import { ArtworkType } from "@/lib/metadata-utils";
 import { ThumbnailSize } from "@/lib";
-import { type Song } from "@/models";
 import { Input } from "../ui/input";
 import { useState } from "react";
 import { Label } from "../ui/label";
