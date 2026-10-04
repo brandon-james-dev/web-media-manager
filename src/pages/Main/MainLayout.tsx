@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSongs } from "@/hooks";
 import type { QueryOptions } from "@/lib/store";
 import type { Song } from "@/models";
-import { Music, DiscAlbum, Search, Pen, Play } from "lucide-react";
+import { Music, DiscAlbum, Search, Pen, MonitorSmartphone } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
 import {
   Outlet,
@@ -39,16 +39,30 @@ function MainLayout() {
   const { pathname } = useLocation();
   const { mode } = useParams();
   const navigate = useNavigate();
-  const activeTab =
-    pathname.includes("songs") || pathname === "/" ? "songs" : "albums";
-  const activeMode =
-    mode === "playback" || mode === undefined ? "playback" : "edit";
+
+  const isSyncPage = pathname.startsWith("/sync");
+
+  const activeTab = isSyncPage
+    ? "sync"
+    : pathname.includes("albums")
+      ? "albums"
+      : "songs";
+
+  const activeMode = isSyncPage
+    ? undefined
+    : mode === "edit"
+      ? "edit"
+      : "playback";
+
+  const routeMode = activeMode ?? "playback";
 
   const { query, setQuery, total, filteredTotal } = useSongs();
+
   const [sort, setSort] = useState<{
     selector: (item: Song) => any;
     desc: boolean;
   }>();
+
   const [queryText, setQueryText] = useState<string>("");
   //#endregion
 
@@ -82,7 +96,8 @@ function MainLayout() {
           <Toggle
             variant="outline"
             className="bg-muted aria-pressed:bg-accent"
-            pressed={activeMode === "edit"}
+            disabled={isSyncPage}
+            pressed={!isSyncPage && activeMode === "edit"}
             onPressedChange={(pressed) => {
               navigate(`${activeTab}/${pressed ? "edit" : "playback"}`);
             }}
@@ -97,6 +112,7 @@ function MainLayout() {
               placeholder="Search..."
               value={queryText}
               onChange={handleFilterTextChange}
+              disabled={isSyncPage}
             />
             <InputGroupAddon>
               <Search />
@@ -108,46 +124,72 @@ function MainLayout() {
             )}
           </InputGroup>
         </div>
+        <div className="w-45 flex justify-end gap-2">
+          <Tabs value={activeTab}>
+            <TabsList>
+              <TabsTrigger
+                value="songs"
+                render={
+                  <NavLink
+                    to={`songs/${routeMode}`}
+                    draggable={false}
+                    className="flex items-center gap-2 cursor-default"
+                  >
+                    <Music className="h-4 w-4" />
+                    Songs
+                  </NavLink>
+                }
+              />
 
-        <Tabs value={activeTab} className="w-45 flex justify-end">
-          <TabsList>
-            <TabsTrigger
-              value="songs"
-              render={
-                <NavLink
-                  to={`songs/${activeMode}`}
-                  draggable="false"
-                  className="flex items-center gap-2 cursor-default"
-                >
-                  <Music className="h-4 w-4" />
-                  Songs
-                </NavLink>
-              }
-            ></TabsTrigger>
+              <TabsTrigger
+                value="albums"
+                render={
+                  <NavLink
+                    to={`albums/${routeMode}`}
+                    draggable={false}
+                    className="flex items-center gap-2 cursor-default"
+                  >
+                    <DiscAlbum className="h-4 w-4" />
+                    Albums
+                  </NavLink>
+                }
+              />
+            </TabsList>
+          </Tabs>
 
-            <TabsTrigger
-              value="albums"
-              render={
-                <NavLink
-                  to={`albums/${activeMode}`}
-                  draggable="false"
-                  className="flex items-center gap-2 cursor-default"
-                >
-                  <DiscAlbum className="h-4 w-4" />
-                  Albums
-                </NavLink>
-              }
-            ></TabsTrigger>
-          </TabsList>
-        </Tabs>
+          <div className="rounded-lg bg-muted py-px px-2">
+            <NavLink
+              to="sync"
+              draggable={false}
+              className={({ isActive }) => `
+                inline-flex items-center gap-2
+                p-0.75 rounded-md
+                text-sm font-medium
+                transition-all cursor-default
+
+                ${
+                  isActive
+                    ? "text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }
+              `}
+            >
+              <MonitorSmartphone className="h-4 w-4" />
+              Sync
+            </NavLink>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden">
         <Outlet context={{ queryText, sort, setSort }} />
       </div>
 
-      <div className="shrink-0" hidden={(total ?? 0) === 0}>
-        {activeMode === "edit" && <Editor mode={activeTab} />}
+      <div className="shrink-0" hidden={isSyncPage || (total ?? 0) === 0}>
+        {activeMode === "edit" && (
+          <Editor mode={activeTab as "songs" | "albums"} />
+        )}
+
         {activeMode === "playback" && <PlayerControls />}
       </div>
     </div>

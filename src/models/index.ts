@@ -1,6 +1,5 @@
-import type { Album } from "./Album";
-import type { SongArtwork } from "./SongArtwork";
-import type { Directory } from "./Directory";
-import type { Song } from "./Song";
-
-export type { Album, Directory, Song, SongArtwork };
+export type { Album } from "./Album";
+export type { Directory } from "./Directory";
+export type { Song } from "./Song";
+export type { SongArtwork } from "./SongArtwork";
+export type { SyncDevice } from "./SyncDevice";

@@ -1,7 +1,7 @@
 import "./App.css";
 
 import { Routes, Route } from "react-router";
-import { Songs, Albums, Settings } from "./pages";
+import { Songs, Albums, Settings, Sync } from "./pages";
 import { NavBar } from "./layout";
 import { SongProvider } from "./providers/SongProvider";
 import { ThemeProvider } from "./components/theme-provider";
@@ -50,6 +50,7 @@ function App() {
                   <Route path="songs/:mode" element={<Songs />} />
                   <Route path="albums" element={<Albums />} />
                   <Route path="albums/:mode" element={<Albums />} />
+                  <Route path="sync" element={<Sync />} />
                 </Route>
 
                 <Route path="/settings" element={<Settings />} />
