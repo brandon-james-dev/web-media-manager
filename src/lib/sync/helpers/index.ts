@@ -1,3 +1,4 @@
-export { hasDirectory } from "./hasDirectory";
-export { hasFile } from "./hasFile";
-export { DirectoryPickerRequiredError } from "./DirectoryPickerRequiredError";
+export * from "./DirectoryPickerRequiredError";
+export * from "./getDirectorySize";
+export * from "./hasDirectory";
+export * from "./hasFile";

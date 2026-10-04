@@ -22,8 +22,6 @@ function parseSysInfo(content: string): SysInfo {
     values[key] = value;
   }
 
-  console.table(values);
-
   return {
     modelNumber: values.ModelNumStr,
     serialNumber: values.SerialNumber,

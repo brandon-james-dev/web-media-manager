@@ -20,6 +20,7 @@ export class SyncService {
       });
 
       usbInfo = mapUsbDevice(usbDevice);
+
       const isMassStorage = usbDevice.configurations.some((configuration) =>
         configuration.interfaces.some(
           (iface) => iface.alternate.interfaceClass === 0x08
@@ -38,6 +39,7 @@ export class SyncService {
     const device = await this.scanner.scan(rootHandle, usbInfo);
 
     device.usb = usbInfo;
+    device.rootHandle = rootHandle;
 
     return device;
   }

@@ -1,8 +1,12 @@
 import type { SyncDevice } from "@/models";
 import type { DeviceDetector } from "./DeviceDetector";
-import { hasDirectory } from "../helpers";
-import { readSysInfo } from "../readers";
-import { IPOD_MODELS } from "./ipod-models";
+import { getDirectorySize, hasDirectory } from "../helpers";
+import {
+  IPOD_MODELS_BY_MODEL_NUMBER,
+  parseITunesDb,
+  readDeviceInfo,
+} from "../ipod";
+import { uuidv7 } from "uuidv7";
 
 export class IpodDetector implements DeviceDetector {
   async detect(
@@ -14,23 +18,31 @@ export class IpodDetector implements DeviceDetector {
       return undefined;
     }
 
-    const sysInfo = await readSysInfo(root);
+    const deviceInfo = await readDeviceInfo(root);
+    if (!deviceInfo.sysInfo) return undefined;
+
+    const db = await parseITunesDb(root);
+
+    const usedBytes = await getDirectorySize(root);
 
     return {
-      id: crypto.randomUUID(),
+      id: uuidv7(),
       name: root.name,
       type: "iPod",
-      model: sysInfo.modelNumber
-        ? IPOD_MODELS[sysInfo.modelNumber]
+      model: deviceInfo.sysInfo?.modelNumber
+        ? IPOD_MODELS_BY_MODEL_NUMBER[deviceInfo.sysInfo?.modelNumber].name
         : "Unknown iPod",
-      serialNumber: sysInfo.serialNumber,
-      firmwareVersion: sysInfo.firmwareVersion,
-      sysInfo,
+      serialNumber: deviceInfo.sysInfo?.serialNumber,
+      firmwareVersion: deviceInfo.sysInfo?.firmwareVersion,
+      sysInfo: deviceInfo.sysInfo,
       capabilities: {
         database: true,
         artwork: true,
         playlists: true,
         playbackStats: true,
+      },
+      storage: {
+        usedBytes,
       },
       rootHandle: root,
       connected: true,

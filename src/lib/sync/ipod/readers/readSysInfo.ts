@@ -1,4 +1,4 @@
-import { parseSysInfo, type SysInfo } from "./parseSysInfo";
+import { parseSysInfo, type SysInfo } from "../parsers/parseSysInfo";
 
 async function readSysInfo(root: FileSystemDirectoryHandle): Promise<SysInfo> {
   const control = await root.getDirectoryHandle("iPod_Control");

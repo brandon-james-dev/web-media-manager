@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { uuidv7 } from "uuidv7";
+import { MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { notification$ } from "@/events/notification-events";
-import { DirectoryPickerRequiredError } from "@/lib/sync";
-import type { UsbDeviceInfo } from "@/lib/sync/usb/UsbDeviceInfo";
-import { MonitorSmartphone, Plus } from "lucide-react";
+import {
+  DirectoryPickerRequiredError,
+  IPOD_MODELS,
+  IpodDetector,
+  type UsbDeviceInfo,
+} from "@/lib/sync";
 import { useSync } from "@/hooks";
+import type { SyncDevice } from "@/models";
 
 export function Sync() {
   const { devices, addDevice } = useSync();
@@ -66,6 +71,11 @@ export function Sync() {
     }
   }
 
+  async function handleReadDbButtonClicked(device: SyncDevice) {
+    if (!device.rootHandle) return;
+    await new IpodDetector().detect(device.rootHandle);
+  }
+
   return (
     <div className="p-4 h-full overflow-auto">
       <div className="max-w-4xl mx-auto space-y-4">
@@ -89,10 +99,15 @@ export function Sync() {
         {pendingUsbDevice && (
           <Card>
             <CardContent className="py-4 space-y-3">
-              <div className="font-medium">
-                {pendingUsbDevice.manufacturerName === "Apple Inc."
-                  ? "iPod Detected"
-                  : "Device Detected"}
+              <div className="font-medium flex gap-2">
+                <span>
+                  {pendingUsbDevice.manufacturerName === "Apple Inc."
+                    ? "iPod Detected"
+                    : "Device Detected"}
+                </span>
+                {pendingUsbDevice.manufacturerName === "Apple Inc." && (
+                  <span>({IPOD_MODELS[pendingUsbDevice.productId].name})</span>
+                )}
               </div>
 
               <div className="text-sm text-muted-foreground">
@@ -168,6 +183,7 @@ export function Sync() {
             </CardContent>
           </Card>
         )}
+
         {devices.map((device) => (
           <Card key={device.id}>
             <CardContent className="py-4 space-y-3">
@@ -176,58 +192,74 @@ export function Sync() {
                   <div className="font-medium">{device.name}</div>
 
                   <div className="text-sm text-muted-foreground">
-                    {device.type}
+                    {device.type} -
+                    {Number(
+                      (device.storage?.usedBytes ?? 0) / Math.pow(1024, 3)
+                    ).toFixed(2)}
+                    GB used
                   </div>
                 </div>
 
-                <Badge variant="outline">
-                  {device.connected ? "Connected" : "Disconnected"}
-                </Badge>
+                <div>
+                  <Button
+                    size="xs"
+                    onClick={async () =>
+                      await handleReadDbButtonClicked(device)
+                    }
+                  >
+                    <RefreshCw />
+                  </Button>
+                  <Badge variant="outline">
+                    {device.connected ? "Connected" : "Disconnected"}
+                  </Badge>
+                </div>
               </div>
 
-              {(device.model ||
-                device.firmwareVersion ||
-                device.serialNumber) && (
-                <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-sm">
-                  {device.model && (
-                    <>
-                      <div className="text-muted-foreground">Model</div>
-                      <div>{device.model}</div>
-                    </>
+              <div>
+                {(device.model ||
+                  device.firmwareVersion ||
+                  device.serialNumber) && (
+                  <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-sm">
+                    {device.model && (
+                      <>
+                        <div className="text-muted-foreground">Model</div>
+                        <div>{device.model}</div>
+                      </>
+                    )}
+
+                    {device.firmwareVersion && (
+                      <>
+                        <div className="text-muted-foreground">Firmware</div>
+                        <div>{device.firmwareVersion}</div>
+                      </>
+                    )}
+
+                    {device.serialNumber && (
+                      <>
+                        <div className="text-muted-foreground">Serial</div>
+                        <div>{device.serialNumber}</div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {device.capabilities.database && (
+                    <Badge variant="secondary">Database</Badge>
                   )}
 
-                  {device.firmwareVersion && (
-                    <>
-                      <div className="text-muted-foreground">Firmware</div>
-                      <div>{device.firmwareVersion}</div>
-                    </>
+                  {device.capabilities.artwork && (
+                    <Badge variant="secondary">Artwork</Badge>
                   )}
 
-                  {device.serialNumber && (
-                    <>
-                      <div className="text-muted-foreground">Serial</div>
-                      <div>{device.serialNumber}</div>
-                    </>
+                  {device.capabilities.playlists && (
+                    <Badge variant="secondary">Playlists</Badge>
+                  )}
+
+                  {device.capabilities.playbackStats && (
+                    <Badge variant="secondary">Playback Stats</Badge>
                   )}
                 </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                {device.capabilities.database && (
-                  <Badge variant="secondary">Database</Badge>
-                )}
-
-                {device.capabilities.artwork && (
-                  <Badge variant="secondary">Artwork</Badge>
-                )}
-
-                {device.capabilities.playlists && (
-                  <Badge variant="secondary">Playlists</Badge>
-                )}
-
-                {device.capabilities.playbackStats && (
-                  <Badge variant="secondary">Playback Stats</Badge>
-                )}
               </div>
             </CardContent>
           </Card>

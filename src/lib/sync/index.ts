@@ -1,6 +1,7 @@
-export { SyncService } from "./SyncService";
-export { DeviceScanner } from "./DeviceScanner";
+export * from "./DeviceScanner";
+export * from "./SyncService";
 
-export * from "./detectors/detectors";
-export * from "./readers";
+export * from "./detectors";
 export * from "./helpers";
+export * from "./ipod";
+export * from "./usb";

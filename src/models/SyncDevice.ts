@@ -1,4 +1,4 @@
-import type { SysInfo } from "@/lib/sync/readers/parseSysInfo";
+import type { SysInfo } from "@/lib/sync/ipod/parsers/parseSysInfo";
 
 export interface SyncDevice {
   id: string;
@@ -24,6 +24,11 @@ export interface SyncDevice {
   };
 
   sysInfo: SysInfo;
+
+  storage?: {
+    capacityBytes?: number;
+    usedBytes?: number;
+  };
 
   rootHandle?: FileSystemDirectoryHandle;
   connected: boolean;
