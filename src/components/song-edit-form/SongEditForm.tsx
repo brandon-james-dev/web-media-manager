@@ -7,7 +7,7 @@ import type { Song } from "@/models";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
-import { Eraser, Globe, Pen, Save, X } from "lucide-react";
+import { Eraser, Globe, Pen, Save } from "lucide-react";
 import type { SongEditFormProps } from "./SongEditFormProps";
 import { AlbumArtImage } from "../album-art-image";
 
