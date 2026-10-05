@@ -1,11 +1,4 @@
-import {
-  memo,
-  useMemo,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useEffect,
-} from "react";
+import { useMemo, useLayoutEffect, useRef, useState, useEffect } from "react";
 import {
   columnOrderingFeature,
   columnResizingFeature,
@@ -30,11 +23,9 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  useSortable,
   arrayMove,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -46,9 +37,10 @@ import {
 } from "@/components/ui/context-menu";
 import type { Song } from "@/models";
 import { selectors, type SortableColumn } from "@/lib/store";
-import { Button } from "../ui/button";
 import type { SongTableProps } from "./SongTableProps";
-import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
+import { SongRow } from "./TanstackSongRow";
+import { DraggableHeader } from "./DraggableHeader";
+import { createSongColumns } from "./createSongColumns";
 
 const features = tableFeatures({
   rowSelectionFeature,
@@ -63,12 +55,9 @@ const selectorIds = Object.fromEntries(
   Object.keys(selectors).map((key) => [key, key])
 ) as Record<SortableColumn, string>;
 
-const columnHelper = createColumnHelper<typeof features, Song>();
-
 export function TanstackSongTable(props: SongTableProps) {
   const {
     songs,
-    sort,
     isEditMultiple,
     selectedSongIds,
     onSort,
@@ -84,75 +73,24 @@ export function TanstackSongTable(props: SongTableProps) {
     }
   }, [selectedSongIds]);
 
+  const registerRowRef = (rowId: string, element: HTMLDivElement | null) => {
+    rowRefs.current[rowId] = element;
+  };
+
   const rowSelection: RowSelectionState = useMemo(
     () => Object.fromEntries(selectedSongIds.map((id) => [id, true])),
     [selectedSongIds]
   );
 
-  const columns = useMemo(
-    () =>
-      columnHelper.columns([
-        columnHelper.accessor("title", {
-          id: "title",
-          header: "Title",
-          size: 240,
-          cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("album", {
-          id: "album",
-          header: "Album",
-          size: 240,
-          cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("artist", {
-          id: "artist",
-          header: "Artist",
-          size: 240,
-          cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("track", {
-          id: "track",
-          header: "Track",
-          maxSize: 50,
-          cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("genre", {
-          id: "genre",
-          header: "Genre",
-          cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("year", {
-          id: "year",
-          header: "Year",
-          maxSize: 70,
-          cell: (info) => info.getValue(),
-        }),
-        columnHelper.accessor("length", {
-          id: "length",
-          header: "Duration",
-          minSize: 90,
-          maxSize: 90,
-          cell: ({ getValue }) => {
-            const d = getValue<number>();
-            const m = Math.floor(d / 60);
-            const s = `${Math.floor(d % 60)}`.padStart(2, "0");
-            return `${m}:${s}`;
-          },
-        }),
-        columnHelper.accessor("bitrate", {
-          id: "bitrate",
-          header: "Bitrate",
-          size: 100,
-          minSize: 80,
-          cell: (info) => `${info.getValue()} kbps`,
-        }),
-      ]),
-    []
-  );
+  const columns = useMemo(() => createSongColumns(features), []);
 
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
     columns.map((c) => c.id) as ColumnOrderState
   );
+
+  useEffect(() => {
+    console.log(columnOrder);
+  }, [columnOrder]);
 
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
@@ -224,6 +162,8 @@ export function TanstackSongTable(props: SongTableProps) {
     })
   );
 
+  console.log(table.getVisibleLeafColumns().map((x) => x.id));
+
   const sensors = useSensors(
     useSensor(MouseSensor),
     useSensor(TouchSensor),
@@ -232,14 +172,36 @@ export function TanstackSongTable(props: SongTableProps) {
 
   function handleDragEnd(event: any) {
     const { active, over } = event;
+
+    console.log({
+      active: active?.id,
+      over: over?.id,
+      columnOrder,
+    });
+
     if (over && active.id !== over.id) {
       setColumnOrder((old) => {
+        console.log("old", old);
+
         const oldIndex = old.indexOf(active.id);
         const newIndex = old.indexOf(over.id);
-        return arrayMove(old, oldIndex, newIndex);
+
+        console.log({
+          active: active.id,
+          over: over.id,
+          oldIndex,
+          newIndex,
+        });
+
+        const next = arrayMove(old, oldIndex, newIndex);
+
+        console.log("next", next);
+
+        return next;
       });
     }
   }
+
   const tableRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -267,114 +229,6 @@ export function TanstackSongTable(props: SongTableProps) {
     return () => unsubscribe();
   }, [table]);
 
-  function DraggableHeader({ header }: any) {
-    const { attributes, listeners, setNodeRef, transform, isDragging } =
-      useSortable({ id: header.column.id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      opacity: isDragging ? 0.8 : 1,
-      width: `calc(var(--header-${header.id}-size) * 1px)`,
-      transition: "transform 0.15s ease",
-    };
-
-    const key = header.id as SortableColumn;
-    const isActive = sort?.selector === selectors[key];
-    const Icon = isActive ? (sort?.desc ? ChevronDown : ChevronUp) : null;
-
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className="
-          relative flex items-center whitespace-nowrap
-          group
-        "
-      >
-        {!header.isPlaceholder && (
-          <Button
-            type="button"
-            variant="ghost"
-            className="flex-1 justify-start rounded-none"
-            onClick={header.column.getToggleSortingHandler()}
-          >
-            <table.FlexRender header={header} />
-            {Icon && <Icon size=".75lh" className="text-primary" />}
-          </Button>
-        )}
-
-        <button
-          {...attributes}
-          {...listeners}
-          className="
-          absolute right-1 top-0 px-1 h-full cursor-grab
-          opacity-0 group-hover:opacity-100 transition-opacity
-        "
-        >
-          <GripVertical size=".75lh" className="text-muted-foreground" />
-        </button>
-
-        <div
-          onMouseDown={header.getResizeHandler()}
-          onTouchStart={header.getResizeHandler()}
-          className="absolute right-0 top-0 h-full w-1 cursor-col-resize group-hover:bg-accent/70"
-        />
-      </div>
-    );
-  }
-
-  const SongRow = memo(
-    function SongRow({
-      row,
-    }: {
-      row: ReturnType<typeof table.getRowModel>["rows"][number];
-    }) {
-      const song = row.original;
-      const isSelected = row.getIsSelected();
-
-      const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-        if (e.detail === 1) {
-          const selection: RowSelectionState = isEditMultiple
-            ? { ...rowSelection, [song.id]: true }
-            : { [row.id]: true };
-          table.setRowSelection(selection);
-        } else if (e.detail === 2) {
-          onSongDoubleClicked?.(song);
-        }
-      };
-
-      return (
-        <div
-          key={song.id}
-          ref={(el) => {
-            rowRefs.current[row.id] = el;
-          }}
-          onClick={handleClick}
-          className={
-            isSelected
-              ? "flex bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
-              : "flex odd:bg-muted/15 hover:bg-accent/45"
-          }
-        >
-          {row.getVisibleCells().map((cell) => (
-            <div
-              key={cell.id}
-              style={{
-                width: `calc(var(--col-${cell.column.id}-size) * 1px)`,
-              }}
-              className="px-4 py-1 whitespace-nowrap overflow-hidden text-ellipsis"
-            >
-              <table.FlexRender cell={cell} />
-            </div>
-          ))}
-        </div>
-      );
-    },
-    (prev, next) =>
-      prev.row.original === next.row.original &&
-      prev.row.getIsSelected() === next.row.getIsSelected()
-  );
-
   return (
     <DndContext
       sensors={sensors}
@@ -393,7 +247,11 @@ export function TanstackSongTable(props: SongTableProps) {
                       strategy={horizontalListSortingStrategy}
                     >
                       {headerGroup.headers.map((header) => (
-                        <DraggableHeader key={header.id} header={header} />
+                        <DraggableHeader
+                          key={header.id}
+                          header={header}
+                          selectors={selectors}
+                        />
                       ))}
                     </SortableContext>
                   </div>
@@ -436,7 +294,18 @@ export function TanstackSongTable(props: SongTableProps) {
           ) : (
             table
               .getRowModel()
-              .rows.map((row) => <SongRow key={row.id} row={row} />)
+              .rows.map((row) => (
+                <SongRow
+                  key={row.id}
+                  song={row.original}
+                  row={row}
+                  table={table}
+                  rowSelection={rowSelection}
+                  isEditMultiple={isEditMultiple}
+                  onSongDoubleClicked={onSongDoubleClicked}
+                  registerRowRef={registerRowRef}
+                />
+              ))
           )}
         </div>
       </div>
