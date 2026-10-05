@@ -7,10 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { notification$ } from "@/events/notification-events";
 import {
   DirectoryPickerRequiredError,
-  IPOD_MODELS,
   IpodDetector,
   type UsbDeviceInfo,
 } from "@/lib/sync";
+import { IPOD_MODELS } from "@/lib/sync/ipod";
 import { useSync } from "@/hooks";
 import type { SyncDevice } from "@/models";
 
@@ -199,7 +199,6 @@ export function Sync() {
                     GB used
                   </div>
                 </div>
-
                 <div>
                   <Button
                     size="xs"

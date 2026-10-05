@@ -1,6 +1,7 @@
-import type { BinaryReader } from "../../readers";
+import type { MhlpRecord } from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
-export function parseMhlp(reader: BinaryReader, offset: number) {
+export function parseMhlp(reader: BinaryReader, offset: number): MhlpRecord {
   reader.seek(offset);
 
   const tag = reader.readString(4);
@@ -11,5 +12,6 @@ export function parseMhlp(reader: BinaryReader, offset: number) {
     tag,
     headerLength,
     totalLength,
+    offset,
   };
 }

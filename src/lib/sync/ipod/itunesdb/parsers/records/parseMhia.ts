@@ -1,5 +1,5 @@
-import type { MhiaRecord } from "../../models";
-import type { BinaryReader } from "../../readers";
+import type { MhiaRecord } from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
 const MHIA_ID_OFFSET = 16;
 const MHIA_FIELD_20_OFFSET = 20;

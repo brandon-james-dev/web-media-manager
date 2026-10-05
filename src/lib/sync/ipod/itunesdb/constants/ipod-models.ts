@@ -1,4 +1,4 @@
-import type { IpodModel } from "../models";
+import type { IpodModel } from "../../models";
 
 export const IPOD_MODELS: Record<number, IpodModel> = {
   0x1201: {

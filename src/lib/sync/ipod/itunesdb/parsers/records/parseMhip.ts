@@ -1,5 +1,5 @@
-import type { MhipRecord } from "../..";
-import type { BinaryReader } from "../../readers";
+import type { MhipRecord } from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
 const MHIP_ID_OFFSET = 8;
 const MHIP_TRACK_ID_OFFSET = 12;

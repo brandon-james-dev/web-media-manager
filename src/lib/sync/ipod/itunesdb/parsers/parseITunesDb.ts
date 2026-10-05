@@ -1,15 +1,12 @@
-import type { IpodDatabase, MhsdRecord } from "../models";
-import { BinaryReader } from "../readers";
-import {
-  parseMhbd,
-  parseMhsd,
-  parsePlaylistsSection,
-  parseTrackSection,
-} from "..";
+import type { MhsdRecord } from "../../models/records";
+import { parseMhbd, parseMhsd } from "./records";
+import { BinaryReader } from "../../readers";
+import { parseTrackSection, parsePlaylistsSection } from "./sections";
+import type { IpodDatabase } from "../../models";
 
 export async function parseITunesDb(
   root: FileSystemDirectoryHandle
-): Promise<Partial<IpodDatabase>> {
+): Promise<IpodDatabase> {
   const control = await root.getDirectoryHandle("iPod_Control");
   const iTunes = await control.getDirectoryHandle("iTunes");
   const fileHandle = await iTunes.getFileHandle("iTunesDB");

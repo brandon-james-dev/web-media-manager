@@ -1,9 +1,11 @@
-import type { SysInfo } from "@/lib/sync/ipod/parsers/parseSysInfo";
+import type { SysInfo } from "@/lib/sync/ipod";
+import type { SyncArtwork, SyncPlaylist, SyncTrack } from ".";
 
 export interface SyncDevice {
   id: string;
   name: string;
   type: SyncDeviceType;
+
   model?: string;
   serialNumber?: string;
   firmwareVersion?: string;
@@ -24,6 +26,12 @@ export interface SyncDevice {
   };
 
   sysInfo: SysInfo;
+
+  media?: {
+    tracks: SyncTrack[];
+    artworks: SyncArtwork[];
+    playlists: SyncPlaylist[];
+  };
 
   storage?: {
     capacityBytes?: number;

@@ -1,5 +1,5 @@
-import type { MhodRecord } from "../..";
-import type { BinaryReader } from "../../readers";
+import type { MhodRecord } from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
 export function parseMhod(reader: BinaryReader, offset: number): MhodRecord {
   reader.seek(offset);

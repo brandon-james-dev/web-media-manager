@@ -1,5 +1,5 @@
-import type { MhsdRecord } from "../models/MhsdRecord";
-import type { BinaryReader } from "../readers";
+import type { MhsdRecord } from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
 export function parseMhsd(reader: BinaryReader): MhsdRecord {
   const offset = reader.position;

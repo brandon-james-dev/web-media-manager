@@ -1,12 +1,10 @@
 import type { SyncDevice } from "@/models";
 import type { DeviceDetector } from "./DeviceDetector";
 import { getDirectorySize, hasDirectory } from "../helpers";
-import {
-  IPOD_MODELS_BY_MODEL_NUMBER,
-  parseITunesDb,
-  readDeviceInfo,
-} from "../ipod";
 import { uuidv7 } from "uuidv7";
+import { mapIpodLibrary, parseArtworkDb, parseITunesDb } from "../ipod";
+import { readDeviceInfo } from "../ipod/readers";
+import { IPOD_MODELS_BY_MODEL_NUMBER } from "../ipod/itunesdb/constants";
 
 export class IpodDetector implements DeviceDetector {
   async detect(
@@ -22,7 +20,8 @@ export class IpodDetector implements DeviceDetector {
     if (!deviceInfo.sysInfo) return undefined;
 
     const db = await parseITunesDb(root);
-
+    const artworkDb = await parseArtworkDb(root);
+    const media = mapIpodLibrary(db, artworkDb);
     const usedBytes = await getDirectorySize(root);
 
     return {
@@ -35,6 +34,7 @@ export class IpodDetector implements DeviceDetector {
       serialNumber: deviceInfo.sysInfo?.serialNumber,
       firmwareVersion: deviceInfo.sysInfo?.firmwareVersion,
       sysInfo: deviceInfo.sysInfo,
+      media,
       capabilities: {
         database: true,
         artwork: true,

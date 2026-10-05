@@ -1,6 +1,7 @@
-import type { MhsdRecord, IpodTrack } from "../..";
-import { MHSD_TYPES } from "../../constants";
-import type { BinaryReader } from "../../readers";
+import type { IpodTrack } from "../../../models/entities";
+import type { MhsdRecord } from "../../../models/records";
+import { MHSD_TYPES } from "../../constants/mhsd-types";
+import type { BinaryReader } from "../../../readers";
 import { parseMhlt } from "../records";
 import { parseTrack } from "../track";
 

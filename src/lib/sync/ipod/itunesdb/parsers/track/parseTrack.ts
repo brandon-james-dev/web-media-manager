@@ -1,6 +1,6 @@
-import type { IpodTrack } from "../..";
-import { MHOD_TYPES } from "../../constants";
-import type { BinaryReader } from "../../readers";
+import type { IpodTrack } from "../../../models";
+import type { BinaryReader } from "../../../readers";
+import { MHOD_TYPES } from "../../constants/mhod-types";
 import { parseMhit, parseMhod } from "../records";
 
 export function parseTrack(reader: BinaryReader, offset: number): IpodTrack {
@@ -31,7 +31,7 @@ export function parseTrack(reader: BinaryReader, offset: number): IpodTrack {
 
       case MHOD_TYPES.Path:
         track.dbPath = mhod.value;
-        track.filePath = mhod.value.replace(/^:/, "").replaceAll(":", "/");
+        track.filePath = mhod.value?.replace(/^:/, "").replaceAll(":", "/");
         break;
 
       case MHOD_TYPES.Album:

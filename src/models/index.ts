@@ -2,4 +2,8 @@ export type { Album } from "./Album";
 export type { Directory } from "./Directory";
 export type { Song } from "./Song";
 export type { SongArtwork } from "./SongArtwork";
+export type { SyncArtwork } from "./SyncArtwork";
+export type { SyncArtworkFormat } from "./SyncArtworkFormat";
 export type { SyncDevice } from "./SyncDevice";
+export type { SyncPlaylist } from "./SyncPlaylist";
+export type { SyncTrack } from "./SyncTrack";

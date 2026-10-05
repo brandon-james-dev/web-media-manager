@@ -1,15 +1,15 @@
 import { parseMhip, parseMhlp, parseMhod, parseMhyp } from "..";
-
 import {
-  getPlaylistType,
-  type IpodPlaylist,
   type IpodTrack,
-  type MhsdRecord,
-  type PlaylistColumnMhodRecord,
-  type StringMhodRecord,
-} from "../../models";
-
-import type { BinaryReader } from "../../readers";
+  type IpodPlaylist,
+  getPlaylistType,
+} from "../../../models/entities";
+import type {
+  MhsdRecord,
+  StringMhodRecord,
+  PlaylistColumnMhodRecord,
+} from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
 export function parsePlaylistsSection(
   reader: BinaryReader,

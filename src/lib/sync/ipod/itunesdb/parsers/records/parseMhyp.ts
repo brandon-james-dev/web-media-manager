@@ -1,5 +1,5 @@
-import type { MhypRecord } from "../..";
-import type { BinaryReader } from "../../readers";
+import type { MhypRecord } from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
 export function parseMhyp(reader: BinaryReader, offset: number): MhypRecord {
   reader.seek(offset);

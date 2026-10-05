@@ -1,5 +1,5 @@
-import type { MhltRecord } from "../../models";
-import type { BinaryReader } from "../../readers";
+import type { MhltRecord } from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
 export function parseMhlt(reader: BinaryReader, offset: number): MhltRecord {
   reader.seek(offset);

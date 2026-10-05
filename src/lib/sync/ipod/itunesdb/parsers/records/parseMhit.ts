@@ -1,5 +1,5 @@
-import type { MhitRecord } from "../../models";
-import type { BinaryReader } from "../../readers";
+import type { MhitRecord } from "../../../models/records";
+import type { BinaryReader } from "../../../readers";
 
 const MHIT_TRACK_ID_OFFSET = 16;
 const MHIT_SIZE_BYTES_OFFSET = 36;
