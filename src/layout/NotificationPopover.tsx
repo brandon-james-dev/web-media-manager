@@ -84,11 +84,15 @@ function NotificationPopover() {
         <div hidden={items.length > 0}>
           <span>No notifications</span>
         </div>
-        {items.map((n) => (
-          <Item key={n.id} className="p-0.5 border-b last:border-b-0">
-            <NotificationRenderer notification={n} />
-          </Item>
-        ))}
+        <div className="divide-y">
+          {items.map((n) => (
+            <div key={n.id}>
+              <Item className="p-0.5">
+                <NotificationRenderer notification={n} />
+              </Item>
+            </div>
+          ))}
+        </div>
       </PopoverContent>
     </Popover>
   );

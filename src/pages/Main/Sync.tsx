@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { uuidv7 } from "uuidv7";
-import { MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { MonitorSmartphone, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { notification$ } from "@/events/notification-events";
@@ -13,6 +12,7 @@ import {
 import { IPOD_MODELS } from "@/lib/sync/ipod";
 import { useSync } from "@/hooks";
 import type { SyncDevice } from "@/models";
+import { SyncDeviceCard } from "@/components/sync";
 
 export function Sync() {
   const { devices, addDevice } = useSync();
@@ -71,7 +71,7 @@ export function Sync() {
     }
   }
 
-  async function handleReadDbButtonClicked(device: SyncDevice) {
+  async function handleRefreshButtonClicked(device: SyncDevice) {
     if (!device.rootHandle) return;
     await new IpodDetector().detect(device.rootHandle);
   }
@@ -185,83 +185,11 @@ export function Sync() {
         )}
 
         {devices.map((device) => (
-          <Card key={device.id}>
-            <CardContent className="py-4 space-y-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-medium">{device.name}</div>
-
-                  <div className="text-sm text-muted-foreground">
-                    {device.type} -
-                    {Number(
-                      (device.storage?.usedBytes ?? 0) / Math.pow(1024, 3)
-                    ).toFixed(2)}
-                    GB used
-                  </div>
-                </div>
-                <div>
-                  <Button
-                    size="xs"
-                    onClick={async () =>
-                      await handleReadDbButtonClicked(device)
-                    }
-                  >
-                    <RefreshCw />
-                  </Button>
-                  <Badge variant="outline">
-                    {device.connected ? "Connected" : "Disconnected"}
-                  </Badge>
-                </div>
-              </div>
-
-              <div>
-                {(device.model ||
-                  device.firmwareVersion ||
-                  device.serialNumber) && (
-                  <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-sm">
-                    {device.model && (
-                      <>
-                        <div className="text-muted-foreground">Model</div>
-                        <div>{device.model}</div>
-                      </>
-                    )}
-
-                    {device.firmwareVersion && (
-                      <>
-                        <div className="text-muted-foreground">Firmware</div>
-                        <div>{device.firmwareVersion}</div>
-                      </>
-                    )}
-
-                    {device.serialNumber && (
-                      <>
-                        <div className="text-muted-foreground">Serial</div>
-                        <div>{device.serialNumber}</div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-2">
-                  {device.capabilities.database && (
-                    <Badge variant="secondary">Database</Badge>
-                  )}
-
-                  {device.capabilities.artwork && (
-                    <Badge variant="secondary">Artwork</Badge>
-                  )}
-
-                  {device.capabilities.playlists && (
-                    <Badge variant="secondary">Playlists</Badge>
-                  )}
-
-                  {device.capabilities.playbackStats && (
-                    <Badge variant="secondary">Playback Stats</Badge>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <SyncDeviceCard
+            key={device.id}
+            device={device}
+            onRefresh={() => handleRefreshButtonClicked(device)}
+          />
         ))}
       </div>
     </div>
