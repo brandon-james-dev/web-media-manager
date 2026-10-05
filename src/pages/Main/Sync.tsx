@@ -9,10 +9,10 @@ import {
   IpodDetector,
   type UsbDeviceInfo,
 } from "@/lib/sync";
-import { IPOD_MODELS } from "@ipod-db";
 import { useSync } from "@/hooks";
 import type { SyncDevice } from "@/models";
 import { SyncDeviceCard } from "@/components/sync";
+import { getIpodModel } from "@ipod-db";
 
 export function Sync() {
   const { devices, addDevice } = useSync();
@@ -106,7 +106,12 @@ export function Sync() {
                     : "Device Detected"}
                 </span>
                 {pendingUsbDevice.manufacturerName === "Apple Inc." && (
-                  <span>({IPOD_MODELS[pendingUsbDevice.productId].name})</span>
+                  <span>
+                    (
+                    {getIpodModel(pendingUsbDevice.productId)?.name ??
+                      "Unknown iPod"}
+                    )
+                  </span>
                 )}
               </div>
 

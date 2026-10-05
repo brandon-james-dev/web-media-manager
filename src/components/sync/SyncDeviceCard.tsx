@@ -77,7 +77,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
   return (
     <Card>
       <CardContent className="py-4 space-y-4">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col md:flex-row md:justify-between items-start">
           <div className="flex flex-col gap-1">
             <div className="font-medium">{device.name}</div>
             <div className="flex flex-wrap items-center text-sm text-muted-foreground">
@@ -99,13 +99,13 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
           </div>
 
           <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center md:justify-end gap-2">
               <Badge variant="outline">
                 {device.connected ? "Connected" : "Disconnected"}
               </Badge>
               <Button
                 size="xs"
-                className="h-5 p-0.5 aspect-square"
+                className="md:h-5 md:p-0.5 aspect-square"
                 onClick={onRefresh}
               >
                 <RefreshCw />

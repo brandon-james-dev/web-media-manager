@@ -1,4 +1,12 @@
-import type { IpodModel } from "../../models";
+import type { IpodModel } from "../models";
+
+export type IpodProductId =
+  (typeof IPOD_MODELS)[keyof typeof IPOD_MODELS]["productId"];
+
+export type IpodModelNumber =
+  (typeof IPOD_MODELS)[keyof typeof IPOD_MODELS]["modelNumber"];
+
+export type IpodIdentifier = IpodProductId | IpodModelNumber;
 
 export const IPOD_MODELS: Record<number, IpodModel> = {
   0x1201: {

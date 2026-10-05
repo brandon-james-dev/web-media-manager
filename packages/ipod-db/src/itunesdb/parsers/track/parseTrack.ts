@@ -1,6 +1,6 @@
 import type { IpodTrack } from "../../../models";
 import type { BinaryReader } from "../../../readers";
-import { MHOD_TYPES } from "../../constants/mhod-types";
+import { MHOD_TYPES } from "../../../constants/mhod-types";
 import { parseMhit, parseMhod } from "../records";
 
 export function parseTrack(reader: BinaryReader, offset: number): IpodTrack {

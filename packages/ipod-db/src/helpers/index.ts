@@ -1,1 +1,1 @@
-export * from "./parseRecordHeader";
+export * from "./getIpodModel";

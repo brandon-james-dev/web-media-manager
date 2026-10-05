@@ -1,4 +1,4 @@
-import type { MhniRecord } from "@/lib/sync/ipod";
+import { MhniRecord } from "../../../models/records";
 import type { BinaryReader } from "../../../readers";
 
 export function parseMhni(reader: BinaryReader, offset: number): MhniRecord {
