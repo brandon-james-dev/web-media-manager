@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useMemo, useState } from "react";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "../ui/item";
 import { ScrollArea } from "../ui/scroll-area";
-import type { SyncTrack } from "@/models";
 
 type DeviceView = "songs" | "albums" | "artists" | "playlists";
 
@@ -156,7 +155,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
               <TabsTrigger value="playlists">Playlists</TabsTrigger>
             </TabsList>
             <TabsContent value="songs">
-              <ScrollArea className="max-h-72 overflow-y-auto">
+              <ScrollArea className="max-h-72 rounded-md border py-0.5 px-1.5 overflow-y-auto">
                 <div className="divide-y">
                   {device.media?.tracks.map((track) => (
                     <div key={track.id}>
@@ -172,7 +171,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
               </ScrollArea>
             </TabsContent>
             <TabsContent value="albums">
-              <ScrollArea className="max-h-72 overflow-y-auto">
+              <ScrollArea className="max-h-72 rounded-md border py-0.5 px-1.5 overflow-y-auto">
                 <div className="divide-y">
                   {albums.map((album) => (
                     <div key={`${album.artist}-${album.album}`}>
@@ -196,7 +195,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
               </ScrollArea>
             </TabsContent>
             <TabsContent value="artists">
-              <ScrollArea className="max-h-72 overflow-y-auto">
+              <ScrollArea className="max-h-72 rounded-md border py-0.5 px-1.5 overflow-y-auto">
                 <div className="divide-y">
                   {artists.map((artist) => (
                     <div key={artist.artist}>
@@ -216,7 +215,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
               </ScrollArea>
             </TabsContent>
             <TabsContent value="playlists">
-              <ScrollArea className="max-h-72 overflow-y-auto">
+              <ScrollArea className="max-h-72 rounded-md border py-0.5 px-1.5 overflow-y-auto">
                 <div className="divide-y">
                   {device.media?.playlists.map((playlist) => (
                     <div key={playlist.id}>

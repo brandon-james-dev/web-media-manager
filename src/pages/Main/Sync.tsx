@@ -9,7 +9,7 @@ import {
   IpodDetector,
   type UsbDeviceInfo,
 } from "@/lib/sync";
-import { IPOD_MODELS } from "@/lib/sync/ipod";
+import { IPOD_MODELS } from "@ipod-db";
 import { useSync } from "@/hooks";
 import type { SyncDevice } from "@/models";
 import { SyncDeviceCard } from "@/components/sync";

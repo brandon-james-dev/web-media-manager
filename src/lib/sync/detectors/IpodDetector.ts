@@ -2,9 +2,9 @@ import type { SyncDevice } from "@/models";
 import type { DeviceDetector } from "./DeviceDetector";
 import { getDirectorySize, hasDirectory } from "../helpers";
 import { uuidv7 } from "uuidv7";
-import { mapIpodLibrary, parseArtworkDb, parseITunesDb } from "../ipod";
-import { readDeviceInfo } from "../ipod/readers";
-import { IPOD_MODELS_BY_MODEL_NUMBER } from "../ipod/itunesdb/constants";
+import { mapIpodLibrary, parseArtworkDb, parseITunesDb } from "@ipod-db";
+import { readDeviceInfo } from "@ipod-db/src/readers";
+import { IPOD_MODELS_BY_MODEL_NUMBER } from "@ipod-db/src/itunesdb/constants";
 
 export class IpodDetector implements DeviceDetector {
   async detect(
