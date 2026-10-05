@@ -28,7 +28,7 @@ export class TagLibMetadataWriter implements IMetadataWriter {
     }
 
     // Remove pictures from tagInput (applyTags cannot accept them)
-    const { pictures, ...textTags } = tags;
+    const { ...textTags } = tags;
 
     // Write text metadata
     const textUpdatedBytes = await applyTags(file, textTags);

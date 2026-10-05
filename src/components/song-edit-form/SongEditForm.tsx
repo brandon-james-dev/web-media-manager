@@ -53,7 +53,7 @@ export function SongEditForm(props: SongEditFormProps) {
     // Track / Disc
     set("track", song.track ? Number(song.track) : undefined);
     set("totalTracks", song.totalTracks ? Number(song.totalTracks) : undefined);
-    set("disc", song.disc ? Number(song.disc) : undefined);
+    set("disc", song.discNumber ? Number(song.discNumber) : undefined);
     set("totalDiscs", song.totalDiscs ? Number(song.totalDiscs) : undefined);
 
     // Credits
@@ -88,7 +88,7 @@ export function SongEditForm(props: SongEditFormProps) {
       "totalTracks",
       online.totalTracks ? Number(online.totalTracks) : undefined
     );
-    set("disc", online.disc ? Number(online.disc) : undefined);
+    set("disc", online.discNumber ? Number(online.discNumber) : undefined);
     set(
       "totalDiscs",
       online.totalDiscs ? Number(online.totalDiscs) : undefined
@@ -139,7 +139,7 @@ export function SongEditForm(props: SongEditFormProps) {
       // Track Position
       track: num("track", undefined),
       totalTracks: num("totalTracks", undefined),
-      disc: num("disc", undefined),
+      discNumber: num("disc", undefined),
       totalDiscs: num("totalDiscs", undefined),
 
       // Credits
@@ -446,12 +446,12 @@ export function SongEditForm(props: SongEditFormProps) {
                   <Label className="pb-1">Disc</Label>
                   <Input
                     name="disc"
-                    defaultValue={song.disc}
+                    defaultValue={song.discNumber}
                     autoComplete="off"
                     onChange={(evt) =>
                       markDirty(
                         "disc",
-                        evt.currentTarget.value !== (song.disc ?? "")
+                        evt.currentTarget.value !== (song.discNumber ?? "")
                       )
                     }
                     className={dirty.disc ? "dark:border-accent/50" : ""}

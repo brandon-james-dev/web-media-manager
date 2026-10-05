@@ -65,7 +65,7 @@ export class MusicBrainzMetadataService implements IOnlineMetadataService {
 
         year: release?.date ? Number(release.date.slice(0, 4)) : undefined,
         track,
-        disc,
+        discNumber: disc,
 
         isrc: rec.isrcs?.[0] ?? undefined,
 

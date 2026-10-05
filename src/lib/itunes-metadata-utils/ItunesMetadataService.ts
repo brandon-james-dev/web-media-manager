@@ -50,7 +50,7 @@ export class ItunesMetadataService implements IOnlineMetadataService {
           : undefined,
         track: song.trackNumber,
         totalTracks: song?.trackCount,
-        disc: song.discNumber,
+        discNumber: song.discNumber,
         totalDiscs: song?.discCount,
         bpm: song.bpm ?? undefined,
 
