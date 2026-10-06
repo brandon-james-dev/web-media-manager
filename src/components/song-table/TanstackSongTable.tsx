@@ -4,7 +4,6 @@ import {
   columnResizingFeature,
   columnSizingFeature,
   columnVisibilityFeature,
-  createColumnHelper,
   rowSelectionFeature,
   rowSortingFeature,
   tableFeatures,
@@ -35,7 +34,6 @@ import {
   ContextMenuSeparator,
   ContextMenuGroup,
 } from "@/components/ui/context-menu";
-import type { Song } from "@/models";
 import { selectors, type SortableColumn } from "@/lib/store";
 import type { SongTableProps } from "./SongTableProps";
 import { SongRow } from "./TanstackSongRow";
@@ -87,10 +85,6 @@ export function TanstackSongTable(props: SongTableProps) {
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
     columns.map((c) => c.id) as ColumnOrderState
   );
-
-  useEffect(() => {
-    console.log(columnOrder);
-  }, [columnOrder]);
 
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
@@ -162,8 +156,6 @@ export function TanstackSongTable(props: SongTableProps) {
     })
   );
 
-  console.log(table.getVisibleLeafColumns().map((x) => x.id));
-
   const sensors = useSensors(
     useSensor(MouseSensor),
     useSensor(TouchSensor),
@@ -173,29 +165,12 @@ export function TanstackSongTable(props: SongTableProps) {
   function handleDragEnd(event: any) {
     const { active, over } = event;
 
-    console.log({
-      active: active?.id,
-      over: over?.id,
-      columnOrder,
-    });
-
     if (over && active.id !== over.id) {
       setColumnOrder((old) => {
-        console.log("old", old);
-
         const oldIndex = old.indexOf(active.id);
         const newIndex = old.indexOf(over.id);
 
-        console.log({
-          active: active.id,
-          over: over.id,
-          oldIndex,
-          newIndex,
-        });
-
         const next = arrayMove(old, oldIndex, newIndex);
-
-        console.log("next", next);
 
         return next;
       });

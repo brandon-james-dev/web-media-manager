@@ -20,6 +20,7 @@ interface PlaybackContextValue {
   playlist: Song[];
   setPlaylist: (songs: Song[]) => void;
   nowPlaying: Song | undefined;
+  nowPlayingIndex: number | undefined;
   setNowPlaying: (song: Song) => void;
   playPause: () => void;
   prevTrack: () => void;
@@ -30,7 +31,7 @@ interface PlaybackContextValue {
   setRepeat: (repeatState: RepeatState) => void;
   volume: number;
   setVolume: (volume: number) => void;
-  currentTime: number;
+  getCurrentTime: () => number;
   seek: (trackPostion: number) => void;
   isPlaying: boolean;
 }

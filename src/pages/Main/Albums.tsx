@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSongs } from "@/providers";
+import { useSongs } from "@/hooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlbumCard } from "@/components/album-card";
 import { useOutletContext } from "react-router";

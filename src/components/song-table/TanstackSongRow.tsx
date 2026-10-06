@@ -1,6 +1,6 @@
 import { memo } from "react";
-
 import type { TanstackSongRowProps } from "./TanstackSongRowProps";
+import type { RowSelectionState } from "@tanstack/react-table";
 
 export const SongRow = memo(function SongRow({
   song,
@@ -15,7 +15,7 @@ export const SongRow = memo(function SongRow({
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     if (e.detail === 1) {
-      const selection = isEditMultiple
+      const selection: RowSelectionState = isEditMultiple
         ? {
             ...rowSelection,
             [song.id]: true,
@@ -33,7 +33,9 @@ export const SongRow = memo(function SongRow({
   return (
     <div
       key={song.id}
-      ref={(el) => registerRowRef(row.id, el)}
+      ref={(el) => {
+        registerRowRef(row.id, el);
+      }}
       onClick={handleClick}
       className={
         isSelected
