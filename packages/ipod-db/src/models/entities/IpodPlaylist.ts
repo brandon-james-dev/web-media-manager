@@ -1,4 +1,4 @@
-import type { IpodTrack } from "../../itunesdb/models";
+import type { IpodTrack } from ".";
 
 export interface PlaylistColumn {
   fieldId: number;

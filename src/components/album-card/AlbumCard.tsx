@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Album } from "@/models";
 import { AlbumArtImage } from "../album-art-image";
 import { ThumbnailSize } from "@/lib";
+import { SongContextMenu } from "../song-context-menu";
 
 function AlbumCard({
   album,
@@ -21,21 +22,24 @@ function AlbumCard({
       onDoubleClick?.(album);
     }
   };
+
   return (
-    <Card
-      className={
-        className ?? "aspect-square p-0 relative border hover:border-accent/50"
-      }
-      onClick={handleClick}
-    >
-      <div className="absolute top-0 left-0 h-full w-full hover:bg-accent/15 transition duration-100"></div>
-      <CardContent className="flex flex-col items-center justify-center p-0 h-full">
-        <AlbumArtImage
-          songId={album.pictureSongId}
-          thumbSize={ThumbnailSize.thumb512}
-          fallback={
-            <div
-              className="
+    <SongContextMenu songs={album.songs}>
+      <Card
+        className={
+          className ??
+          "aspect-square p-0 relative border hover:border-accent/50"
+        }
+        onClick={handleClick}
+      >
+        <div className="absolute top-0 left-0 h-full w-full hover:bg-accent/15 transition duration-100"></div>
+        <CardContent className="flex flex-col items-center justify-center p-0 h-full">
+          <AlbumArtImage
+            songId={album.pictureSongId}
+            thumbSize={ThumbnailSize.thumb512}
+            fallback={
+              <div
+                className="
                 w-full h-full
                 rounded-md border
                 flex flex-col items-center justify-center
@@ -43,16 +47,19 @@ function AlbumCard({
                 text-center
                 text-muted-foreground
               "
-            >
-              <div className="font-medium text-sm truncate">{album.title}</div>
-              <div className="text-xs text-muted-foreground truncate">
-                {album.artist}
+              >
+                <div className="font-medium text-sm truncate">
+                  {album.title}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {album.artist}
+                </div>
               </div>
-            </div>
-          }
-        />
-      </CardContent>
-    </Card>
+            }
+          />
+        </CardContent>
+      </Card>
+    </SongContextMenu>
   );
 }
 

@@ -23,7 +23,11 @@ import { useSongs, usePlayback } from "@/hooks";
 import type { Album, Song } from "@/models";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
+import {
+  advancedEditSong$,
+  songDoubleClicked$,
+  songsSelected$,
+} from "@/events/song-events";
 import { isEditMultipleChanged$, songEditSaved$ } from "@/events/editor-events";
 import { AlbumDetailDialog } from "../album-detail-dialog";
 import { keyShortcut$ } from "@/events/keyboard-events";
@@ -333,6 +337,10 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     });
 
     const subDouble = songDoubleClicked$.subscribe((song) => {
+      advancedEditSong$.next(song);
+    });
+
+    const subAdvancedEditSong = advancedEditSong$.subscribe((song) => {
       switch (mode) {
         case "albums":
           if (!song.album) return;
@@ -351,6 +359,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     return () => {
       subSelected.unsubscribe();
       subDouble.unsubscribe();
+      subAdvancedEditSong.unsubscribe();
     };
   }, [filteredSongs, albums, mode]);
 

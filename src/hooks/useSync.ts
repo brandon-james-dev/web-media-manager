@@ -1,31 +1,38 @@
-import { useState } from "react";
-import { SyncService } from "@/lib/sync";
-import type { SyncDevice } from "@/models";
-import type { UsbDeviceInfo } from "@/lib/sync/usb/UsbDeviceInfo";
+import { createContext, useContext } from "react";
+import type { Song, SyncDevice } from "@/models";
+import type { UsbDeviceInfo } from "@/lib/sync";
 
-const syncService = new SyncService();
+export interface SyncContextValue {
+  devices: SyncDevice[];
+  setDevices(devices: SyncDevice[]): void;
+  addDevice: (
+    rootDirectory?: FileSystemDirectoryHandle | undefined,
+    usbDevice?: UsbDeviceInfo | undefined
+  ) => Promise<SyncDevice>;
+  removeDevice(id: string): void;
+  updateDevice(updatedDevice: SyncDevice): void;
+
+  refreshDevices(): Promise<void>;
+
+  isSyncing: boolean;
+  syncQueue(syncDevice: SyncDevice): Promise<void>;
+
+  queuedSongs: Song[];
+  queueSongs(songs: Song[]): void;
+  removeQueuedSong(songId: string): void;
+  clearQueue(): void;
+}
+
+export const SyncContext = createContext<SyncContextValue | undefined>(
+  undefined
+);
 
 export function useSync() {
-  const [devices, setDevices] = useState<SyncDevice[]>([]);
+  const context = useContext(SyncContext);
 
-  async function addDevice(
-    rootDirectory?: FileSystemDirectoryHandle,
-    usbDevice?: UsbDeviceInfo
-  ) {
-    const device = await syncService.addDevice(rootDirectory, usbDevice);
-
-    setDevices((prev) => [...prev, device]);
-
-    return device;
+  if (!context) {
+    throw new Error("useSync must be used within SyncProvider");
   }
 
-  function removeDevice(id: string) {
-    setDevices((prev) => prev.filter((device) => device.id !== id));
-  }
-
-  return {
-    devices,
-    addDevice,
-    removeDevice,
-  };
+  return context;
 }

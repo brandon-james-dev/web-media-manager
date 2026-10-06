@@ -1,22 +1,10 @@
-import type { SysInfo } from "@/lib/sync/ipod";
-import type { SyncArtwork, SyncPlaylist, SyncTrack } from ".";
+import type { SyncDeviceRecord, SyncLibrary } from ".";
 
-export interface SyncDevice {
-  id: string;
-  name: string;
-  type: SyncDeviceType;
-
+export interface SyncDevice extends SyncDeviceRecord {
   model?: string;
-  serialNumber?: string;
-  firmwareVersion?: string;
+  connected: boolean;
 
-  usb?: {
-    vendorId: number;
-    productId: number;
-    manufacturerName: string | null;
-    productName: string | null;
-    serialNumber: string | null;
-  };
+  media: SyncLibrary;
 
   capabilities: {
     database: boolean;
@@ -25,21 +13,10 @@ export interface SyncDevice {
     playbackStats: boolean;
   };
 
-  sysInfo: SysInfo;
-
-  media?: {
-    tracks: SyncTrack[];
-    artworks: SyncArtwork[];
-    playlists: SyncPlaylist[];
-  };
-
   storage?: {
     capacityBytes?: number;
     usedBytes?: number;
   };
-
-  rootHandle?: FileSystemDirectoryHandle;
-  connected: boolean;
 }
 
 export type SyncDeviceType =

@@ -168,9 +168,32 @@ interface USB {
     }>;
   }): Promise<USBDevice>;
 
+  addEventListener(
+    type: "connect",
+    listener: (event: USBConnectionEvent) => void,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+  addEventListener(
+    type: "disconnect",
+    listener: (event: USBConnectionEvent) => void,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+  removeEventListener(
+    type: "connect",
+    listener: (event: USBConnectionEvent) => void,
+    options?: boolean | EventListenerOptions
+  ): void;
+  removeEventListener(
+    type: "disconnect",
+    listener: (event: USBConnectionEvent) => void,
+    options?: boolean | EventListenerOptions
+  ): void;
   getDevices(): Promise<USBDevice[]>;
 }
 
 interface Navigator {
   readonly usb: USB;
+}
+interface USBConnectionEvent extends Event {
+  readonly device: USBDevice;
 }

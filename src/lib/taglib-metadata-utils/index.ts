@@ -1,4 +1,2 @@
-import { TagLibMetadataWriter } from "./TagLibMetadataWriter";
-import { TagLibMetadataReader } from "./TagLibMetadataReader";
-
-export { TagLibMetadataReader, TagLibMetadataWriter };
+export * from "./TagLibMetadataWriter";
+export * from "./TagLibMetadataReader";

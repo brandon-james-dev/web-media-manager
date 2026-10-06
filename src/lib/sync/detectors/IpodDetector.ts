@@ -1,6 +1,6 @@
-import type { SyncDevice } from "@/models";
+import type { SyncDevice, SyncLibrary } from "@/models";
 import type { DeviceDetector } from "./DeviceDetector";
-import { getDirectorySize, hasDirectory } from "../helpers";
+import { hasDirectory } from "../helpers";
 import { uuidv7 } from "uuidv7";
 import {
   getIpodModel,
@@ -16,9 +16,7 @@ export class IpodDetector implements DeviceDetector {
   ): Promise<SyncDevice | undefined> {
     const hasControl = await hasDirectory(root, "iPod_Control");
 
-    if (!hasControl) {
-      return undefined;
-    }
+    if (!hasControl) return undefined;
 
     const deviceInfo = await readDeviceInfo(root);
 
@@ -26,20 +24,32 @@ export class IpodDetector implements DeviceDetector {
     if (!deviceInfo.sysInfo) return undefined;
     if (!deviceInfo.sysInfo.modelNumber) return undefined;
 
-    const db = await parseITunesDb(root);
-    const artworkDb = await parseArtworkDb(root);
-    const media = mapIpodLibrary(db, artworkDb);
-    const usedBytes = await getDirectorySize(root);
+    const [dbResult, artworkResult] = await Promise.allSettled([
+      parseITunesDb(root),
+      parseArtworkDb(root),
+    ]);
+
+    const db = dbResult.status === "fulfilled" ? dbResult.value : null;
+
+    const artworkDb =
+      artworkResult.status === "fulfilled" ? artworkResult.value : null;
+
+    let media: SyncLibrary = {
+      artworks: [],
+      playlists: [],
+      tracks: [],
+    };
+
+    if (db && artworkDb) media = mapIpodLibrary(db, artworkDb);
+
     const { modelNumber } = deviceInfo.sysInfo;
+    const model = getIpodModel(modelNumber)?.name || "Unknown iPod";
 
     return {
       id: uuidv7(),
       name: root.name,
       type: "iPod",
-      model: getIpodModel(modelNumber)?.name || "Unknown iPod",
-      serialNumber: deviceInfo.sysInfo?.serialNumber,
-      firmwareVersion: deviceInfo.sysInfo?.firmwareVersion,
-      sysInfo: deviceInfo.sysInfo,
+      model,
       media,
       capabilities: {
         database: true,
@@ -47,10 +57,8 @@ export class IpodDetector implements DeviceDetector {
         playlists: true,
         playbackStats: true,
       },
-      storage: {
-        usedBytes,
-      },
       rootHandle: root,
+      createdAt: Date.now(),
       connected: true,
     };
   }

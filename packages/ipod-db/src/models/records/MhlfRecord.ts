@@ -1,3 +1,3 @@
-import type { IpodContainerRecord } from "./IPodContainerRecord";
+import type { IpodContainerRecord } from "./IpodContainerRecord";
 
 export interface MhlfRecord extends IpodContainerRecord {}

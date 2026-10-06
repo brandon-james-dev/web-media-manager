@@ -1,4 +1,4 @@
-export * from "./IPodContainerRecord";
+export * from "./IpodContainerRecord";
 export * from "./IpodRecord";
 export * from "./SizedRecordHeader";
 export * from "./RecordHeader";

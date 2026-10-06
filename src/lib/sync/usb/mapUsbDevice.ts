@@ -5,8 +5,8 @@ export function mapUsbDevice(device: USBDevice): UsbDeviceInfo {
     vendorId: device.vendorId,
     productId: device.productId,
 
-    manufacturerName: device.manufacturerName ?? null,
-    productName: device.productName ?? null,
-    serialNumber: device.serialNumber ?? null,
+    manufacturerName: device.manufacturerName,
+    productName: device.productName,
+    serialNumber: device.serialNumber,
   };
 }

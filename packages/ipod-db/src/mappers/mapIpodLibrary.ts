@@ -1,11 +1,6 @@
+import type { IpodArtworkDatabase, IpodDatabase } from "@ipod-db";
+import type { SyncLibrary } from "@/models/SyncLibrary";
 import type { SyncArtwork, SyncPlaylist, SyncTrack } from "@/models";
-import type { IpodArtworkDatabase, IpodDatabase } from "../itunesdb/models";
-
-export interface SyncLibrary {
-  tracks: SyncTrack[];
-  artworks: SyncArtwork[];
-  playlists: SyncPlaylist[];
-}
 
 export function mapIpodLibrary(
   db: IpodDatabase,
@@ -31,8 +26,8 @@ export function mapIpodLibrary(
 
     playlists: db.playlists.map(
       (playlist): SyncPlaylist => ({
-        id: String(playlist.id),
-        name: playlist.name,
+        id: `${playlist.id}`,
+        name: `${playlist.name}${playlist.type == "master" ? " (Master)" : ""}`,
         trackIds: playlist.tracks.map((track) => String(track.id)),
       })
     ),

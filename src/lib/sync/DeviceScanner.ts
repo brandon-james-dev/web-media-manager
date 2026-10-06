@@ -23,6 +23,8 @@ export class DeviceScanner {
         device.usb = usb;
       }
 
+      device.rootHandle = root;
+
       return device;
     }
 

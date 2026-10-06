@@ -1,7 +1,4 @@
-import { RefreshCw } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,13 +14,7 @@ import { ScrollArea } from "../ui/scroll-area";
 
 type DeviceView = "songs" | "albums" | "artists" | "playlists";
 
-export interface SyncDeviceCardProps {
-  device: SyncDevice;
-
-  onRefresh(): Promise<void>;
-}
-
-export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
+export function SyncDeviceCard({ device }: { device: SyncDevice }) {
   const [view, setView] = useState<DeviceView>("songs");
 
   const albums = useMemo(() => {
@@ -103,13 +94,6 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
               <Badge variant="outline">
                 {device.connected ? "Connected" : "Disconnected"}
               </Badge>
-              <Button
-                size="xs"
-                className="md:h-5 md:p-0.5 aspect-square"
-                onClick={onRefresh}
-              >
-                <RefreshCw />
-              </Button>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -138,7 +122,9 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
               <CardContent>
                 <CardTitle>{device.media?.tracks.length ?? 0}</CardTitle>
                 <CardDescription>
-                  {(device.media?.tracks.length ?? 0) > 1 ? "Tracks" : "Track"}
+                  {(device.media?.tracks.length ?? 0) === 0
+                    ? "Tracks"
+                    : "Track"}
                 </CardDescription>
               </CardContent>
             </Card>
@@ -167,6 +153,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
                       </Item>
                     </div>
                   ))}
+                  {device.media.tracks.length == 0 && <>No tracks</>}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -183,7 +170,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
                           <ItemDescription>
                             {album.artist}
                             {" · "}
-                            {album.trackCount > 1
+                            {album.trackCount === 0
                               ? `${album.trackCount} Tracks`
                               : "1 Track"}
                           </ItemDescription>
@@ -191,6 +178,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
                       </Item>
                     </div>
                   ))}
+                  {albums.length == 0 && <>No albums</>}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -211,6 +199,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
                       </Item>
                     </div>
                   ))}
+                  {artists.length == 0 && <>No artists</>}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -223,7 +212,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
                         <ItemContent className="flex flex-row gap-2">
                           <ItemTitle>{playlist.name}</ItemTitle>
                           <ItemDescription>
-                            {playlist.trackIds.length > 1
+                            {playlist.trackIds.length === 0
                               ? `${playlist.trackIds.length} Tracks`
                               : "1 Track"}
                           </ItemDescription>
@@ -231,6 +220,7 @@ export function SyncDeviceCard({ device, onRefresh }: SyncDeviceCardProps) {
                       </Item>
                     </div>
                   ))}
+                  {device.media.playlists.length == 0 && <>No playlists</>}
                 </div>
               </ScrollArea>
             </TabsContent>

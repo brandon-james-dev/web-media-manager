@@ -1,5 +1,6 @@
 import { memo } from "react";
 import type { TanstackSongRowProps } from "./TanstackSongRowProps";
+import { SongContextMenu } from "../song-context-menu/SongContextMenu";
 import type { RowSelectionState } from "@tanstack/react-table";
 
 export const SongRow = memo(function SongRow({
@@ -31,29 +32,31 @@ export const SongRow = memo(function SongRow({
   };
 
   return (
-    <div
-      key={song.id}
-      ref={(el) => {
-        registerRowRef(row.id, el);
-      }}
-      onClick={handleClick}
-      className={
-        isSelected
-          ? "flex bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
-          : "flex odd:bg-muted/15 hover:bg-accent/45"
-      }
-    >
-      {row.getVisibleCells().map((cell: any) => (
-        <div
-          key={cell.id}
-          style={{
-            width: `calc(var(--col-${cell.column.id}-size) * 1px)`,
-          }}
-          className="px-4 py-1 whitespace-nowrap overflow-hidden text-ellipsis"
-        >
-          <table.FlexRender cell={cell} />
-        </div>
-      ))}
-    </div>
+    <SongContextMenu songs={[song]}>
+      <div
+        key={song.id}
+        ref={(el) => {
+          registerRowRef(row.id, el);
+        }}
+        onClick={handleClick}
+        className={
+          isSelected
+            ? "flex bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
+            : "flex odd:bg-muted/15 hover:bg-accent/45"
+        }
+      >
+        {row.getVisibleCells().map((cell: any) => (
+          <div
+            key={cell.id}
+            style={{
+              width: `calc(var(--col-${cell.column.id}-size) * 1px)`,
+            }}
+            className="px-4 py-1 whitespace-nowrap overflow-hidden text-ellipsis"
+          >
+            <table.FlexRender cell={cell} />
+          </div>
+        ))}
+      </div>
+    </SongContextMenu>
   );
 });

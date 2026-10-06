@@ -1,23 +1,22 @@
 import { useState } from "react";
 import { uuidv7 } from "uuidv7";
-import { MonitorSmartphone, Plus } from "lucide-react";
+import { MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { notification$ } from "@/events/notification-events";
-import {
-  DirectoryPickerRequiredError,
-  IpodDetector,
-  type UsbDeviceInfo,
-} from "@/lib/sync";
+import { DirectoryPickerRequiredError, type UsbDeviceInfo } from "@/lib/sync";
 import { useSync } from "@/hooks";
-import type { SyncDevice } from "@/models";
 import { SyncDeviceCard } from "@/components/sync";
 import { getIpodModel } from "@ipod-db";
+import { SyncQueue } from "@/components/sync/SyncQueue";
 
 export function Sync() {
-  const { devices, addDevice } = useSync();
+  //#region State
+  const { devices, addDevice, refreshDevices } = useSync();
   const [pendingUsbDevice, setPendingUsbDevice] = useState<UsbDeviceInfo>();
+  //#endregion
 
+  //#region Interactivity handlers
   async function handleAddDeviceClick() {
     try {
       await addDevice();
@@ -71,10 +70,10 @@ export function Sync() {
     }
   }
 
-  async function handleRefreshButtonClicked(device: SyncDevice) {
-    if (!device.rootHandle) return;
-    await new IpodDetector().detect(device.rootHandle);
+  async function handleRefreshButtonClicked(): Promise<void> {
+    await refreshDevices();
   }
+  //#endregion
 
   return (
     <div className="p-4 h-full overflow-auto">
@@ -89,9 +88,13 @@ export function Sync() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleAddDeviceClick}>
+            <Button onClick={handleAddDeviceClick} hidden={devices.length > 0}>
               <Plus className="h-4 w-4" />
               Add Device
+            </Button>
+            <Button onClick={handleRefreshButtonClicked}>
+              <RefreshCw className="h-4 w-4" />
+              Refresh Device
             </Button>
           </div>
         </div>
@@ -190,11 +193,10 @@ export function Sync() {
         )}
 
         {devices.map((device) => (
-          <SyncDeviceCard
-            key={device.id}
-            device={device}
-            onRefresh={() => handleRefreshButtonClicked(device)}
-          />
+          <div key={device.id} className="flex flex-col gap-3">
+            <SyncDeviceCard device={device} />
+            <SyncQueue syncDevice={device} />
+          </div>
         ))}
       </div>
     </div>

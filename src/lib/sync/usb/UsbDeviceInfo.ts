@@ -1,8 +1,9 @@
 export interface UsbDeviceInfo {
   vendorId: number;
   productId: number;
+  firmwareVersion?: string;
 
-  manufacturerName: string | null;
-  productName: string | null;
-  serialNumber: string | null;
+  manufacturerName: string | undefined;
+  productName: string | undefined;
+  serialNumber: string | undefined;
 }
