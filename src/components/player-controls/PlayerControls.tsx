@@ -41,9 +41,11 @@ import { keyShortcut$ } from "@/events/keyboard-events";
 function PlayerControls() {
   //#region State
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
+  const [trackPosition, setTrackPosition] = useState<number>(0);
   const {
     playlist,
     setPlaylist,
+    nowPlayingIndex,
     nowPlaying,
     setNowPlaying,
     playPause,
@@ -55,7 +57,7 @@ function PlayerControls() {
     setRepeat,
     volume,
     setVolume,
-    currentTime,
+    getCurrentTime,
     seek,
     isPlaying,
   } = usePlayback();
@@ -93,6 +95,23 @@ function PlayerControls() {
   //#endregion
 
   //#region Helpers
+  useEffect(() => {
+    if (!isPlaying) {
+      return;
+    }
+
+    const id = setInterval(
+      () => {
+        setTrackPosition(getCurrentTime());
+      },
+      (nowPlaying?.length ?? 0) / 100
+    );
+
+    return () => {
+      clearInterval(id);
+    };
+  }, [isPlaying, nowPlaying, getCurrentTime]);
+
   function formatTime(time: number) {
     const d = time;
     const m = Math.floor(d / 60);
@@ -120,6 +139,7 @@ function PlayerControls() {
 
   function handleSeek(v: number | readonly number[]) {
     seek(Number(v));
+    setTrackPosition(getCurrentTime());
   }
 
   function handleShuffleToggle() {
@@ -247,7 +267,7 @@ function PlayerControls() {
 
           <div className="flex items-center gap-3 w-full max-w-lg">
             <span className="text-xs w-10 text-right">
-              {formatTime(currentTime)}
+              {formatTime(trackPosition)}
             </span>
 
             <Slider
@@ -255,7 +275,7 @@ function PlayerControls() {
               min={0}
               max={100}
               step={1}
-              value={(currentTime / (nowPlaying?.length ?? 0)) * 100}
+              value={(trackPosition / (nowPlaying?.length ?? 0)) * 100}
               onValueChange={handleSeek}
               className="flex-1"
             />
@@ -298,56 +318,58 @@ function PlayerControls() {
                   </div>
                 </div>
                 <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
-                  {playlist.map((s) => (
-                    <Item
-                      key={s.id}
-                      variant="outline"
-                      data-now-playing={
-                        s.id === nowPlaying?.id ? "true" : "false"
-                      }
-                      className={s.id == nowPlaying?.id ? "bg-accent/15" : ""}
-                      size="xs"
-                    >
-                      <ItemContent className="overflow-hidden">
-                        <ItemTitle className="w-full min-w-0">
-                          <span className="truncate">{s.title}</span>
-                        </ItemTitle>
+                  <div className="divide-y">
+                    {playlist.map((s, i) => (
+                      <div
+                        data-now-playing={
+                          nowPlayingIndex == i ? "true" : "false"
+                        }
+                        key={s.id}
+                        className={nowPlayingIndex == i ? "bg-accent/15" : ""}
+                      >
+                        <Item size="xs">
+                          <ItemContent className="overflow-hidden">
+                            <ItemTitle className="w-full min-w-0">
+                              <span className="truncate">{s.title}</span>
+                            </ItemTitle>
 
-                        <ItemDescription className="w-full min-w-0">
-                          <span className="truncate">{s.artist}</span>
-                        </ItemDescription>
-                      </ItemContent>
+                            <ItemDescription className="w-full min-w-0">
+                              <span className="truncate">{s.artist}</span>
+                            </ItemDescription>
+                          </ItemContent>
 
-                      <ItemActions className="gap-0.5">
-                        <Button
-                          variant="ghost"
-                          title="Remove"
-                          size="sm"
-                          onClick={() => handlePlaylistItemRemove(s)}
-                        >
-                          <XCircle className="stroke-destructive" />
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className={
-                            s.id === nowPlaying?.id
-                              ? "bg-accent hover:bg-accent/70 text-white"
-                              : ""
-                          }
-                          onClick={() => handlePlaylistItemClick(s)}
-                        >
-                          {s.id === nowPlaying?.id && isPlaying && (
-                            <PauseCircle />
-                          )}
-                          {s.id === nowPlaying?.id && !isPlaying && (
-                            <PlayCircle />
-                          )}
-                          {s.id !== nowPlaying?.id && <PlayCircle />}
-                        </Button>
-                      </ItemActions>
-                    </Item>
-                  ))}
+                          <ItemActions className="gap-0.5">
+                            <Button
+                              variant="ghost"
+                              title="Remove"
+                              size="sm"
+                              onClick={() => handlePlaylistItemRemove(s)}
+                            >
+                              <XCircle className="stroke-destructive" />
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className={
+                                nowPlayingIndex == i
+                                  ? "bg-accent hover:bg-accent/70 text-white"
+                                  : ""
+                              }
+                              onClick={() => handlePlaylistItemClick(s)}
+                            >
+                              {nowPlayingIndex == i && isPlaying && (
+                                <PauseCircle />
+                              )}
+                              {nowPlayingIndex == i && !isPlaying && (
+                                <PlayCircle />
+                              )}
+                              {nowPlayingIndex !== i && <PlayCircle />}
+                            </Button>
+                          </ItemActions>
+                        </Item>
+                      </div>
+                    ))}
+                  </div>
                 </ScrollArea>
               </div>
             </PopoverContent>
