@@ -70,7 +70,6 @@ function App() {
                     <Route path="songs/:mode" element={<Songs />} />
                     <Route path="albums" element={<Albums />} />
                     <Route path="albums/:mode" element={<Albums />} />
-                    <Route path="sync" element={<Sync />} />
                   </Route>
 
                   <Route path="/settings" element={<Settings />} />

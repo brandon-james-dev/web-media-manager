@@ -1,5 +1,5 @@
 export interface SyncArtwork {
-  id: string;
+  id: number;
 
   formats: SyncArtworkFormat[];
 }

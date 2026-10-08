@@ -9,6 +9,8 @@ import type { Song, SyncDevice } from "@/models";
 import { SyncContext } from "@/hooks";
 import { queueSongs$, dequeueSongs$ } from "@/events";
 import { SyncService, type UsbDeviceInfo } from "@/lib/sync";
+import { notification$ } from "@/events/notification-events";
+import { uuidv7 } from "uuidv7";
 
 export function SyncProvider({ children }: { children: ReactNode }) {
   //#region State
@@ -53,6 +55,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
       try {
         await syncService.syncSongs(syncDevice, queuedSongs);
+      } catch (error) {
+        notification$.next({
+          id: uuidv7(),
+          kind: "Sync Device Error",
+          state: "error",
+          title: "Error syncing device",
+          detail: String(error),
+        });
       } finally {
         setIsSyncing(false);
       }
@@ -62,10 +72,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const addDevice = useCallback(
     async (
-      rootDirectory?: FileSystemDirectoryHandle,
-      usbDevice?: UsbDeviceInfo
+      usbDevice?: UsbDeviceInfo,
+      rootDirectory?: FileSystemDirectoryHandle
     ) => {
-      const device = await syncService.addDevice(rootDirectory, usbDevice);
+      if (!usbDevice && !rootDirectory)
+        throw new Error("The device cannot be synced");
+
+      const device = await syncService.addDevice(usbDevice, rootDirectory);
 
       setDevices([...devices, device]);
 

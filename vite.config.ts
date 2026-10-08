@@ -11,7 +11,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
-      "@ipod-db": path.resolve(import.meta.dirname, "./packages/ipod-db"),
     },
   },
 }));

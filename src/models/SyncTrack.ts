@@ -1,5 +1,5 @@
 export interface SyncTrack {
-  id: string;
+  id: number;
   title?: string;
   artist?: string;
   album?: string;

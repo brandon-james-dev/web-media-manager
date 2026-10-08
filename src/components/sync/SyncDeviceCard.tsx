@@ -63,7 +63,7 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
         trackCount,
       }))
       .sort((a, b) => a.artist.localeCompare(b.artist));
-  }, [device.media?.tracks]);
+  }, [device.media.tracks]);
 
   return (
     <Card>
@@ -122,7 +122,7 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
               <CardContent>
                 <CardTitle>{device.media?.tracks.length ?? 0}</CardTitle>
                 <CardDescription>
-                  {(device.media?.tracks.length ?? 0) === 0
+                  {(device.media?.tracks.length ?? 0) !== 1
                     ? "Tracks"
                     : "Track"}
                 </CardDescription>
@@ -170,9 +170,9 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
                           <ItemDescription>
                             {album.artist}
                             {" · "}
-                            {album.trackCount === 0
-                              ? `${album.trackCount} Tracks`
-                              : "1 Track"}
+                            {album.trackCount !== 1
+                              ? "1 Track"
+                              : `${album.trackCount} Tracks`}
                           </ItemDescription>
                         </ItemContent>
                       </Item>
@@ -191,7 +191,7 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
                         <ItemContent className="flex flex-row gap-2">
                           <ItemTitle>{artist.artist}</ItemTitle>
                           <ItemDescription>
-                            {artist.trackCount > 1
+                            {artist.trackCount !== 1
                               ? `${artist.trackCount} Tracks`
                               : "1 Track"}
                           </ItemDescription>
@@ -212,7 +212,7 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
                         <ItemContent className="flex flex-row gap-2">
                           <ItemTitle>{playlist.name}</ItemTitle>
                           <ItemDescription>
-                            {playlist.trackIds.length === 0
+                            {playlist.trackIds.length !== 1
                               ? `${playlist.trackIds.length} Tracks`
                               : "1 Track"}
                           </ItemDescription>

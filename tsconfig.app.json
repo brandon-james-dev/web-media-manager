@@ -20,9 +20,7 @@
 
     "ignoreDeprecations": "6.0",
     "paths": {
-      "@/*": ["./src/*"],
-      "@ipod-db": ["./packages/ipod-db/index.ts"],
-      "@ipod-db/*": ["./packages/ipod-db/*"]
+      "@/*": ["./src/*"]
     },
 
     /* Linting */

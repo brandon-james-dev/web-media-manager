@@ -16,5 +16,5 @@ export async function restoreSyncDevice(
 
   const scanner = new DeviceScanner();
 
-  return scanner.scan(record.rootHandle, record.usb);
+  return scanner.scan(record.usb, record.rootHandle);
 }

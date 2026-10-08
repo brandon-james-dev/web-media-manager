@@ -1,5 +1,5 @@
 export interface SyncPlaylist {
-  id: string;
+  id: bigint;
   name?: string;
-  trackIds: string[];
+  trackIds: number[];
 }

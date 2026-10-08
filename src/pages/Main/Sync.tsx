@@ -4,23 +4,33 @@ import { MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { notification$ } from "@/events/notification-events";
-import { DirectoryPickerRequiredError, type UsbDeviceInfo } from "@/lib/sync";
+import { AddDeviceDialog, SyncDeviceCard, SyncQueue } from "@/components/sync";
 import { useSync } from "@/hooks";
-import { SyncDeviceCard } from "@/components/sync";
-import { getIpodModel } from "@ipod-db";
-import { SyncQueue } from "@/components/sync/SyncQueue";
+import { DirectoryPickerRequiredError, type UsbDeviceInfo } from "@/lib/sync";
 
 export function Sync() {
   //#region State
   const { devices, addDevice, refreshDevices } = useSync();
   const [pendingUsbDevice, setPendingUsbDevice] = useState<UsbDeviceInfo>();
+  const [isAddDeviceDialogOpen, setIsAddDeviceDialogOpen] =
+    useState<boolean>(false);
   //#endregion
 
   //#region Interactivity handlers
-  async function handleAddDeviceClick() {
+  async function handleDeviceSelectionClick(isUsb: boolean) {
     try {
-      await addDevice();
+      if (isUsb) {
+        await addDevice();
+      } else {
+        const root = await window?.showDirectoryPicker?.();
+        if (!root) throw new Error("The directory picker is unavailable");
+        await addDevice(undefined, root);
+      }
     } catch (error) {
+      if ((error as Error).name == "NotFoundError") {
+        return;
+      }
+
       if (error instanceof DirectoryPickerRequiredError) {
         setPendingUsbDevice(error.usbInfo);
 
@@ -48,9 +58,12 @@ export function Sync() {
       if (!window.showDirectoryPicker)
         throw new Error("The directory picker is not available");
       const rootDirectory = await window.showDirectoryPicker();
-      await addDevice(rootDirectory, pendingUsbDevice);
+      await addDevice(pendingUsbDevice, rootDirectory);
       setPendingUsbDevice(undefined);
     } catch (error) {
+      if ((error as Error).name == "AbortError") {
+        return;
+      }
       if (error instanceof DirectoryPickerRequiredError) {
         setPendingUsbDevice(error.usbInfo);
 
@@ -88,7 +101,10 @@ export function Sync() {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleAddDeviceClick} hidden={devices.length > 0}>
+            <Button
+              onClick={() => setIsAddDeviceDialogOpen(true)}
+              hidden={devices.length > 0}
+            >
               <Plus className="h-4 w-4" />
               Add Device
             </Button>
@@ -98,6 +114,13 @@ export function Sync() {
             </Button>
           </div>
         </div>
+
+        <AddDeviceDialog
+          open={isAddDeviceDialogOpen}
+          onOpenChange={setIsAddDeviceDialogOpen}
+          onFolderSelected={() => handleDeviceSelectionClick(false)}
+          onUsbSelected={() => handleDeviceSelectionClick(true)}
+        />
 
         {pendingUsbDevice && (
           <Card>
@@ -109,12 +132,7 @@ export function Sync() {
                     : "Device Detected"}
                 </span>
                 {pendingUsbDevice.manufacturerName === "Apple Inc." && (
-                  <span>
-                    (
-                    {getIpodModel(pendingUsbDevice.productId)?.name ??
-                      "Unknown iPod"}
-                    )
-                  </span>
+                  <span>({pendingUsbDevice.productId ?? "Unknown iPod"})</span>
                 )}
               </div>
 

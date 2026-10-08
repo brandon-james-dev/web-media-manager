@@ -31,14 +31,17 @@ export class SyncService {
   }
 
   async addDevice(
-    rootHandle?: FileSystemDirectoryHandle,
-    usbInfo?: UsbDeviceInfo
+    usbInfo?: UsbDeviceInfo,
+    rootHandle?: FileSystemDirectoryHandle
   ): Promise<SyncDevice> {
-    if (!usbInfo) {
+    if (!usbInfo && !rootHandle) {
       const usbDevice = await navigator.usb.requestDevice({
         filters: [
           { classCode: 0x06 }, // MTP/PTP
           { classCode: 0x08 }, // Mass Storage
+          { deviceClass: 6 }, // MTP/PTP
+          { deviceClass: 8 }, // Mass Storage
+          { deviceClass: 255 }, // Special Case (Zune)
         ],
       });
 
@@ -49,17 +52,18 @@ export class SyncService {
           (iface) => iface.alternate.interfaceClass === 0x08
         )
       );
+      const isZune = usbDevice.deviceClass !== 255;
 
-      if (isMassStorage) {
+      if (isMassStorage && !isZune) {
         throw new DirectoryPickerRequiredError(usbInfo);
+      }
+
+      if (!rootHandle && isMassStorage) {
+        throw new Error("The root directory is not selected");
       }
     }
 
-    if (!rootHandle) {
-      throw new Error("The selected directory is invalid");
-    }
-
-    const device = await this.scanner.scan(rootHandle, usbInfo);
+    const device = await this.scanner.scan(usbInfo, rootHandle);
 
     if (!device.usb || !device.usb.serialNumber) {
       throw new Error("Unable to get USB info for device");
@@ -80,6 +84,6 @@ export class SyncService {
       throw new Error(`Unable to sync to "${device.type}".`);
     }
 
-    await strategy.syncSongs(device, songs);
+    await strategy.sync(device, songs);
   }
 }

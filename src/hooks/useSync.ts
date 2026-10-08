@@ -6,8 +6,8 @@ export interface SyncContextValue {
   devices: SyncDevice[];
   setDevices(devices: SyncDevice[]): void;
   addDevice: (
-    rootDirectory?: FileSystemDirectoryHandle | undefined,
-    usbDevice?: UsbDeviceInfo | undefined
+    usbDevice?: UsbDeviceInfo,
+    rootDirectory?: FileSystemDirectoryHandle
   ) => Promise<SyncDevice>;
   removeDevice(id: string): void;
   updateDevice(updatedDevice: SyncDevice): void;

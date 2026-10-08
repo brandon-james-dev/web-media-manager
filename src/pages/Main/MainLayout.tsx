@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSongs } from "@/hooks";
 import type { QueryOptions } from "@/lib/store";
 import type { Song } from "@/models";
-import { Music, DiscAlbum, Search, Pen, MonitorSmartphone } from "lucide-react";
+import { Music, DiscAlbum, Search, Pen } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
 import {
   Outlet,
@@ -156,28 +156,6 @@ function MainLayout() {
               />
             </TabsList>
           </Tabs>
-
-          <div className="rounded-lg bg-muted py-px px-2">
-            <NavLink
-              to="sync"
-              draggable={false}
-              className={({ isActive }) => `
-                inline-flex items-center gap-2
-                p-0.75 rounded-md
-                text-sm font-medium
-                transition-all cursor-default
-
-                ${
-                  isActive
-                    ? "text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }
-              `}
-            >
-              <MonitorSmartphone className="h-4 w-4" />
-              Sync
-            </NavLink>
-          </div>
         </div>
       </div>
 

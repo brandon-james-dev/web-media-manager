@@ -1,4 +1,4 @@
-import type { IpodModel } from "../models";
+import type { IpodModel } from "./IpodModel";
 
 export type IpodProductId =
   (typeof IPOD_MODELS)[keyof typeof IPOD_MODELS]["productId"];
