@@ -6,7 +6,7 @@ A modern web-based media management application focused on local media libraries
 
 The application is deployed on GitHub Pages:
 
-https://brandon-james-dev.github.io/web-media-manager/
+https://wmm.brandonjames.app/
 
 Open it directly in your browser — no installation required.
 

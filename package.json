@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "build:github": "tsc -b && vite build --mode github-pages",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist -u \"github-actions-bot <github-actions@github.com>\" --repo https://x-access-token:${GITHUB_TOKEN}@github.com/brandon-james-dev/web-media-manager.git"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -43,6 +45,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "autoprefixer": "^10.5.4",
+    "gh-pages": "^6.3.0",
     "oxlint": "^1.75.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
@@ -50,6 +53,7 @@
     "vite": "^8.2.0"
   },
   "allowScripts": {
-    "fsevents@2.3.3": true
+    "fsevents@2.3.3": true,
+    "@parcel/watcher@2.6.0": true
   }
 }
