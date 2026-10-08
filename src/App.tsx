@@ -1,7 +1,7 @@
 import "./App.css";
 
 import { Routes, Route } from "react-router";
-import { Songs, Albums, Settings, Sync } from "./pages";
+import { Songs, Albums, Settings } from "./pages";
 import { NavBar } from "./layout";
 import { SongProvider } from "./providers/SongProvider";
 import { SyncProvider } from "./providers";
