@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSongs } from "@/hooks";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlbumCard } from "@/components/album-card";
 import { useOutletContext } from "react-router";
 import type { Album, Song } from "@/models";

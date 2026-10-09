@@ -20,9 +20,9 @@ export function SongTable(props: SongTableProps) {
 
   function handleSelect(selectedSongs: string[]) {
     if (isEditMultiple) {
-      onSelect([...selectedSongIds, ...selectedSongs]);
+      onSelect?.([...selectedSongIds, ...selectedSongs]);
     } else {
-      onSelect(selectedSongs);
+      onSelect?.(selectedSongs);
     }
   }
 
