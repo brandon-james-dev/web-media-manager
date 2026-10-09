@@ -5,7 +5,7 @@ export interface SongTableProps {
   songs: Song[];
   selectedSongIds: string[];
   isEditMultiple: boolean;
-  onSelect: (songIds: string[]) => void;
+  onSelect?: (songIds: string[]) => void;
   onSort?: (column: SortableColumn) => void;
   sort?: QueryOptions<Song>["sort"];
   onSongDoubleClicked?: (song: Song) => void;

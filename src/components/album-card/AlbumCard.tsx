@@ -4,7 +4,7 @@ import { AlbumArtImage } from "../album-art-image";
 import { ThumbnailSize } from "@/lib";
 import { SongContextMenu } from "../song-context-menu";
 
-function AlbumCard({
+export function AlbumCard({
   album,
   onClick,
   onDoubleClick,
@@ -62,5 +62,3 @@ function AlbumCard({
     </SongContextMenu>
   );
 }
-
-export { AlbumCard };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSongs } from "@/hooks";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AlbumCard } from "@/components/album-card";
 import { useOutletContext } from "react-router";
 import type { Album, Song } from "@/models";
@@ -15,19 +15,29 @@ import {
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
 import {
-  ArrowDown01,
-  ArrowUp01,
+  ArrowDownAZ,
+  ArrowUpAZ,
   GalleryHorizontal,
   Grid2x2,
 } from "lucide-react";
 import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
 import { playlistSet$ } from "@/events/player-events";
 import { isEditMultipleChanged$ } from "@/events/editor-events";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
+import { CoverFlowAlbumCard } from "@/components/coverflow-album-card";
+import { type CarouselApi } from "@/components/ui/carousel";
+import { Slider } from "@/components/ui/slider";
+import { TanstackSongTable } from "@/components/song-table";
 
 function Albums() {
   //#region State
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
+  const { setSort } = useOutletContext<MainContext>();
   const [albumSort] = useState<{
     selector: (song: Song) => void;
     desc: boolean;
@@ -35,6 +45,9 @@ function Albums() {
     selector: (song: Song) => song.album,
     desc: false,
   });
+
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<"grid" | "coverflow">("grid");
   const [sortField, setSortField] = useState<"album" | "artist">("album");
   const [sortDesc, setSortDesc] = useState<boolean>(false);
@@ -42,7 +55,6 @@ function Albums() {
     album: "Album Title",
     artist: "Artist",
   } as const;
-  const { setSort } = useOutletContext<MainContext>();
   //#endregion
 
   //#region Helpers
@@ -86,6 +98,24 @@ function Albums() {
 
     return Array.from(map.values());
   }, [filteredSongs]);
+
+  useEffect(() => {
+    if (!carouselApi) {
+      return;
+    }
+
+    const update = () => {
+      setSelectedIndex(carouselApi.selectedScrollSnap());
+    };
+
+    update();
+
+    carouselApi.on("select", update);
+
+    return () => {
+      carouselApi.off("select", update);
+    };
+  }, [carouselApi]);
   //#endregion
 
   //#region Interactivity handlers
@@ -114,7 +144,7 @@ function Albums() {
             <TabsTrigger value="grid">
               <Grid2x2 /> Grid
             </TabsTrigger>
-            <TabsTrigger value="coverflow" disabled>
+            <TabsTrigger value="coverflow">
               <GalleryHorizontal /> Cover Flow
             </TabsTrigger>
           </TabsList>
@@ -141,17 +171,17 @@ function Albums() {
               className="px-3 py-1 aria-pressed:bg-transparent"
             >
               {sortDesc ? (
-                <ArrowDown01 className="h-4 w-4" />
+                <ArrowDownAZ className="h-4 w-4" />
               ) : (
-                <ArrowUp01 className="h-4 w-4" />
+                <ArrowUpAZ className="h-4 w-4" />
               )}
             </Toggle>
           </div>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
-        {viewMode === "grid" && (
+      {viewMode === "grid" && (
+        <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
           <div
             className="
               grid
@@ -172,8 +202,62 @@ function Albums() {
               />
             ))}
           </div>
-        )}
-      </ScrollArea>
+        </ScrollArea>
+      )}
+      {viewMode === "coverflow" && (
+        <div className="flex flex-col gap-4 h-full">
+          <Carousel
+            className="shrink-0"
+            opts={{
+              align: "center",
+              containScroll: false,
+            }}
+            setApi={setCarouselApi}
+          >
+            <CarouselContent className="-ml-2 py-4">
+              {albums.map((album, index) => (
+                <CarouselItem key={album.id} className="basis-55 pl-2">
+                  <CoverFlowAlbumCard
+                    album={album}
+                    index={index}
+                    api={carouselApi}
+                    onClick={() => {
+                      setSelectedIndex(index);
+                      handleAlbumCardClick(album);
+                      carouselApi?.scrollTo(index);
+                    }}
+                    onDoubleClick={() => {
+                      setSelectedIndex(index);
+                      handleAlbumCardDoubleClick(album);
+                    }}
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+
+          <div className="px-6 shrink-0">
+            <Slider
+              value={[selectedIndex]}
+              min={0}
+              max={Math.max(0, albums.length - 1)}
+              step={1}
+              onValueChange={(value) => {
+                setSelectedIndex(Number(value));
+                carouselApi?.scrollTo(Number(value));
+              }}
+            />
+          </div>
+
+          <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
+            <TanstackSongTable
+              songs={albums[selectedIndex]?.songs ?? []}
+              selectedSongIds={[]}
+              isEditMultiple={false}
+            />
+          </ScrollArea>
+        </div>
+      )}
     </div>
   );
 }

@@ -95,7 +95,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
   if (!artwork) {
     return (
       fallback ?? (
-        <div className="bg-zinc-300 dark:bg-zinc-700 rounded flex justify-center items-center">
+        <div className="bg-foreground rounded flex justify-center items-center">
           <span>No artwork</span>
         </div>
       )
