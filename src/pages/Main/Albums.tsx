@@ -21,17 +21,11 @@ import {
   Grid2x2,
 } from "lucide-react";
 import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
-import { playlistSet$ } from "@/events/player-events";
+import { playlistSet$, songStartedPlayback$ } from "@/events/player-events";
 import { isEditMultipleChanged$ } from "@/events/editor-events";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
-import { CoverFlowAlbumCard } from "@/components/coverflow-album-card";
-import { type CarouselApi } from "@/components/ui/carousel";
-import { Slider } from "@/components/ui/slider";
 import { TanstackSongTable } from "@/components/song-table";
+import { CoverFlow } from "@/components/cover-flow";
+import { cn } from "cn";
 
 function Albums() {
   //#region State
@@ -45,9 +39,8 @@ function Albums() {
     selector: (song: Song) => song.album,
     desc: false,
   });
-
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const [nowPlayingSongId, setNowPlayingSongId] = useState<string>();
+  const [selectedAlbumIndex, setSelectedAlbumIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<"grid" | "coverflow">("grid");
   const [sortField, setSortField] = useState<"album" | "artist">("album");
   const [sortDesc, setSortDesc] = useState<boolean>(false);
@@ -98,24 +91,6 @@ function Albums() {
 
     return Array.from(map.values());
   }, [filteredSongs]);
-
-  useEffect(() => {
-    if (!carouselApi) {
-      return;
-    }
-
-    const update = () => {
-      setSelectedIndex(carouselApi.selectedScrollSnap());
-    };
-
-    update();
-
-    carouselApi.on("select", update);
-
-    return () => {
-      carouselApi.off("select", update);
-    };
-  }, [carouselApi]);
   //#endregion
 
   //#region Interactivity handlers
@@ -130,6 +105,23 @@ function Albums() {
     isEditMultipleChanged$.next(true);
     songDoubleClicked$.next(album.songs[0]);
   }
+
+  function handleSongDoubleClicked(song: Song) {
+    playlistSet$.next(albums[selectedAlbumIndex].songs);
+    songDoubleClicked$.next(song);
+  }
+  //#endregion
+
+  //#region Global event handlers
+  useEffect(() => {
+    const playbackSub = songStartedPlayback$.subscribe((next) =>
+      setNowPlayingSongId(next.id)
+    );
+
+    return () => {
+      playbackSub.unsubscribe();
+    };
+  }, []);
   //#endregion
 
   return (
@@ -205,58 +197,57 @@ function Albums() {
         </ScrollArea>
       )}
       {viewMode === "coverflow" && (
-        <div className="flex flex-col gap-4 h-full">
-          <Carousel
-            className="shrink-0"
-            opts={{
-              align: "center",
-              containScroll: false,
-            }}
-            setApi={setCarouselApi}
-          >
-            <CarouselContent className="-ml-2 py-4">
-              {albums.map((album, index) => (
-                <CarouselItem key={album.id} className="basis-55 pl-2">
-                  <CoverFlowAlbumCard
-                    album={album}
-                    index={index}
-                    api={carouselApi}
-                    onClick={() => {
-                      setSelectedIndex(index);
-                      handleAlbumCardClick(album);
-                      carouselApi?.scrollTo(index);
-                    }}
-                    onDoubleClick={() => {
-                      setSelectedIndex(index);
-                      handleAlbumCardDoubleClick(album);
-                    }}
-                  />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
+        <>
+          <CoverFlow
+            items={albums}
+            selectedIndex={selectedAlbumIndex}
+            onSelectedIndexChange={setSelectedAlbumIndex}
+            renderItem={(album, _, selected) => (
+              <AlbumCard
+                className={cn(
+                  "h-55 transition-all",
+                  selected && "ring-2 ring-accent"
+                )}
+                album={album}
+                onClick={handleAlbumCardClick}
+                onDoubleClick={handleAlbumCardDoubleClick}
+              />
+            )}
+            renderLabel={(album, _, selected) => (
+              <>
+                {selected && (
+                  <div
+                    className="
+                      absolute
+                      top-full
+                      left-1/2
+                      mt-2
+                      -translate-x-1/2
+                      text-center
+                      pointer-events-none
+                    "
+                  >
+                    <div className="font-medium whitespace-nowrap max-w-80 text-ellipsis overflow-clip">
+                      {album.title}
+                    </div>
 
-          <div className="px-6 shrink-0">
-            <Slider
-              value={[selectedIndex]}
-              min={0}
-              max={Math.max(0, albums.length - 1)}
-              step={1}
-              onValueChange={(value) => {
-                setSelectedIndex(Number(value));
-                carouselApi?.scrollTo(Number(value));
-              }}
-            />
-          </div>
-
-          <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
+                    <div className="text-xs text-muted-foreground max-w-80 text-ellipsis overflow-clip">
+                      {album.artist}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          />
+          <ScrollArea className="flex-1 min-h-0">
             <TanstackSongTable
-              songs={albums[selectedIndex]?.songs ?? []}
-              selectedSongIds={[]}
+              songs={albums[selectedAlbumIndex]?.songs ?? []}
+              selectedSongIds={nowPlayingSongId ? [nowPlayingSongId] : []}
+              onSongDoubleClicked={handleSongDoubleClicked}
               isEditMultiple={false}
             />
           </ScrollArea>
-        </div>
+        </>
       )}
     </div>
   );

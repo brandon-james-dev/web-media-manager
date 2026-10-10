@@ -19,6 +19,7 @@ import {
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
 import { ArtworkType } from "@/lib/metadata-utils";
 import type { Song } from "@/models";
+import { songStartedPlayback$ } from "@/events";
 
 export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#region State
@@ -231,6 +232,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       currentTimeRef.current = 0;
 
       startPlaybackAt.current(0);
+      songStartedPlayback$.next(nowPlaying);
 
       artworkUrl256 = await getArtwork(ThumbnailSize.thumb256);
       artworkUrl512 = await getArtwork(ThumbnailSize.thumb512);
