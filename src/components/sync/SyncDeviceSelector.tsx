@@ -16,6 +16,8 @@ export interface AddDeviceDialogProps {
 
   onUsbSelected?(): Promise<void> | void;
   onFolderSelected?(): Promise<void> | void;
+  /** Show only the folder picker card (second gesture for iPods). */
+  folderOnly?: boolean;
 }
 
 export function AddDeviceDialog({
@@ -23,6 +25,7 @@ export function AddDeviceDialog({
   onOpenChange,
   onUsbSelected,
   onFolderSelected,
+  folderOnly = false,
 }: AddDeviceDialogProps) {
   const handleUsbClick = async () => {
     onOpenChange(false);
@@ -46,22 +49,24 @@ export function AddDeviceDialog({
         </DialogHeader>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Card
-            className="cursor-pointer transition-colors hover:bg-muted"
-            onClick={handleUsbClick}
-          >
-            <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-              <Usb className="text-primary h-16 w-16" />
+          {!folderOnly && (
+            <Card
+              className="cursor-pointer transition-colors hover:bg-muted"
+              onClick={handleUsbClick}
+            >
+              <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+                <Usb className="text-primary h-16 w-16" />
 
-              <div>
-                <h3 className="font-semibold">USB Device</h3>
+                <div>
+                  <h3 className="font-semibold">USB Device</h3>
 
-                <p className="text-muted-foreground text-sm">
-                  Detect devices using WebUSB or native USB protocols.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                  <p className="text-muted-foreground text-sm">
+                    Detect devices using WebUSB or native USB protocols.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card
             className="cursor-pointer transition-colors hover:bg-muted"

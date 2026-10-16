@@ -170,7 +170,7 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
                           <ItemDescription>
                             {album.artist}
                             {" · "}
-                            {album.trackCount !== 1
+                            {album.trackCount === 1
                               ? "1 Track"
                               : `${album.trackCount} Tracks`}
                           </ItemDescription>

@@ -1,14 +1,15 @@
 import { PlayerControls } from "@/components/player-controls";
+import { Badge } from "@/components/ui/badge";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSongs } from "@/hooks";
+import { useSongs, useSync } from "@/hooks";
 import type { QueryOptions } from "@/lib/store";
 import type { Song } from "@/models";
-import { Music, DiscAlbum, Search, Pen } from "lucide-react";
+import { Music, DiscAlbum, Search, Pen, MonitorSmartphone } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
 import {
   Outlet,
@@ -41,6 +42,9 @@ function MainLayout() {
   const navigate = useNavigate();
 
   const isSyncPage = pathname.startsWith("/sync");
+
+  // Queue length shown as a badge on the Sync nav pill until it is synced.
+  const { queuedSongs } = useSync();
 
   const activeTab = isSyncPage
     ? "sync"
@@ -156,6 +160,38 @@ function MainLayout() {
               />
             </TabsList>
           </Tabs>
+
+          <div className="relative rounded-lg bg-muted py-px px-2">
+            <NavLink
+              to="sync"
+              draggable={false}
+              className={({ isActive }) => `
+                inline-flex items-center gap-2
+                p-0.75 rounded-md
+                text-sm font-medium
+                transition-all cursor-default
+
+                ${
+                  isActive
+                    ? "text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }
+              `}
+            >
+              <MonitorSmartphone className="h-4 w-4" />
+              Sync
+            </NavLink>
+
+            {/* Queued-song count. Positioned absolutely so the fixed-width
+                nav row does not reflow when the queue changes. */}
+            {queuedSongs.length > 0 && (
+              <Badge
+                className="pointer-events-none absolute -top-1.5 -right-1.5 z-10 h-4.5 min-w-4.5 rounded-full px-1 text-[0.65rem] font-semibold tabular-nums"
+              >
+                {queuedSongs.length > 99 ? "99+" : queuedSongs.length}
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 

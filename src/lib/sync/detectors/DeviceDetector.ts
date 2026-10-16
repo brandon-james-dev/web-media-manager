@@ -1,9 +1,9 @@
 import type { SyncDevice } from "@/models";
-import type { UsbDeviceInfo } from "..";
+import type { UsbDeviceInfo } from "../usb";
 
 export interface DeviceDetector {
   detect(
-    usb?: UsbDeviceInfo,
-    root?: FileSystemDirectoryHandle
+    root: FileSystemDirectoryHandle,
+    usb?: UsbDeviceInfo
   ): Promise<SyncDevice | undefined>;
 }

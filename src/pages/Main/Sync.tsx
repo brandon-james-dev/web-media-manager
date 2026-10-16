@@ -6,85 +6,87 @@ import { Card, CardContent } from "@/components/ui/card";
 import { notification$ } from "@/events/notification-events";
 import { AddDeviceDialog, SyncDeviceCard, SyncQueue } from "@/components/sync";
 import { useSync } from "@/hooks";
-import { DirectoryPickerRequiredError, type UsbDeviceInfo } from "@/lib/sync";
+import { DevicePromptOrchestrator } from "@/lib/sync";
 
 export function Sync() {
   //#region State
   const { devices, addDevice, refreshDevices } = useSync();
-  const [pendingUsbDevice, setPendingUsbDevice] = useState<UsbDeviceInfo>();
   const [isAddDeviceDialogOpen, setIsAddDeviceDialogOpen] =
     useState<boolean>(false);
+  // The dialog is shown twice for a mass-storage device (e.g. an iPod):
+  // first the USB picker (one user gesture), then the folder picker (a
+  // second, separate gesture) — both pickers require their own transient
+  // user activation and cannot be chained in a single handler.
+  const [isFolderPromptOpen, setIsFolderPromptOpen] = useState(false);
+  const [orchestrator] = useState(
+    () => new DevicePromptOrchestrator(addDevice)
+  );
   //#endregion
 
   //#region Interactivity handlers
-  async function handleDeviceSelectionClick(isUsb: boolean) {
+  // Gesture 1: USB picker (from the "USB Device" card click).
+  async function handleUsbSelectedClick() {
     try {
-      if (isUsb) {
-        await addDevice();
-      } else {
-        const root = await window?.showDirectoryPicker?.();
-        if (!root) throw new Error("The directory picker is unavailable");
-        await addDevice(undefined, root);
+      const usbInfo = await orchestrator.requestUsb();
+      if (!usbInfo) return; // cancelled
+      // Mass-storage devices (iPod) also need a directory picker — which
+      // must be its own gesture, so show the folder prompt now.
+      if (orchestrator.needsRoot) {
+        setIsFolderPromptOpen(true);
+        return;
       }
+      await handleComplete();
     } catch (error) {
-      if ((error as Error).name == "NotFoundError") {
-        return;
-      }
-
-      if (error instanceof DirectoryPickerRequiredError) {
-        setPendingUsbDevice(error.usbInfo);
-
-        return;
-      }
-
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-
-      notification$.next({
-        id: uuidv7(),
-        title: "Device add error",
-        detail: errorMessage,
-        kind: "Device add error",
-        state: "error",
-      });
-    }
-    if (pendingUsbDevice) {
-      setPendingUsbDevice(undefined);
+      handleError(error);
     }
   }
 
-  async function handleSelectPendingDeviceDirectory() {
+  // Gesture 2: directory picker (from the "Folder"/"Select iPod folder"
+  // card click) — a separate click so the transient activation is still
+  // valid for showDirectoryPicker.
+  async function handleFolderSelectedClick() {
+    setIsFolderPromptOpen(false);
     try {
-      if (!window.showDirectoryPicker)
-        throw new Error("The directory picker is not available");
-      const rootDirectory = await window.showDirectoryPicker();
-      await addDevice(pendingUsbDevice, rootDirectory);
-      setPendingUsbDevice(undefined);
+      const root = await orchestrator.requestRoot();
+      if (!root) return; // cancelled
+      await handleComplete();
     } catch (error) {
-      if ((error as Error).name == "AbortError") {
-        return;
+      handleError(error);
+    }
+  }
+
+  // No pickers: scan + persist with whatever was collected.
+  async function handleComplete(): Promise<void> {
+    try {
+      const result = await orchestrator.complete();
+      if (result) {
+        notification$.next({
+          id: uuidv7(),
+          title: "Device added",
+          detail: `${result.name} connected`,
+          kind: "Device added",
+          state: "completed",
+        });
       }
-      if (error instanceof DirectoryPickerRequiredError) {
-        setPendingUsbDevice(error.usbInfo);
-
-        return;
-      }
-
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-
-      notification$.next({
-        id: uuidv7(),
-        title: "Device add error",
-        detail: errorMessage,
-        kind: "Device add error",
-        state: "error",
-      });
+    } catch (error) {
+      handleError(error);
     }
   }
 
   async function handleRefreshButtonClicked(): Promise<void> {
     await refreshDevices();
+  }
+
+  function handleError(error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    notification$.next({
+      id: uuidv7(),
+      title: "Device add error",
+      detail: errorMessage,
+      kind: "Device add error",
+      state: "error",
+    });
   }
   //#endregion
 
@@ -118,83 +120,17 @@ export function Sync() {
         <AddDeviceDialog
           open={isAddDeviceDialogOpen}
           onOpenChange={setIsAddDeviceDialogOpen}
-          onFolderSelected={() => handleDeviceSelectionClick(false)}
-          onUsbSelected={() => handleDeviceSelectionClick(true)}
+          onFolderSelected={() => handleFolderSelectedClick()}
+          onUsbSelected={() => handleUsbSelectedClick()}
         />
 
-        {pendingUsbDevice && (
-          <Card>
-            <CardContent className="py-4 space-y-3">
-              <div className="font-medium flex gap-2">
-                <span>
-                  {pendingUsbDevice.manufacturerName === "Apple Inc."
-                    ? "iPod Detected"
-                    : "Device Detected"}
-                </span>
-                {pendingUsbDevice.manufacturerName === "Apple Inc." && (
-                  <span>({pendingUsbDevice.productId ?? "Unknown iPod"})</span>
-                )}
-              </div>
-
-              <div className="text-sm text-muted-foreground">
-                {pendingUsbDevice.manufacturerName === "Apple Inc."
-                  ? "This iPod uses a mass-storage filesystem. Select the iPod root directory to continue."
-                  : "This device requires filesystem access before it can be added."}
-              </div>
-
-              {pendingUsbDevice.manufacturerName !== "Apple Inc." && (
-                <div className="grid grid-cols-[120px_1fr] gap-x-3 gap-y-1 text-sm">
-                  <div className="text-muted-foreground">Vendor</div>
-
-                  <div>{pendingUsbDevice.manufacturerName}</div>
-
-                  <div className="text-muted-foreground">Product</div>
-
-                  <div>{pendingUsbDevice.productId}</div>
-
-                  {pendingUsbDevice.productName && (
-                    <>
-                      <div className="text-muted-foreground">Device</div>
-
-                      <div>{pendingUsbDevice.productName}</div>
-                    </>
-                  )}
-
-                  {pendingUsbDevice.serialNumber && (
-                    <>
-                      <div className="text-muted-foreground">Serial</div>
-
-                      <div className="font-mono text-xs break-all">
-                        {pendingUsbDevice.serialNumber}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {pendingUsbDevice.manufacturerName === "Apple Inc." && (
-                <div className="rounded-md border bg-muted/50 p-3 text-sm">
-                  <div className="flex justify-between">
-                    <div>
-                      <div className="font-medium">
-                        iPod Filesystem Access Required
-                      </div>
-
-                      <div className="text-muted-foreground mt-1">
-                        Select the device root directory
-                      </div>
-                    </div>
-                    <div>
-                      <Button onClick={handleSelectPendingDeviceDirectory}>
-                        Select iPod root Directory
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        {/* Second gesture for mass-storage devices: pick the iPod folder. */}
+        <AddDeviceDialog
+          folderOnly
+          open={isFolderPromptOpen}
+          onOpenChange={setIsFolderPromptOpen}
+          onFolderSelected={() => handleFolderSelectedClick()}
+        />
 
         {devices.length === 0 && (
           <Card>

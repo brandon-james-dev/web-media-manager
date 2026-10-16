@@ -12,6 +12,7 @@ Open it directly in your browser — no installation required.
 
 ## Features
 
+
 ### Library Management
 
 - Scan and import local media libraries
@@ -109,7 +110,39 @@ Playback state management
 ### Device Support
 
 ```text
-COMING
+Classic iPod synchronization (nano 3G-7G, classic, photo, video, mini, shuffle, touch)
+iTunesDB read/write — Apple-compatible 5-section layout (4,1,3,2,5)
+ArtworkDB read/write — per-format thumbnails (RGB565/RGB555/UYVY/I420)
+Device detection from SysInfo / model number / USB product id
+Transactional sync (Itdb): atomic save, .tmp + rename, iTunesDB committed last
+Device-keyed checksums — hash58 (HMAC-SHA1) + hash72 (AES-128-CBC signature)
+Byte-preserving round-trips of Apple-accepted databases
+Browser + Node + Tauri runtimes (pure-ArrayBuffer core, pure-JS AES-ECB)
+```
+
+The core library lives in `packages/itunesdb-ts` — parse/write iTunesDB
+and ArtworkDB, device detection, artwork processing, and the high-level
+`Itdb` sync engine. The app's sync flow (add device → scan → choose
+folder → sync songs → artwork + audio + DB in one transaction) is
+functional end to end.
+
+```text
+Verified so far
+  - Device add flow (USB picker -> folder picker -> scan -> persist)
+  - Reader: tracks / albums / playlists / artwork, per-format thumbnails
+  - Writer: Apple-compatible section order, master-in-both-sections,
+    shared id counter, fresh-track constants (type1/type2, unk144,
+    dbid2, filesize2, library-id mirror), byte-identical round-trips
+    of Apple-accepted DBs (0 diffs outside checksum)
+  - hash58 + hash72 validity on device DBs; HashInfo pair persistence
+  - Sync-time cleanup: stale MP3s + orphaned thumbnail/ithmb files
+  - Playlist hygiene: OTG list drop, "Videos"-style duplicate dedupe
+Open item
+  - Apple Music / Finder occasionally still flag "restore" after an
+    app-written DB; the library bytes round-trip identically and the
+    checksums verify, but Apple's daemon validation is stricter — see
+    the Apple Compatibility Notes in the package README for the
+    byte-level facts established so far.
 ```
 
 ### Performance
@@ -176,16 +209,15 @@ VS Code is configured to:
 ### Near Term
 
 ```text
-- ArtworkDB support
 - Smart playlist rule decoding
-- Additional iPod database support
 - Library import improvements
+- Gapless metadata (mp4g) writing for synced files
 ```
 
 ### Long Term
 
 ```text
-- Full device synchronization
+- Full iTunes-session sync handshake parity
 - Plugin architecture
 - Additional portable media devices
 - Enhanced metadata tools

@@ -2,6 +2,7 @@ import type { Song } from "@/models/Song";
 import { getMetadataStore } from "./file-utils";
 import { getPicturesForSongOfType } from ".";
 import { ArtworkType } from "./metadata-utils";
+import { resizeBitmap } from "./resizeBitmap";
 
 export async function applySongEdits(
   song: Song,
@@ -12,15 +13,27 @@ export async function applySongEdits(
 ): Promise<Song> {
   const updatedSong = { ...song, ...updates };
 
+  updatedSong.pictures = updatedSong.pictures?.filter(
+    (p) => p.type !== "FrontCover" && p.type !== "BackCover"
+  );
+
   if (updates.coverFront instanceof Blob) {
-    const buf = new Uint8Array(await updates.coverFront.arrayBuffer());
-    updatedSong.pictures ??= [];
-    updatedSong.pictures.push({
-      mimeType: updates.coverFront.type || "image/jpeg",
-      data: buf,
-      type: "FrontCover",
-      description: "Front Cover",
-    });
+    const bitmap = await createImageBitmap(updates.coverFront);
+
+    try {
+      const resized = await resizeBitmap(bitmap, 512);
+      const buf = new Uint8Array(await resized.arrayBuffer());
+
+      updatedSong.pictures ??= [];
+      updatedSong.pictures.push({
+        mimeType: resized.type,
+        data: buf,
+        type: "FrontCover",
+        description: "Front Cover",
+      });
+    } finally {
+      bitmap.close();
+    }
   } else {
     const frontCover = await getPicturesForSongOfType(
       song.id,
@@ -30,7 +43,7 @@ export async function applySongEdits(
     if (frontCover) {
       updatedSong.pictures ??= [];
       updatedSong.pictures.push({
-        mimeType: "image/jpeg",
+        mimeType: frontCover.mimeType ?? "image/webp",
         data: frontCover.data,
         type: "FrontCover",
         description: "Front Cover",
@@ -39,14 +52,22 @@ export async function applySongEdits(
   }
 
   if (updates.coverBack instanceof Blob) {
-    const buf = new Uint8Array(await updates.coverBack.arrayBuffer());
-    updatedSong.pictures ??= [];
-    updatedSong.pictures.push({
-      mimeType: updates.coverBack.type || "image/jpeg",
-      data: buf,
-      type: "BackCover",
-      description: "Back Cover",
-    });
+    const bitmap = await createImageBitmap(updates.coverBack);
+
+    try {
+      const resized = await resizeBitmap(bitmap, 512);
+      const buf = new Uint8Array(await resized.arrayBuffer());
+
+      updatedSong.pictures ??= [];
+      updatedSong.pictures.push({
+        mimeType: resized.type,
+        data: buf,
+        type: "BackCover",
+        description: "Back Cover",
+      });
+    } finally {
+      bitmap.close();
+    }
   } else {
     const backCover = await getPicturesForSongOfType(
       song.id,
@@ -56,7 +77,7 @@ export async function applySongEdits(
     if (backCover) {
       updatedSong.pictures ??= [];
       updatedSong.pictures.push({
-        mimeType: "image/jpeg",
+        mimeType: backCover.mimeType ?? "image/webp",
         data: backCover.data,
         type: "BackCover",
         description: "Back Cover",

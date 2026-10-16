@@ -1,4 +1,5 @@
 export * from "./DeviceScanner";
+export * from "./DevicePromptOrchestrator";
 export * from "./SyncService";
 
 export * from "./detectors";
