@@ -15,6 +15,7 @@ import type {
 import type { DeviceDetector } from "./DeviceDetector";
 import { uuidv7 } from "uuidv7";
 import { mapUsbDevice, type UsbDeviceInfo } from "../usb";
+import { getDirectorySize } from "../helpers";
 
 export class IpodDetector implements DeviceDetector {
   async detect(
@@ -59,15 +60,24 @@ export class IpodDetector implements DeviceDetector {
       "none";
     if (needsChecksum && usbInfo?.serialNumber && !device.firewireGuid) {
       try {
-        await writeSysInfo(createBrowserFs(root), usbInfo.serialNumber, device.modelNumber);
+        await writeSysInfo(
+          createBrowserFs(root),
+          usbInfo.serialNumber,
+          device.modelNumber
+        );
         // Re-read so the resolved device carries the freshly-set GUID.
         using setupItdb = await Itdb.open(createBrowserFs(root), {
-          device: { ...device, firewireGuid: usbInfo.serialNumber, serialNumber: usbInfo.serialNumber },
+          device: {
+            ...device,
+            firewireGuid: usbInfo.serialNumber,
+            serialNumber: usbInfo.serialNumber,
+          },
         });
         const setupResolved = setupItdb.resolvedDevice;
         if (setupResolved?.firewireGuid) {
           device.firewireGuid = setupResolved.firewireGuid;
-          device.serialNumber = setupResolved.serialNumber ?? device.serialNumber;
+          device.serialNumber =
+            setupResolved.serialNumber ?? device.serialNumber;
         }
       } catch (err) {
         console.warn("[IpodDetector] One-time SysInfo setup failed:", err);
@@ -121,6 +131,31 @@ export class IpodDetector implements DeviceDetector {
 
     //#endregion
 
+    //#region Storage usage
+    // Used space is the real byte total of the volume: a metadata-only walk
+    // (getFile() never reads file contents), so this is exact and also counts
+    // artwork, photos and anything else taking room, not just music.
+    let usedBytes: number | undefined;
+
+    try {
+      usedBytes = await getDirectorySize(root);
+    } catch (err) {
+      console.warn("[IpodDetector] Could not measure used space:", err);
+    }
+
+    // Capacity is nominal and decimal (Apple's 1 GB = 1e9 bytes), making it
+    // comparable with the byte counts above. `resolved` is the device
+    // SysInfo actually reported; `device` is the representative SKU inferred
+    // from the USB product ID, which only identifies the generation.
+    const capacityGB = resolved?.capacityGB ?? device.capacityGB;
+
+    const storage: SyncDevice["storage"] = {
+      usedBytes,
+      capacityBytes:
+        capacityGB != null && capacityGB > 0 ? capacityGB * 1e9 : undefined,
+    };
+    //#endregion
+
     return {
       id: uuidv7(),
       name: root.name,
@@ -135,6 +170,7 @@ export class IpodDetector implements DeviceDetector {
         playlists: true,
         playbackStats: true,
       },
+      storage,
       rootHandle: root,
       createdAt: Date.now(),
       connected: true,

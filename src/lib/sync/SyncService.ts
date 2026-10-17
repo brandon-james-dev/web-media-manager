@@ -97,4 +97,27 @@ export class SyncService {
 
     await strategy.sync(device, songs);
   }
+
+  /**
+   * Delete tracks from a device by their on-device ids (`SyncTrack.id`).
+   * Throws when the device type cannot delete individual tracks.
+   */
+  async removeTracks(
+    device: SyncDevice,
+    trackIds: number[]
+  ): Promise<void> {
+    const strategy = this.strategies.find((x) => x.canHandle(device));
+
+    if (!strategy) {
+      throw new Error(`Unable to manage "${device.type}".`);
+    }
+
+    if (!strategy.removeTracks) {
+      throw new Error(
+        `Removing individual tracks is not supported for "${device.type}".`
+      );
+    }
+
+    await strategy.removeTracks(device, trackIds);
+  }
 }

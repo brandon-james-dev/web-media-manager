@@ -8,7 +8,12 @@ import {
 import type { Song, SyncDevice } from "@/models";
 import { SyncContext } from "@/hooks";
 import { queueSongs$, dequeueSongs$ } from "@/events";
-import { SyncService, type UsbDeviceInfo } from "@/lib/sync";
+import {
+  SyncService,
+  deviceTrackIdentities,
+  isSongOnDevice,
+  type UsbDeviceInfo,
+} from "@/lib/sync";
 import { notification$ } from "@/events/notification-events";
 import { uuidv7 } from "uuidv7";
 
@@ -21,13 +26,51 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   //#endregion
 
   //#region Functions
-  const queueSongs = (songs: Song[]) => {
-    setQueuedSongs((current) => {
-      const existing = new Set(current.map((song) => song.id));
+  /**
+   * Add songs to the queue, skipping anything already stored on a connected
+   * device. The queue is device-agnostic, so a song counts as present when
+   * any connected device has it. Returns the songs actually queued.
+   */
+  const queueSongs = useCallback(
+    (songs: Song[]): Song[] => {
+      const connectedIdentities = new Set<string>();
 
-      return [...current, ...songs.filter((song) => !existing.has(song.id))];
-    });
-  };
+      for (const device of devices.filter((x) => x.connected)) {
+        for (const identity of deviceTrackIdentities(device)) {
+          connectedIdentities.add(identity);
+        }
+      }
+
+      const alreadyQueued = new Set(queuedSongs.map((song) => song.id));
+
+      const added = songs.filter(
+        (song) =>
+          !alreadyQueued.has(song.id) &&
+          !isSongOnDevice(song, connectedIdentities)
+      );
+
+      if (added.length > 0) {
+        setQueuedSongs((current) => [...current, ...added]);
+      }
+
+      const skipped = songs.length - added.length;
+
+      if (skipped > 0) {
+        notification$.next({
+          id: uuidv7(),
+          kind: "Queue Skipped",
+          state: "completed",
+          title: "Already on device",
+          detail:
+            `${skipped} song${skipped === 1 ? "" : "s"} skipped: already on `
+            + "the connected device.",
+        });
+      }
+
+      return added;
+    },
+    [devices, queuedSongs]
+  );
 
   const removeQueuedSong = (songId: string) => {
     setQueuedSongs((current) => current.filter((song) => song.id !== songId));
@@ -58,8 +101,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           kind: "Sync Device Error",
           state: "error",
           title: "No songs to sync",
-          detail: "The sync queue was empty when sync started. Please queue "
-            + "at least one song and try again.",
+          detail:
+            "The sync queue was empty when sync started. Please queue " +
+            "at least one song and try again.",
         });
         return;
       }
@@ -108,6 +152,42 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       setIsSyncing(false);
     },
     [syncService, queuedSongs, refreshDevices, clearQueue]
+  );
+
+  /**
+   * Delete tracks from a device by their on-device ids, then rescan so the
+   * card, the queue filter, and the nav badge all see the new library.
+   */
+  const removeTracksFromDevice = useCallback(
+    async (syncDevice: SyncDevice, trackIds: number[]) => {
+      if (trackIds.length === 0) return;
+
+      try {
+        await syncService.removeTracks(syncDevice, trackIds);
+      } catch (error) {
+        notification$.next({
+          id: uuidv7(),
+          kind: "Device Remove Error",
+          state: "error",
+          title: "Error removing tracks",
+          detail: String(error),
+        });
+        return;
+      }
+
+      await refreshDevices();
+
+      notification$.next({
+        id: uuidv7(),
+        kind: "Device Remove",
+        state: "completed",
+        title: "Tracks removed",
+        detail: `Removed ${trackIds.length} track${
+          trackIds.length === 1 ? "" : "s"
+        } from ${syncDevice.name}.`,
+      });
+    },
+    [syncService, refreshDevices]
   );
 
   const addDevice = useCallback(
@@ -182,15 +262,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   //#region Global event handlers
   useEffect(() => {
+    // Same path as the context: filters out songs already on a device.
     const queueSub = queueSongs$.subscribe((songs) => {
-      setQueuedSongs((current) => {
-        const existingIds = new Set(current.map((x) => x.id));
-
-        const additions = songs.filter((song) => !existingIds.has(song.id));
-
-        return [...current, ...additions];
-      });
+      queueSongs(songs);
     });
+    // queueSongs must be a dependency: it closes over `devices` and
+    // `queuedSongs`, and resubscribing is what keeps the filter current.
 
     const dequeueSub = dequeueSongs$.subscribe((songs) => {
       const idsToRemove = new Set(songs.map((song) => song.id));
@@ -204,7 +281,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       queueSub.unsubscribe();
       dequeueSub.unsubscribe();
     };
-  }, []);
+  }, [queueSongs]);
   //#endregion
 
   //#region Value
@@ -219,6 +296,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       refreshDevices,
       isSyncing,
       syncQueue,
+      removeTracksFromDevice,
 
       queuedSongs,
       queueSongs,
@@ -235,6 +313,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       removeDevice,
       updateDevice,
       clearQueue,
+      removeTracksFromDevice,
+      queueSongs,
     ]
   );
   //#endregion
