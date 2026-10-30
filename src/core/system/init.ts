@@ -1,16 +1,13 @@
-import { getMetadataStore, initMetadataStore } from "@/lib/persistence/initMetadataStore";
-import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
+import { getStore } from "@/core/ports";
 
 /**
- * Initialize the backing store (Dexie + File System stores) if needed.
- * Used to make sure the composition root exists before any domain
- * endpoint touches it.
+ * Access the current backing store through the portable store port.
+ * The concrete implementation (browser: Dexie + FileSystem) is supplied
+ * by the platform binding registered during bootstrap.
  */
 export function ensureInitialized(): void {
-  initMetadataStore();
+  getStore();
 }
 
-/** Access the current backing store instance. */
-export function getStore(): CombinedMetadataStore {
-  return getMetadataStore() as CombinedMetadataStore;
-}
+/** Re-export the portable store port accessor. */
+export { getStore };

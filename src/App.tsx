@@ -11,7 +11,12 @@ import { keyShortcut$ } from "./events/keyboard-events";
 import { registerDefaultShortcuts } from "./lib/keyboard-shortcuts/registerDefaultShortcuts";
 import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
 import { handleKey } from "./lib";
+import { registerBrowserStoreProvider } from "./lib/persistence/browser/storeProvider";
 import "./events/job-notifications";
+
+// Wire the browser persistence adapter behind the core store port for the
+// lifetime of the app, before any component/provider calls into core.
+registerBrowserStoreProvider();
 
 function App() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
