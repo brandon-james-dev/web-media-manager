@@ -1,5 +1,5 @@
-import { applySongEdits } from "@/lib";
-import { loadSongMetadata } from "@/lib/metadata/reader/loadSongMetadata";
+import { updateTags } from "@/core/metadata";
+import { getStore } from "@/core/system";
 import type { ITagData } from "@/lib/contracts";
 import type { Song } from "@/models/Song";
 
@@ -19,13 +19,13 @@ export async function runBulkEdit(
     let metadata: Song | null = null;
 
     try {
-      metadata = await loadSongMetadata(id);
+      metadata = await getStore().get(id);
       if (!metadata) continue;
     } catch {
       continue;
     }
 
-    await applySongEdits(metadata, edits);
+    await updateTags(metadata, edits);
 
     processed++;
 

@@ -13,9 +13,9 @@ import {
 } from "@/hooks/usePlayback";
 import {
   getMetadataStore,
-  getPicturesForSongOfType,
   ThumbnailSize,
 } from "@/lib";
+import { getPictureOfType } from "@/core/media";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
@@ -199,7 +199,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       ): Promise<string | undefined> {
         if (!nowPlaying) return;
 
-        const artwork = await getPicturesForSongOfType(
+        const artwork = await getPictureOfType(
           nowPlaying.id,
           ArtworkType.FrontCover,
           thumbnailSize

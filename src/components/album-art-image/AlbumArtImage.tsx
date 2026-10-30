@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { backgroundService } from "@/lib/background-jobs";
-import { getPicturesForSongOfType } from "@/lib";
+import { getPictureOfType } from "@/core/media";
 import type { AlbumArtImageProps } from "./AlbumArtImageProps";
 
 export function AlbumArtImage(props: AlbumArtImageProps) {
@@ -22,7 +22,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
 
       loadingRef.current = true;
 
-      const picture = await getPicturesForSongOfType(
+      const picture = await getPictureOfType(
         songId,
         artworkType,
         thumbSize
@@ -65,7 +65,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
 
       loadingRef.current = true;
 
-      const picture = await getPicturesForSongOfType(
+      const picture = await getPictureOfType(
         songId,
         artworkType,
         thumbSize

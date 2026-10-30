@@ -1,4 +1,4 @@
-import { applySongEdits } from "@/lib";
+import { updateTags } from "@/core/metadata";
 import type { WorkerProgress } from "@/workers/WorkerJob";
 
 export async function runTagWrite(
@@ -12,7 +12,7 @@ export async function runTagWrite(
 
   const { songData, updates } = payload;
 
-  const updatedBytes = await applySongEdits(songData, updates);
+  const updatedBytes = await updateTags(songData, updates);
 
   reportProgress({
     percent: 1.0,

@@ -17,7 +17,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { applySongEdits } from "@/lib";
+import { updateTags } from "@/core/metadata";
 import type { AlbumDetailDto, QuickEditDto, SongEditDto } from "@/dto";
 import { backgroundService } from "@/lib/background-jobs";
 import { useSongs, usePlayback } from "@/hooks";
@@ -60,7 +60,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       ? { coverFront: updates.coverFront }
       : undefined;
     const { coverFront: _coverFront, ...editUpdates } = updates;
-    const updatedSong = await applySongEdits(selectedSong, editUpdates, cover);
+    const updatedSong = await updateTags(selectedSong, editUpdates, cover);
     notification$.next({
       id: uuidv7(),
       title: "Song Updated",
@@ -103,7 +103,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       : undefined;
 
     if (selectedSongs.length === 1) {
-      const updatedSong = await applySongEdits(selectedSongs[0], editUpdates, cover);
+      const updatedSong = await updateTags(selectedSongs[0], editUpdates, cover);
 
       notification$.next({
         id: uuidv7(),
@@ -231,7 +231,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
           albumArtist,
         };
 
-        await applySongEdits(currentSong, updatedSong, cover);
+        await updateTags(currentSong, updatedSong, cover);
         songEditSaved$.next(currentSong);
         backgroundService.enqueue({
           type: "Thumbnail Generation",

@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { isValidAudioFile } from "taglib-wasm";
 import useFileSystemAccess from "use-fs-access";
 import type { FileOrDirectoryInfo } from "use-fs-access/core";
-import { readSongFile } from "@/lib";
-import { getMetadataStore } from "@/lib/persistence/file";
+import { readTags } from "@/core/metadata";
+import { getStore } from "@/core/system";
+import { getMetadataReader } from "@/core/ports";
 import { backgroundService } from "@/lib/background-jobs";
-import { TagLibMetadataReader } from "@/lib/metadata/reader";
 import { getPersistedRootDirectories } from "@/lib/persistence/dexie";
 import type { QueryOptions } from "@/lib/persistence";
 import type { Song, LocalMusicSource } from "@/models";
@@ -51,7 +51,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function handleAdded(entries: Map<string, FileOrDirectoryInfo>) {
-    const store = getMetadataStore();
+    const store = getStore();
 
     for (const [name, info] of entries) {
       if (!shouldProcess(addedDebounce, name)) continue;
@@ -62,9 +62,9 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
       if (!(await isValidAudioFile(await handle.getFile()))) return;
 
-      const processedSong = await readSongFile(
+      const processedSong = await readTags(
         handle,
-        new TagLibMetadataReader()
+        getMetadataReader()
       );
 
       if (!processedSong) return;
@@ -74,7 +74,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function handleDeleted(entries: Map<string, FileOrDirectoryInfo>) {
-    const store = getMetadataStore();
+    const store = getStore();
     for (const [name] of entries) {
       if (!shouldProcess(deletedDebounce, name)) continue;
 
@@ -144,12 +144,12 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
   //#region Helpers
   useEffect(() => {
-    const store = getMetadataStore();
+    const store = getStore();
     store.getAll().then(setSongs);
   }, []);
 
   const refreshSongs = async () => {
-    const store = getMetadataStore();
+    const store = getStore();
     const result = await store.filter(query);
     setFilteredSongs(result.data);
     setTotal(result.total);
@@ -166,7 +166,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
   //#region Global event listeners
   useEffect(() => {
-    const store = getMetadataStore();
+    const store = getStore();
     const unsubAdd = store.onAdded((song) => {
       setSongs((prev) => [...prev, song]);
       scheduleRefresh.current();
@@ -197,7 +197,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const store = getMetadataStore();
+    const store = getStore();
     return backgroundService.onJobProgress(async (event) => {
       if (event.jobType === "Bulk Import") {
         const newSong = event.payload?.data?.song;

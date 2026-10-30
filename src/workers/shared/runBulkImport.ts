@@ -1,8 +1,9 @@
 import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
 import type { WorkerProgress } from "../WorkerJob";
-import { initMetadataStore, readSongFile } from "@/lib";
-import { TagLibMetadataReader } from "@/lib/metadata/reader";
+import { initMetadataStore } from "@/lib";
+import { readTags } from "@/core/metadata";
+import { getMetadataReader } from "@/core/ports";
 import { collectFileHandles } from "@/lib/persistence/file";
 import type { BackgroundJob } from "@/events/background-job-events";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
@@ -30,7 +31,7 @@ export async function runBulkImport(
 
   const sourceId = directory.id;
 
-  const reader = new TagLibMetadataReader();
+  const reader = getMetadataReader();
   const songs: Song[] = [];
 
   const entries: Array<{ handle: FileSystemFileHandle; relativePath: string }> =
@@ -45,7 +46,7 @@ export async function runBulkImport(
   for (const { handle, relativePath } of entries) {
     if (isCancelled()) return { cancelled: true };
 
-    const metadata = await readSongFile(handle, reader);
+    const metadata = await readTags(handle, reader);
 
     const song: Song = {
       ...metadata,

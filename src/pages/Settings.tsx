@@ -29,9 +29,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Item } from "@/components/ui/item";
 import { Sun, Moon, ArrowLeft, X } from "lucide-react";
 import { useTheme } from "@/hooks";
-import { clearDb, getMetadataStore } from "@/lib";
+import { clearLibrary } from "@/core/scanning";
+import { getSourcesStore } from "@/core/ports";
 import type { MusicSource } from "@/models";
-import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { toast } from "@/components/ui/toast";
 import { AccentColorSelector } from "@/components/theme-provider";
 
@@ -50,7 +50,7 @@ export default function Settings() {
 
   //#region Global event listeners
   useEffect(() => {
-    const store = getMetadataStore() as CombinedMetadataStore;
+    const store = getSourcesStore();
     store.getSources().then(setDirectories);
 
     const unsubDirDeleted = store.onSourceDeleted(refresh);
@@ -65,7 +65,7 @@ export default function Settings() {
 
   //#region Helpers
   async function refresh(dir?: MusicSource) {
-    const store = getMetadataStore() as CombinedMetadataStore;
+    const store = getSourcesStore();
     const all = await store.getSources();
 
     if (dir) {
@@ -114,7 +114,7 @@ export default function Settings() {
   };
 
   const handleClearSongs = async () => {
-    await clearDb();
+    await clearLibrary();
     await refresh();
     setClearSongsDialogOpen(false);
     toast.add({
@@ -126,7 +126,7 @@ export default function Settings() {
   const handleDeleteMusicSource = async () => {
     if (!pendingDeleteId) return;
 
-    const store = getMetadataStore() as CombinedMetadataStore;
+    const store = getSourcesStore();
     await store.deleteSource(pendingDeleteId);
 
     setPendingDeleteId(null);

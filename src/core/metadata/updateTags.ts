@@ -1,5 +1,8 @@
 import type { Song } from "@/models";
-import { applySongEdits } from "@/lib/metadata/writer/applySongEdits";
+import {
+  applySongEdits,
+  type CoverUpdate,
+} from "@/lib/metadata/writer/applySongEdits";
 import type { SongEditCallbacks } from "./types";
 
 /**
@@ -12,7 +15,8 @@ import type { SongEditCallbacks } from "./types";
 export async function updateTags(
   song: Song,
   updates: Partial<Song>,
+  cover?: CoverUpdate,
   callbacks?: SongEditCallbacks
 ): Promise<Song> {
-  return applySongEdits(song, updates, undefined, callbacks);
+  return applySongEdits(song, updates, cover, callbacks);
 }

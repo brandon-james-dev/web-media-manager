@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { TanstackSongTable } from "@/components/song-table";
-import { addPersistedStoreDirectory, getMetadataStore } from "@/lib";
+import { addFolder } from "@/core/scanning";
+import { getStore } from "@/core/system";
 import { backgroundService } from "@/lib/background-jobs";
-import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { selectors, type QueryOptions, type SortableColumn } from "@/lib/persistence";
 import { useSongs } from "@/hooks";
 import type { MusicSource, Song } from "@/models";
@@ -43,14 +43,14 @@ function Songs() {
 
   //#region Helpers
   async function refresh() {
-    const store = getMetadataStore() as CombinedMetadataStore;
+    const store = getStore();
     await new Promise((resolve) => setTimeout(resolve, 250));
     const dirs = await store.getSources();
     setDirectories(dirs);
   }
 
   useEffect(() => {
-    const store = getMetadataStore() as CombinedMetadataStore;
+    const store = getStore();
 
     store.getSources().then((next) => {
       setDirectories(next);
@@ -91,7 +91,7 @@ function Songs() {
     const dirHandle = await showDirectoryPicker({ mode: "readwrite" });
     if (!dirHandle) return;
 
-    const directory = await addPersistedStoreDirectory(dirHandle);
+    const directory = await addFolder(dirHandle);
 
     backgroundService.enqueue({
       type: "Bulk Import",

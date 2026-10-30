@@ -7,7 +7,15 @@ import type { MusicSource } from "@/core/contracts";
  */
 export interface MusicSourceRepository {
   /** All configured sources, in merge order (ascending priority). */
-  list(): Promise<MusicSource[]>;
+  getSources(): Promise<MusicSource[]>;
+  /** Add a source (e.g. a user-picked on-device folder). */
+  addSource(source: MusicSource): Promise<MusicSource>;
+  /** Remove a source by id. */
+  deleteSource(id: string): Promise<void>;
+  /** Subscribe to source add/delete/clear notifications. */
+  onSourceAdded(cb: (source: MusicSource) => void): () => void;
+  onSourceDeleted(cb: (source: MusicSource) => void): () => void;
+  onSourcesCleared(cb: () => void): () => void;
 }
 
 let sourcesProvider: (() => MusicSourceRepository) | null = null;

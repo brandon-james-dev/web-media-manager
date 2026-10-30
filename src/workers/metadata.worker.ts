@@ -1,5 +1,12 @@
 import type { WorkerJob } from "@/workers";
 import { workerStrategies } from "./shared";
+import { registerBrowserMetadataReader } from "@/lib/metadata/reader/browserMetadataReader";
+import { registerBrowserStoreProvider } from "@/lib/persistence/browser/storeProvider";
+
+// Workers run in their own thread and do not execute App.tsx bootstrap, so
+// the core ports must be registered here before any job dispatches.
+registerBrowserMetadataReader();
+registerBrowserStoreProvider();
 
 let cancelled = false;
 

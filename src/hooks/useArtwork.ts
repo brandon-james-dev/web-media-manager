@@ -1,6 +1,6 @@
 import { ThumbnailSize } from "../lib/metadata/artwork/resizeBitmap";
 import { useState, useEffect } from "react";
-import { getPicturesForSongOfType } from "../lib";
+import { getPictureOfType } from "@/core/media";
 import { ArtworkType, type IPicture } from "../lib/contracts";
 
 export function useArtwork(
@@ -13,7 +13,7 @@ export function useArtwork(
   useEffect(() => {
     let cancelled = false;
 
-    getPicturesForSongOfType(songId, artworkType, thumbSize).then((a) => {
+    getPictureOfType(songId, artworkType, thumbSize).then((a) => {
       if (!cancelled) setArtwork(a);
     });
 

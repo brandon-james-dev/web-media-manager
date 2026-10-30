@@ -1,6 +1,7 @@
 import { getPicturesForSongOfType } from "@/lib/metadata/artwork/getPicturesForSongOfType";
 import type { IPicture } from "@/lib/contracts/IPicture";
-import type { ArtworkType } from "@/lib/contracts/ArtworkType";
+import { ArtworkType } from "@/lib/contracts/ArtworkType";
+import { ThumbnailSize } from "@/lib/metadata/artwork/resizeBitmap";
 
 /**
  * Domain: Media.
@@ -9,8 +10,12 @@ import type { ArtworkType } from "@/lib/contracts/ArtworkType";
  */
 export async function getPictureOfType(
   songId: string,
-  type: ArtworkType,
-  thumbSize: number
+  type?: ArtworkType,
+  thumbSize?: ThumbnailSize
 ): Promise<IPicture | undefined> {
-  return await getPicturesForSongOfType(songId, type, thumbSize);
+  return await getPicturesForSongOfType(
+    songId,
+    type ?? ArtworkType.FrontCover,
+    thumbSize ?? ThumbnailSize.thumb256
+  );
 }
