@@ -9,7 +9,7 @@ export interface Song extends ITagData, IAudioProperties {
    */
   id: string;
 
-  directoryId: string;
+  sourceId: string;
   relativePath: string;
   filename: string;
   filesize: number;

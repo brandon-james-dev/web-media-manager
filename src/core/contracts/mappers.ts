@@ -1,4 +1,4 @@
-import type { Song, Directory } from "@/models";
+import type { Song, MusicSource } from "@/models";
 import type { Child, MusicFolder, AlbumID3 } from "./models";
 
 /** Convert a stored Song into the Open Subsonic `Child` view. */
@@ -35,9 +35,9 @@ export function albumId(albumName: string): string {
   return `album-${albumName.trim().toLowerCase().replace(/\s+/g, "-")}`;
 }
 
-/** Convert a stored Directory into the Open Subsonic `MusicFolder` view. */
-export function directoryToMusicFolder(dir: Directory): MusicFolder {
-  return { id: dir.id, name: dir.directoryName };
+/** Convert a local MusicSource into the Open Subsonic `MusicFolder` view. */
+export function musicSourceToMusicFolder(source: MusicSource): MusicFolder {
+  return { id: source.id, name: source.name };
 }
 
 /**

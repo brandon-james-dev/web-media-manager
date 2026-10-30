@@ -8,3 +8,5 @@
  */
 export { getStore, setStoreProvider } from "./store";
 export type { CatalogStore } from "./catalog";
+export { getSourcesStore, setSourcesProvider } from "./sources";
+export type { MusicSourceRepository } from "./sources";

@@ -11,14 +11,14 @@ import { backgroundService } from "@/lib/background-jobs";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { selectors, type QueryOptions, type SortableColumn } from "@/lib/persistence";
 import { useSongs } from "@/hooks";
-import type { Directory, Song } from "@/models";
+import type { MusicSource, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
 import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
 import { isEditMultipleChanged$ } from "@/events/editor-events";
 
 function Songs() {
   //#region State
-  const [directories, setDirectories] = useState<Directory[]>([]);
+  const [directories, setDirectories] = useState<MusicSource[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isEditMultiple, setIsEditMultiple] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -45,19 +45,19 @@ function Songs() {
   async function refresh() {
     const store = getMetadataStore() as CombinedMetadataStore;
     await new Promise((resolve) => setTimeout(resolve, 250));
-    const dirs = await store.getDirectories();
+    const dirs = await store.getSources();
     setDirectories(dirs);
   }
 
   useEffect(() => {
     const store = getMetadataStore() as CombinedMetadataStore;
 
-    store.getDirectories().then((next) => {
+    store.getSources().then((next) => {
       setDirectories(next);
       setIsLoading(false);
     });
 
-    const unsubDirAdded = store.onDirectoryAdded(refresh);
+    const unsubDirAdded = store.onSourceAdded(refresh);
     const unsubSongsCleared = store.onStoreCleared(refresh);
 
     return () => {
@@ -84,7 +84,7 @@ function Songs() {
   //#endregion
 
   //#region Interactivity handlers
-  async function handlePickDirectory() {
+  async function handlePickMusicSource() {
     if (!isApiSupported)
       throw new Error("File System Access API not supported.");
 
@@ -148,7 +148,7 @@ function Songs() {
                 <Music color="var(--accent)" size={48} />
                 <h1 className="text-3xl font-bold">Add Music</h1>
                 <Button
-                  onClick={handlePickDirectory}
+                  onClick={handlePickMusicSource}
                   className="flex items-center gap-2"
                 >
                   <FolderOpen className="h-5 w-5" />

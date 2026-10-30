@@ -1,11 +1,20 @@
 import Dexie, { type Table } from "dexie";
 
-import type { Directory, Song, SongArtwork, SyncDeviceRecord } from "@/models";
+import type { MusicSource, Song, SongArtwork, SyncDeviceRecord } from "@/models";
 
 let db: MetadataDb | null = null;
 
+/**
+ * The app's on-device metadata store (Dexie): one table per repository.
+ * The `sources` table holds music sources ("on device" today; subsonic /
+ * server kinds are added as discriminated `kind` members later).
+ *
+ * Dev note: this app has no persisted data to preserve in dev, so a schema
+ * change simply drops and rebuilds the store rather than adding migration
+ * hot-fills.
+ */
 export class MetadataDb extends Dexie {
-  directories!: Table<Directory, string>;
+  sources!: Table<MusicSource, string>;
   songs!: Table<Song, string>;
   songArtwork!: Table<SongArtwork, number>;
   syncDevices!: Table<SyncDeviceRecord, string>;
@@ -14,9 +23,10 @@ export class MetadataDb extends Dexie {
     super("metadata");
 
     this.version(1).stores({
-      directories: `
+      sources: `
         id,
-        directoryName,
+        kind,
+        name,
         createdAt
       `,
 

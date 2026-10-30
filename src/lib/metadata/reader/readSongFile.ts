@@ -55,7 +55,7 @@ export async function readSongFile(
     coverFront,
     coverBack,
     filesize,
-    directoryId: uuidv7(),
+    sourceId: uuidv7(),
     ...tags,
     ...props,
   } as Song;

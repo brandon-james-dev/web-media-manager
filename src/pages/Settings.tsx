@@ -30,7 +30,7 @@ import { Item } from "@/components/ui/item";
 import { Sun, Moon, ArrowLeft, X } from "lucide-react";
 import { useTheme } from "@/hooks";
 import { clearDb, getMetadataStore } from "@/lib";
-import type { Directory } from "@/models";
+import type { MusicSource } from "@/models";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { toast } from "@/components/ui/toast";
 import { AccentColorSelector } from "@/components/theme-provider";
@@ -41,7 +41,7 @@ export default function Settings() {
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [directories, setDirectories] = useState<Directory[]>([]);
+  const [directories, setDirectories] = useState<MusicSource[]>([]);
   const [settings, setSettings] = useState({
     theme: theme || "system",
     accentColor: accentColor || "#3b82f6",
@@ -51,10 +51,10 @@ export default function Settings() {
   //#region Global event listeners
   useEffect(() => {
     const store = getMetadataStore() as CombinedMetadataStore;
-    store.getDirectories().then(setDirectories);
+    store.getSources().then(setDirectories);
 
-    const unsubDirDeleted = store.onDirectoryDeleted(refresh);
-    const unsubDirCleared = store.onDirectoriesCleared(refresh);
+    const unsubDirDeleted = store.onSourceDeleted(refresh);
+    const unsubDirCleared = store.onSourcesCleared(refresh);
 
     return () => {
       unsubDirDeleted();
@@ -64,9 +64,9 @@ export default function Settings() {
   //#endregion
 
   //#region Helpers
-  async function refresh(dir?: Directory) {
+  async function refresh(dir?: MusicSource) {
     const store = getMetadataStore() as CombinedMetadataStore;
-    const all = await store.getDirectories();
+    const all = await store.getSources();
 
     if (dir) {
       setDirectories(all.filter((d) => d.id !== dir.id));
@@ -123,11 +123,11 @@ export default function Settings() {
     });
   };
 
-  const handleDeleteDirectory = async () => {
+  const handleDeleteMusicSource = async () => {
     if (!pendingDeleteId) return;
 
     const store = getMetadataStore() as CombinedMetadataStore;
-    await store.deleteDirectory(pendingDeleteId);
+    await store.deleteSource(pendingDeleteId);
 
     setPendingDeleteId(null);
     setDeleteDirDialogOpen(false);
@@ -217,7 +217,7 @@ export default function Settings() {
           <label>Directories</label>
           {directories.length === 0 && (
             <p className="text-sm text-muted-foreground my-2">
-              No directories added.
+              No on-device sources added.
             </p>
           )}
 
@@ -228,7 +228,7 @@ export default function Settings() {
                   key={dir.id}
                   className="flex items-center justify-between p-0"
                 >
-                  <span className="pl-2">{dir.directoryName}</span>
+                  <span className="pl-2">{dir.name}</span>
 
                   <Button
                     variant="secondary"
@@ -251,7 +251,7 @@ export default function Settings() {
           >
             <DialogContent className="select-none">
               <DialogHeader>
-                <DialogTitle>Remove Directory</DialogTitle>
+                <DialogTitle>Remove MusicSource</DialogTitle>
                 <DialogDescription>
                   This will remove the directory from your library. Songs
                   already imported will remain.
@@ -263,8 +263,8 @@ export default function Settings() {
                   render={<Button variant="outline">Cancel</Button>}
                 ></DialogClose>
 
-                <Button variant="destructive" onClick={handleDeleteDirectory}>
-                  Remove Directory
+                <Button variant="destructive" onClick={handleDeleteMusicSource}>
+                  Remove MusicSource
                 </Button>
               </DialogFooter>
             </DialogContent>

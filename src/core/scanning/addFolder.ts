@@ -1,5 +1,5 @@
 import { addPersistedStoreDirectory } from "@/lib/persistence/addPersistedStoreDirectory";
-import type { Directory } from "@/models";
+import type { MusicSource } from "@/models";
 
 /**
  * Add a chosen folder to the library (persisted).
@@ -7,6 +7,6 @@ import type { Directory } from "@/models";
  */
 export async function addFolder(
   handle: FileSystemDirectoryHandle
-): Promise<Directory> {
+): Promise<MusicSource> {
   return addPersistedStoreDirectory(handle);
 }

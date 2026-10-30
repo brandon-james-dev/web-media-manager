@@ -1,19 +1,36 @@
 import { uuidv7 } from "uuidv7";
-import type { Directory } from "@/models";
+import type { MusicSource } from "@/models";
 import type { CombinedMetadataStore } from "./browser/CombinedMetadataStore";
 import { getMetadataStore } from "./initMetadataStore";
 
-export async function addPersistedStoreDirectory(
+/**
+ * Persist a user-chosen folder as a local ("on device") music source.
+ * The granted directory handle is structured-cloned into Dexie, exactly as
+ * the old Directory row was; the source record adds kind + capabilities so
+ * the same table can later hold subsonic/server instances too.
+ */
+export function addPersistedStoreDirectory(
   directory: FileSystemDirectoryHandle
-): Promise<Directory> {
+): Promise<MusicSource> {
   const store = getMetadataStore() as CombinedMetadataStore;
 
-  const dir = {
+  const source: MusicSource = {
     id: uuidv7(),
-    directoryHandle: directory,
-    directoryName: directory.name,
+    uriDomain: "local",
+    kind: "local",
+    name: directory.name,
+    handle: directory,
+    enabled: true,
+    priority: 50,
     createdAt: new Date(),
-  } as Directory;
+    capabilities: {
+      streaming: true,
+      browsing: true,
+      searching: true,
+      metadataWrite: true,
+      libraryScanning: true,
+    },
+  };
 
-  return await store.addDirectory(dir);
+  return store.addSource(source);
 }

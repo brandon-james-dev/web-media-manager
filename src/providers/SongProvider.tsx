@@ -8,7 +8,7 @@ import { backgroundService } from "@/lib/background-jobs";
 import { TagLibMetadataReader } from "@/lib/metadata/reader";
 import { getPersistedRootDirectories } from "@/lib/persistence/dexie";
 import type { QueryOptions } from "@/lib/persistence";
-import type { Directory, Song } from "@/models";
+import type { Song, LocalMusicSource } from "@/models";
 import { SongContext } from "@/hooks";
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
@@ -27,7 +27,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   //#endregion
 
   //#region Directory Watcher
-  const persistedRootDirectories = useRef<Directory[]>([]);
+  const persistedRootDirectories = useRef<LocalMusicSource[]>([]);
   const hasRestoredDirectories = useRef(false);
 
   const addedDebounce = new Map<string, number>();
@@ -134,8 +134,8 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     ) {
       hasRestoredDirectories.current = true;
 
-      for (const { directoryHandle } of persistedRootDirectories.current) {
-        openDirectory(directoryHandle);
+      for (const { handle } of persistedRootDirectories.current) {
+        openDirectory(handle);
       }
     }
   }, [openDirectory, hasRestoredDirectories, persistedRootDirectories]);

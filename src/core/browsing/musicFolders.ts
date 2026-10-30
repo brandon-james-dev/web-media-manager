@@ -1,5 +1,5 @@
 import { getStore } from "@/core/system";
-import { directoryToMusicFolder } from "@/core/contracts";
+import { musicSourceToMusicFolder } from "@/core/contracts";
 import type { MusicFolder } from "@/core/contracts";
 
 /**
@@ -8,6 +8,6 @@ import type { MusicFolder } from "@/core/contracts";
  */
 export async function getMusicFolders(): Promise<MusicFolder[]> {
   const store = getStore();
-  const dirs = await store.getDirectories();
-  return dirs.map(directoryToMusicFolder);
+  const dirs = await store.getSources();
+  return dirs.map(musicSourceToMusicFolder);
 }

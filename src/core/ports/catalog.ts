@@ -1,4 +1,4 @@
-import type { Directory } from "@/models";
+import type { MusicSource } from "@/models";
 import type { IMetadataStore } from "@/lib/contracts";
 
 /**
@@ -9,5 +9,5 @@ import type { IMetadataStore } from "@/lib/contracts";
  * concrete persistence implementation.
  */
 export interface CatalogStore extends IMetadataStore {
-  getDirectories(): Promise<Directory[]>;
+  getSources(): Promise<MusicSource[]>;
 }

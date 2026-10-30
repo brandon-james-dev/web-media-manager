@@ -1,46 +1,46 @@
-import type { Directory } from "@/models/Directory";
+import type { MusicSource } from "@/models";
 import type { MetadataDb } from "./MetadataDb";
 import type { IRepository, DataChangedCallback } from "..";
 import type { Collection, UpdateSpec } from "dexie";
 import type { QueryOptions } from "../QueryOptions";
 import type { DataSourceResult } from "../DataSourceResult";
 
-export class DexieDirectoryStore implements IRepository<Directory> {
+export class DexieSourceStore implements IRepository<MusicSource> {
   private db: MetadataDb;
 
-  private addedListeners = new Set<DataChangedCallback<Directory>>();
-  private updatedListeners = new Set<DataChangedCallback<Directory>>();
-  private deletedListeners = new Set<DataChangedCallback<Directory>>();
+  private addedListeners = new Set<DataChangedCallback<MusicSource>>();
+  private updatedListeners = new Set<DataChangedCallback<MusicSource>>();
+  private deletedListeners = new Set<DataChangedCallback<MusicSource>>();
   private clearedListeners = new Set<() => void>();
 
   constructor(db: MetadataDb) {
     this.db = db;
 
-    this.db.directories.hook("creating", (_, obj) => {
+    this.db.sources.hook("creating", (_, obj) => {
       for (const cb of this.addedListeners) cb(obj);
     });
 
-    this.db.directories.hook("updating", (mods, _, obj) => {
+    this.db.sources.hook("updating", (mods, _, obj) => {
       const updated = { ...obj, ...mods };
       for (const cb of this.updatedListeners) cb(updated);
     });
 
-    this.db.directories.hook("deleting", (_, obj) => {
+    this.db.sources.hook("deleting", (_, obj) => {
       for (const cb of this.deletedListeners) cb(obj);
     });
   }
 
-  onAdded(cb: DataChangedCallback<Directory>): () => void {
+  onAdded(cb: DataChangedCallback<MusicSource>): () => void {
     this.addedListeners.add(cb);
     return () => this.addedListeners.delete(cb);
   }
 
-  onUpdated(cb: DataChangedCallback<Directory>): () => void {
+  onUpdated(cb: DataChangedCallback<MusicSource>): () => void {
     this.updatedListeners.add(cb);
     return () => this.updatedListeners.delete(cb);
   }
 
-  onDeleted(cb: DataChangedCallback<Directory>): () => void {
+  onDeleted(cb: DataChangedCallback<MusicSource>): () => void {
     this.deletedListeners.add(cb);
     return () => this.deletedListeners.delete(cb);
   }
@@ -50,19 +50,19 @@ export class DexieDirectoryStore implements IRepository<Directory> {
     return () => this.clearedListeners.delete(cb);
   }
 
-  async get(id: string): Promise<Directory | null> {
-    return (await this.db.directories.get(id)) ?? null;
+  async get(id: string): Promise<MusicSource | null> {
+    return (await this.db.sources.get(id)) ?? null;
   }
 
   async filter(
-    options: QueryOptions<Directory>
-  ): Promise<DataSourceResult<Directory>> {
+    options: QueryOptions<MusicSource>
+  ): Promise<DataSourceResult<MusicSource>> {
     const { filter, sort, skip, page } = options;
 
-    const table = this.db.directories;
+    const table = this.db.sources;
 
     const total = await table.count();
-    let collection: Collection<Directory>;
+    let collection: Collection<MusicSource>;
 
     if (sort && typeof sort.selector === "string") {
       collection = table.orderBy(sort.selector);
@@ -121,31 +121,31 @@ export class DexieDirectoryStore implements IRepository<Directory> {
     };
   }
 
-  async getAll(): Promise<Directory[]> {
-    return await this.db.directories.toArray();
+  async getAll(): Promise<MusicSource[]> {
+    return await this.db.sources.toArray();
   }
 
-  async save(id: string, updated: Directory): Promise<Directory> {
-    const existing = await this.db.directories.get(id);
+  async save(id: string, updated: MusicSource): Promise<MusicSource> {
+    const existing = await this.db.sources.get(id);
 
     if (existing) {
-      await this.db.directories.put(updated, id);
+      await this.db.sources.put(updated, id);
     } else {
-      await this.db.directories.add(updated, id);
+      await this.db.sources.add(updated, id);
     }
 
     return updated;
   }
 
   async batchUpdate(
-    items: { id: string; updated: Directory }[]
+    items: { id: string; updated: MusicSource }[]
   ): Promise<void> {
     const updates = items.map(({ id, updated }) => {
-      const changes: UpdateSpec<Directory> = { ...updated };
+      const changes: UpdateSpec<MusicSource> = { ...updated };
       return { key: id, changes };
     });
 
-    await this.db.directories.bulkUpdate(updates);
+    await this.db.sources.bulkUpdate(updates);
 
     for (const { updated } of items) {
       for (const cb of this.updatedListeners) cb(updated);
@@ -153,18 +153,18 @@ export class DexieDirectoryStore implements IRepository<Directory> {
   }
 
   async delete(id: string): Promise<void> {
-    const existing = await this.db.directories.get(id);
+    const existing = await this.db.sources.get(id);
     if (!existing) return;
 
-    await this.db.directories.delete(id);
+    await this.db.sources.delete(id);
 
     for (const cb of this.deletedListeners) cb(existing);
   }
 
   async batchDelete(ids: string[]): Promise<void> {
-    const existing = await this.db.directories.bulkGet(ids);
+    const existing = await this.db.sources.bulkGet(ids);
 
-    await this.db.directories.bulkDelete(ids);
+    await this.db.sources.bulkDelete(ids);
 
     for (const dir of existing) {
       if (dir) {
@@ -174,7 +174,7 @@ export class DexieDirectoryStore implements IRepository<Directory> {
   }
 
   async clearStore(): Promise<void> {
-    await this.db.directories.clear();
+    await this.db.sources.clear();
 
     for (const cb of this.clearedListeners) cb();
   }

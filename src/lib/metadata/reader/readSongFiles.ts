@@ -22,7 +22,7 @@ export async function* readSongFiles(
       id: uuidv7(),
       filename: handle.name,
       relativePath: handle.name,
-      directoryId: uuidv7(), // Default, would be changed in the caller
+      sourceId: uuidv7(), // Default, would be changed in the caller
       filesize: size,
       coverFront: metadata?.coverFront,
       coverBack: metadata?.coverBack,

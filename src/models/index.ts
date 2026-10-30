@@ -1,5 +1,5 @@
 export * from "./Album";
-export * from "./Directory";
+export * from "./MusicSource";
 export * from "./Song";
 export * from "./SongArtwork";
 export * from "./SyncArtwork";

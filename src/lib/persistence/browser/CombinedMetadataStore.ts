@@ -3,7 +3,7 @@ import type { IMetadataStore } from "../../contracts";
 import type { DexieMetadataStore } from "../dexie";
 import type { FileSystemMetadataStore } from "../file";
 import type { DataChangedCallback } from "..";
-import type { Directory } from "@/models";
+import type { MusicSource } from "@/models";
 import type { QueryOptions } from "../QueryOptions";
 import type { DataSourceResult } from "../DataSourceResult";
 
@@ -20,9 +20,9 @@ export class CombinedMetadataStore implements IMetadataStore {
   private songDeletedListeners = new Set<DataChangedCallback<Song>>();
   private storeClearedListeners = new Set<() => void>();
 
-  private dirAddedListeners = new Set<DataChangedCallback<Directory>>();
-  private dirDeletedListeners = new Set<DataChangedCallback<Directory>>();
-  private dirClearedListeners = new Set<() => void>();
+  private sourceAddedListeners = new Set<DataChangedCallback<MusicSource>>();
+  private sourceDeletedListeners = new Set<DataChangedCallback<MusicSource>>();
+  private sourceClearedListeners = new Set<() => void>();
 
   constructor(
     fsStore: FileSystemMetadataStore,
@@ -36,8 +36,8 @@ export class CombinedMetadataStore implements IMetadataStore {
     this.dexieStore.onDeleted((song) => this.emitDeleted(song));
     this.dexieStore.onStoreCleared(() => this.emitStoreCleared());
 
-    this.fsStore.onDirectoryAdded((dir) => this.emitDirectoryAdded(dir));
-    this.fsStore.onDirectoryDeleted((dir) => this.emitDirectoryDeleted(dir));
+    this.fsStore.onSourceAdded((dir) => this.emitSourceAdded(dir));
+    this.fsStore.onSourceDeleted((dir) => this.emitSourceDeleted(dir));
   }
 
   onAdded(cb: DataChangedCallback<Song>) {
@@ -60,19 +60,19 @@ export class CombinedMetadataStore implements IMetadataStore {
     return this.dexieStore.onStoreCleared(cb);
   }
 
-  onDirectoryAdded(cb: DataChangedCallback<Directory>) {
-    this.dirAddedListeners.add(cb);
-    return () => this.dirAddedListeners.delete(cb);
+  onSourceAdded(cb: DataChangedCallback<MusicSource>) {
+    this.sourceAddedListeners.add(cb);
+    return () => this.sourceAddedListeners.delete(cb);
   }
 
-  onDirectoryDeleted(cb: DataChangedCallback<Directory>) {
-    this.dirDeletedListeners.add(cb);
-    return () => this.dirDeletedListeners.delete(cb);
+  onSourceDeleted(cb: DataChangedCallback<MusicSource>) {
+    this.sourceDeletedListeners.add(cb);
+    return () => this.sourceDeletedListeners.delete(cb);
   }
 
-  onDirectoriesCleared(cb: () => void) {
-    this.dirClearedListeners.add(cb);
-    return () => this.dirClearedListeners.delete(cb);
+  onSourcesCleared(cb: () => void) {
+    this.sourceClearedListeners.add(cb);
+    return () => this.sourceClearedListeners.delete(cb);
   }
 
   private emitAdded(song: Song) {
@@ -91,12 +91,12 @@ export class CombinedMetadataStore implements IMetadataStore {
     for (const cb of this.storeClearedListeners) cb();
   }
 
-  private emitDirectoryAdded(dir: Directory) {
-    for (const cb of this.dirAddedListeners) cb(dir);
+  private emitSourceAdded(dir: MusicSource) {
+    for (const cb of this.sourceAddedListeners) cb(dir);
   }
 
-  private emitDirectoryDeleted(dir: Directory) {
-    for (const cb of this.dirDeletedListeners) cb(dir);
+  private emitSourceDeleted(dir: MusicSource) {
+    for (const cb of this.sourceDeletedListeners) cb(dir);
   }
 
   getFileSystem(): FileSystemMetadataStore {
@@ -107,16 +107,16 @@ export class CombinedMetadataStore implements IMetadataStore {
     return this.dexieStore;
   }
 
-  addDirectory(directory: Directory): Promise<Directory> {
-    return this.fsStore.addDirectory(directory);
+  addSource(directory: MusicSource): Promise<MusicSource> {
+    return this.fsStore.addSource(directory);
   }
 
-  async deleteDirectory(id: string): Promise<void> {
-    await this.fsStore.deleteDirectory(id);
+  async deleteSource(id: string): Promise<void> {
+    await this.fsStore.deleteSource(id);
   }
 
-  getDirectories(): Promise<Directory[]> {
-    return this.fsStore.getDirectories();
+  getSources(): Promise<MusicSource[]> {
+    return this.fsStore.getSources();
   }
 
   get(id: string): Promise<Song | null> {

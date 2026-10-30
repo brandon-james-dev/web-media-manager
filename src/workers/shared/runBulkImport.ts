@@ -6,7 +6,8 @@ import { TagLibMetadataReader } from "@/lib/metadata/reader";
 import { collectFileHandles } from "@/lib/persistence/file";
 import type { BackgroundJob } from "@/events/background-job-events";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
-import type { Directory } from "@/models";
+import type { MusicSource } from "@/models";
+import { isLocalSource } from "@/core/contracts/sources";
 
 /**
  * Worker bulk import job — receives a directory handle,
@@ -14,26 +15,27 @@ import type { Directory } from "@/models";
  */
 export async function runBulkImport(
   payload: {
-    directory: Directory;
+    directory: MusicSource;
   },
   isCancelled: () => boolean,
   reportProgress: (progress: WorkerProgress) => void,
   id?: string
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
   const { directory } = payload;
-  const { directoryHandle } = directory;
+  if (!isLocalSource(directory)) return { cancelled: true };
+  const { handle: sourceHandle } = directory;
   if (!id) return { cancelled: true };
 
   const store = initMetadataStore() as CombinedMetadataStore;
 
-  const directoryId = directory.id;
+  const sourceId = directory.id;
 
   const reader = new TagLibMetadataReader();
   const songs: Song[] = [];
 
   const entries: Array<{ handle: FileSystemFileHandle; relativePath: string }> =
     [];
-  await collectFileHandles(directoryHandle, entries);
+  await collectFileHandles(sourceHandle, entries);
 
   const total = entries.length;
   const pictureCountMap = new Map<string, number>();
@@ -51,7 +53,7 @@ export async function runBulkImport(
       filename: handle.name,
       filesize: metadata?.filesize ?? 0,
       relativePath,
-      directoryId,
+      sourceId,
     };
 
     const pictureCount = song?.pictures?.length ?? 0;

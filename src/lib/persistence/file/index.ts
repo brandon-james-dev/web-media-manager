@@ -1,4 +1,4 @@
-import { FileSystemDirectoryStore } from "./FileSystemDirectoryStore";
+import { FileSystemSourceStore } from "./FileSystemSourceStore";
 import { FileWriteStrategy } from "./FileWriteStrategy";
 import { getMetadataStore } from "@/lib/persistence/initMetadataStore";
 import { createFileWriteStrategy } from "./createFileWriteStrategy";
@@ -9,7 +9,7 @@ export {
   createFileWriteStrategy,
   collectFileHandles,
   getMetadataStore,
-  FileSystemDirectoryStore,
+  FileSystemSourceStore,
   FileSystemMetadataStore,
   FileWriteStrategy,
 };
