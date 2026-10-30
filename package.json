@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:github": "tsc -b && vite build --mode github-pages",
-    "lint": "oxlint",
-    "preview": "vite preview",
+    "dev": "vp dev",
+    "build": "tsc -b && vp build",
+    "build:github": "tsc -b && vp build --mode github-pages",
+    "lint": "vp lint",
+    "preview": "vp preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist -u \"github-actions-bot <github-actions@github.com>\" --repo https://x-access-token:${GITHUB_TOKEN}@github.com/brandon-james-dev/web-media-manager.git"
   },
@@ -50,14 +50,17 @@
     "autoprefixer": "^10.5.4",
     "gh-pages": "^6.3.0",
     "oxc-transform-react": "^0.152.0",
-    "oxlint": "^1.75.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
-    "vite": "^8.2.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
+    "vite-plus": "1.4.0"
   },
   "allowScripts": {
     "fsevents@2.3.3": true,
     "@parcel/watcher@2.5.1": true
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0"
   }
 }
