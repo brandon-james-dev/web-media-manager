@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { backgroundService } from "@/lib/background-jobs";
+import { getJobService } from "@/core/jobs";
 import { getPictureOfType } from "@/core/media";
 import type { AlbumArtImageProps } from "./AlbumArtImageProps";
 
@@ -55,7 +55,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
   useEffect(() => {
     const eventName = `artwork-complete:${songId}`;
 
-    const unsub = backgroundService.onCustom(eventName, async () => {
+    const unsub = getJobService().onCustom(eventName, async () => {
       if (loadingRef.current) return;
       if (!songId) {
         setArtwork(null);

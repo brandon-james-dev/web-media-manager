@@ -14,6 +14,7 @@ import { handleKey } from "./lib";
 import { registerBrowserStoreProvider } from "./lib/persistence/browser/storeProvider";
 import { registerBrowserMetadataReader } from "./lib/metadata/reader/browserMetadataReader";
 import { registerBrowserSourceProvider } from "./lib/persistence/browser/sourcesProvider";
+import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvider";
 import "./events/job-notifications";
 
 // Wire the browser persistence adapter behind the core store port for the
@@ -21,6 +22,7 @@ import "./events/job-notifications";
 registerBrowserStoreProvider();
 registerBrowserMetadataReader();
 registerBrowserSourceProvider();
+registerBrowserJobService();
 
 function App() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);

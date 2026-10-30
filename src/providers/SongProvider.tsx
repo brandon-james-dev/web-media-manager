@@ -5,7 +5,7 @@ import type { FileOrDirectoryInfo } from "use-fs-access/core";
 import { readTags } from "@/core/metadata";
 import { getStore } from "@/core/system";
 import { getMetadataReader } from "@/core/ports";
-import { backgroundService } from "@/lib/background-jobs";
+import { getJobService } from "@/core/jobs";
 import { getPersistedRootDirectories } from "@/lib/persistence/dexie";
 import type { QueryOptions } from "@/lib/persistence";
 import type { Song, LocalMusicSource } from "@/models";
@@ -198,7 +198,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const store = getStore();
-    return backgroundService.onJobProgress(async (event) => {
+    return getJobService().onJobProgress(async (event) => {
       if (event.jobType === "Bulk Import") {
         const newSong = event.payload?.data?.song;
 

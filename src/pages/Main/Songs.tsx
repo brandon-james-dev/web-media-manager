@@ -8,7 +8,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { TanstackSongTable } from "@/components/song-table";
 import { addFolder } from "@/core/scanning";
 import { getStore } from "@/core/system";
-import { backgroundService } from "@/lib/background-jobs";
+import { getJobService } from "@/core/jobs";
 import { selectors, type QueryOptions, type SortableColumn } from "@/lib/persistence";
 import { useSongs } from "@/hooks";
 import type { MusicSource, Song } from "@/models";
@@ -93,7 +93,7 @@ function Songs() {
 
     const directory = await addFolder(dirHandle);
 
-    backgroundService.enqueue({
+    getJobService().enqueue({
       type: "Bulk Import",
       payload: { directory },
     });

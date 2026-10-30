@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/drawer";
 import { updateTags } from "@/core/metadata";
 import type { AlbumDetailDto, QuickEditDto, SongEditDto } from "@/dto";
-import { backgroundService } from "@/lib/background-jobs";
+import { getJobService } from "@/core/jobs";
 import { useSongs, usePlayback } from "@/hooks";
 import type { Album, Song } from "@/models";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -71,7 +71,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
 
     songEditSaved$.next(selectedSong);
 
-    backgroundService.enqueue({
+    getJobService().enqueue({
       type: "Thumbnail Generation",
       payload: {
         song: {
@@ -113,7 +113,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
         kind: "Song Edit",
       });
     } else {
-      backgroundService.enqueue({
+      getJobService().enqueue({
         type: "Bulk Edit",
         payload: {
           songIds: selectedSongIds,
@@ -233,7 +233,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
 
         await updateTags(currentSong, updatedSong, cover);
         songEditSaved$.next(currentSong);
-        backgroundService.enqueue({
+        getJobService().enqueue({
           type: "Thumbnail Generation",
           payload: {
             song: {
