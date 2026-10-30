@@ -59,7 +59,11 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     const cover = updates.coverFront
       ? { coverFront: updates.coverFront }
       : undefined;
-    const { coverFront: _coverFront, ...editUpdates } = updates;
+    const editUpdates: Partial<Song> = {};
+    for (const [k, v] of Object.entries(updates) as [keyof SongEditDto, unknown][]) {
+      if (k === "coverFront") continue;
+      if (v !== undefined) (editUpdates as Record<string, unknown>)[k] = v;
+    }
     const updatedSong = await updateTags(selectedSong, editUpdates, cover);
     notification$.next({
       id: uuidv7(),
@@ -90,14 +94,13 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
   async function handleApply(updates: QuickEditDto) {
     if (selectedSongs.length == 0) return;
 
-    const editUpdates: Partial<Song> = {
-      title: updates.title,
-      artist: updates.artist,
-      album: updates.album,
-      genre: updates.genre,
-      year: updates.year,
-      track: updates.track,
-    };
+    const editUpdates: Partial<Song> = {};
+    if (updates.title !== undefined) editUpdates.title = updates.title;
+    if (updates.artist !== undefined) editUpdates.artist = updates.artist;
+    if (updates.album !== undefined) editUpdates.album = updates.album;
+    if (updates.genre !== undefined) editUpdates.genre = updates.genre;
+    if (updates.year !== undefined) editUpdates.year = updates.year;
+    if (updates.track !== undefined) editUpdates.track = updates.track;
     const cover = updates.coverFront
       ? { coverFront: updates.coverFront }
       : undefined;
