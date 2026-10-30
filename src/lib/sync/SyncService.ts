@@ -1,5 +1,5 @@
 import type { Song, SyncDevice } from "@/models";
-import { DexieSyncDeviceStore } from "../dexie-utils/DexieSyncDeviceStore";
+import { DexieSyncDeviceStore } from "../persistence/dexie/DexieSyncDeviceStore";
 import { DeviceScanner } from "./DeviceScanner";
 import { type UsbDeviceInfo } from "./usb";
 import {

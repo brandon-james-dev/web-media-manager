@@ -1,4 +1,4 @@
-import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
+import type { IOnlineMetadata } from "@/lib/metadata-providers/online/IOnlineMetadata";
 import type { Song } from "@/models";
 
 type OnlineSearchPanelProps = {

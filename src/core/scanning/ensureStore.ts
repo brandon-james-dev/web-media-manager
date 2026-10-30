@@ -1,4 +1,4 @@
-import { initMetadataStore } from "@/lib/initMetadataStore";
+import { initMetadataStore } from "@/lib/persistence/initMetadataStore";
 import type { IMetadataStore } from "@/lib/contracts/IMetadataStore";
 
 /**

@@ -1,4 +1,4 @@
-import { renameFile } from "@/lib/metadata/renameFile";
+import { renameFile } from "@/lib/metadata/writer/renameFile";
 
 /**
  * Rename a file in the library. Open Subsonic equivalent: n/a (WMM ext).

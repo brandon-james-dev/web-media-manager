@@ -1,4 +1,4 @@
-import { ThumbnailSize } from "../lib/metadata/resizeBitmap";
+import { ThumbnailSize } from "../lib/metadata/artwork/resizeBitmap";
 import { useState, useEffect } from "react";
 import { getPicturesForSongOfType } from "../lib";
 import { ArtworkType, type IPicture } from "../lib/contracts";

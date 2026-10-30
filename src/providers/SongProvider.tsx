@@ -3,11 +3,11 @@ import { isValidAudioFile } from "taglib-wasm";
 import useFileSystemAccess from "use-fs-access";
 import type { FileOrDirectoryInfo } from "use-fs-access/core";
 import { readSongFile } from "@/lib";
-import { getMetadataStore } from "@/lib/file-utils";
+import { getMetadataStore } from "@/lib/persistence/file";
 import { backgroundService } from "@/lib/background-jobs";
-import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
-import { getPersistedRootDirectories } from "@/lib/dexie-utils";
-import type { QueryOptions } from "@/lib/repository";
+import { TagLibMetadataReader } from "@/lib/metadata/reader";
+import { getPersistedRootDirectories } from "@/lib/persistence/dexie";
+import type { QueryOptions } from "@/lib/persistence";
 import type { Directory, Song } from "@/models";
 import { SongContext } from "@/hooks";
 

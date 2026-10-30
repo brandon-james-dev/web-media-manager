@@ -1,7 +1,7 @@
-import { getMetadataStore } from "@/lib/file-utils";
+import { getMetadataStore } from "@/lib/persistence/file";
 import type { ISyncStrategy } from "./ISyncStrategy";
 import type { Song, SyncDevice } from "@/models";
-import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
+import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 
 export class MtpSyncStrategy implements ISyncStrategy {
   canHandle(device: SyncDevice): boolean {

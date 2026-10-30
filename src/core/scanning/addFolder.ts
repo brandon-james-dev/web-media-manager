@@ -1,4 +1,4 @@
-import { addPersistedStoreDirectory } from "@/lib/addPersistedStoreDirectory";
+import { addPersistedStoreDirectory } from "@/lib/persistence/addPersistedStoreDirectory";
 import type { Directory } from "@/models";
 
 /**

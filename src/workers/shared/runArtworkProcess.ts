@@ -1,4 +1,4 @@
-import { getMetadataDb } from "@/lib/dexie-utils";
+import { getMetadataDb } from "@/lib/persistence/dexie";
 import type { WorkerProgress } from "../WorkerJob";
 import { resizeBitmap, ThumbnailSize } from "@/lib";
 import type { Song, SongArtwork } from "@/models";

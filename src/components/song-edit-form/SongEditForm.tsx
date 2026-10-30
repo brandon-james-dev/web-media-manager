@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbnailSize } from "@/lib";
-import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
+import type { IOnlineMetadata } from "@/lib/metadata-providers/online/IOnlineMetadata";
 import type { Song } from "@/models";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";

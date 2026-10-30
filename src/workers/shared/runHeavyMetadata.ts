@@ -1,5 +1,5 @@
 import type { WorkerProgress } from "@/workers/WorkerJob";
-import { OnlineMetadataResolver } from "@/lib/online-metadata-utils/OnlineMetadataResolver";
+import { OnlineMetadataResolver } from "@/lib/metadata-providers/online/OnlineMetadataResolver";
 
 export async function runHeavyMetadata(
   payload: any,

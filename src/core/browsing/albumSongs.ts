@@ -1,9 +1,9 @@
 import { getStore } from "@/core/system";
 import { songToChild } from "@/core/contracts";
 import type { Child } from "@/core/contracts";
-import { selectors } from "@/lib/repository";
+import { selectors } from "@/lib/persistence";
 import type { Song } from "@/models";
-import type { QueryOptions } from "@/lib/repository";
+import type { QueryOptions } from "@/lib/persistence";
 
 /**
  * Domain: Browsing.

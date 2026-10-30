@@ -1,5 +1,5 @@
-import { getMetadataStore, initMetadataStore } from "@/lib/initMetadataStore";
-import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
+import { getMetadataStore, initMetadataStore } from "@/lib/persistence/initMetadataStore";
+import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 
 /**
  * Initialize the backing store (Dexie + File System stores) if needed.

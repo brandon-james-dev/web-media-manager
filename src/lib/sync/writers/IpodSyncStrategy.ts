@@ -1,7 +1,7 @@
 import type { SyncDevice, Song } from "@/models";
 import type { ISyncStrategy } from "./ISyncStrategy";
-import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
-import { getMetadataStore } from "@/lib/initMetadataStore";
+import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
+import { getMetadataStore } from "@/lib/persistence/initMetadataStore";
 import {
   detectDevice,
   Itdb,

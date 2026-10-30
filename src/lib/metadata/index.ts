@@ -1,12 +1,21 @@
-export { applySongEdits } from "./applySongEdits";
-export { createCombinedWriteStrategy } from "./createCombinedWriteStrategy";
-export { getArtworkForSong } from "./getArtworkForSong";
-export { getPicturesForSong } from "./getPicturesForSong";
-export { getPicturesForSongOfType } from "./getPicturesForSongOfType";
-export { importSongs } from "./importSongs";
-export { loadSongMetadata } from "./loadSongMetadata";
-export { lookupMetadataOnline } from "./lookupMetadataOnline";
-export { readSongFile } from "./readSongFile";
-export { readSongFiles } from "./readSongFiles";
-export { renameFile } from "./renameFile";
-export { resizeBitmap, ThumbnailSize } from "./resizeBitmap";
+// Metadata capabilities grouped by read / write, with artwork as a
+// distinct concern. Interfaces (IMetadataReader/IMetadataWriter) live in
+// ../contracts; these folders hold the operations + any local impls.
+export {
+  applySongEdits,
+  createCombinedWriteStrategy,
+  renameFile,
+} from "./writer";
+export {
+  readSongFile,
+  readSongFiles,
+  loadSongMetadata,
+  importSongs,
+} from "./reader";
+export {
+  getArtworkForSong,
+  getPicturesForSong,
+  getPicturesForSongOfType,
+  resizeBitmap,
+  ThumbnailSize,
+} from "./artwork";

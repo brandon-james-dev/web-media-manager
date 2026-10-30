@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, GripVertical } from "lucide-react";
 
 import { Button } from "../ui/button";
 
-import type { SortableColumn } from "@/lib/repository";
+import type { SortableColumn } from "@/lib/persistence";
 import type { DraggableHeaderProps } from "./DraggableHeaderProps";
 
 export function DraggableHeader({

@@ -1,6 +1,6 @@
-import { lookupMetadataOnline } from "@/lib/metadata/lookupMetadataOnline";
-import type { MetadataProvider } from "@/lib/online-metadata-utils/MetadataProvider";
-import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
+import { lookupMetadataOnline } from "@/lib/metadata-providers/lookupMetadataOnline";
+import type { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
+import type { IOnlineMetadata } from "@/lib/metadata-providers/online/IOnlineMetadata";
 import type { OnlineLookupParams } from "./types";
 
 /**

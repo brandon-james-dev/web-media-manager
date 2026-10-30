@@ -1,6 +1,6 @@
 import type { Song } from "@/models";
-import { readSongFiles } from "@/lib/metadata/readSongFiles";
-import { importSongs } from "@/lib/metadata/importSongs";
+import { readSongFiles } from "@/lib/metadata/reader/readSongFiles";
+import { importSongs } from "@/lib/metadata/reader/importSongs";
 import type { IMetadataReader } from "@/lib/contracts/IMetadataReader";
 import { ensureStore } from "./ensureStore";
 

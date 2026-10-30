@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
-import { MetadataProvider } from "@/lib/online-metadata-utils/MetadataProvider";
-import { OnlineMetadataResolver } from "@/lib/online-metadata-utils/OnlineMetadataResolver";
+import type { IOnlineMetadata } from "@/lib/metadata-providers/online/IOnlineMetadata";
+import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
+import { OnlineMetadataResolver } from "@/lib/metadata-providers/online/OnlineMetadataResolver";
 import type { IPicture } from "@/lib/contracts";
 import { Loader2 } from "lucide-react";
 import type { OnlineSearchPanelProps } from "./OnlineSearchPanelProps";

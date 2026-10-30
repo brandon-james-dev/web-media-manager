@@ -1,4 +1,4 @@
-import { selectors, type SortableColumn } from "@/lib/repository";
+import { selectors, type SortableColumn } from "@/lib/persistence";
 import { SongRow } from "./SongRow";
 import type { SongTableProps } from "./SongTableProps";
 import { ChevronDown, ChevronUp } from "lucide-react";

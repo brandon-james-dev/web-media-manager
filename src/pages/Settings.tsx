@@ -31,7 +31,7 @@ import { Sun, Moon, ArrowLeft, X } from "lucide-react";
 import { useTheme } from "@/hooks";
 import { clearDb, getMetadataStore } from "@/lib";
 import type { Directory } from "@/models";
-import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
+import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { toast } from "@/components/ui/toast";
 import { AccentColorSelector } from "@/components/theme-provider";
 

@@ -1,7 +1,7 @@
 import type { Song } from "@/models";
 import { getStore } from "@/core/system";
 import { songToChild } from "@/core/contracts";
-import { selectors } from "@/lib/repository";
+import { selectors } from "@/lib/persistence";
 import type { SearchParams, SearchResult } from "./types";
 
 /**

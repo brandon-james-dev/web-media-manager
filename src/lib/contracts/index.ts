@@ -7,7 +7,7 @@ import type { IMetadataWriteStrategy } from "./IMetadataWriteStrategy";
 import type { IMetadataReader } from "./IMetadataReader";
 import type { IPicture } from "./IPicture";
 import type { ITagData } from "./ITagData";
-import { MemoryStore } from "../repository/MemoryStore";
+import { MemoryStore } from "../persistence/MemoryStore";
 
 export {
   ArtworkType,

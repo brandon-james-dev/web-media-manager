@@ -1,4 +1,4 @@
-import { getPicturesForSongOfType } from "@/lib/metadata/getPicturesForSongOfType";
+import { getPicturesForSongOfType } from "@/lib/metadata/artwork/getPicturesForSongOfType";
 import type { IPicture } from "@/lib/contracts/IPicture";
 import type { ArtworkType } from "@/lib/contracts/ArtworkType";
 

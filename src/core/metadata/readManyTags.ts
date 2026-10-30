@@ -1,5 +1,5 @@
 import type { Song } from "@/models";
-import { readSongFiles } from "@/lib/metadata/readSongFiles";
+import { readSongFiles } from "@/lib/metadata/reader/readSongFiles";
 import type { IMetadataReader } from "@/lib/contracts/IMetadataReader";
 
 /**

@@ -1,6 +1,6 @@
 import React from "react";
 import type { Song } from "@/models";
-import type { SortableColumn } from "@/lib/repository";
+import type { SortableColumn } from "@/lib/persistence";
 
 export const SongRow = React.memo(function SongRow({
   song,

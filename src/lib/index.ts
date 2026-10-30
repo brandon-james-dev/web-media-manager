@@ -1,9 +1,9 @@
-export { addPersistedStoreDirectory } from "./addPersistedStoreDirectory";
-export { clearDb } from "./clearDb";
-export { getMetadataStore } from "./file-utils";
+export {
+  getMetadataStore,
+} from "./persistence/file";
 export { getShortcuts, type Shortcut } from "./keyboardShortcuts";
 export { handleKey } from "./handleKey";
-export { initMetadataStore } from "./initMetadataStore";
+export { addPersistedStoreDirectory, clearDb, initMetadataStore } from "./persistence";
 export {
   applySongEdits,
   createCombinedWriteStrategy,
@@ -12,10 +12,10 @@ export {
   getPicturesForSongOfType,
   importSongs,
   loadSongMetadata,
-  lookupMetadataOnline,
   readSongFile,
   readSongFiles,
   renameFile,
   resizeBitmap,
   ThumbnailSize,
 } from "./metadata";
+export { lookupMetadataOnline } from "./metadata-providers";
