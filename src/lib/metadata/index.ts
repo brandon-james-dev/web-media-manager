@@ -1,0 +1,12 @@
+export { applySongEdits } from "./applySongEdits";
+export { createCombinedWriteStrategy } from "./createCombinedWriteStrategy";
+export { getArtworkForSong } from "./getArtworkForSong";
+export { getPicturesForSong } from "./getPicturesForSong";
+export { getPicturesForSongOfType } from "./getPicturesForSongOfType";
+export { importSongs } from "./importSongs";
+export { loadSongMetadata } from "./loadSongMetadata";
+export { lookupMetadataOnline } from "./lookupMetadataOnline";
+export { readSongFile } from "./readSongFile";
+export { readSongFiles } from "./readSongFiles";
+export { renameFile } from "./renameFile";
+export { resizeBitmap, ThumbnailSize } from "./resizeBitmap";

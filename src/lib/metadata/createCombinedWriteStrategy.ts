@@ -1,5 +1,5 @@
 import type { Song } from "@/models/Song";
-import type { IMetadataWriteStrategy, ITagData } from "./contracts";
+import type { IMetadataWriteStrategy, ITagData } from "../contracts";
 
 export function createCombinedWriteStrategy(
   ...strategies: IMetadataWriteStrategy[]

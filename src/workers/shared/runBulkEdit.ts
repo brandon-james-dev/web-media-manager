@@ -1,5 +1,5 @@
 import { applySongEdits } from "@/lib";
-import { loadSongMetadata } from "@/lib/loadSongMetadata";
+import { loadSongMetadata } from "@/lib/metadata/loadSongMetadata";
 import type { ITagData } from "@/lib/contracts";
 import type { Song } from "@/models/Song";
 

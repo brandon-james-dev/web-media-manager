@@ -1,5 +1,5 @@
 import { ArtworkType, type IPicture } from "@/lib/contracts";
-import { getArtworkForSong } from ".";
+import { getArtworkForSong } from "./getArtworkForSong";
 
 export async function getPicturesForSong(songId: string): Promise<IPicture[]> {
   const artwork = await getArtworkForSong(songId);

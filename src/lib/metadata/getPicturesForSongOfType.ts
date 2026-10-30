@@ -1,5 +1,5 @@
 import { getMetadataDb } from "@/lib/dexie-utils";
-import { ArtworkType, type IPicture } from "./contracts";
+import { ArtworkType, type IPicture } from "../contracts";
 import { ThumbnailSize } from "./resizeBitmap";
 
 export async function getPicturesForSongOfType(

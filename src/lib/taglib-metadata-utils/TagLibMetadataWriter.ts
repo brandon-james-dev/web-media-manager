@@ -1,7 +1,7 @@
 import { applyPictures, applyTags, type Picture } from "taglib-wasm";
 import type { ITagData } from "@/lib/contracts";
 import type { IMetadataWriter } from "@/lib/contracts/IMedataWriter";
-import { resizeBitmap } from "@/lib/resizeBitmap";
+import { resizeBitmap } from "@/lib/metadata/resizeBitmap";
 
 export class TagLibMetadataWriter implements IMetadataWriter {
   async writeTags(file: File, tags: Partial<ITagData>): Promise<Uint8Array> {

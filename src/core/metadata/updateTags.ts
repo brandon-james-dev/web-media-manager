@@ -1,5 +1,5 @@
 import type { Song } from "@/models";
-import { applySongEdits } from "@/lib/applySongEdits";
+import { applySongEdits } from "@/lib/metadata/applySongEdits";
 import type { SongEditCallbacks } from "./types";
 
 /**

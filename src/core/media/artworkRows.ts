@@ -1,4 +1,4 @@
-import { getArtworkForSong } from "@/lib/getArtworkForSong";
+import { getArtworkForSong } from "@/lib/metadata/getArtworkForSong";
 import type { SongArtwork } from "@/models";
 
 /** Raw artwork rows for a song (thumbnails included). */
