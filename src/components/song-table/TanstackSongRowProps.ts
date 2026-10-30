@@ -5,11 +5,12 @@ import type {
   RowSelectionState,
   ColumnVisibilityState,
   ColumnOrderState,
+  Row,
 } from "@tanstack/react-table";
 
 export interface TanstackSongRowProps {
   song: Song;
-  row: any;
+  row: Row<any, Song>;
   table: ReactTable<
     any,
     Song,

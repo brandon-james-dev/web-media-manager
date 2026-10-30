@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { X } from "lucide-react";
 import { useSync } from "@/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { TanstackSongTable } from "../song-table";
 import type { SyncDevice } from "@/models";
 
 export function SyncQueue({ syncDevice }: { syncDevice: SyncDevice }) {
-  const { queuedSongs, syncQueue, isSyncing } = useSync();
+  const { queuedSongs, syncQueue, isSyncing, clearQueue } = useSync();
   const queueSizeBytes = useMemo(
     () => queuedSongs.reduce((total, song) => total + (song.filesize ?? 0), 0),
     [queuedSongs]
@@ -46,12 +47,24 @@ export function SyncQueue({ syncDevice }: { syncDevice: SyncDevice }) {
             </div>
           </div>
 
-          <Button
-            disabled={isSyncing || !syncDevice || queuedSongs.length === 0}
-            onClick={() => handleSyncButtonClick(syncDevice)}
-          >
-            {isSyncing ? "Syncing..." : "Sync"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={isSyncing || queuedSongs.length === 0}
+              onClick={clearQueue}
+              title="Clear the queue without syncing"
+            >
+              <X className="h-4 w-4" />
+              Clear Queue
+            </Button>
+
+            <Button
+              disabled={isSyncing || !syncDevice || queuedSongs.length === 0}
+              onClick={() => handleSyncButtonClick(syncDevice)}
+            >
+              {isSyncing ? "Syncing..." : "Sync"}
+            </Button>
+          </div>
         </div>
 
         <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto max-h-72">

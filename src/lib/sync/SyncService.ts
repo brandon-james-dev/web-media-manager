@@ -1,10 +1,9 @@
 import type { Song, SyncDevice } from "@/models";
 import { DexieSyncDeviceStore } from "../dexie-utils/DexieSyncDeviceStore";
 import { DeviceScanner } from "./DeviceScanner";
-import { mapUsbDevice, type UsbDeviceInfo } from "./usb";
+import { type UsbDeviceInfo } from "./usb";
 import {
   mapSyncDeviceToRecord,
-  DirectoryPickerRequiredError,
   restoreSyncDevice,
   waitForMount,
 } from "./helpers";
@@ -18,52 +17,57 @@ export class SyncService {
   async loadPersistedDevices() {
     const records = await this.deviceStore.getAll();
 
-    for (const rec of records) {
-      if (!rec.rootHandle) continue;
-      await waitForMount(rec.rootHandle);
+    // Show only devices physically connected right now: match persisted
+    // records against the USB devices currently enumerated by the browser.
+    // `addDevice` requires a serial number, so every saved record has one.
+    const connectedSerials = new Set(
+      (await navigator.usb.getDevices())
+        .map((device) => device.serialNumber)
+        .filter((serial): serial is string => typeof serial === "string")
+    );
+
+    const connectedRecords = records.filter((record) => {
+      if (!record.rootHandle || !record.usb?.serialNumber) return false;
+
+      return connectedSerials.has(record.usb.serialNumber);
+    });
+
+    for (const record of connectedRecords) {
+      await waitForMount(record.rootHandle!);
     }
 
+    // Read each device independently: one unreadable record (mid-eject,
+    // unsupported model) must not blank out every other connected device.
     const devices = await Promise.all(
-      records.map((record) => restoreSyncDevice(record))
+      connectedRecords.map(async (record) => {
+        try {
+          return await restoreSyncDevice(record);
+        } catch (error) {
+          console.warn(
+            `[SyncService] Unable to read "${record.name}":`,
+            error
+          );
+          return null;
+        }
+      })
     );
 
     return devices.filter((device): device is SyncDevice => device !== null);
   }
 
   async addDevice(
-    usbInfo?: UsbDeviceInfo,
-    rootHandle?: FileSystemDirectoryHandle
+    rootHandle?: FileSystemDirectoryHandle,
+    usbInfo?: UsbDeviceInfo
   ): Promise<SyncDevice> {
-    if (!usbInfo && !rootHandle) {
-      const usbDevice = await navigator.usb.requestDevice({
-        filters: [
-          { classCode: 0x06 }, // MTP/PTP
-          { classCode: 0x08 }, // Mass Storage
-          { deviceClass: 6 }, // MTP/PTP
-          { deviceClass: 8 }, // Mass Storage
-          { deviceClass: 255 }, // Special Case (Zune)
-        ],
-      });
-
-      usbInfo = mapUsbDevice(usbDevice);
-
-      const isMassStorage = usbDevice.configurations.some((configuration) =>
-        configuration.interfaces.some(
-          (iface) => iface.alternate.interfaceClass === 0x08
-        )
-      );
-      const isZune = usbDevice.deviceClass !== 255;
-
-      if (isMassStorage && !isZune) {
-        throw new DirectoryPickerRequiredError(usbInfo);
-      }
-
-      if (!rootHandle && isMassStorage) {
-        throw new Error("The root directory is not selected");
-      }
+    if (!usbInfo) {
+      throw new Error("The device cannot be added without USB information");
     }
 
-    const device = await this.scanner.scan(usbInfo, rootHandle);
+    if (!rootHandle) {
+      throw new Error("The selected directory is invalid");
+    }
+
+    const device = await this.scanner.scan(rootHandle, usbInfo);
 
     if (!device.usb || !device.usb.serialNumber) {
       throw new Error("Unable to get USB info for device");
@@ -77,6 +81,13 @@ export class SyncService {
     return device;
   }
 
+  /** Detect mass-storage devices — those needing a directory prompt (e.g. iPod). */
+  requiresRootDirectory(usbInfo: UsbDeviceInfo): boolean {
+    // Apple iPods (vendor 0x05ac) expose a mass-storage filesystem and so
+    // require a directory picker. MTP/PTP devices (Zune, etc.) do not.
+    return usbInfo.vendorId === 0x05ac;
+  }
+
   async syncSongs(device: SyncDevice, songs: Song[]): Promise<void> {
     const strategy = this.strategies.find((x) => x.canHandle(device));
 
@@ -85,5 +96,28 @@ export class SyncService {
     }
 
     await strategy.sync(device, songs);
+  }
+
+  /**
+   * Delete tracks from a device by their on-device ids (`SyncTrack.id`).
+   * Throws when the device type cannot delete individual tracks.
+   */
+  async removeTracks(
+    device: SyncDevice,
+    trackIds: number[]
+  ): Promise<void> {
+    const strategy = this.strategies.find((x) => x.canHandle(device));
+
+    if (!strategy) {
+      throw new Error(`Unable to manage "${device.type}".`);
+    }
+
+    if (!strategy.removeTracks) {
+      throw new Error(
+        `Removing individual tracks is not supported for "${device.type}".`
+      );
+    }
+
+    await strategy.removeTracks(device, trackIds);
   }
 }

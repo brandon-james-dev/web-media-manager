@@ -1,7 +1,10 @@
 import { memo } from "react";
 import type { TanstackSongRowProps } from "./TanstackSongRowProps";
 import { SongContextMenu } from "../song-context-menu/SongContextMenu";
-import type { RowSelectionState } from "@tanstack/react-table";
+import type { Cell, RowSelectionState } from "@tanstack/react-table";
+import { usePlayback } from "@/hooks";
+import type { Song } from "@/models";
+import { Play } from "lucide-react";
 
 export const SongRow = memo(function SongRow({
   song,
@@ -13,17 +16,18 @@ export const SongRow = memo(function SongRow({
   registerRowRef,
 }: TanstackSongRowProps) {
   const isSelected = row.getIsSelected();
+  const { nowPlaying, isPlaying } = usePlayback();
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     if (e.detail === 1) {
       const selection: RowSelectionState = isEditMultiple
         ? {
-            ...rowSelection,
-            [song.id]: true,
-          }
+          ...rowSelection,
+          [song.id]: true,
+        }
         : {
-            [row.id]: true,
-          };
+          [row.id]: true,
+        };
 
       table.setRowSelection(selection);
     } else if (e.detail === 2) {
@@ -45,7 +49,7 @@ export const SongRow = memo(function SongRow({
             : "flex odd:bg-muted/15 hover:bg-accent/45"
         }
       >
-        {row.getVisibleCells().map((cell: any) => (
+        {row.getVisibleCells().map((cell: Cell<any, Song>) => (
           <div
             key={cell.id}
             style={{
@@ -53,7 +57,14 @@ export const SongRow = memo(function SongRow({
             }}
             className="px-4 py-1 whitespace-nowrap overflow-hidden text-ellipsis"
           >
-            <table.FlexRender cell={cell} />
+            <div className="flex items-center gap-1 min-w-0">
+              {cell.column.id === "title" && nowPlaying?.id === song.id && (
+                isPlaying && <Play className="h-[0.65lh] w-[0.65lh] shrink-0 fill-current" />
+              )}
+              <div className="flex-1 min-w-0 truncate">
+                <table.FlexRender cell={cell} />
+              </div>
+            </div>
           </div>
         ))}
       </div>

@@ -1,4 +1,6 @@
+import { ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,8 +9,11 @@ import {
 } from "@/components/ui/card";
 
 import type { SyncDevice } from "@/models";
+import { formatBytes } from "@/lib/sync/helpers";
+import { useSync } from "@/hooks/useSync";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useMemo, useState } from "react";
+import { DeviceLibraryDialog } from "./DeviceLibraryDialog";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "../ui/item";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -16,6 +21,19 @@ type DeviceView = "songs" | "albums" | "artists" | "playlists";
 
 export function SyncDeviceCard({ device }: { device: SyncDevice }) {
   const [view, setView] = useState<DeviceView>("songs");
+
+  const { usedBytes, capacityBytes } = device.storage ?? {};
+
+  // Null when nothing was measured, rather than implying the device is empty.
+  const storageLabel =
+    usedBytes == null
+      ? null
+      : capacityBytes
+        ? `${formatBytes(usedBytes)} of ${formatBytes(capacityBytes)} used`
+        : `${formatBytes(usedBytes)} used`;
+
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const { removeTracksFromDevice } = useSync();
 
   const albums = useMemo(() => {
     const map = new Map<
@@ -67,6 +85,13 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
 
   return (
     <Card>
+      <DeviceLibraryDialog
+        open={isLibraryOpen}
+        onOpenChange={setIsLibraryOpen}
+        device={device}
+        onRemoveTracks={removeTracksFromDevice}
+      />
+
       <CardContent className="py-4 space-y-4">
         <div className="flex flex-col md:flex-row md:justify-between items-start">
           <div className="flex flex-col gap-1">
@@ -80,12 +105,11 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
                 </div>
               )}
 
-              <div className="before:mx-2 before:content-['·']">
-                {Number(
-                  (device.storage?.usedBytes ?? 0) / Math.pow(1024, 3)
-                ).toFixed(2)}
-                GB used
-              </div>
+              {storageLabel && (
+                <div className="before:mx-2 before:content-['·']">
+                  {storageLabel}
+                </div>
+              )}
             </div>
           </div>
 
@@ -117,7 +141,7 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
         </div>
 
         <div className="grid grid-cols-4 gap-3">
-          <div className="col-span-4 md:col-span-1">
+          <div className="col-span-4 md:col-span-1 flex-col flex gap-3">
             <Card>
               <CardContent>
                 <CardTitle>{device.media?.tracks.length ?? 0}</CardTitle>
@@ -128,6 +152,18 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
                 </CardDescription>
               </CardContent>
             </Card>
+
+            {device.capabilities.database && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={device.media.tracks.length === 0}
+                onClick={() => setIsLibraryOpen(true)}
+              >
+                <ListChecks />
+                Manage Library
+              </Button>
+            )}
           </div>
           <Tabs
             value={view}
@@ -170,7 +206,7 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
                           <ItemDescription>
                             {album.artist}
                             {" · "}
-                            {album.trackCount !== 1
+                            {album.trackCount === 1
                               ? "1 Track"
                               : `${album.trackCount} Tracks`}
                           </ItemDescription>

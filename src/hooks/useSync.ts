@@ -16,9 +16,14 @@ export interface SyncContextValue {
 
   isSyncing: boolean;
   syncQueue(syncDevice: SyncDevice): Promise<void>;
+  removeTracksFromDevice(
+    syncDevice: SyncDevice,
+    trackIds: number[]
+  ): Promise<void>;
 
   queuedSongs: Song[];
-  queueSongs(songs: Song[]): void;
+  /** Queue songs that are not already on a connected device. Returns those added. */
+  queueSongs(songs: Song[]): Song[];
   removeQueuedSong(songId: string): void;
   clearQueue(): void;
 }

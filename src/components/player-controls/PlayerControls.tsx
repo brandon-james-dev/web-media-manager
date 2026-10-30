@@ -113,6 +113,9 @@ function PlayerControls() {
   }, [isPlaying, nowPlaying, getCurrentTime]);
 
   function formatTime(time: number) {
+    if (time === 0) {
+      return '--:--'
+    }
     const d = time;
     const m = Math.floor(d / 60);
     const s = `${Math.floor(d % 60)}`.padStart(2, "0");

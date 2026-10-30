@@ -16,5 +16,10 @@ export async function restoreSyncDevice(
 
   const scanner = new DeviceScanner();
 
-  return scanner.scan(record.usb, record.rootHandle);
+  const device = await scanner.scan(record.rootHandle, record.usb);
+
+  // Detectors mint a fresh uuid on every scan. Reuse the persisted id so a
+  // refresh does not remount the device card (React keyed on device.id),
+  // which would reset the selected tab and scroll position mid-interaction.
+  return { ...device, id: record.id };
 }

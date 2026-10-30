@@ -1,5 +1,3 @@
-import { keyShortcut$ } from "@/events/keyboard-events";
-
 export type Shortcut = {
   id: string;
   description: string;
@@ -23,7 +21,16 @@ export function getShortcuts() {
   return shortcuts;
 }
 
-keyShortcut$.subscribe((id) => {
-  const shortcut = shortcuts.get(id);
-  if (shortcut) shortcut.action();
-});
+/**
+ * Run the shortcut registered under `id`. Its action emits the id on
+ * keyShortcut$, which is how subscribers (App, PlayerControls, Editor) learn
+ * that it fired.
+ *
+ * Dispatch is called directly by the key handler and was previously also
+ * subscribed to keyShortcut$; because actions re-emit their own id, that
+ * subscription re-entered itself — emitting twice to every subscriber and
+ * recursing until the stack overflowed.
+ */
+export function dispatchShortcut(id: string) {
+  shortcuts.get(id)?.action();
+}

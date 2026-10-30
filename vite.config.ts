@@ -6,7 +6,7 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   base: mode === "github-pages" ? "/web-media-manager/" : "/",
 
-  plugins: [react(), tailwindcss()],
+  plugins: [react({ compiler: true }), tailwindcss()],
 
   resolve: {
     alias: {
