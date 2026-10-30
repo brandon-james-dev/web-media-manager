@@ -1,5 +1,6 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataReader } from "../../contracts";
+import { applyTagDataToSong } from "@/core/contracts/mappers";
 import { uuidv7 } from "uuidv7";
 
 /**
@@ -32,14 +33,13 @@ export async function readSongFile(
 
   if (!tags && !props) return null;
 
-  return {
+  const base: Song = {
     id: uuidv7(),
     filename,
     relativePath: filename,
-    fileSizeBytes: file.size,
     filesize,
     sourceId: uuidv7(),
-    ...tags,
-    ...props,
-  } as Song;
+  };
+
+  return applyTagDataToSong(base, tags, props);
 }

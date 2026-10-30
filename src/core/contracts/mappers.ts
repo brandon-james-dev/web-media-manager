@@ -1,5 +1,23 @@
 import type { Song, MusicSource } from "@/models";
+import type { IAudioProperties, ITagData } from "@/lib/contracts";
 import type { Child, MusicFolder, AlbumID3 } from "./models";
+
+/**
+ * Map low-level tag/audio data into the tag-facing fields of a Song. The
+ * Song model is independent of the tag contracts — the translation happens
+ * here — so reading a file never couples the Song shape to ITagData.
+ */
+export function applyTagDataToSong(
+  song: Song,
+  tags?: ITagData | null,
+  props?: IAudioProperties | null
+): Song {
+  return {
+    ...song,
+    ...tags,
+    ...props,
+  };
+}
 
 /** Convert a stored Song into the Open Subsonic `Child` view. */
 export function songToChild(song: Song): Child {
