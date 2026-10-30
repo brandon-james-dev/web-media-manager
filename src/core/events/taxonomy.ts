@@ -1,22 +1,21 @@
 /**
  * WMM event & command taxonomy (Step 1).
  *
- * The stable, user-addressable contract for app interaction. A customizable
- * UI (XML layout) binds user gestures to COMMAND names; the app EMITS EVENT
- * names. Both share the `wmm.<domain>.<action>` naming scheme, aligned with
- * the Open Subsonic domains used across `core/`.
+ * The stable, user-addressable contract for app interaction. Command names
+ * are what a user triggers via gestures (buttons, shortcuts, configurable
+ * bindings); the app EMITS EVENT names. Both share the `wmm.<domain>.<action>`
+ * naming scheme, aligned with the Open Subsonic domains used across `core/`.
  *
  *  - Commands are things a user can trigger ("toggle pause", "edit song").
  *  - Events are things the app reports happened ("playback paused").
  *
- * These names are USER-FACING configuration identifiers: XML actions,
- * keyboard shortcuts, and (later) scripts reference them. Treat them as a
- * stable contract — renaming requires updating every user config.
+ * These names are USER-FACING configuration identifiers: keyboard
+ * shortcuts, gesture bindings, and (later) scripts reference them. Treat
+ * them as a stable contract — renaming requires updating every user config.
  *
  * Security note: this registry is also the SAFETY BOUNDARY for user-supplied
- * UI. A gestural binding (onclick="wmm.playback.togglePause") is only valid
- * if the name exists here; unknown names are rejected. No name can invoke
- * arbitrary code.
+ * configuration. A gesture binding is only valid if its name exists here;
+ * unknown names are rejected. No name can invoke arbitrary code.
  */
 
 // ---------------------------------------------------------------- domains
@@ -36,7 +35,7 @@ export type WmmDomain =
   | "ui";
 
 // ---------------------------------------------------------------- commands
-/** Commands: things a user can trigger from a gesture (button/shortcut/XML). */
+/** Commands: things a user can trigger from a gesture (button/shortcut/binding). */
 export type WmmCommandName =
   // playback
   | "wmm.playback.playpause"
@@ -236,7 +235,7 @@ export const WMM_EVENT_NAMES: readonly WmmEventName[] = [
   "wmm.ui.editorModeChanged",
 ];
 
-/** Type guard: is a name a known command? (used for XML/config validation) */
+/** Type guard: is a name a known command? (used for config/gesture validation) */
 export function isWmmCommand(name: string): name is WmmCommandName {
   return (WMM_COMMAND_NAMES as readonly string[]).includes(name);
 }

@@ -1,8 +1,9 @@
 # WMM Event & Command Taxonomy (Step 1)
 
 Stable, user-addressable contract for app interaction. Commands are what a
-user triggers (buttons, shortcuts, future XML UI); events are what the app
-reports happened. This file is the design record / contract doc.
+user triggers (buttons, shortcuts, and other configurable gestures); events
+are what the app reports happened. This file is the design record / contract
+doc.
 
 ## Naming scheme
 
@@ -20,18 +21,18 @@ playlists, playback, jobs, sync, ui.
 | Meaning | "do this" (user intent) | "this happened" (state change) |
 | Issued by | User gesture / config binding | The app (core/providers) |
 | Consumed by | App logic | UI reactive views |
-| XML-addressable | Yes — a button on*click* fires a command | No — UI binds to react to these |
+| Gesture-addressable | Yes — a button click fires a command | No — UI binds to react to these |
 
-This distinction matters for the customizable UI: a user button *issues*
-commands; it must never emit "events" (which would fake state the app
-doesn't hold).
+This distinction matters for configurable interactions: a user gesture
+*issues* commands; it must never emit "events" (which would fake state the
+app doesn't hold).
 
 ## The registry is the security boundary
 
-A user-supplied XML/UI config references command names; the parse layer maps
+User-provided configuration references command names; the parse layer maps
 them only through this registry. Unknown names are rejected. The registry is
 the closed set of everything a user can trigger — it cannot invoke arbitrary
-code. This is what makes user-defined UI safe.
+code. This is what makes user-defined interactions safe.
 
 ## Stability contract
 
@@ -50,7 +51,7 @@ The command list derives from today's actual interaction surface:
   edit, close, openShortcuts — mapped onto the same vocabulary here
 - Core domains (system/browsing/searching/scanning/media/metadata/playlists/
   jobs): getAlbumList, search, addFolder, clearLibrary, updateTags,
-  savePlayQueue, getJobService… — the commands trigger these where relevant
+  savePlayQueue, getJobService... — the commands trigger these where relevant
 - Library/sync: song edit/quickEdit/open, source add, sync start
 
 ## Types
@@ -60,7 +61,7 @@ The command list derives from today's actual interaction surface:
 - `WmmCommandPayload` / `WmmEventPayload` — typed payload per name
 - `WmmCommand` / `WmmEvent` / `WmmMessage` — envelope
 - `WMM_COMMAND_NAMES` / `WMM_EVENT_NAMES` — runtime lists
-- `isWmmCommand()` / `isWmmEvent()` — guards used by XML/config validation
+- `isWmmCommand()` / `isWmmEvent()` — guards used by config validation
 
 ## Next steps (when ready)
 
@@ -69,5 +70,4 @@ The command list derives from today's actual interaction surface:
    `events/*.ts` subjects.
 2. Command dispatch: `invoke(name, payload)` → routes to the core/domain
    function or provider action.
-3. XML UI base components bind `onclick/ondblclick/onhover` → `invoke` with
-   validation against `isWmmCommand`.
+3. Configurable UI bindings follow the command/event contract above.
