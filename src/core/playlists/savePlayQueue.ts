@@ -1,12 +1,15 @@
+import { wmmBus } from "@/core/events";
 import type { Song } from "@/models";
-import { playlistSet$ } from "@/events/player-events";
 
 /**
  * Domain: Play Queue.
  * Open Subsonic equivalent: savePlayQueue().
  *
- * Publishes a new queue to the existing event bus.
+ * Publishes a new queue to the WmmBus. Payload carries ids only — the
+ * provider/store resolve them to `Song` objects.
  */
 export function savePlayQueue(entries: Song[]): void {
-  playlistSet$.next(entries);
+  wmmBus.publish("wmm.playback.queueChanged", {
+    songIds: entries.map((s) => s.id),
+  });
 }

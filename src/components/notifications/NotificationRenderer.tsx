@@ -1,4 +1,4 @@
-import type { AppNotificationEvent } from "@/events/notification-events";
+import type { AppNotificationEvent } from "@/core/events/notification-events";
 import { BulkImportNotification } from "./BuilkImportNotification";
 import { DefaultNotification } from "./DefaultNotification";
 

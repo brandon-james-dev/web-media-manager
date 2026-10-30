@@ -10,7 +10,7 @@ import { toast } from "@/components/ui/toast";
 import {
   notification$,
   type AppNotificationEvent,
-} from "@/events/notification-events";
+} from "@/core/events/notification-events";
 import { Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 

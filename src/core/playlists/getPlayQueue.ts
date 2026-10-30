@@ -1,7 +1,8 @@
-import type { Song } from "@/models";
-import { playlistSet$ } from "@/events/player-events";
+import { wmmBus } from "@/core/events";
+import { getStore } from "@/core/system";
 import { songToChild } from "@/core/contracts";
-import { Observable, map } from "rxjs";
+import { Observable, filter, from, map, mergeMap, toArray } from "rxjs";
+import type { Song } from "@/models";
 import type { PlayQueue } from "./types";
 
 function toQueue(entries: Song[]): PlayQueue {
@@ -12,10 +13,18 @@ function toQueue(entries: Song[]): PlayQueue {
  * Domain: Play Queue.
  * Open Subsonic equivalent: getPlayQueue().
  *
- * NOTE: today the play queue is ephemeral (React state), so this returns
- * the live queue via the RxJS subject. A persisted PlayQueueStore arrives
- * in a later phase.
+ * Live queue via the WmmBus `queueChanged` event; ids are resolved to songs
+ * through the store. A persisted PlayQueueStore arrives in a later phase.
  */
 export function getPlayQueue(): Observable<PlayQueue> {
-  return playlistSet$.pipe(map((songs) => toQueue(songs)));
+  return wmmBus.on$("wmm.playback.queueChanged").pipe(
+    mergeMap((payload) =>
+      from(payload?.songIds ?? []).pipe(
+        mergeMap((id) => from(getStore().get(id))),
+        filter((s): s is Song => !!s),
+        toArray()
+      )
+    ),
+    map(toQueue)
+  );
 }

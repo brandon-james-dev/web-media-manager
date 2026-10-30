@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toast";
 import { MainLayout } from "./pages/Main/MainLayout";
 import { PlaybackProvider } from "./providers/PlaybackProvider";
 import { useEffect, useState } from "react";
-import { keyShortcut$ } from "./events/keyboard-events";
+import { keyShortcut$ } from "@/core/events";
 import { registerDefaultShortcuts } from "./lib/keyboard-shortcuts/registerDefaultShortcuts";
 import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
 import { handleKey } from "./lib";
@@ -15,7 +15,8 @@ import { registerBrowserStoreProvider } from "./lib/persistence/browser/storePro
 import { registerBrowserMetadataReader } from "./lib/metadata/reader/browserMetadataReader";
 import { registerBrowserSourceProvider } from "./lib/persistence/browser/sourcesProvider";
 import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvider";
-import "./events/job-notifications";
+import { connectCommandDispatch, wmmBus } from "./core/events";
+import "./core/events/job-notifications";
 
 // Wire the browser persistence adapter behind the core store port for the
 // lifetime of the app, before any component/provider calls into core.
@@ -23,6 +24,10 @@ registerBrowserStoreProvider();
 registerBrowserMetadataReader();
 registerBrowserSourceProvider();
 registerBrowserJobService();
+
+// Connect the bus to the command dispatcher: bus.invoke() -> registered
+// handlers (providers/UI register commands; this makes them reachable).
+connectCommandDispatch();
 
 function App() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
@@ -57,7 +62,16 @@ function App() {
       if (shortcut === "openShortcuts") setIsShortcutsOpen(!isShortcutsOpen);
     });
 
-    return () => sub.unsubscribe();
+    // Also listen for the ui.openShortcuts command on the bus so any
+    // gesture/configurable binding can open the shortcuts modal.
+    const offCmd = wmmBus.onCommand("wmm.ui.openShortcuts", () =>
+      setIsShortcutsOpen((prev) => !prev)
+    );
+
+    return () => {
+      sub.unsubscribe();
+      offCmd();
+    };
   });
 
   return (

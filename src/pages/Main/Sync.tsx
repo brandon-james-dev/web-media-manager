@@ -3,7 +3,7 @@ import { uuidv7 } from "uuidv7";
 import { MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { notification$ } from "@/events/notification-events";
+import { notification$ } from "@/core/events/notification-events";
 import { AddDeviceDialog, SyncDeviceCard, SyncQueue } from "@/components/sync";
 import { useSync } from "@/hooks";
 import { DevicePromptOrchestrator } from "@/lib/sync";

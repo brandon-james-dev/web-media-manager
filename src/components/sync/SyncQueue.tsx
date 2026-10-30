@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { X } from "lucide-react";
 import { useSync } from "@/hooks";
+import { wmmBus } from "@/core/events";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,14 +10,14 @@ import { TanstackSongTable } from "../song-table";
 import type { SyncDevice } from "@/models";
 
 export function SyncQueue({ syncDevice }: { syncDevice: SyncDevice }) {
-  const { queuedSongs, syncQueue, isSyncing, clearQueue } = useSync();
+  const { queuedSongs, isSyncing } = useSync();
   const queueSizeBytes = useMemo(
     () => queuedSongs.reduce((total, song) => total + (song.filesize ?? 0), 0),
     [queuedSongs]
   );
 
   function handleSyncButtonClick(syncDevice: SyncDevice) {
-    void syncQueue(syncDevice);
+    wmmBus.invoke("wmm.sync.sync", { deviceId: syncDevice.id });
   }
 
   return (
@@ -51,7 +52,7 @@ export function SyncQueue({ syncDevice }: { syncDevice: SyncDevice }) {
             <Button
               variant="outline"
               disabled={isSyncing || queuedSongs.length === 0}
-              onClick={clearQueue}
+              onClick={() => wmmBus.invoke("wmm.sync.clearQueue")}
               title="Clear the queue without syncing"
             >
               <X className="h-4 w-4" />

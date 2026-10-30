@@ -1,5 +1,5 @@
 /**
- * WMM event & command taxonomy (Step 1).
+ * WMM event & command taxonomy.
  *
  * The stable, user-addressable contract for app interaction. Command names
  * are what a user triggers via gestures (buttons, shortcuts, configurable
@@ -56,8 +56,9 @@ export const WMM_COMMANDS = {
   "wmm.playback.toggleShuffle": undefined,
   "wmm.playback.toggleRepeat": undefined,
   "wmm.playback.playSong": {} as { songId: string },
-  "wmm.playback.playQueue": undefined,
+  "wmm.playback.playQueue": {} as { songIds: string[] },
   "wmm.playback.clearQueue": undefined,
+  "wmm.playback.removeFromQueue": {} as { songId: string },
   // library / browsing
   "wmm.library.song.edit": {} as { songId: string },
   "wmm.library.song.quickEdit": {} as { songIds: string[] },
@@ -74,8 +75,16 @@ export const WMM_COMMANDS = {
   "wmm.searching.search": {} as { query: string },
   // playlists
   "wmm.playlists.save": undefined,
+  "wmm.playlists.addSong": {} as { songId: string },
   // sync
   "wmm.sync.start": undefined,
+  "wmm.sync.addDevice": undefined,
+  "wmm.sync.refreshDevices": undefined,
+  "wmm.sync.sync": {} as { deviceId: string },
+  "wmm.sync.clearQueue": undefined,
+  "wmm.sync.removeTracks": {} as { deviceId: string; trackIds: number[] },
+  "wmm.sync.queueSongs": {} as { songIds: string[] },
+  "wmm.sync.dequeueSongs": {} as { songIds: string[] },
   // ui
   "wmm.ui.openSettings": undefined,
   "wmm.ui.openShortcuts": undefined,
@@ -118,13 +127,26 @@ export const WMM_EVENTS = {
   "wmm.scanning.started": undefined,
   "wmm.scanning.progress": {} as { processed: number; total: number },
   "wmm.scanning.completed": {} as { processed: number },
-  // jobs
-  "wmm.jobs.enqueued": {} as { jobId: string; type: string },
-  "wmm.jobs.progress": {} as { jobId: string; processed: number; total: number },
-  "wmm.jobs.completed": {} as { jobId: string },
+  // jobs — single discriminated lifecycle event. `state` includes
+  // started/progress/completed/error/canceled, and `custom:*` job events.
+  "wmm.jobs.state": {} as {
+    state: string;
+    jobId: string;
+    jobType?: string;
+    parentJobId?: string;
+    payload?: unknown;
+  },
   // searching
   "wmm.searching.completed": {} as { query: string },
+  // playlists
+  "wmm.playlists.songAdded": {} as { songId: string, playlistName?: string },
+  // sync
+  "wmm.sync.queued": {} as { songIds: string[] },
+  "wmm.sync.dequeued": {} as { songIds: string[] },
+  "wmm.sync.deviceAdded": {} as { deviceId: string },
+  "wmm.sync.syncCompleted": {} as { deviceId: string },
   // ui
+  "wmm.ui.selectionChanged": {} as { songIds: string[] },
   "wmm.ui.viewChanged": {} as { view: string },
   "wmm.ui.editorModeChanged": {} as { mode: "song" | "edit" },
 } as const;

@@ -1,5 +1,5 @@
 import { ItemContent } from "@/components/ui/item";
-import type { AppNotificationEvent } from "@/events/notification-events";
+import type { AppNotificationEvent } from "@/core/events/notification-events";
 
 export function DefaultNotification({
   notification,

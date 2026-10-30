@@ -9,12 +9,11 @@ import { TanstackSongTable } from "@/components/song-table";
 import { addFolder } from "@/core/scanning";
 import { getStore } from "@/core/system";
 import { getJobService } from "@/core/jobs";
+import { wmmBus } from "@/core/events";
 import { selectors, type QueryOptions, type SortableColumn } from "@/lib/persistence";
 import { useSongs } from "@/hooks";
 import type { MusicSource, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
-import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
-import { isEditMultipleChanged$ } from "@/events/editor-events";
 
 function Songs() {
   //#region State
@@ -67,18 +66,16 @@ function Songs() {
   }, []);
 
   useEffect(() => {
-    const subSelected = songsSelected$.subscribe((ids) => {
-      setSelectedSongIds(ids);
+    const subSelected = wmmBus.on("wmm.ui.selectionChanged", (payload) => {
+      setSelectedSongIds(payload?.songIds ?? []);
     });
-    const subEditMultiple = isEditMultipleChanged$.subscribe(
-      (currentIsEditMultiple) => {
-        setIsEditMultiple(currentIsEditMultiple);
-      }
-    );
+    const subEditMultiple = wmmBus.on("wmm.ui.editorModeChanged", (payload) => {
+      setIsEditMultiple(payload?.mode === "edit");
+    });
 
     return () => {
-      subSelected.unsubscribe();
-      subEditMultiple.unsubscribe();
+      subSelected();
+      subEditMultiple();
     };
   }, [filteredSongs]);
   //#endregion
@@ -124,11 +121,11 @@ function Songs() {
   }
 
   function handleSongsSelected(ids: string[]) {
-    songsSelected$.next(ids);
+    wmmBus.publish("wmm.ui.selectionChanged", { songIds: ids });
   }
 
   function handleSongDoubleClicked(song: Song) {
-    songDoubleClicked$.next(song);
+    wmmBus.invoke("wmm.playback.playSong", { songId: song.id });
   }
   //#endregion
 

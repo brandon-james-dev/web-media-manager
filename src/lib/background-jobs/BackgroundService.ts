@@ -1,8 +1,8 @@
 import { uuidv7 } from "uuidv7";
 import { Subject } from "rxjs";
-import { eventBus, type BackgroundJob } from "@/events/background-job-events";
-import { type IJobRunner } from "@/core/jobs";
-import { JobProgressAggregator } from "@/core/jobs";
+import { type BackgroundJob } from "@/core/events/background-job-events";
+import { wmmBus } from "@/core/events";
+import { type IJobRunner, JobProgressAggregator, type WorkerProgress } from "@/core/jobs";
 import { browserJobRunner } from "./BrowserJobRunner";
 import type {
   JobCompletedCallback,
@@ -28,15 +28,18 @@ export class BackgroundService {
   constructor(runner: IJobRunner = browserJobRunner) {
     this.runner = runner;
 
-    eventBus.subscribe((evt) => {
+    // Jobs lifecycle rides the WmmBus as `wmm.jobs.state`. Keep this
+    // internal subscription in sync with the publishes in this file.
+    wmmBus.on("wmm.jobs.state", (evt) => {
+      if (!evt) return;
       // Ignore child job notifications entirely
       if (evt.parentJobId) return;
 
       if (evt.state === "progress") {
         this.emitJobProgress({
           jobId: evt.jobId,
-          jobType: evt.jobType,
-          payload: evt.payload,
+          jobType: evt.jobType ?? "",
+          payload: evt.payload as WorkerProgress,
         });
       }
 
@@ -83,7 +86,7 @@ export class BackgroundService {
     job.state = "running";
     this.running = true;
 
-    eventBus.next({
+    wmmBus.publish("wmm.jobs.state", {
       state: "started",
       jobId: job.id,
       payload: job.payload,
@@ -115,7 +118,7 @@ export class BackgroundService {
 
       const parent = this.aggregator.parentOf(job.parentJobId);
 
-      eventBus.next({
+      wmmBus.publish("wmm.jobs.state", {
         state: "progress",
         jobId: job.parentJobId,
         jobType: parent?.type ?? job.type,
@@ -144,7 +147,7 @@ export class BackgroundService {
     }
 
     // Normal completion
-    eventBus.next({
+    wmmBus.publish("wmm.jobs.state", {
       state: "completed",
       jobId: job.id,
       jobType: job.type,
@@ -167,7 +170,7 @@ export class BackgroundService {
     job.state = "canceled";
     this.runner.cancel(jobId);
 
-    eventBus.next({
+    wmmBus.publish("wmm.jobs.state", {
       state: "canceled",
       jobId,
       jobType: job.type,

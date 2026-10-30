@@ -9,15 +9,7 @@ import {
 } from "@/components/ui/context-menu";
 import type { Song } from "@/models";
 import { useMemo, type ReactElement } from "react";
-import {
-  quickEditSongs$,
-  advancedEditSong$,
-  addSongToPlaylist$,
-  playSong$,
-  pausePlayback$,
-  songsSelected$,
-} from "@/events/song-events";
-import { dequeueSongs$, queueSongs$ } from "@/events";
+import { wmmBus } from "@/core/events";
 import {
   ListPlus,
   MinusCircle,
@@ -39,7 +31,7 @@ export function SongContextMenu({
 }) {
   const { mode } = useParams();
   const { pathname } = useLocation();
-  const { queuedSongs } = useSync();
+  const { queuedSongs, devices } = useSync();
   const { nowPlaying, isPlaying } = usePlayback();
 
   const song = songs[0];
@@ -58,7 +50,9 @@ export function SongContextMenu({
   const isInSyncPage = useMemo(() => pathname.includes("sync"), [pathname]);
 
   function onItemClick(callback: () => void) {
-    songsSelected$.next(songs.map((x) => x.id));
+    wmmBus.publish("wmm.ui.selectionChanged", {
+      songIds: songs.map((x) => x.id),
+    });
     callback();
   }
 
@@ -66,6 +60,7 @@ export function SongContextMenu({
     (mode !== undefined && mode !== "playback") || isInSyncPage;
 
   const isEditHidden = mode !== "edit" || isInSyncPage;
+  const hasConnectedDevices = devices.length > 0;
 
   return (
     <ContextMenu>
@@ -77,7 +72,9 @@ export function SongContextMenu({
           <ContextMenuItem
             onClick={() =>
               onItemClick(() =>
-                isNowPlaying ? pausePlayback$.next(true) : playSong$.next(song)
+                isNowPlaying
+                  ? wmmBus.invoke("wmm.playback.playpause")
+                  : wmmBus.invoke("wmm.playback.playSong", { songId: song.id })
               )
             }
           >
@@ -95,7 +92,11 @@ export function SongContextMenu({
           </ContextMenuItem>
 
           <ContextMenuItem
-            onClick={() => onItemClick(() => addSongToPlaylist$.next(song))}
+            onClick={() =>
+              onItemClick(() =>
+                wmmBus.invoke("wmm.playlists.addSong", { songId: song.id })
+              )
+            }
           >
             <ListPlus />
             Add To Playlist
@@ -107,31 +108,53 @@ export function SongContextMenu({
         <ContextMenuGroup hidden={isEditHidden}>
           <ContextMenuLabel>Editing</ContextMenuLabel>
           <ContextMenuItem
-            onClick={() => onItemClick(() => quickEditSongs$.next(songs))}
+            onClick={() =>
+              onItemClick(() =>
+                wmmBus.invoke("wmm.library.song.quickEdit", {
+                  songIds: songs.map((s) => s.id),
+                })
+              )
+            }
           >
             <Pen />
             Quick Edit
           </ContextMenuItem>
 
-          <ContextMenuItem onClick={() => advancedEditSong$.next(song)}>
+          <ContextMenuItem
+            onClick={() =>
+              wmmBus.invoke("wmm.library.song.edit", { songId: song.id })
+            }
+          >
             <PencilRuler />
             Advanced Edit
           </ContextMenuItem>
         </ContextMenuGroup>
 
-        <ContextMenuSeparator hidden={isEditHidden} />
+        <ContextMenuSeparator hidden={isEditHidden || !hasConnectedDevices} />
 
-        <ContextMenuGroup>
+        <ContextMenuGroup hidden={!hasConnectedDevices}>
           <ContextMenuLabel>Sync</ContextMenuLabel>
           {isQueued ? (
             <ContextMenuItem
-              onClick={() => onItemClick(() => dequeueSongs$.next(songs))}
+              onClick={() =>
+                onItemClick(() =>
+                  wmmBus.invoke("wmm.sync.dequeueSongs", {
+                    songIds: songs.map((s) => s.id),
+                  })
+                )
+              }
             >
               <MinusCircle /> Remove From Queue
             </ContextMenuItem>
           ) : (
             <ContextMenuItem
-              onClick={() => onItemClick(() => queueSongs$.next(songs))}
+              onClick={() =>
+                onItemClick(() =>
+                  wmmBus.invoke("wmm.sync.queueSongs", {
+                    songIds: songs.map((s) => s.id),
+                  })
+                )
+              }
             >
               <PlusCircle /> Add To Queue
             </ContextMenuItem>

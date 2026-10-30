@@ -1,4 +1,4 @@
-# WMM Event & Command Taxonomy (Step 1)
+# WMM Event & Command Taxonomy
 
 Stable, user-addressable contract for app interaction. Commands are what a
 user triggers (buttons, shortcuts, and other configurable gestures); events
@@ -42,6 +42,16 @@ taxonomy as a stable public API:
 - add new names freely (non-breaking)
 - rename/remove only with explicit migration/versioning
 
+## Internal (non-bindable) events
+
+Some events are intentionally INTERNAL and never part of the user-facing
+binding surface:
+
+- `wmm.jobs.*` — background job lifecycle. Jobs are infrastructure the app
+  manages; a user configuration must never trigger or observe them.
+  Subscribers can still use them (UI reads job progress), but they are not
+  advertised as config-addressable.
+
 ## Alignment with current behavior
 
 The command list derives from today's actual interaction surface:
@@ -63,7 +73,7 @@ The command list derives from today's actual interaction surface:
 - `WMM_COMMAND_NAMES` / `WMM_EVENT_NAMES` — runtime lists
 - `isWmmCommand()` / `isWmmEvent()` — guards used by config validation
 
-## Next steps (when ready)
+## Next steps
 
 1. ✅ `WmmBus`: a single typed bus in `core/events` carrying `WmmMessage`
    (command invocation + event subscription), wrapping today's scattered

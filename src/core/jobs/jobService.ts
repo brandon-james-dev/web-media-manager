@@ -1,4 +1,4 @@
-import type { BackgroundJob } from "@/events/background-job-events";
+import type { BackgroundJob } from "@/core/events/background-job-events";
 
 /** Same shape as lib's JobProgressCallback — declared here so the core
  *  port doesn't depend on the lib layer. */

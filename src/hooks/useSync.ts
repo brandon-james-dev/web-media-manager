@@ -4,28 +4,16 @@ import type { UsbDeviceInfo } from "@/lib/sync";
 
 export interface SyncContextValue {
   devices: SyncDevice[];
-  setDevices(devices: SyncDevice[]): void;
+  /** Query/value-returning orchestration calls are intentionally not events:
+   *  addDevice is a wizard flow returning the new device; refreshDevices
+   *  returns state. All other sync actions are bus commands (wmm.sync.*). */
   addDevice: (
     usbDevice?: UsbDeviceInfo,
     rootDirectory?: FileSystemDirectoryHandle
   ) => Promise<SyncDevice>;
-  removeDevice(id: string): void;
-  updateDevice(updatedDevice: SyncDevice): void;
-
   refreshDevices(): Promise<void>;
-
   isSyncing: boolean;
-  syncQueue(syncDevice: SyncDevice): Promise<void>;
-  removeTracksFromDevice(
-    syncDevice: SyncDevice,
-    trackIds: number[]
-  ): Promise<void>;
-
   queuedSongs: Song[];
-  /** Queue songs that are not already on a connected device. Returns those added. */
-  queueSongs(songs: Song[]): Song[];
-  removeQueuedSong(songId: string): void;
-  clearQueue(): void;
 }
 
 export const SyncContext = createContext<SyncContextValue | undefined>(

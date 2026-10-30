@@ -1,6 +1,6 @@
 import type { WorkerJob } from "@/workers";
 import type { IWorkerAdapter } from "./IWorkerAdapter";
-import { eventBus } from "@/events/background-job-events";
+import { wmmBus } from "@/core/events";
 
 export class WorkerPool {
   private workers: IWorkerAdapter[] = [];
@@ -22,7 +22,7 @@ export class WorkerPool {
 
             this.workers[i]
               .runJob(job, (progressMsg) => {
-                eventBus.next({
+                wmmBus.publish("wmm.jobs.state", {
                   state: "progress",
                   jobId: job.id,
                   jobType: job.type,
@@ -32,7 +32,7 @@ export class WorkerPool {
               })
               .then(resolve)
               .catch((reason) => {
-                eventBus.next({
+                wmmBus.publish("wmm.jobs.state", {
                   state: "error",
                   jobId: job.id,
                   jobType: job.type,

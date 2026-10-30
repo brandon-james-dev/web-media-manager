@@ -34,9 +34,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
-import { songDoubleClicked$ } from "@/events/song-events";
-import { playlistSet$, songAddedToPlaylist$ } from "@/events/player-events";
-import { keyShortcut$ } from "@/events/keyboard-events";
+import { keyShortcut$ } from "@/core/events/keyboard-events";
+import { wmmBus } from "@/core/events";
 
 function PlayerControls() {
   //#region State
@@ -44,53 +43,32 @@ function PlayerControls() {
   const [trackPosition, setTrackPosition] = useState<number>(0);
   const {
     playlist,
-    setPlaylist,
     nowPlayingIndex,
     nowPlaying,
-    setNowPlaying,
-    playPause,
-    prevTrack,
-    nextTrack,
     shuffle,
-    setShuffle,
     repeat,
-    setRepeat,
     volume,
-    setVolume,
-    getCurrentTime,
-    seek,
     isPlaying,
+    getCurrentTime,
   } = usePlayback();
   //#endregion
 
   //#region Subscribe to domain events
   useEffect(() => {
-    const subDouble = songDoubleClicked$.subscribe((song) => {
-      setNowPlaying(song);
-    });
-
-    const subPlaylistSet = playlistSet$.subscribe((songs) => {
-      setPlaylist(songs);
-    });
-
-    return () => {
-      subDouble.unsubscribe();
-      subPlaylistSet.unsubscribe();
-    };
-  }, [playlist, nowPlaying, setPlaylist, setNowPlaying]);
-
-  useEffect(() => {
+    // Shortcuts issue playback commands on the bus; PlaybackProvider's
+    // registered handlers execute them.
     const sub = keyShortcut$.subscribe((shortcut) => {
-      if (shortcut === "playpause") playPause();
-      if (shortcut === "next") nextTrack();
-      if (shortcut === "prev") prevTrack();
+      if (shortcut === "playpause") wmmBus.invoke("wmm.playback.playpause");
+      if (shortcut === "next") wmmBus.invoke("wmm.playback.next");
+      if (shortcut === "prev") wmmBus.invoke("wmm.playback.prev");
       if (shortcut === "queue") {
-        if (nowPlaying) songAddedToPlaylist$.next(nowPlaying);
+        if (nowPlaying)
+          wmmBus.invoke("wmm.playlists.addSong", { songId: nowPlaying.id });
       }
     });
 
     return () => sub.unsubscribe();
-  }, [nowPlaying, playlist, playPause, nextTrack, prevTrack]);
+  }, [nowPlaying]);
 
   //#endregion
 
@@ -125,57 +103,44 @@ function PlayerControls() {
 
   //#region Interactivity handlers
   function handleVolumeChange(v: number | readonly number[]) {
-    setVolume(Number(v));
+    wmmBus.invoke("wmm.playback.setVolume", { volume: Number(v) });
   }
 
   function handlePlayPause() {
-    playPause();
+    wmmBus.invoke("wmm.playback.playpause");
   }
 
   function handlePrev() {
-    prevTrack();
+    wmmBus.invoke("wmm.playback.prev");
   }
 
   function handleNext() {
-    nextTrack();
+    wmmBus.invoke("wmm.playback.next");
   }
 
   function handleSeek(v: number | readonly number[]) {
-    seek(Number(v));
+    wmmBus.invoke("wmm.playback.seek", { positionSeconds: Number(v) });
     setTrackPosition(getCurrentTime());
   }
 
   function handleShuffleToggle() {
-    const nextState = shuffle == "Off" ? shuffleState.On : shuffleState.Off;
-
-    setShuffle(nextState);
+    wmmBus.invoke("wmm.playback.toggleShuffle");
   }
 
   function handleRepeatToggle() {
-    const allStates = Object.keys(repeatState).map(
-      (k) => k as keyof typeof repeatState
-    );
-    const next = allStates[(allStates.indexOf(repeat) + 1) % allStates.length];
-    setRepeat(next);
+    wmmBus.invoke("wmm.playback.toggleRepeat");
   }
 
   function handlePlaylistItemClick(song: Song) {
     if (nowPlaying?.id == song.id) {
-      playPause();
+      wmmBus.invoke("wmm.playback.playpause");
     } else {
-      setNowPlaying(song);
+      wmmBus.invoke("wmm.playback.playSong", { songId: song.id });
     }
   }
 
   function handlePlaylistItemRemove(song: Song) {
-    const index = playlist.findIndex((s) => s.id == song.id);
-    if (index !== -1) {
-      const result = [
-        ...playlist.slice(0, index),
-        ...playlist.slice(index + 1),
-      ];
-      setPlaylist(result);
-    }
+    wmmBus.invoke("wmm.playback.removeFromQueue", { songId: song.id });
   }
   //#endregion
 
@@ -314,7 +279,7 @@ function PlayerControls() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => setPlaylist([])}
+                      onClick={() => wmmBus.invoke("wmm.playback.clearQueue")}
                     >
                       Clear
                     </Button>
@@ -378,7 +343,7 @@ function PlayerControls() {
             </PopoverContent>
           </Popover>
 
-          <Button variant="ghost" onClick={() => setVolume(0)}>
+          <Button variant="ghost" onClick={() => wmmBus.invoke("wmm.playback.setVolume", { volume: 0 })}>
             <Volume2 className="fill-secondary-foreground w-6" />
           </Button>
 

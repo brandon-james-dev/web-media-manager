@@ -10,7 +10,7 @@ import {
 
 import type { SyncDevice } from "@/models";
 import { formatBytes } from "@/lib/sync/helpers";
-import { useSync } from "@/hooks/useSync";
+import { wmmBus } from "@/core/events";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useMemo, useState } from "react";
 import { DeviceLibraryDialog } from "./DeviceLibraryDialog";
@@ -33,7 +33,6 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
         : `${formatBytes(usedBytes)} used`;
 
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const { removeTracksFromDevice } = useSync();
 
   const albums = useMemo(() => {
     const map = new Map<
@@ -89,7 +88,12 @@ export function SyncDeviceCard({ device }: { device: SyncDevice }) {
         open={isLibraryOpen}
         onOpenChange={setIsLibraryOpen}
         device={device}
-        onRemoveTracks={removeTracksFromDevice}
+        onRemoveTracks={(_device: SyncDevice, trackIds: number[]) => {
+          wmmBus.invoke("wmm.sync.removeTracks", {
+            deviceId: device.id,
+            trackIds,
+          });
+        }}
       />
 
       <CardContent className="py-4 space-y-4">

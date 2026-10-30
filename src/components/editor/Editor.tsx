@@ -20,37 +20,32 @@ import {
 import { updateTags } from "@/core/metadata";
 import type { AlbumDetailDto, QuickEditDto, SongEditDto } from "@/dto";
 import { getJobService } from "@/core/jobs";
+import { commandDispatcher, wmmBus } from "@/core/events";
 import { useSongs, usePlayback } from "@/hooks";
 import type { Album, Song } from "@/models";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import {
-  advancedEditSong$,
-  songDoubleClicked$,
-  songsSelected$,
-} from "@/events/song-events";
-import { isEditMultipleChanged$, songEditSaved$ } from "@/events/editor-events";
 import { AlbumDetailDialog } from "../album-detail-dialog";
-import { keyShortcut$ } from "@/events/keyboard-events";
-import { notification$ } from "@/events/notification-events";
+import { keyShortcut$ } from "@/core/events/keyboard-events";
+import { notification$ } from "@/core/events/notification-events";
 import { uuidv7 } from "uuidv7";
 
 function Editor({ mode }: { mode: "songs" | "albums" }) {
   //#region Songs
   //#region State
-  const { refreshSongs, filteredSongs } = useSongs();
+  const { filteredSongs } = useSongs();
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isAdvancedEdit, setIsAdvancedEdit] = useState<boolean>(false);
   const [isSelectMultiple, setIsSelectMultiple] = useState<boolean>(false);
-  const { isPlaying, playPause } = usePlayback();
+  const { isPlaying } = usePlayback();
   //#endregion
   //#region Helpers
   useEffect(() => {
     if (isPlaying) {
-      playPause();
+      wmmBus.invoke("wmm.playback.playpause");
     }
-  }, [isPlaying, playPause]);
+  }, [isPlaying]);
   //#endregion
   //#region Interactivity handlers
   async function handleSongUpdate(updates: SongEditDto): Promise<void> {
@@ -73,7 +68,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       kind: "Song Edit",
     });
 
-    songEditSaved$.next(selectedSong);
+    wmmBus.publish("wmm.library.song.updated", { songId: selectedSong.id });
 
     getJobService().enqueue({
       type: "Thumbnail Generation",
@@ -85,9 +80,8 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       },
     });
 
-    await refreshSongs();
     setSelectedSongIds([selectedSong.id]);
-    songsSelected$.next(selectedSongIds);
+    wmmBus.publish("wmm.ui.selectionChanged", { songIds: selectedSongIds });
     setIsAdvancedEdit(false);
   }
 
@@ -126,7 +120,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     }
 
     setSelectedSongIds([]);
-    songsSelected$.next(selectedSongIds);
+    wmmBus.publish("wmm.ui.selectionChanged", { songIds: selectedSongIds });
   }
 
   function isPrevButtonDisabled() {
@@ -148,7 +142,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       setSelectedSongIds([]);
     }
     setIsSelectMultiple(checked);
-    isEditMultipleChanged$.next(checked);
+    wmmBus.publish("wmm.ui.editorModeChanged", { mode: checked ? "edit" : "song" });
   }
   //#endregion
   //#endregion
@@ -235,7 +229,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
         };
 
         await updateTags(currentSong, updatedSong, cover);
-        songEditSaved$.next(currentSong);
+        wmmBus.publish("wmm.library.song.updated", { songId: currentSong.id });
         getJobService().enqueue({
           type: "Thumbnail Generation",
           payload: {
@@ -248,7 +242,6 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       }
     }
 
-    await refreshSongs();
     setIsAdvancedEdit(false);
   }
   //#endregion
@@ -267,7 +260,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       const newIds = [filteredSongs[prevIndex].id];
 
       setSelectedSongIds(newIds);
-      songsSelected$.next(newIds);
+      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
     }
     if (mode === "albums") {
       if (!selectedAlbum) return;
@@ -281,7 +274,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       const newIds = prevAlbum.songs.map((s) => s.id);
 
       setSelectedSongIds(newIds);
-      songsSelected$.next(newIds);
+      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
     }
   }
 
@@ -300,7 +293,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       const newIds = [filteredSongs[nextIndex].id];
 
       setSelectedSongIds(newIds);
-      songsSelected$.next(newIds);
+      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
     }
     if (mode === "albums") {
       if (!selectedAlbum) return;
@@ -314,13 +307,14 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       const newIds = nextAlbum.songs.map((s) => s.id);
 
       setSelectedSongIds(newIds);
-      songsSelected$.next(newIds);
+      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
     }
   }
   //#endregion
   //#region Subscribe to domain events
   useEffect(() => {
-    const subSelected = songsSelected$.subscribe((ids) => {
+    const subSelected = wmmBus.on("wmm.ui.selectionChanged", (payload) => {
+      const ids = payload?.songIds ?? [];
       setSelectedSongIds(ids);
       const songs = filteredSongs.filter((s) => ids.includes(s.id));
       setSelectedSongs(songs);
@@ -330,30 +324,34 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       }
     });
 
-    const subDouble = songDoubleClicked$.subscribe((song) => {
-      advancedEditSong$.next(song);
-    });
-
-    const subAdvancedEditSong = advancedEditSong$.subscribe((song) => {
-      switch (mode) {
-        case "albums":
-          if (!song.album) return;
-          setSelectedAlbum(albums.find((a) => a.title == song.album));
-          break;
-        case "songs":
-          setSelectedSongIds([song.id]);
-          setSelectedSongs([song]);
-          break;
-        default:
-          break;
+    // "Edit song" command opens the advanced editor for the given song.
+    const unregisterEdit = commandDispatcher.register(
+      "wmm.library.song.edit",
+      (payload?: { songId?: string }) => {
+        if (!payload?.songId) return;
+        const song =
+          filteredSongs.find((s) => s.id === payload.songId) ??
+          albums.flatMap((a) => a.songs).find((s) => s.id === payload.songId);
+        if (!song) return;
+        switch (mode) {
+          case "albums":
+            if (!song.album) return;
+            setSelectedAlbum(albums.find((a) => a.title == song.album));
+            break;
+          case "songs":
+            setSelectedSongIds([song.id]);
+            setSelectedSongs([song]);
+            break;
+          default:
+            break;
+        }
+        setIsAdvancedEdit(true);
       }
-      setIsAdvancedEdit(true);
-    });
+    );
 
     return () => {
-      subSelected.unsubscribe();
-      subDouble.unsubscribe();
-      subAdvancedEditSong.unsubscribe();
+      subSelected();
+      unregisterEdit();
     };
   }, [filteredSongs, albums, mode]);
 

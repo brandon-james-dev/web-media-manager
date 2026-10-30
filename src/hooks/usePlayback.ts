@@ -18,22 +18,14 @@ const shuffleState = {
 
 interface PlaybackContextValue {
   playlist: Song[];
-  setPlaylist: (songs: Song[]) => void;
   nowPlaying: Song | undefined;
   nowPlayingIndex: number | undefined;
-  setNowPlaying: (song: Song) => void;
-  playPause: () => void;
-  prevTrack: () => void;
-  nextTrack: () => void;
   shuffle: ShuffleState;
-  setShuffle: (shuffleState: ShuffleState) => void;
   repeat: RepeatState;
-  setRepeat: (repeatState: RepeatState) => void;
   volume: number;
-  setVolume: (volume: number) => void;
-  getCurrentTime: () => number;
-  seek: (trackPostion: number) => void;
   isPlaying: boolean;
+  /** Query only — actions are issued as events/commands on the WmmBus. */
+  getCurrentTime: () => number;
 }
 
 const PlaybackContext = createContext<PlaybackContextValue | null>(null);

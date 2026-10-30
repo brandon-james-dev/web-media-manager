@@ -7,14 +7,15 @@ import {
 } from "react";
 import type { Song, SyncDevice } from "@/models";
 import { SyncContext } from "@/hooks";
-import { queueSongs$, dequeueSongs$ } from "@/events";
+import { commandDispatcher, wmmBus } from "@/core/events";
+import { getStore } from "@/core/system";
 import {
   SyncService,
   deviceTrackIdentities,
   isSongOnDevice,
   type UsbDeviceInfo,
 } from "@/lib/sync";
-import { notification$ } from "@/events/notification-events";
+import { notification$ } from "@/core/events/notification-events";
 import { uuidv7 } from "uuidv7";
 
 export function SyncProvider({ children }: { children: ReactNode }) {
@@ -51,6 +52,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
       if (added.length > 0) {
         setQueuedSongs((current) => [...current, ...added]);
+        wmmBus.publish("wmm.sync.queued", {
+          songIds: added.map((s) => s.id),
+        });
       }
 
       const skipped = songs.length - added.length;
@@ -72,9 +76,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     [devices, queuedSongs]
   );
 
-  const removeQueuedSong = (songId: string) => {
-    setQueuedSongs((current) => current.filter((song) => song.id !== songId));
-  };
 
   const clearQueue = useCallback(() => {
     setQueuedSongs([]);
@@ -206,24 +207,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     },
     [devices, setDevices, syncService]
   );
-
-  const removeDevice = useCallback(
-    (id: string) => {
-      setDevices(devices.filter((device) => device.id !== id));
-    },
-    [devices, setDevices]
-  );
-
-  const updateDevice = useCallback(
-    (updatedDevice: SyncDevice) => {
-      setDevices(
-        devices.map((device) =>
-          device.id === updatedDevice.id ? updatedDevice : device
-        )
-      );
-    },
-    [devices, setDevices]
-  );
   //#endregion
 
   //#region Effects
@@ -263,58 +246,104 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   //#region Global event handlers
   useEffect(() => {
     // Same path as the context: filters out songs already on a device.
-    const queueSub = queueSongs$.subscribe((songs) => {
-      queueSongs(songs);
-    });
+    const unregisterQueueSongs = commandDispatcher.register(
+      "wmm.sync.queueSongs",
+      async (payload?: { songIds?: string[] }) => {
+        const songs = (
+          await Promise.all(
+            (payload?.songIds ?? []).map((id) => getStore().get(id))
+          )
+        ).filter((s): s is Song => !!s);
+        if (songs.length) queueSongs(songs);
+      }
+    );
     // queueSongs must be a dependency: it closes over `devices` and
-    // `queuedSongs`, and resubscribing is what keeps the filter current.
+    // `queuedSongs`, and re-registering is what keeps the filter current.
 
-    const dequeueSub = dequeueSongs$.subscribe((songs) => {
-      const idsToRemove = new Set(songs.map((song) => song.id));
+    const unregisterDequeueSongs = commandDispatcher.register(
+      "wmm.sync.dequeueSongs",
+      (payload?: { songIds?: string[] }) => {
+        const idsToRemove = new Set(payload?.songIds ?? []);
+        setQueuedSongs((current) => {
+          const next = current.filter((song) => !idsToRemove.has(song.id));
+          wmmBus.publish("wmm.sync.dequeued", {
+            songIds: payload?.songIds ?? [],
+          });
+          return next;
+        });
+      }
+    );
 
-      setQueuedSongs((current) =>
-        current.filter((song) => !idsToRemove.has(song.id))
-      );
-    });
+    const unregisterAddDevice = commandDispatcher.register(
+      "wmm.sync.addDevice",
+      async () => {
+        try {
+          const device = await addDevice();
+          wmmBus.publish("wmm.sync.deviceAdded", { deviceId: device.id });
+        } catch (error) {
+          notification$.next({
+            id: uuidv7(),
+            kind: "Sync Device Error",
+            state: "error",
+            title: "Error adding device",
+            detail: String(error),
+          });
+        }
+      }
+    );
+
+    const unregisterSync = commandDispatcher.register(
+      "wmm.sync.sync",
+      async (payload?: { deviceId: string }) => {
+        const device = devices.find((d) => d.id === payload?.deviceId);
+        if (!device) return;
+        await syncQueue(device);
+        wmmBus.publish("wmm.sync.syncCompleted", { deviceId: device.id });
+      }
+    );
+
+    const unregisterClearQueue = commandDispatcher.register(
+      "wmm.sync.clearQueue",
+      () => {
+        clearQueue();
+      }
+    );
+
+    const unregisterRemoveTracks = commandDispatcher.register(
+      "wmm.sync.removeTracks",
+      (payload?: { deviceId: string; trackIds: number[] }) => {
+        const device = devices.find((d) => d.id === payload?.deviceId);
+        if (!device) return;
+        void removeTracksFromDevice(device, payload?.trackIds ?? []);
+      }
+    );
 
     return () => {
-      queueSub.unsubscribe();
-      dequeueSub.unsubscribe();
+      unregisterQueueSongs();
+      unregisterDequeueSongs();
+      unregisterAddDevice();
+      unregisterSync();
+      unregisterClearQueue();
+      unregisterRemoveTracks();
     };
-  }, [queueSongs]);
+  }, [queueSongs, addDevice, syncQueue, clearQueue, removeTracksFromDevice, devices]);
   //#endregion
 
   //#region Value
   const value = useMemo(
     () => ({
       addDevice,
-      removeDevice,
-      updateDevice,
-      devices,
-      setDevices,
-
       refreshDevices,
+      devices,
       isSyncing,
-      syncQueue,
-      removeTracksFromDevice,
-
       queuedSongs,
-      queueSongs,
-      removeQueuedSong,
-      clearQueue,
     }),
     [
       devices,
       queuedSongs,
       isSyncing,
       refreshDevices,
-      syncQueue,
       addDevice,
-      removeDevice,
-      updateDevice,
-      clearQueue,
-      removeTracksFromDevice,
-      queueSongs,
     ]
   );
   //#endregion

@@ -1,4 +1,4 @@
-import { keyShortcut$ } from "@/events/keyboard-events";
+import { keyShortcut$ } from "@/core/events/keyboard-events";
 import { registerShortcut } from "./keyboardShortcuts";
 
 export function registerDefaultShortcuts() {

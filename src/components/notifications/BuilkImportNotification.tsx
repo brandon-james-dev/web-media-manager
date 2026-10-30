@@ -1,8 +1,8 @@
-import type { AppNotificationEvent } from "@/events/notification-events";
+import type { AppNotificationEvent } from "@/core/events/notification-events";
 import { ItemContent } from "../ui/item";
 import { Progress } from "../ui/progress";
 import type { ProgressPayload } from "@/lib/background-jobs/callbacks";
-import type { BackgroundJobState } from "@/events/background-job-events";
+import type { BackgroundJobState } from "@/core/events/background-job-events";
 
 type BulkImportPayload = {
   parent?: {

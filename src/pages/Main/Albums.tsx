@@ -20,9 +20,7 @@ import {
   GalleryHorizontal,
   Grid2x2,
 } from "lucide-react";
-import { songDoubleClicked$, songsSelected$ } from "@/events/song-events";
-import { playlistSet$, songStartedPlayback$ } from "@/events/player-events";
-import { isEditMultipleChanged$ } from "@/events/editor-events";
+import { wmmBus } from "@/core/events";
 import { TanstackSongTable } from "@/components/song-table";
 import { CoverFlow } from "@/components/cover-flow";
 import { cn } from "cn";
@@ -96,30 +94,34 @@ function Albums() {
   //#region Interactivity handlers
   function handleAlbumCardClick(album: Album) {
     const ids = album.songs.map((s) => s.id);
-    isEditMultipleChanged$.next(true);
-    songsSelected$.next(ids);
+    wmmBus.publish("wmm.ui.editorModeChanged", { mode: "edit" });
+    wmmBus.publish("wmm.ui.selectionChanged", { songIds: ids });
   }
 
   function handleAlbumCardDoubleClick(album: Album) {
-    playlistSet$.next(album.songs);
-    isEditMultipleChanged$.next(true);
-    songDoubleClicked$.next(album.songs[0]);
+    wmmBus.invoke("wmm.playback.playQueue", {
+      songIds: album.songs.map((s) => s.id),
+    });
+    wmmBus.publish("wmm.ui.editorModeChanged", { mode: "edit" });
+    wmmBus.invoke("wmm.playback.playSong", { songId: album.songs[0].id });
   }
 
   function handleSongDoubleClicked(song: Song) {
-    playlistSet$.next(albums[selectedAlbumIndex].songs);
-    songDoubleClicked$.next(song);
+    wmmBus.invoke("wmm.playback.playQueue", {
+      songIds: albums[selectedAlbumIndex].songs.map((s) => s.id),
+    });
+    wmmBus.invoke("wmm.playback.playSong", { songId: song.id });
   }
   //#endregion
 
   //#region Global event handlers
   useEffect(() => {
-    const playbackSub = songStartedPlayback$.subscribe((next) =>
-      setNowPlayingSongId(next.id)
-    );
+    const playbackSub = wmmBus.on("wmm.playback.started", (payload) => {
+      if (payload?.songId) setNowPlayingSongId(payload.songId);
+    });
 
     return () => {
-      playbackSub.unsubscribe();
+      playbackSub();
     };
   }, []);
   //#endregion

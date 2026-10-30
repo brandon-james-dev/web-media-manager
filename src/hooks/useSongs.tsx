@@ -7,7 +7,6 @@ interface SongContextValue {
   filteredSongs: Song[];
   filteredTotal?: number;
   query: QueryOptions<Song>;
-  refreshSongs: () => Promise<void>;
   setQuery: (query: QueryOptions<Song>) => void;
   total?: number;
   page?: number;

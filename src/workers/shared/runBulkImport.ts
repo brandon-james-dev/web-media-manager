@@ -5,7 +5,7 @@ import { initMetadataStore } from "@/lib";
 import { readTags } from "@/core/metadata";
 import { getMetadataReader } from "@/core/ports";
 import { collectFileHandles } from "@/lib/persistence/file";
-import type { BackgroundJob } from "@/events/background-job-events";
+import type { BackgroundJob } from "@/core/events/background-job-events";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import type { MusicSource } from "@/models";
 import { isLocalSource } from "@/core/contracts/sources";

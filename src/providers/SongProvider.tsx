@@ -229,7 +229,6 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
         skip,
         page,
         filteredTotal,
-        refreshSongs,
         setQuery,
       }}
     >

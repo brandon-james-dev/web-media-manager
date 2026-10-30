@@ -1,4 +1,4 @@
-import type { BackgroundJob } from "@/events/background-job-events";
+import type { BackgroundJob } from "@/core/events/background-job-events";
 import type { WorkerProgress, WorkerJobState } from "@/workers";
 
 export type JobCompletedCallback = (job: BackgroundJob) => void;

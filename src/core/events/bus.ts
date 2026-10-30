@@ -1,4 +1,4 @@
-import { Subject, filter, type Observable } from "rxjs";
+import { Subject, filter, map, type Observable } from "rxjs";
 import type {
   WmmCommandName,
   WmmCommandPayload,
@@ -14,7 +14,7 @@ import {
 } from "./taxonomy";
 
 /**
- * WMM application bus (Step 2).
+ * WMM application bus.
  *
  * A single typed channel carrying `WmmMessage` (commands + events). It is the
  * cohesive event path:
@@ -107,6 +107,22 @@ class WmmBus {
       .subscribe((m) => handler(m.payload as WmmEventPayload[E] | undefined));
 
     return () => sub.unsubscribe();
+  }
+
+  /**
+   * Observable of a specific event's payloads (for RxJS compositions such as
+   * core functions returning `Observable`). Multicast via the single Subject.
+   */
+  on$<E extends WmmEventName>(
+    name: E
+  ): Observable<WmmEventPayload[E] | undefined> {
+    return this.messages.pipe(
+      filter(
+        (m): m is Extract<WmmMessage, { kind: "event"; name: E }> =>
+          m.kind === "event" && m.name === name
+      ),
+      map((m) => m.payload as WmmEventPayload[E] | undefined)
+    );
   }
 
   /** Number of current subscribers (exposed for diagnostics). */

@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  addSongToPlaylist$,
-  pausePlayback$,
-  playSong$,
-} from "@/events/song-events";
-import {
   PlaybackContext,
   type ShuffleState,
   type RepeatState,
@@ -16,10 +11,11 @@ import {
   ThumbnailSize,
 } from "@/lib";
 import { getPictureOfType } from "@/core/media";
+import { commandDispatcher, wmmBus } from "@/core/events";
+import { getStore } from "@/core/system";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
-import { songStartedPlayback$ } from "@/events";
 
 export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#region State
@@ -96,15 +92,6 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#endregion
 
   //#region Helpers
-  function playPause() {
-    if (isPlaying) {
-      pausePlayback$.next(true);
-    } else {
-      if (!nowPlayingRef.current) return;
-      playSong$.next(nowPlayingRef.current);
-    }
-  }
-
   function getCurrentTime(): number {
     return currentTimeRef.current;
   }
@@ -232,7 +219,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       currentTimeRef.current = 0;
 
       startPlaybackAt.current(0);
-      songStartedPlayback$.next(nowPlaying);
+      wmmBus.publish("wmm.playback.started", { songId: nowPlaying.id });
 
       artworkUrl256 = await getArtwork(ThumbnailSize.thumb256);
       artworkUrl512 = await getArtwork(ThumbnailSize.thumb512);
@@ -445,52 +432,145 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#endregion
 
   //#region Global event handlers
+  // Register playback commands on the dispatch registry so the bus can
+  // drive them from shortcuts, UI buttons, or configurable bindings.
   useEffect(() => {
-    const playSongSub = playSong$.subscribe(async (song) => {
-      setNowPlaying(song);
-      startPlaybackAt.current(currentTimeRef.current);
-    });
-
-    return () => playSongSub.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const pausePlaybackSub = pausePlayback$.subscribe(() =>
+    const unregister = commandDispatcher.register("wmm.playback.playpause", () =>
       playPauseRef.current()
     );
-
-    return () => pausePlaybackSub.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const addToPlaylistSub = addSongToPlaylist$.subscribe((nextSong: Song) =>
-      setPlaylist([...playlist, nextSong])
+    const unregisterStop = commandDispatcher.register("wmm.playback.stop", () =>
+      stopPlayback()
+    );
+    const unregisterNext = commandDispatcher.register("wmm.playback.next", () =>
+      nextTrack.current()
+    );
+    const unregisterPrev = commandDispatcher.register("wmm.playback.prev", () =>
+      prevTrack.current()
+    );
+    const unregisterSeek = commandDispatcher.register(
+      "wmm.playback.seek",
+      (payload?: { positionSeconds?: number }) => {
+        if (payload?.positionSeconds !== undefined) {
+          seek.current(payload.positionSeconds);
+        }
+      }
+    );
+    const unregisterVolume = commandDispatcher.register(
+      "wmm.playback.setVolume",
+      (payload?: { volume?: number }) => {
+        if (payload?.volume !== undefined) setVolume(payload.volume);
+      }
+    );
+    const unregisterShuffle = commandDispatcher.register(
+      "wmm.playback.toggleShuffle",
+      () => setShuffle((prev) => (prev === shuffleState.On ? shuffleState.Off : shuffleState.On))
+    );
+    const unregisterRepeat = commandDispatcher.register(
+      "wmm.playback.toggleRepeat",
+      () =>
+        setRepeat((prev) => {
+          // Cycle: Off -> One -> All -> Off
+          if (prev === repeatState.Off) return repeatState.One;
+          if (prev === repeatState.One) return repeatState.All;
+          return repeatState.Off;
+        })
+    );
+    // Queue commands resolve song ids via the store, so payloads carry ids
+    // (never whole objects) — the provider is the id -> Song owner.
+    const unregisterPlaySong = commandDispatcher.register(
+      "wmm.playback.playSong",
+      async (payload?: { songId?: string }) => {
+        if (!payload?.songId) return;
+        const song = await getStore().get(payload.songId);
+        if (!song) return;
+        setNowPlaying(song);
+        startPlaybackAt.current(currentTimeRef.current);
+      }
+    );
+    const unregisterPlayQueue = commandDispatcher.register(
+      "wmm.playback.playQueue",
+      async (payload?: { songIds?: string[] }) => {
+        if (!payload?.songIds?.length) return;
+        const songs = (
+          await Promise.all(
+            payload.songIds.map((id) => getStore().get(id))
+          )
+        ).filter((s): s is Song => s !== null && s !== undefined);
+        if (songs.length) {
+          setPlaylist(songs);
+          wmmBus.publish("wmm.playback.queueChanged", {
+            songIds: songs.map((s) => s.id),
+          });
+        }
+      }
+    );
+    const unregisterClearQueue = commandDispatcher.register(
+      "wmm.playback.clearQueue",
+      () => {
+        setPlaylist([]);
+        wmmBus.publish("wmm.playback.queueChanged", { songIds: [] });
+      }
+    );
+    const unregisterRemoveFromQueue = commandDispatcher.register(
+      "wmm.playback.removeFromQueue",
+      (payload?: { songId?: string }) => {
+        if (!payload?.songId) return;
+        setPlaylist((prev) => {
+          const next = prev.filter((s) => s.id !== payload.songId);
+          wmmBus.publish("wmm.playback.queueChanged", {
+            songIds: next.map((s) => s.id),
+          });
+          return next;
+        });
+      }
+    );
+    // Add a song to the queue (context menu "Add to playlist", shortcut).
+    const unregisterAddSong = commandDispatcher.register(
+      "wmm.playlists.addSong",
+      async (payload?: { songId?: string }) => {
+        if (!payload?.songId) return;
+        const song = await getStore().get(payload.songId);
+        if (!song) return;
+        setPlaylist((prev) => {
+          const next = [...prev, song];
+          wmmBus.publish("wmm.playback.queueChanged", {
+            songIds: next.map((s) => s.id),
+          });
+          return next;
+        });
+      }
     );
 
-    return () => addToPlaylistSub.unsubscribe();
-  }, [playlist]);
+    return () => {
+      unregister();
+      unregisterStop();
+      unregisterNext();
+      unregisterPrev();
+      unregisterSeek();
+      unregisterVolume();
+      unregisterShuffle();
+      unregisterRepeat();
+      unregisterPlaySong();
+      unregisterPlayQueue();
+      unregisterClearQueue();
+      unregisterRemoveFromQueue();
+      unregisterAddSong();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   //#endregion
 
   return (
     <PlaybackContext.Provider
       value={{
         playlist,
-        setPlaylist,
-        playPause,
-        seek: (time: number) => seek.current(time),
-        prevTrack: () => prevTrack.current(),
-        nextTrack: () => nextTrack.current(),
+        nowPlaying,
+        nowPlayingIndex,
         shuffle,
-        setShuffle,
         repeat,
-        setRepeat,
         volume,
-        setVolume,
         getCurrentTime,
         isPlaying,
-        nowPlaying,
-        setNowPlaying,
-        nowPlayingIndex,
       }}
     >
       {children}

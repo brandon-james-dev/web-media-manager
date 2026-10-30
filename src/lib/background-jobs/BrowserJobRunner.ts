@@ -5,7 +5,7 @@ import type { Job, IJobRunner, JobRunnerResult } from "@/core/jobs";
  * Browser platform's IJobRunner: dispatches jobs to the web Worker pool.
  *
  * The WorkerPool itself reports fine-grained `progress` and `error` events to
- * `@/events/background-job-events`; this adapter only normalizes the outcome
+ * `@/core/events/background-job-events`; this adapter only normalizes the outcome
  * into the contract's `JobRunnerResult` and forwards cancellations.
  */
 export class BrowserJobRunner implements IJobRunner {
