@@ -65,9 +65,10 @@ The command list derives from today's actual interaction surface:
 
 ## Next steps (when ready)
 
-1. `WmmBus`: a single typed bus in `core/events` carrying `WmmMessage`
+1. ✅ `WmmBus`: a single typed bus in `core/events` carrying `WmmMessage`
    (command invocation + event subscription), wrapping today's scattered
-   `events/*.ts` subjects.
+   `events/*.ts` subjects. — done (`core/events/bus.ts`: `wmmBus.invoke`,
+   `wmmBus.publish`, `wmmBus.on`/`onCommand`, unknown-name rejection)
 2. Command dispatch: `invoke(name, payload)` → routes to the core/domain
    function or provider action.
 3. Configurable UI bindings follow the command/event contract above.

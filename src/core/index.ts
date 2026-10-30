@@ -14,6 +14,7 @@
  *   metadata   — tag read/write, rename
  *   playlists  — play queue + playlist (Open Subsonic playQueue)
  *   jobs       — background-job contract (types, progress aggregation, IJobRunner port)
+ *   events     — event/command taxonomy + WmmBus (Step 1/2 of the event layer)
  *
  * Contracts (ID3-aligned JSON view types + mappers) live in `./contracts`.
  */
@@ -26,6 +27,7 @@ export * as media from "./media";
 export * as metadata from "./metadata";
 export * as playlists from "./playlists";
 export * as jobs from "./jobs";
+export * as events from "./events";
 
 export * from "./contracts";
 export * from "./ports";
