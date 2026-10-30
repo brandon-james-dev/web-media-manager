@@ -8,7 +8,7 @@ import { MainLayout } from "./pages/Main/MainLayout";
 import { PlaybackProvider } from "./providers/PlaybackProvider";
 import { useEffect, useState } from "react";
 import { keyShortcut$ } from "./events/keyboard-events";
-import { registerDefaultShortcuts } from "./lib/registerDefaultShortcuts";
+import { registerDefaultShortcuts } from "./lib/keyboard-shortcuts/registerDefaultShortcuts";
 import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
 import { handleKey } from "./lib";
 import "./events/job-notifications";

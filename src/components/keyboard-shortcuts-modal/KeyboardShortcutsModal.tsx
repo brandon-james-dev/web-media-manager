@@ -5,9 +5,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getShortcuts } from "@/lib/keyboardShortcuts";
+import { getShortcuts } from "@/lib/keyboard-shortcuts";
 import { Kbd } from "@/components/ui/kbd";
-import { isMac } from "@/lib/os";
+import { usesCommandMeta } from "@/lib/keyboard-shortcuts";
 import {
   ArrowBigUp,
   ArrowDown,
@@ -49,14 +49,14 @@ export function KeyboardShortcutsModal({
                   <span className="flex gap-1 select-none items-center">
                     {c.ctrl && (
                       <>
-                        <Kbd>{isMac ? <Command /> : "Ctrl"}</Kbd>
+                        <Kbd>{usesCommandMeta ? <Command /> : "Ctrl"}</Kbd>
                         <span>+</span>
                       </>
                     )}
 
                     {c.meta && (
                       <>
-                        <Kbd>{isMac ? <Command /> : "Ctrl"}</Kbd>
+                        <Kbd>{usesCommandMeta ? <Command /> : "Ctrl"}</Kbd>
                         <span>+</span>
                       </>
                     )}
@@ -72,7 +72,7 @@ export function KeyboardShortcutsModal({
 
                     {c.alt && (
                       <>
-                        <Kbd>{isMac ? <Option /> : "Alt"}</Kbd>
+                        <Kbd>{usesCommandMeta ? <Option /> : "Alt"}</Kbd>
                         <span>+</span>
                       </>
                     )}

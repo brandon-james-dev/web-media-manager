@@ -1,5 +1,5 @@
 import { dispatchShortcut, getShortcuts } from "./keyboardShortcuts";
-import { isMac } from "./os";
+import { usesCommandMeta } from "./usesCommandMeta";
 
 const NON_TEXT_INPUT_TYPES = new Set([
   "button",
@@ -79,7 +79,7 @@ function handleKey(e: KeyboardEvent) {
 
     // ctrl: true means primary modifier (Ctrl on Win/Linux, Cmd on mac)
     if (c.ctrl) {
-      const primaryPressed = isMac ? e.metaKey : e.ctrlKey;
+      const primaryPressed = usesCommandMeta ? e.metaKey : e.ctrlKey;
       if (!primaryPressed) continue;
     }
 
