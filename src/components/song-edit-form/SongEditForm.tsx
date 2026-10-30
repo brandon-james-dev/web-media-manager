@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbnailSize } from "@/lib";
 import type { IOnlineMetadata } from "@/lib/metadata-providers/online/IOnlineMetadata";
-import type { Song } from "@/models";
+import type { SongEditDto } from "@/dto";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
@@ -127,7 +127,7 @@ export function SongEditForm(props: SongEditFormProps) {
     const num = (key: string, fallback: number | undefined) =>
       formData.get(key) ? Number(formData.get(key)) : fallback;
 
-    const updates: Partial<Song> = {
+    const updates: SongEditDto = {
       // Metadata
       title: get("title"),
       artist: get("artist"),

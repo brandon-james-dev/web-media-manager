@@ -14,5 +14,5 @@ export async function updateTags(
   updates: Partial<Song>,
   callbacks?: SongEditCallbacks
 ): Promise<Song> {
-  return applySongEdits(song, updates, callbacks);
+  return applySongEdits(song, updates, undefined, callbacks);
 }

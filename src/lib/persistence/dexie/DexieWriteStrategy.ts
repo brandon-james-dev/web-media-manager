@@ -12,9 +12,19 @@ export class DexieWriteStrategy {
    * Writes metadata to Dexie.
    * This does NOT write tags to the file.
    */
-  async write(id: string, updated: Song): Promise<Song> {
+  async write(id: string, updated: Partial<Song>): Promise<Song> {
     // Let the metadata store handle persistence + event emission
-    return await this.store.save(id, updated);
+    const existing = await this.store.get(id);
+    const merged: Song = {
+      id,
+      sourceId: existing?.sourceId ?? updated.sourceId ?? "",
+      relativePath: existing?.relativePath ?? updated.relativePath ?? "",
+      filename: existing?.filename ?? updated.filename ?? "",
+      filesize: existing?.filesize ?? updated.filesize ?? 0,
+      ...existing,
+      ...updated,
+    };
+    return await this.store.save(id, merged);
   }
 
   /**

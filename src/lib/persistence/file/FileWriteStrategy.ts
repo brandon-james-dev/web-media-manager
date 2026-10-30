@@ -1,5 +1,4 @@
 import type { IMetadataWriteStrategy } from "../../contracts/IMetadataWriteStrategy";
-import type { ITagData } from "../../contracts/ITagData";
 import type { Song } from "@/models/Song";
 import type { FileSystemMetadataStore } from "./FileSystemMetadataStore";
 
@@ -10,7 +9,7 @@ export class FileWriteStrategy implements IMetadataWriteStrategy {
     this.store = store;
   }
 
-  async write(id: string, updated: Partial<ITagData>): Promise<Song> {
+  async write(id: string, updated: Partial<Song>): Promise<Song> {
     const song = await this.store.get(id);
     if (!song) {
       throw new Error(`Song ${id} not found`);

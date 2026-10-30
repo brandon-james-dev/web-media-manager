@@ -24,8 +24,6 @@ export async function* readSongFiles(
       relativePath: handle.name,
       sourceId: uuidv7(), // Default, would be changed in the caller
       filesize: size,
-      coverFront: metadata?.coverFront,
-      coverBack: metadata?.coverBack,
       title: metadata?.title ?? "",
       artist: metadata?.artist ?? "",
       album: metadata?.album ?? "",

@@ -1,10 +1,15 @@
-import { applyPictures, applyTags, type Picture } from "taglib-wasm";
-import type { ITagData } from "@/lib/contracts";
+import {
+  applyPictures,
+  applyTags,
+  type Picture,
+  type TagInput,
+} from "taglib-wasm";
+import type { Song } from "@/models/Song";
 import type { IMetadataWriter } from "@/lib/contracts/IMedataWriter";
 import { resizeBitmap } from "@/lib/metadata/artwork/resizeBitmap";
 
 export class TagLibMetadataWriter implements IMetadataWriter {
-  async writeTags(file: File, tags: Partial<ITagData>): Promise<Uint8Array> {
+  async writeTags(file: File, tags: Partial<Song>): Promise<Uint8Array> {
     const taglibPictures: Picture[] = [];
 
     if (tags.pictures && tags.pictures.length > 0) {
@@ -46,7 +51,26 @@ export class TagLibMetadataWriter implements IMetadataWriter {
 
     delete tags.pictures;
 
-    const textUpdatedBytes = await applyTags(file, tags);
+    const tagFields: Partial<Song> = {
+      title: tags.title,
+      artist: tags.artist,
+      album: tags.album,
+      albumArtist: tags.albumArtist,
+      genre: tags.genre,
+      comment: tags.comment,
+      composer: tags.composer,
+      year: tags.year,
+      track: tags.track,
+      totalTracks: tags.totalTracks,
+      discNumber: tags.discNumber,
+      lyrics: tags.lyrics,
+      copyright: tags.copyright,
+      encodedBy: tags.encodedBy,
+      bpm: tags.bpm,
+      isrc: tags.isrc,
+    };
+
+    const textUpdatedBytes = await applyTags(file, tagFields as Partial<TagInput>);
 
     let updatedFile = new File(
       [textUpdatedBytes.slice().buffer],

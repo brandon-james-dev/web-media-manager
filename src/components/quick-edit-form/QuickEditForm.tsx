@@ -1,4 +1,4 @@
-import type { Song } from "@/models";
+import type { QuickEditDto } from "@/dto";
 import { Pen, Save } from "lucide-react";
 import { useState } from "react";
 import { QuickEditField } from "./QuickEditField";
@@ -46,12 +46,17 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
   ) {
     event.preventDefault();
 
-    const rawUpdates = {
-      ...values,
-      coverFront: updatedFrontCover,
+    const rawUpdates: QuickEditDto = {
+      title: values.title as QuickEditDto["title"],
+      artist: values.artist as QuickEditDto["artist"],
+      album: values.album as QuickEditDto["album"],
+      genre: values.genre as QuickEditDto["genre"],
+      year: values.year as QuickEditDto["year"],
+      track: values.track as QuickEditDto["track"],
+      coverFront: updatedFrontCover ?? undefined,
     };
 
-    const updates = stripEmptyFields(rawUpdates) as Partial<Song>;
+    const updates = stripEmptyFields(rawUpdates) as QuickEditDto;
 
     onApply(updates);
 

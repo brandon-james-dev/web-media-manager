@@ -63,7 +63,7 @@ export function songsToAlbums(songs: Song[]): AlbumID3[] {
     name,
     artist,
     artistId: artist ? artistId(artist) : undefined,
-    coverArt: songs.find((s) => s.coverFront)?.id ?? songs[0]?.id,
+    coverArt: songs[0]?.id, // artwork is resolved by song id
     songCount: songs.length,
     duration: songs.reduce((sum, s) => sum + (s.length ?? 0), 0),
     year: songs.reduce((max, s) => Math.max(max, s.year ?? 0), 0),

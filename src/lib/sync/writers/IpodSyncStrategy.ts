@@ -174,7 +174,8 @@ export class IpodSyncStrategy implements ISyncStrategy {
       trackNumber: song.track,
       trackTotal: song.totalTracks,
       discNumber: song.discNumber,
-      discTotal: song.totalDiscs,
+      discTotal:
+        typeof song.totalDiscs === "number" ? song.totalDiscs : undefined,
     };
   }
 }

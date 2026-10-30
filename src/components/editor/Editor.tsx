@@ -18,6 +18,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { applySongEdits } from "@/lib";
+import type { AlbumDetailDto, QuickEditDto, SongEditDto } from "@/dto";
 import { backgroundService } from "@/lib/background-jobs";
 import { useSongs, usePlayback } from "@/hooks";
 import type { Album, Song } from "@/models";
@@ -52,10 +53,14 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
   }, [isPlaying, playPause]);
   //#endregion
   //#region Interactivity handlers
-  async function handleSongUpdate(updates: Partial<Song>): Promise<void> {
+  async function handleSongUpdate(updates: SongEditDto): Promise<void> {
     if (!selectedSongIds) return;
     const selectedSong = selectedSongs[0];
-    const updatedSong = await applySongEdits(selectedSong, updates);
+    const cover = updates.coverFront
+      ? { coverFront: updates.coverFront }
+      : undefined;
+    const { coverFront: _coverFront, ...editUpdates } = updates;
+    const updatedSong = await applySongEdits(selectedSong, editUpdates, cover);
     notification$.next({
       id: uuidv7(),
       title: "Song Updated",
@@ -71,7 +76,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       payload: {
         song: {
           ...selectedSong,
-          ...updates,
+          ...editUpdates,
         },
       },
     });
@@ -82,11 +87,23 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     setIsAdvancedEdit(false);
   }
 
-  async function handleApply(updates: Partial<Song>) {
+  async function handleApply(updates: QuickEditDto) {
     if (selectedSongs.length == 0) return;
 
+    const editUpdates: Partial<Song> = {
+      title: updates.title,
+      artist: updates.artist,
+      album: updates.album,
+      genre: updates.genre,
+      year: updates.year,
+      track: updates.track,
+    };
+    const cover = updates.coverFront
+      ? { coverFront: updates.coverFront }
+      : undefined;
+
     if (selectedSongs.length === 1) {
-      const updatedSong = await applySongEdits(selectedSongs[0], updates);
+      const updatedSong = await applySongEdits(selectedSongs[0], editUpdates, cover);
 
       notification$.next({
         id: uuidv7(),
@@ -100,7 +117,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
         type: "Bulk Edit",
         payload: {
           songIds: selectedSongIds,
-          edits: updates,
+          edits: editUpdates,
         },
       });
     }
@@ -198,49 +215,23 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     setSelectedAlbum(albums.at(albumIndex + 1));
   }
 
-  async function handleAlbumDetailFormSubmit(form: FormData) {
-    const result: any = {};
+  async function handleAlbumDetailFormSubmit(dto: AlbumDetailDto) {
+    const albumTitle = dto.albumTitle;
+    const albumArtist = dto.albumArtist;
+    const cover = dto.coverFront ? { coverFront: dto.coverFront } : undefined;
 
-    for (const [key, value] of form.entries()) {
-      // Example key: "songs[0].title"
-      const path = key.replace(/\]/g, "").split(/\[|\./g);
-
-      let current = result;
-
-      for (let i = 0; i < path.length; i++) {
-        const part = path[i];
-        const isLast = i === path.length - 1;
-
-        if (isLast) {
-          current[part] = value;
-        } else {
-          const nextPart = path[i + 1];
-          const isArrayIndex = /^\d+$/.test(nextPart);
-
-          if (!current[part]) {
-            current[part] = isArrayIndex ? [] : {};
-          }
-
-          current = current[part];
-        }
-      }
-    }
-
-    for (const song of result.songs) {
+    for (const song of dto.songs) {
       let currentSong = filteredSongs.find((s) => s.id == song.id);
 
       if (currentSong) {
         const updatedSong: Partial<Song> = {
-          ...song,
+          title: song.title,
+          track: song.track,
+          album: albumTitle,
+          albumArtist,
         };
 
-        if (result.coverFront) {
-          updatedSong.coverFront = new Blob([result.coverFront as File]);
-        }
-
-        delete updatedSong.id;
-
-        await applySongEdits(currentSong, updatedSong);
+        await applySongEdits(currentSong, updatedSong, cover);
         songEditSaved$.next(currentSong);
         backgroundService.enqueue({
           type: "Thumbnail Generation",

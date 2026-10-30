@@ -11,6 +11,7 @@ import { Label } from "../ui/label";
 import { ChevronLeft, ChevronRight, Eraser, Pen, Save, X } from "lucide-react";
 import { Button } from "../ui/button";
 import type { AlbumDetailDialogProps } from "./AlbumDetailDialogProps";
+import type { AlbumDetailDto } from "@/dto";
 import { AlbumArtImage } from "../album-art-image";
 
 export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
@@ -42,7 +43,23 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
   function handleFormSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    onSubmit?.(form);
+
+    const songs = album?.songs.map((s, index) => ({
+      id: s.id,
+      track: form.get(`songs[${index}].track`)
+        ? Number(form.get(`songs[${index}].track`))
+        : undefined,
+      title: form.get(`songs[${index}].title`)?.toString() || undefined,
+    })) ?? [];
+
+    const dto: AlbumDetailDto = {
+      albumTitle: form.get("albumTitle")?.toString() || undefined,
+      albumArtist: form.get("albumArtist")?.toString() || undefined,
+      songs,
+      coverFront: updatedFrontCover ?? undefined,
+    };
+
+    onSubmit?.(dto);
   }
 
   function handleOpenChange(open: boolean) {

@@ -32,28 +32,11 @@ export async function readSongFile(
 
   if (!tags && !props) return null;
 
-  const pictures = tags?.pictures ?? [];
-
-  let coverFront: Blob | undefined;
-  let coverBack: Blob | undefined;
-
-  for (const pic of pictures) {
-    const blob = new Blob([pic.data.slice()], { type: pic.mimeType });
-
-    if (pic.type === "FrontCover") {
-      coverFront = blob;
-    } else if (pic.type === "BackCover") {
-      coverBack = blob;
-    }
-  }
-
   return {
     id: uuidv7(),
     filename,
     relativePath: filename,
     fileSizeBytes: file.size,
-    coverFront,
-    coverBack,
     filesize,
     sourceId: uuidv7(),
     ...tags,

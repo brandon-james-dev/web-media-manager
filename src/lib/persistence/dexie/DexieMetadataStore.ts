@@ -125,9 +125,7 @@ export class DexieMetadataStore implements IMetadataStore {
   async save(id: string, updated: Song): Promise<Song> {
     const existing = await this.db.songs.get(id);
 
-    // Strip artwork fields before saving
-    updated.coverFront = undefined;
-    updated.coverBack = undefined;
+    // Strip artwork fields before saving (artwork lives in the artwork store)
     updated.pictures = undefined;
 
     await this.db.songs.put(updated, id);

@@ -1,4 +1,5 @@
 import type { Album } from "@/models";
+import type { AlbumDetailDto } from "@/dto";
 
 export interface AlbumDetailDialogProps {
   formId?: string;
@@ -7,7 +8,7 @@ export interface AlbumDetailDialogProps {
 
   album?: Album;
 
-  onSubmit?: (form: FormData) => void;
+  onSubmit?: (dto: AlbumDetailDto) => void;
 
   isPrevButtonDisabled?: boolean;
   isNextButtonDisabled?: boolean;

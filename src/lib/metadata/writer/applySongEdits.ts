@@ -4,21 +4,35 @@ import { getPicturesForSongOfType } from "../artwork/getPicturesForSongOfType";
 import { ArtworkType } from "../../contracts";
 import { resizeBitmap } from "../artwork/resizeBitmap";
 
+/** Cover updates handed to applySongEdits apart from the tag updates. */
+export interface CoverUpdate {
+  coverFront?: Blob;
+  coverBack?: Blob;
+}
+
+/**
+ * Apply tag + artwork edits to a song and persist it.
+ *
+ * `updates` carries only tag/metadata fields (never blobs). A new cover is
+ * passed via `cover` and is resized into an embedded picture; a missing
+ * cover falls back to the existing artwork of that type.
+ */
 export async function applySongEdits(
   song: Song,
   updates: Partial<Song>,
+  cover?: CoverUpdate,
   callbacks?: {
     onSongUpdated?: (updatedSong: Song) => void;
   }
 ): Promise<Song> {
-  const updatedSong = { ...song, ...updates };
+  const updatedSong: Song = { ...song, ...updates };
 
   updatedSong.pictures = updatedSong.pictures?.filter(
     (p) => p.type !== "FrontCover" && p.type !== "BackCover"
   );
 
-  if (updates.coverFront instanceof Blob) {
-    const bitmap = await createImageBitmap(updates.coverFront);
+  if (cover?.coverFront instanceof Blob) {
+    const bitmap = await createImageBitmap(cover.coverFront);
 
     try {
       const resized = await resizeBitmap(bitmap, 512);
@@ -51,8 +65,8 @@ export async function applySongEdits(
     }
   }
 
-  if (updates.coverBack instanceof Blob) {
-    const bitmap = await createImageBitmap(updates.coverBack);
+  if (cover?.coverBack instanceof Blob) {
+    const bitmap = await createImageBitmap(cover.coverBack);
 
     try {
       const resized = await resizeBitmap(bitmap, 512);
