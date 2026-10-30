@@ -8,4 +8,4 @@ export interface SystemScanStatus {
   lastScan: string | null;
 }
 
-export const WMM_VERSION = "0.0.0";
+export const WMM_VERSION = __APP_VERSION__;
