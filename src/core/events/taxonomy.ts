@@ -16,6 +16,11 @@
  * Security note: this registry is also the SAFETY BOUNDARY for user-supplied
  * configuration. A gesture binding is only valid if its name exists here;
  * unknown names are rejected. No name can invoke arbitrary code.
+ *
+ * MAINTENANCE: each entry is defined ONCE as a key of a const record, with
+ * its payload as the value. The name union, payload type, and runtime name
+ * list are all DERIVED from that single record, so adding/renaming an event
+ * is exactly one edit — there is no parallel list to keep in sync.
  */
 
 // ---------------------------------------------------------------- domains
@@ -35,131 +40,102 @@ export type WmmDomain =
   | "ui";
 
 // ---------------------------------------------------------------- commands
-/** Commands: things a user can trigger from a gesture (button/shortcut/binding). */
-export type WmmCommandName =
+/**
+ * Commands: things a user can trigger from a gesture (button/shortcut/binding).
+ * Single source of truth — the key is the name, the value is its payload type
+ * (`undefined` when the command carries no payload).
+ */
+export const WMM_COMMANDS = {
   // playback
-  | "wmm.playback.playpause"
-  | "wmm.playback.next"
-  | "wmm.playback.prev"
-  | "wmm.playback.seek"
-  | "wmm.playback.stop"
-  | "wmm.playback.setVolume"
-  | "wmm.playback.toggleShuffle"
-  | "wmm.playback.toggleRepeat"
-  | "wmm.playback.playSong"
-  | "wmm.playback.playQueue"
-  | "wmm.playback.clearQueue"
+  "wmm.playback.playpause": undefined,
+  "wmm.playback.next": undefined,
+  "wmm.playback.prev": undefined,
+  "wmm.playback.seek": { positionSeconds: 0 } as { positionSeconds: number },
+  "wmm.playback.stop": undefined,
+  "wmm.playback.setVolume": { volume: 0 } as { volume: number },
+  "wmm.playback.toggleShuffle": undefined,
+  "wmm.playback.toggleRepeat": undefined,
+  "wmm.playback.playSong": {} as { songId: string },
+  "wmm.playback.playQueue": undefined,
+  "wmm.playback.clearQueue": undefined,
   // library / browsing
-  | "wmm.library.song.edit"
-  | "wmm.library.song.quickEdit"
-  | "wmm.library.song.open"
-  | "wmm.library.queue"
-  | "wmm.browsing.showAlbums"
-  | "wmm.browsing.showArtists"
-  | "wmm.browsing.showGenres"
+  "wmm.library.song.edit": {} as { songId: string },
+  "wmm.library.song.quickEdit": {} as { songIds: string[] },
+  "wmm.library.song.open": {} as { songId: string },
+  "wmm.library.queue": {} as { songIds: string[] },
+  "wmm.browsing.showAlbums": undefined,
+  "wmm.browsing.showArtists": undefined,
+  "wmm.browsing.showGenres": undefined,
   // scanning
-  | "wmm.scanning.rescan"
-  | "wmm.scanning.addSource"
-  | "wmm.scanning.clearLibrary"
+  "wmm.scanning.rescan": undefined,
+  "wmm.scanning.addSource": undefined,
+  "wmm.scanning.clearLibrary": undefined,
   // searching
-  | "wmm.searching.search"
+  "wmm.searching.search": {} as { query: string },
   // playlists
-  | "wmm.playlists.save"
+  "wmm.playlists.save": undefined,
   // sync
-  | "wmm.sync.start"
+  "wmm.sync.start": undefined,
   // ui
-  | "wmm.ui.openSettings"
-  | "wmm.ui.openShortcuts"
-  | "wmm.ui.close";
+  "wmm.ui.openSettings": undefined,
+  "wmm.ui.openShortcuts": undefined,
+  "wmm.ui.close": undefined,
+} as const;
 
-/** Payloads for each command (empty object when none). */
-export interface WmmCommandPayload {
-  "wmm.playback.playpause": undefined;
-  "wmm.playback.next": undefined;
-  "wmm.playback.prev": undefined;
-  "wmm.playback.seek": { positionSeconds: number };
-  "wmm.playback.stop": undefined;
-  "wmm.playback.setVolume": { volume: number };
-  "wmm.playback.toggleShuffle": undefined;
-  "wmm.playback.toggleRepeat": undefined;
-  "wmm.playback.playSong": { songId: string };
-  "wmm.playback.playQueue": undefined;
-  "wmm.playback.clearQueue": undefined;
-  "wmm.library.song.edit": { songId: string };
-  "wmm.library.song.quickEdit": { songIds: string[] };
-  "wmm.library.song.open": { songId: string };
-  "wmm.library.queue": { songIds: string[] };
-  "wmm.browsing.showAlbums": undefined;
-  "wmm.browsing.showArtists": undefined;
-  "wmm.browsing.showGenres": undefined;
-  "wmm.scanning.rescan": undefined;
-  "wmm.scanning.addSource": undefined;
-  "wmm.scanning.clearLibrary": undefined;
-  "wmm.searching.search": { query: string };
-  "wmm.playlists.save": undefined;
-  "wmm.sync.start": undefined;
-  "wmm.ui.openSettings": undefined;
-  "wmm.ui.openShortcuts": undefined;
-  "wmm.ui.close": undefined;
-}
+/** Command names (derived). */
+export type WmmCommandName = keyof typeof WMM_COMMANDS;
+
+/** Payload for a command (derived; `undefined` when the command carries none). */
+export type WmmCommandPayload = {
+  [N in WmmCommandName]: (typeof WMM_COMMANDS)[N];
+};
 
 // ---------------------------------------------------------------- events
-/** Events: things the app emits to report state changes. */
-export type WmmEventName =
+/**
+ * Events: things the app emits to report state changes.
+ * Single source of truth — key is the name, value is its payload type.
+ */
+export const WMM_EVENTS = {
   // playback state
-  | "wmm.playback.started"
-  | "wmm.playback.paused"
-  | "wmm.playback.completed"
-  | "wmm.playback.queueChanged"
-  | "wmm.playback.shuffleChanged"
-  | "wmm.playback.repeatChanged"
-  | "wmm.playback.volumeChanged"
-  | "wmm.playback.positionChanged"
+  "wmm.playback.started": {} as { songId: string; positionSeconds?: number },
+  "wmm.playback.paused": {} as { songId: string },
+  "wmm.playback.completed": {} as { songId: string },
+  "wmm.playback.queueChanged": {} as { songIds: string[] },
+  "wmm.playback.shuffleChanged": {} as { enabled: boolean },
+  "wmm.playback.repeatChanged": {} as { state: "off" | "all" | "one" },
+  "wmm.playback.volumeChanged": {} as { volume: number },
+  "wmm.playback.positionChanged": {
+    songId: "",
+    positionSeconds: 0,
+  } as { songId: string; positionSeconds: number },
   // library
-  | "wmm.library.song.added"
-  | "wmm.library.song.updated"
-  | "wmm.library.song.deleted"
-  | "wmm.library.source.added"
-  | "wmm.library.source.deleted"
+  "wmm.library.song.added": {} as { songId: string },
+  "wmm.library.song.updated": {} as { songId: string },
+  "wmm.library.song.deleted": {} as { songId: string },
+  "wmm.library.source.added": {} as { sourceId: string },
+  "wmm.library.source.deleted": {} as { sourceId: string },
   // scanning
-  | "wmm.scanning.started"
-  | "wmm.scanning.progress"
-  | "wmm.scanning.completed"
+  "wmm.scanning.started": undefined,
+  "wmm.scanning.progress": {} as { processed: number; total: number },
+  "wmm.scanning.completed": {} as { processed: number },
   // jobs
-  | "wmm.jobs.enqueued"
-  | "wmm.jobs.progress"
-  | "wmm.jobs.completed"
+  "wmm.jobs.enqueued": {} as { jobId: string; type: string },
+  "wmm.jobs.progress": {} as { jobId: string; processed: number; total: number },
+  "wmm.jobs.completed": {} as { jobId: string },
   // searching
-  | "wmm.searching.completed"
+  "wmm.searching.completed": {} as { query: string },
   // ui
-  | "wmm.ui.viewChanged"
-  | "wmm.ui.editorModeChanged";
+  "wmm.ui.viewChanged": {} as { view: string },
+  "wmm.ui.editorModeChanged": {} as { mode: "song" | "edit" },
+} as const;
 
-/** Payloads for each event. */
-export interface WmmEventPayload {
-  "wmm.playback.started": { songId: string; positionSeconds?: number };
-  "wmm.playback.paused": { songId: string };
-  "wmm.playback.completed": { songId: string };
-  "wmm.playback.queueChanged": { songIds: string[] };
-  "wmm.playback.shuffleChanged": { enabled: boolean };
-  "wmm.playback.repeatChanged": { state: "off" | "all" | "one" };
-  "wmm.playback.volumeChanged": { volume: number };
-  "wmm.playback.positionChanged": { songId: string; positionSeconds: number };
-  "wmm.library.song.added": { songId: string };
-  "wmm.library.song.updated": { songId: string };
-  "wmm.library.song.deleted": { songId: string };
-  "wmm.library.source.added": { sourceId: string };
-  "wmm.library.source.deleted": { sourceId: string };
-  "wmm.scanning.started": undefined;
-  "wmm.scanning.progress": { processed: number; total: number };
-  "wmm.scanning.completed": { processed: number };
-  "wmm.jobs.enqueued": { jobId: string; type: string };
-  "wmm.jobs.progress": { jobId: string; processed: number; total: number };
-  "wmm.jobs.completed": { jobId: string };
-  "wmm.searching.completed": { query: string };
-  "wmm.ui.viewChanged": { view: string };
-  "wmm.ui.editorModeChanged": { mode: "song" | "edit" };
-}
+/** Event names (derived). */
+export type WmmEventName = keyof typeof WMM_EVENTS;
+
+/** Payload for an event (derived; `undefined` when the event carries none). */
+export type WmmEventPayload = {
+  [N in WmmEventName]: (typeof WMM_EVENTS)[N];
+};
 
 // ------------------------------------------------------------- envelope
 /** A command issued from a user gesture / config binding. */
@@ -179,61 +155,9 @@ export interface WmmEvent<E extends WmmEventName = WmmEventName> {
 /** The unified message carried on the WmmBus. */
 export type WmmMessage = WmmCommand | WmmEvent;
 
-/** All known command/event names that a UI config may bind to. */
-export const WMM_COMMAND_NAMES: readonly WmmCommandName[] = [
-  "wmm.playback.playpause",
-  "wmm.playback.next",
-  "wmm.playback.prev",
-  "wmm.playback.seek",
-  "wmm.playback.stop",
-  "wmm.playback.setVolume",
-  "wmm.playback.toggleShuffle",
-  "wmm.playback.toggleRepeat",
-  "wmm.playback.playSong",
-  "wmm.playback.playQueue",
-  "wmm.playback.clearQueue",
-  "wmm.library.song.edit",
-  "wmm.library.song.quickEdit",
-  "wmm.library.song.open",
-  "wmm.library.queue",
-  "wmm.browsing.showAlbums",
-  "wmm.browsing.showArtists",
-  "wmm.browsing.showGenres",
-  "wmm.scanning.rescan",
-  "wmm.scanning.addSource",
-  "wmm.scanning.clearLibrary",
-  "wmm.searching.search",
-  "wmm.playlists.save",
-  "wmm.sync.start",
-  "wmm.ui.openSettings",
-  "wmm.ui.openShortcuts",
-  "wmm.ui.close",
-];
-
-export const WMM_EVENT_NAMES: readonly WmmEventName[] = [
-  "wmm.playback.started",
-  "wmm.playback.paused",
-  "wmm.playback.completed",
-  "wmm.playback.queueChanged",
-  "wmm.playback.shuffleChanged",
-  "wmm.playback.repeatChanged",
-  "wmm.playback.volumeChanged",
-  "wmm.playback.positionChanged",
-  "wmm.library.song.added",
-  "wmm.library.song.updated",
-  "wmm.library.song.deleted",
-  "wmm.library.source.added",
-  "wmm.library.source.deleted",
-  "wmm.scanning.started",
-  "wmm.scanning.progress",
-  "wmm.scanning.completed",
-  "wmm.jobs.enqueued",
-  "wmm.jobs.progress",
-  "wmm.jobs.completed",
-  "wmm.searching.completed",
-  "wmm.ui.viewChanged",
-  "wmm.ui.editorModeChanged",
-];
+/** All known command/event names that a UI config may bind to (derived). */
+export const WMM_COMMAND_NAMES = Object.keys(WMM_COMMANDS) as WmmCommandName[];
+export const WMM_EVENT_NAMES = Object.keys(WMM_EVENTS) as WmmEventName[];
 
 /** Type guard: is a name a known command? (used for config/gesture validation) */
 export function isWmmCommand(name: string): name is WmmCommandName {
