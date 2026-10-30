@@ -1,4 +1,4 @@
-import type { SortableColumn } from "@/lib/store";
+import type { SortableColumn } from "@/lib/repository";
 
 export interface DraggableHeaderProps {
   header: any;

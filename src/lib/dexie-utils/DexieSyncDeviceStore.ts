@@ -1,7 +1,7 @@
 import type { SyncDeviceRecord } from "@/models";
 import { getMetadataDb } from "./MetadataDb";
-import type { DataChangedCallback, IRepository, QueryOptions } from "../store";
-import type { DataSourceResult } from "../store/DataSourceResult";
+import type { DataChangedCallback, IRepository, QueryOptions } from "../repository";
+import type { DataSourceResult } from "../repository/DataSourceResult";
 
 export class DexieSyncDeviceStore implements IRepository<SyncDeviceRecord> {
   private readonly db = getMetadataDb();

@@ -4,7 +4,7 @@ import {
   FileSystemDirectoryStore,
   FileSystemMetadataStore,
 } from "./file-utils";
-import { type IMetadataStore } from "./metadata-utils";
+import { type IMetadataStore } from "./contracts";
 import { DexieDirectoryStore } from "./dexie-utils/DexieDirectoryStore";
 
 let metadataStore: CombinedMetadataStore | null = null;

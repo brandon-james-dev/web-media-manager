@@ -1,4 +1,4 @@
-import { ArtworkType, type IPicture } from "../metadata-utils";
+import { ArtworkType, type IPicture } from "../contracts";
 import type { IOnlineMetadata } from "../online-metadata-utils/IOnlineMetadata";
 import type { IOnlineMetadataService } from "../online-metadata-utils/IOnlineMetadataService";
 import { MetadataProvider } from "../online-metadata-utils/MetadataProvider";

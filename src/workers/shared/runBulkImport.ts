@@ -4,7 +4,7 @@ import type { WorkerProgress } from "../WorkerJob";
 import { initMetadataStore, readSongFile } from "@/lib";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { collectFileHandles } from "@/lib/file-utils";
-import type { BackgroundJob } from "@/lib/background-jobs";
+import type { BackgroundJob } from "@/events/background-job-events";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
 import type { Directory } from "@/models";
 

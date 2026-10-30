@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/input-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSongs, useSync } from "@/hooks";
-import type { QueryOptions } from "@/lib/store";
+import type { QueryOptions } from "@/lib/repository";
 import type { Song } from "@/models";
 import { Music, DiscAlbum, Search, Pen, MonitorSmartphone } from "lucide-react";
 import { useState, type ChangeEvent } from "react";

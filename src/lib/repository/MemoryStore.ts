@@ -5,24 +5,24 @@ import type { QueryOptions } from "./QueryOptions";
 export class MemoryStore<T> implements IRepository<T> {
   private store = new Map<string, T>();
 
-  private songAddedListeners = new Set<DataChangedCallback<T>>();
-  private songUpdatedListeners = new Set<DataChangedCallback<T>>();
-  private songDeletedListeners = new Set<DataChangedCallback<T>>();
+  private dataAddedListeners = new Set<DataChangedCallback<T>>();
+  private dataUpdatedListeners = new Set<DataChangedCallback<T>>();
+  private dataDeletedListeners = new Set<DataChangedCallback<T>>();
   private storeClearedisteners = new Set<() => void>();
 
   onAdded(cb: DataChangedCallback<T>): () => void {
-    this.songAddedListeners.add(cb);
-    return () => this.songAddedListeners.delete(cb);
+    this.dataAddedListeners.add(cb);
+    return () => this.dataAddedListeners.delete(cb);
   }
 
   onUpdated(cb: DataChangedCallback<T>): () => void {
-    this.songUpdatedListeners.add(cb);
-    return () => this.songUpdatedListeners.delete(cb);
+    this.dataUpdatedListeners.add(cb);
+    return () => this.dataUpdatedListeners.delete(cb);
   }
 
   onDeleted(cb: DataChangedCallback<T>): () => void {
-    this.songDeletedListeners.add(cb);
-    return () => this.songDeletedListeners.delete(cb);
+    this.dataDeletedListeners.add(cb);
+    return () => this.dataDeletedListeners.delete(cb);
   }
 
   onStoreCleared(cb: () => void): () => void {
@@ -31,15 +31,15 @@ export class MemoryStore<T> implements IRepository<T> {
   }
 
   private emitAdded(data: T) {
-    for (const cb of this.songAddedListeners) cb(data);
+    for (const cb of this.dataAddedListeners) cb(data);
   }
 
   private emitUpdated(data: T) {
-    for (const cb of this.songUpdatedListeners) cb(data);
+    for (const cb of this.dataUpdatedListeners) cb(data);
   }
 
   private emitDeleted(data: T) {
-    for (const cb of this.songDeletedListeners) cb(data);
+    for (const cb of this.dataDeletedListeners) cb(data);
   }
 
   async get(id: string): Promise<T | null> {

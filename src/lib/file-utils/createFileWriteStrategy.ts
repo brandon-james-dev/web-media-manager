@@ -1,6 +1,6 @@
 import { getMetadataStore } from ".";
 import type { CombinedMetadataStore } from "../CombinedMetadataStore";
-import type { IMetadataWriteStrategy } from "../metadata-utils";
+import type { IMetadataWriteStrategy } from "../contracts";
 import { FileWriteStrategy } from "./FileWriteStrategy";
 
 export function createFileWriteStrategy(): IMetadataWriteStrategy {

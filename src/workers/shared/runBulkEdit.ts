@@ -1,6 +1,6 @@
 import { applySongEdits } from "@/lib";
 import { loadSongMetadata } from "@/lib/loadSongMetadata";
-import type { ITagData } from "@/lib/metadata-utils";
+import type { ITagData } from "@/lib/contracts";
 import type { Song } from "@/models/Song";
 
 export async function runBulkEdit(

@@ -1,5 +1,3 @@
-import "./App.css";
-
 import { Routes, Route } from "react-router";
 import { Songs, Albums, Settings, Sync } from "./pages";
 import { NavBar } from "./layout";

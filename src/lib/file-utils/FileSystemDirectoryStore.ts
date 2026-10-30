@@ -1,7 +1,7 @@
 import type { Directory } from "@/models";
-import type { DataChangedCallback, IRepository } from "../store";
-import type { QueryOptions } from "../store/QueryOptions";
-import type { DataSourceResult } from "../store/DataSourceResult";
+import type { DataChangedCallback, IRepository } from "../repository";
+import type { QueryOptions } from "../repository/QueryOptions";
+import type { DataSourceResult } from "../repository/DataSourceResult";
 
 export class FileSystemDirectoryStore implements IRepository<Directory> {
   private directories: IRepository<Directory>;

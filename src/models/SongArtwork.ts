@@ -1,4 +1,4 @@
-import type { ArtworkType } from "../lib/metadata-utils";
+import type { ArtworkType } from "../lib/contracts";
 
 export interface SongArtwork {
   id?: number;

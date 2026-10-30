@@ -1,7 +1,7 @@
 import type { Song } from "@/models/Song";
 import { getMetadataStore } from "./file-utils";
 import { getPicturesForSongOfType } from ".";
-import { ArtworkType } from "./metadata-utils";
+import { ArtworkType } from "./contracts";
 import { resizeBitmap } from "./resizeBitmap";
 
 export async function applySongEdits(

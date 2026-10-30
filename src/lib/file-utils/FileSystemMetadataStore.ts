@@ -1,10 +1,10 @@
 import { uuidv7 } from "uuidv7";
 import type { Song, Directory } from "@/models";
-import type { IMetadataStore } from "../metadata-utils";
+import type { IMetadataStore } from "../contracts";
 import { TagLibMetadataWriter } from "../taglib-metadata-utils";
-import type { DataChangedCallback, IRepository } from "../store";
-import type { QueryOptions } from "../store/QueryOptions";
-import type { DataSourceResult } from "../store/DataSourceResult";
+import type { DataChangedCallback, IRepository } from "../repository";
+import type { QueryOptions } from "../repository/QueryOptions";
+import type { DataSourceResult } from "../repository/DataSourceResult";
 
 export class FileSystemMetadataStore implements IMetadataStore {
   private backingStore?: IMetadataStore;

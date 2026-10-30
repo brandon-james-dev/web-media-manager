@@ -7,7 +7,7 @@ import { getMetadataStore } from "@/lib/file-utils";
 import { backgroundService } from "@/lib/background-jobs";
 import { TagLibMetadataReader } from "@/lib/taglib-metadata-utils";
 import { getPersistedRootDirectories } from "@/lib/dexie-utils";
-import type { QueryOptions } from "@/lib/store";
+import type { QueryOptions } from "@/lib/repository";
 import type { Directory, Song } from "@/models";
 import { SongContext } from "@/hooks";
 

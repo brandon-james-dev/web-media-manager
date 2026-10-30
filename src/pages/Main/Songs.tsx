@@ -9,7 +9,7 @@ import { TanstackSongTable } from "@/components/song-table";
 import { addPersistedStoreDirectory, getMetadataStore } from "@/lib";
 import { backgroundService } from "@/lib/background-jobs";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
-import { selectors, type QueryOptions, type SortableColumn } from "@/lib/store";
+import { selectors, type QueryOptions, type SortableColumn } from "@/lib/repository";
 import { useSongs } from "@/hooks";
 import type { Directory, Song } from "@/models";
 import type { MainContext } from "./MainLayout";

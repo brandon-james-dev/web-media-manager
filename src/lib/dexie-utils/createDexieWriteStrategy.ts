@@ -1,6 +1,6 @@
 import { getMetadataStore } from "../initMetadataStore";
 import type { CombinedMetadataStore } from "../CombinedMetadataStore";
-import type { IMetadataWriteStrategy } from "../metadata-utils";
+import type { IMetadataWriteStrategy } from "../contracts";
 import { DexieWriteStrategy } from "./DexieWriteStrategy";
 
 export function createDexieWriteStrategy(): IMetadataWriteStrategy {

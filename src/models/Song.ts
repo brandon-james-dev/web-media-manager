@@ -1,4 +1,4 @@
-import type { IAudioProperties, ITagData } from "@/lib/metadata-utils";
+import type { IAudioProperties, ITagData } from "@/lib/contracts";
 
 /**
  * Representation of an audio file with its containing id3 tags.

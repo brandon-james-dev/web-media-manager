@@ -1,4 +1,4 @@
-import type { QueryOptions } from "@/lib/store/QueryOptions";
+import type { QueryOptions } from "@/lib/repository/QueryOptions";
 import type { Song } from "@/models/Song";
 import { createContext, useContext } from "react";
 

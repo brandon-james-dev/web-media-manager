@@ -1,7 +1,9 @@
 import { uuidv7 } from "uuidv7";
 import { Subject } from "rxjs";
 import { eventBus, type BackgroundJob } from "@/events/background-job-events";
-import { getWorkerPool, WorkerPool } from "@/workers";
+import { type IJobRunner } from "@/core/jobs";
+import { JobProgressAggregator } from "@/core/jobs";
+import { browserJobRunner } from "./BrowserJobRunner";
 import type {
   JobCompletedCallback,
   JobProgressCallback,
@@ -11,7 +13,7 @@ import type {
 export class BackgroundService {
   private queue: BackgroundJob[] = [];
   private running = false;
-  private workerPool: WorkerPool = getWorkerPool();
+  private runner: IJobRunner;
 
   private jobCompletedListeners = new Set<JobCompletedCallback>();
   private jobProgressListeners = new Set<JobProgressCallback>();
@@ -21,16 +23,11 @@ export class BackgroundService {
     payload: any;
   }>();
 
-  private childMap = new Map<
-    string,
-    {
-      total: number;
-      remaining: Set<string>;
-    }
-  >();
-  private waitingParents = new Map<string, BackgroundJob>();
+  private aggregator = new JobProgressAggregator();
 
-  constructor() {
+  constructor(runner: IJobRunner = browserJobRunner) {
+    this.runner = runner;
+
     eventBus.subscribe((evt) => {
       // Ignore child job notifications entirely
       if (evt.parentJobId) return;
@@ -70,17 +67,7 @@ export class BackgroundService {
 
     // If this job has a parent, register it
     if (fullJob.parentJobId) {
-      const parent = this.childMap.get(fullJob.parentJobId);
-
-      if (!parent) {
-        this.childMap.set(fullJob.parentJobId, {
-          total: 1,
-          remaining: new Set([fullJob.id]),
-        });
-      } else {
-        parent.total++;
-        parent.remaining.add(fullJob.id);
-      }
+      this.aggregator.registerChild(fullJob.parentJobId, fullJob.id);
     }
 
     this.queue.push(fullJob);
@@ -105,8 +92,7 @@ export class BackgroundService {
     });
 
     try {
-      const result = await this.executeWithCancellation(job);
-
+      const result = await this.execute(job);
       this.handleCompletion(job, undefined, result);
     } catch (err) {
       this.handleCompletion(job, err);
@@ -119,80 +105,45 @@ export class BackgroundService {
   private handleCompletion(job: BackgroundJob, error?: any, result?: any) {
     job.state = error ? "failed" : "completed";
 
-    // Child job
+    // Child job: aggregate progress under its parent.
     if (job.parentJobId) {
-      const parentId = job.parentJobId;
-      const childInfo = this.childMap.get(parentId);
+      const { aggregate, parentDone } = this.aggregator.completeChild(
+        job.parentJobId,
+        job.id,
+        job.state
+      );
 
-      if (childInfo) {
-        childInfo.remaining.delete(job.id);
-      }
+      const parent = this.aggregator.parentOf(job.parentJobId);
 
-      if (job.parentJobId) {
-        const parentId = job.parentJobId;
-        const childInfo = this.childMap.get(parentId);
-
-        if (childInfo) {
-          childInfo.remaining.delete(job.id);
-
-          const parentJob = this.waitingParents.get(parentId)!;
-
-          const childCompleted = childInfo.total - childInfo.remaining.size;
-
-          const childOverall =
-            childInfo.total === 0 ? 1 : childCompleted / childInfo.total;
-
-          eventBus.next({
-            state: "progress",
-            jobId: parentId,
-            jobType: parentJob.type,
-            payload: {
+      eventBus.next({
+        state: "progress",
+        jobId: job.parentJobId,
+        jobType: parent?.type ?? job.type,
+        payload: parentDone
+          ? {
               parent: {
-                state: parentJob.state,
-                completed: parentJob.payload?.index,
-                total: parentJob.payload?.total,
-                overall:
-                  parentJob.payload?.overall ?? parentJob.payload?.percent,
-                label: parentJob.payload?.label,
+                ...aggregate.parent,
+                state: "completed",
               },
-
-              child: {
-                state: job.state,
-                completed: childCompleted,
-                remaining: childInfo.remaining.size,
-                total: childInfo.total,
-                overall: childOverall,
-              },
-            },
-          });
-
-          if (childInfo.remaining.size === 0) {
-            this.childMap.delete(parentId);
-
-            if (parentJob) {
-              this.waitingParents.delete(parentId);
-
-              this.emitJobCompleted(parentJob);
+              child: aggregate.child,
             }
-          }
-        }
+          : aggregate,
+      });
 
-        return;
+      if (parentDone && parent) {
+        this.aggregator.release(job.parentJobId);
+        this.emitJobCompleted(parent);
       }
-
       return;
     }
 
     // Parent job with children still running
-    const children = this.childMap.get(job.id);
-
-    if (children && children.remaining.size > 0) {
-      this.waitingParents.set(job.id, job);
+    if (this.aggregator.hasChildren(job.id)) {
+      this.aggregator.setWaitingParent(job);
       return;
     }
 
     // Normal completion
-
     eventBus.next({
       state: "completed",
       jobId: job.id,
@@ -203,36 +154,10 @@ export class BackgroundService {
     this.emitJobCompleted(job);
   }
 
-  private async executeWithCancellation(job: BackgroundJob) {
-    if (!job.token) {
-      return this.workerPool.runJob(job);
-    }
-
-    return new Promise((resolve, reject) => {
-      const sub = job.token!.onCancel$.subscribe(() => {
-        job.state = "canceled";
-        this.workerPool.cancel(job.id);
-        sub.unsubscribe();
-        reject(new Error("Job cancelled"));
-      });
-
-      this.execute(job)
-        .then((result) => {
-          if (job.state !== "canceled") {
-            job.state = "completed";
-          }
-          resolve(result);
-        })
-        .catch((err) => {
-          job.state = "failed";
-          reject(err);
-        })
-        .finally(() => sub.unsubscribe());
-    });
-  }
-
   private async execute(job: BackgroundJob) {
-    return this.workerPool.runJob(job);
+    const result = await this.runner.run(job);
+    if (result.status === "failed") throw result.error;
+    return result.result;
   }
 
   cancelJob(jobId: string) {
@@ -240,7 +165,7 @@ export class BackgroundService {
     if (!job) return;
 
     job.state = "canceled";
-    this.workerPool.cancel(jobId);
+    this.runner.cancel(jobId);
 
     eventBus.next({
       state: "canceled",

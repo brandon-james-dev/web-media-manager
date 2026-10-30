@@ -34,7 +34,7 @@ import {
   ContextMenuSeparator,
   ContextMenuGroup,
 } from "@/components/ui/context-menu";
-import { selectors, type SortableColumn } from "@/lib/store";
+import { selectors, type SortableColumn } from "@/lib/repository";
 import type { SongTableProps } from "./SongTableProps";
 import { SongRow } from "./TanstackSongRow";
 import { DraggableHeader } from "./DraggableHeader";

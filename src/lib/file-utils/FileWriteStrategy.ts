@@ -1,5 +1,5 @@
-import type { IMetadataWriteStrategy } from "../metadata-utils/IMetadataWriteStrategy";
-import type { ITagData } from "../metadata-utils/ITagData";
+import type { IMetadataWriteStrategy } from "../contracts/IMetadataWriteStrategy";
+import type { ITagData } from "../contracts/ITagData";
 import type { Song } from "@/models/Song";
 import type { FileSystemMetadataStore } from "./FileSystemMetadataStore";
 

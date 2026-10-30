@@ -1,5 +1,5 @@
 import type { Song } from "@/models/Song";
-import type { IMetadataStore } from "./metadata-utils/IMetadataStore";
+import type { IMetadataStore } from "./contracts/IMetadataStore";
 
 /**
  * This function puts already extracted song data into the store

@@ -17,7 +17,7 @@ import {
   ThumbnailSize,
 } from "@/lib";
 import type { CombinedMetadataStore } from "@/lib/CombinedMetadataStore";
-import { ArtworkType } from "@/lib/metadata-utils";
+import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
 import { songStartedPlayback$ } from "@/events";
 

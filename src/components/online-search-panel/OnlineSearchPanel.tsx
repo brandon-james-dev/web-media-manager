@@ -4,7 +4,7 @@ import { Input } from "../ui/input";
 import type { IOnlineMetadata } from "@/lib/online-metadata-utils/IOnlineMetadata";
 import { MetadataProvider } from "@/lib/online-metadata-utils/MetadataProvider";
 import { OnlineMetadataResolver } from "@/lib/online-metadata-utils/OnlineMetadataResolver";
-import type { IPicture } from "@/lib/metadata-utils";
+import type { IPicture } from "@/lib/contracts";
 import { Loader2 } from "lucide-react";
 import type { OnlineSearchPanelProps } from "./OnlineSearchPanelProps";
 

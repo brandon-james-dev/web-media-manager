@@ -1,5 +1,5 @@
 import type { ThumbnailSize } from "@/lib";
-import type { ArtworkType } from "@/lib/metadata-utils";
+import type { ArtworkType } from "@/lib/contracts";
 
 export interface AlbumArtImageProps {
   songId?: string;

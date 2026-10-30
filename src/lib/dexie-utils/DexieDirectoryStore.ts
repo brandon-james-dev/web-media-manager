@@ -1,9 +1,9 @@
 import type { Directory } from "@/models/Directory";
 import type { MetadataDb } from "./MetadataDb";
-import type { IRepository, DataChangedCallback } from "../store";
+import type { IRepository, DataChangedCallback } from "../repository";
 import type { Collection, UpdateSpec } from "dexie";
-import type { QueryOptions } from "../store/QueryOptions";
-import type { DataSourceResult } from "../store/DataSourceResult";
+import type { QueryOptions } from "../repository/QueryOptions";
+import type { DataSourceResult } from "../repository/DataSourceResult";
 
 export class DexieDirectoryStore implements IRepository<Directory> {
   private db: MetadataDb;

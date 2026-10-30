@@ -1,6 +1,6 @@
 import { applyPictures, applyTags, type Picture } from "taglib-wasm";
-import type { ITagData } from "@/lib/metadata-utils";
-import type { IMetadataWriter } from "@/lib/metadata-utils/IMedataWriter";
+import type { ITagData } from "@/lib/contracts";
+import type { IMetadataWriter } from "@/lib/contracts/IMedataWriter";
 import { resizeBitmap } from "@/lib/resizeBitmap";
 
 export class TagLibMetadataWriter implements IMetadataWriter {

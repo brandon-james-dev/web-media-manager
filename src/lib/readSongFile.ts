@@ -1,5 +1,5 @@
 import type { Song } from "@/models/Song";
-import type { IMetadataReader } from "./metadata-utils";
+import type { IMetadataReader } from "./contracts";
 import { uuidv7 } from "uuidv7";
 
 /**

@@ -1,11 +1,11 @@
 import type { Song } from "@/models/Song";
-import type { IMetadataStore } from "./metadata-utils";
+import type { IMetadataStore } from "./contracts";
 import type { DexieMetadataStore } from "./dexie-utils";
 import type { FileSystemMetadataStore } from "./file-utils";
-import type { DataChangedCallback } from "./store";
+import type { DataChangedCallback } from "./repository";
 import type { Directory } from "@/models";
-import type { QueryOptions } from "./store/QueryOptions";
-import type { DataSourceResult } from "./store/DataSourceResult";
+import type { QueryOptions } from "./repository/QueryOptions";
+import type { DataSourceResult } from "./repository/DataSourceResult";
 
 /**
  * This store uses both the file system and Dexie. It resolves retrieval and delete to Dexie, but

@@ -1,4 +1,4 @@
-import { ArtworkType, type IPicture } from "@/lib/metadata-utils";
+import { ArtworkType, type IPicture } from "@/lib/contracts";
 import { getArtworkForSong } from ".";
 
 export async function getPicturesForSong(songId: string): Promise<IPicture[]> {
