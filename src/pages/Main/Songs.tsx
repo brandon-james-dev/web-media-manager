@@ -18,7 +18,7 @@ import { isEditMultipleChanged$ } from "@/events/editor-events";
 
 function Songs() {
   //#region State
-  const [directories, setDirectories] = useState<MusicSource[]>([]);
+  const [musicSources, setMusicSources] = useState<MusicSource[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isEditMultiple, setIsEditMultiple] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -27,11 +27,11 @@ function Songs() {
   const { sort, setSort } = useOutletContext<MainContext>();
 
   const [songSort] = useState({
-    selector: (song: Song) => song.album,
+    selector: (song: Song) => song.title,
     desc: false,
   });
 
-  const noDirectories = directories.length === 0;
+  const noMusicSources = musicSources.length === 0;
   //#endregion
 
   //#region Subscribe to domain events
@@ -45,15 +45,15 @@ function Songs() {
   async function refresh() {
     const store = getStore();
     await new Promise((resolve) => setTimeout(resolve, 250));
-    const dirs = await store.getSources();
-    setDirectories(dirs);
+    const sources = await store.getSources();
+    setMusicSources(sources);
   }
 
   useEffect(() => {
     const store = getStore();
 
     store.getSources().then((next) => {
-      setDirectories(next);
+      setMusicSources(next);
       setIsLoading(false);
     });
 
@@ -142,7 +142,7 @@ function Songs() {
         </div>
       ) : (
         <>
-          {noDirectories && (
+          {noMusicSources && (
             <div className="flex-1 flex items-center justify-center">
               <Card className="p-10 flex flex-col items-center gap-6">
                 <Music color="var(--accent)" size={48} />
@@ -158,7 +158,7 @@ function Songs() {
             </div>
           )}
 
-          {!noDirectories && (
+          {!noMusicSources && (
             <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
               <TanstackSongTable
                 songs={filteredSongs}
