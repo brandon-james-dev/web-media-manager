@@ -1,4 +1,5 @@
 import { useMemo, useLayoutEffect, useRef, useState, useEffect } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   columnOrderingFeature,
   columnResizingFeature,
@@ -179,6 +180,35 @@ export function TanstackSongTable(props: SongTableProps) {
 
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // Virtualization: the scroll element is the wrapping ScrollArea viewport.
+  // Rows are mounted lazily by @tanstack/react-virtual; only the rows in the
+  // viewport (plus overscan) are rendered at any time.
+  const rows = table.getRowModel().rows;
+
+  /**
+   * Render non-virtualized for small collections: crisp, fully-rendered rows
+   * with zero virtualization/measurement overhead. Flip to virtualized mode
+   * once the row count exceeds the memory/size breakdown, so huge libraries
+   * stay smooth.
+   */
+  const VIRTUALIZE_THRESHOLD = 1000;
+  const isVirtualizing = rows.length > VIRTUALIZE_THRESHOLD;
+
+  const rowVirtualizer = useVirtualizer({
+    count: isVirtualizing ? rows.length : 0,
+    getScrollElement: () =>
+      tableRef.current?.closest<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]'
+      ) ?? null,
+    estimateSize: () => 28,
+    overscan: 20,
+    getItemKey: (index) => rows[index]?.id ?? index,
+    // Measure true row heights so virtual positions stay exact even for rows
+    // that grow/multiline. measureElement is attached via each row's ref.
+    measureElement: (el) => el.getBoundingClientRect().height,
+    // skip virtualizer entirely when not virtualizing (count 0)
+  });
+
   useLayoutEffect(() => {
     const writeVars = () => {
       const el = tableRef.current;
@@ -261,28 +291,60 @@ export function TanstackSongTable(props: SongTableProps) {
           </ContextMenuContent>
         </ContextMenu>
 
-        <div>
-          {table.getRowModel().rows.length === 0 ? (
-            <div className="h-24 flex items-center justify-center">
-              No results.
-            </div>
-          ) : (
-            table
-              .getRowModel()
-              .rows.map((row) => (
-                <SongRow
-                  key={row.id}
-                  song={row.original}
-                  row={row}
-                  table={table}
-                  rowSelection={rowSelection}
-                  isEditMultiple={isEditMultiple}
-                  onSongDoubleClicked={onSongDoubleClicked}
-                  registerRowRef={registerRowRef}
-                />
-              ))
-          )}
-        </div>
+        {rows.length === 0 ? (
+          <div className="h-24 flex items-center justify-center">
+            No results.
+          </div>
+        ) : isVirtualizing ? (
+          <div
+            style={{ height: rowVirtualizer.getTotalSize() }}
+            className="relative"
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const row = rows[virtualRow.index];
+              return (
+                <div
+                  key={virtualRow.key}
+                  className="absolute top-0 left-0 w-full odd:bg-accent/5"
+                  style={{
+                    // No fixed height here: measureElement reads the row's
+                    // natural height. Fixing height plus measuring the same
+                    // element creates a feedback loop that locks rows to the
+                    // initial estimate (wrong spacing).
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  ref={rowVirtualizer.measureElement}
+                >
+                  <SongRow
+                    key={row.id}
+                    song={row.original}
+                    row={row}
+                    table={table}
+                    rowSelection={rowSelection}
+                    isEditMultiple={isEditMultiple}
+                    onSongDoubleClicked={onSongDoubleClicked}
+                    registerRowRef={registerRowRef}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {rows.map((row) => (
+              <SongRow
+                key={row.id}
+                song={row.original}
+                row={row}
+                table={table}
+                rowSelection={rowSelection}
+                isEditMultiple={isEditMultiple}
+                onSongDoubleClicked={onSongDoubleClicked}
+                registerRowRef={registerRowRef}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </DndContext>
   );

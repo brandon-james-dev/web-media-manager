@@ -40,13 +40,13 @@ export function AlbumCard({
             fallback={
               <div
                 className="
-                w-full h-full
-                rounded-md border
-                flex flex-col items-center justify-center
-                px-4
-                text-center
-                text-muted-foreground
-              "
+                  w-full h-full
+                  rounded-md
+                  flex flex-col items-center justify-center
+                  px-4
+                  text-center
+                  text-muted-foreground
+                "
               >
                 <div className="font-medium text-sm truncate">
                   {album.title}

@@ -45,8 +45,8 @@ export const SongRow = memo(function SongRow({
         onClick={handleClick}
         className={
           isSelected
-            ? "flex bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
-            : "flex odd:bg-muted/15 hover:bg-accent/45"
+            ? "flex h-7 bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
+            : "flex h-7 odd:bg-muted/15 hover:bg-accent/45"
         }
       >
         {row.getVisibleCells().map((cell: Cell<any, Song>) => (

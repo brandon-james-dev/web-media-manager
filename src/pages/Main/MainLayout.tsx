@@ -83,7 +83,8 @@ function MainLayout() {
       filter: (song: Song) =>
         song.title?.toLowerCase().includes(text.toLowerCase()) ||
         song.album?.toLowerCase().includes(text.toLowerCase()) ||
-        song.artist?.toLowerCase().includes(text.toLowerCase()),
+        song.artist?.toLowerCase().includes(text.toLowerCase()) ||
+        song.genre?.toLowerCase().includes(text.toLowerCase()),
     } as QueryOptions<Song>;
 
     setQuery(textQuery);
@@ -171,10 +172,9 @@ function MainLayout() {
                 text-sm font-medium
                 transition-all cursor-default
 
-                ${
-                  isActive
-                    ? "text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                ${isActive
+                  ? "text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
                 }
               `}
             >

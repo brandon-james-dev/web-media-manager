@@ -103,7 +103,7 @@ export function SongContextMenu({
           </ContextMenuItem>
         </ContextMenuGroup>
 
-        <ContextMenuSeparator hidden={isPlaybackHidden} />
+        <ContextMenuSeparator hidden={isPlaybackHidden || !hasConnectedDevices} />
 
         <ContextMenuGroup hidden={isEditHidden}>
           <ContextMenuLabel>Editing</ContextMenuLabel>
