@@ -44,7 +44,7 @@ export async function runArtworkProcess(
 
     if (isCancelled()) return { cancelled: true };
 
-    const bitmap = await createImageBitmap(new Blob([pic.data.slice().buffer]));
+    const bitmap = await createImageBitmap(new Blob([pic.data!.slice().buffer]));
 
     reportProgress({
       index: i,

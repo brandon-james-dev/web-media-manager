@@ -20,7 +20,7 @@ export class TagLibMetadataWriter implements IMetadataWriter {
           pic.type === "FrontCover" ? "FrontCover" : "BackCover";
 
         if (!seen.has(type)) {
-          const sourceBlob = new Blob([pic.data.slice()], {
+          const sourceBlob = new Blob([pic.data!.slice()], {
             type: pic.mimeType,
           });
 

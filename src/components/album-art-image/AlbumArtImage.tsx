@@ -76,7 +76,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
 
       if (!cancelled) {
         if (picture) {
-          const blob = new Blob([picture.data.slice()]);
+          const blob = new Blob([picture.data!.slice()]);
           if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
           const url = URL.createObjectURL(blob);
           objectUrlRef.current = url;
@@ -126,7 +126,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
       );
 
       if (picture) {
-        const blob = new Blob([picture.data.slice()]);
+        const blob = new Blob([picture.data!.slice()]);
 
         if (objectUrlRef.current) {
           URL.revokeObjectURL(objectUrlRef.current);

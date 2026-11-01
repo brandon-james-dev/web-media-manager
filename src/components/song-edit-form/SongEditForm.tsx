@@ -69,7 +69,7 @@ export function SongEditForm(props: SongEditFormProps) {
     setUpdatedFrontCover(undefined);
   }
 
-  function handleSearchResultConfirm(online: IOnlineMetadata) {
+  async function handleSearchResultConfirm(online: IOnlineMetadata) {
     if (!formRef.current) return;
 
     // Basic metadata
@@ -104,16 +104,41 @@ export function SongEditForm(props: SongEditFormProps) {
     set("comment", online.comment);
     set("lyrics", online.lyrics);
 
-    // Album art
+    // Album art: search results carry only the thumbnail `url` — download
+    // the full-size (1000x1000) image here, at Apply time, not during search.
     const frontCover = online.pictures?.find((p) => p.type === "FrontCover");
 
-    if (frontCover && frontCover.data.length > 0) {
-      const coverData = [frontCover.data.slice()];
-      set(
-        "frontCover",
-        new File(coverData, frontCover.description || "Front Cover" + ".jpeg")
-      );
-      setUpdatedFrontCover(new Blob(coverData));
+    if (frontCover) {
+      let coverData: Uint8Array | undefined;
+      if (frontCover.data && frontCover.data.length > 0) {
+        coverData = frontCover.data;
+      } else if (frontCover.url) {
+        try {
+          // iTunes: swap the thumbnail size for the full 1000x1000 URL.
+          let fullUrl = frontCover.url;
+          if (fullUrl.includes("100x100")) {
+            fullUrl = fullUrl.replace("100x100", "1000x1000");
+          }
+          const res = await fetch(fullUrl);
+          if (res.ok) {
+            coverData = new Uint8Array(await res.arrayBuffer());
+          }
+        } catch {
+          // ignore artwork download failures at apply time
+        }
+      }
+
+      if (coverData && coverData.length > 0) {
+        const coverClone = coverData.slice();
+        set(
+          "frontCover",
+          new File(
+            [coverClone],
+            frontCover.description || "Front Cover" + ".jpeg"
+          )
+        );
+        setUpdatedFrontCover(new Blob([coverClone]));
+      }
     }
   }
 

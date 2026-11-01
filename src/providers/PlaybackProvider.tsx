@@ -216,7 +216,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
         if (!artwork) return undefined;
 
-        const blob = new Blob([artwork.data.slice()], {
+        const blob = new Blob([artwork.data!.slice()], {
           type: artwork.mimeType,
         });
 

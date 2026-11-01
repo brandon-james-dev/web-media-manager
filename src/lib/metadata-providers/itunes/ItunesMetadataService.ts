@@ -19,21 +19,14 @@ export class ItunesMetadataService implements IOnlineMetadataService {
       let pictures: IPicture[] = [];
 
       if (song.artworkUrl100) {
-        try {
-          const imgRes = await fetch(
-            song.artworkUrl100.replace("100x100", "1000x1000")
-          );
-          const bytes = await imgRes.bytes();
-
-          pictures.push({
-            data: bytes,
-            mimeType: "image/jpeg",
-            type: ArtworkType.FrontCover,
-            description: "Front Cover",
-          });
-        } catch {
-          // ignore artwork failures
-        }
+        // Search returns only the thumbnail URL (100x100). The full-size
+        // 1000x1000 image is fetched only on Apply — never during search.
+        pictures.push({
+          mimeType: "image/jpeg",
+          url: song.artworkUrl100,
+          type: ArtworkType.FrontCover,
+          description: "Front Cover",
+        });
       }
 
       results.push({
@@ -42,7 +35,7 @@ export class ItunesMetadataService implements IOnlineMetadataService {
         title: song.trackName,
         artist: song.artistName,
         album: song.collectionName,
-        albumArtist: song.collectionArtistName ?? undefined,
+        albumArtist: song.collectionArtistName,
         genre: song.primaryGenreName,
 
         year: song.releaseDate
@@ -52,10 +45,10 @@ export class ItunesMetadataService implements IOnlineMetadataService {
         totalTracks: song?.trackCount,
         discNumber: song.discNumber,
         totalDiscs: song?.discCount,
-        bpm: song.bpm ?? undefined,
+        bpm: song.bpm,
 
-        composer: song.composer ?? undefined,
-        isrc: song.isrc ?? undefined,
+        composer: song.composer,
+        isrc: song.isrc,
 
         pictures,
       });
