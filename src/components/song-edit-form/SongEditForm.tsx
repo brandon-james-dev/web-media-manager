@@ -7,13 +7,13 @@ import type { SongEditDto } from "@/dto";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
-import { Eraser, Globe, Pen, Save } from "lucide-react";
+import { Eraser, Globe, Pen, Save, ChevronLeft, ChevronRight } from "lucide-react";
 import type { SongEditFormProps } from "./SongEditFormProps";
 import { AlbumArtImage } from "../album-art-image";
 
 export function SongEditForm(props: SongEditFormProps) {
   //#region State
-  const { song, formId, onFormSubmit } = props;
+  const { song, formId, onFormSubmit, onNavigatePrev, onNavigateNext, isPrevDisabled, isNextDisabled } = props;
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
   const [showSearch, setShowSearch] = useState(false);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
@@ -164,34 +164,54 @@ export function SongEditForm(props: SongEditFormProps) {
 
   return (
     <>
-      <div className="flex justify-center gap-3 px-6 py-2">
-        <Button
-          variant={showSearch ? "default" : "secondary"}
-          onClick={() => setShowSearch(!showSearch)}
-        >
-          <Globe /> Online Search
-        </Button>
-        <Button
-          variant="secondary"
-          type="reset"
-          form={formId || "song-edit-form"}
-          onClick={handleResetForm}
-          className={
-            Object.values(dirty).some((v) => v) ? "border-accent/50" : ""
-          }
-          disabled={!Object.values(dirty).some((v) => v)}
-        >
-          <Eraser />
-          Reset
-        </Button>
-        <Button
-          type="submit"
-          className="bg-accent/50 hover:bg-accent text-white"
-          form={formId || "song-edit-form"}
-          disabled={!Object.values(dirty).some((v) => v)}
-        >
-          <Save /> Save Changes
-        </Button>
+      <div className="mx-auto mt-3 max-w-4xl flex justify-center">
+        <div className="flex gap-1 px-6 py-2">
+          <Button
+            variant="secondary"
+            onClick={onNavigatePrev}
+            disabled={isPrevDisabled}
+            aria-label="Previous song"
+          >
+            <ChevronLeft />
+            Prev
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={onNavigateNext}
+            disabled={isNextDisabled}
+            aria-label="Next song"
+          >
+            Next
+            <ChevronRight />
+          </Button>
+          <Button
+            variant={showSearch ? "default" : "secondary"}
+            onClick={() => setShowSearch(!showSearch)}
+          >
+            <Globe /> Online Search
+          </Button>
+          <Button
+            variant="secondary"
+            type="reset"
+            form={formId || "song-edit-form"}
+            onClick={handleResetForm}
+            className={
+              Object.values(dirty).some((v) => v) ? "border-accent/50" : ""
+            }
+            disabled={!Object.values(dirty).some((v) => v)}
+          >
+            <Eraser />
+            Reset
+          </Button>
+          <Button
+            type="submit"
+            className="bg-accent/50 hover:bg-accent text-white"
+            form={formId || "song-edit-form"}
+            disabled={!Object.values(dirty).some((v) => v)}
+          >
+            <Save /> Save Changes
+          </Button>
+        </div>
       </div>
       <div className="max-h-80 overflow-y-auto my-4 border rounded-md">
         {showSearch && (

@@ -25,4 +25,10 @@ export interface TanstackSongRowProps {
   isEditMultiple: boolean;
   onSongDoubleClicked?(song: Song): void;
   registerRowRef(rowId: string, element: HTMLDivElement | null): void;
+  /** Ordered row ids in the current table view (for shift-range selection). */
+  orderedSongIds: string[];
+  /** The last single-clicked row id (shift-range anchor). */
+  selectionAnchor: string | null;
+  /** Updates the shift-range anchor after a click. */
+  setSelectionAnchor(anchor: string | null): void;
 }

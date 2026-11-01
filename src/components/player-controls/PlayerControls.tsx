@@ -4,6 +4,7 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
+  VolumeX,
   RepeatOff,
   Repeat1,
   Repeat2,
@@ -18,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { ThumbnailSize } from "@/lib";
 import { Slider } from "@/components/ui/slider";
 import { repeatState, shuffleState, usePlayback } from "@/hooks/usePlayback";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Popover,
   PopoverContent,
@@ -37,7 +38,7 @@ import { AlbumArtImage } from "@/components/album-art-image";
 import { keyShortcut$ } from "@/core/events/keyboard-events";
 import { wmmBus } from "@/core/events";
 
-function PlayerControls() {
+export function PlayerControls() {
   //#region State
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const [trackPosition, setTrackPosition] = useState<number>(0);
@@ -101,8 +102,28 @@ function PlayerControls() {
   }
   //#endregion
 
+  //#region Mute (UI-local: remembers the pre-mute volume for restore)
+  const [muted, setMuted] = useState(false);
+  const prevVolume = useRef(0.75);
+
+  function handleMuteToggle() {
+    if (muted) {
+      // Restore the pre-mute volume.
+      wmmBus.invoke("wmm.playback.setVolume", { volume: prevVolume.current });
+      setMuted(false);
+    } else {
+      // Remember the current volume, then mute (volume 0).
+      prevVolume.current = volume;
+      wmmBus.invoke("wmm.playback.setVolume", { volume: 0 });
+      setMuted(true);
+    }
+  }
+  //#endregion
+
   //#region Interactivity handlers
   function handleVolumeChange(v: number | readonly number[]) {
+    // Adjusting the slider unmutes (explicit volume gesture).
+    setMuted(false);
     wmmBus.invoke("wmm.playback.setVolume", { volume: Number(v) });
   }
 
@@ -343,8 +364,16 @@ function PlayerControls() {
             </PopoverContent>
           </Popover>
 
-          <Button variant="ghost" onClick={() => wmmBus.invoke("wmm.playback.setVolume", { volume: 0 })}>
-            <Volume2 className="fill-secondary-foreground w-6" />
+          <Button
+            variant="ghost"
+            onClick={handleMuteToggle}
+            title={muted ? "Unmute" : "Mute"}
+          >
+            {muted ? (
+              <VolumeX className="fill-secondary-foreground w-6" />
+            ) : (
+              <Volume2 className="fill-secondary-foreground w-6" />
+            )}
           </Button>
 
           <Slider
@@ -360,5 +389,3 @@ function PlayerControls() {
     </div>
   );
 }
-
-export { PlayerControls };

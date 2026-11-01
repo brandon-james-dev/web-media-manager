@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SongEditForm } from "@/components/song-edit-form/SongEditForm";
+import { PreviewButton } from "./PreviewButton";
 import { QuickEditForm } from "@/components/quick-edit-form/QuickEditForm";
 import {
   Drawer,
@@ -23,26 +24,30 @@ import { getJobService } from "@/core/jobs";
 import { commandDispatcher, wmmBus } from "@/core/events";
 import { useSongs, usePlayback } from "@/hooks";
 import type { Album, Song } from "@/models";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { AlbumDetailDialog } from "../album-detail-dialog";
 import { keyShortcut$ } from "@/core/events/keyboard-events";
 import { notification$ } from "@/core/events/notification-events";
 import { uuidv7 } from "uuidv7";
 
-function Editor({ mode }: { mode: "songs" | "albums" }) {
+export function Editor({ mode }: { mode: "songs" | "albums" }) {
   //#region Songs
   //#region State
   const { filteredSongs } = useSongs();
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isAdvancedEdit, setIsAdvancedEdit] = useState<boolean>(false);
-  const [isSelectMultiple, setIsSelectMultiple] = useState<boolean>(false);
   const { isPlaying } = usePlayback();
   //#endregion
   //#region Helpers
+  // Pause playback once when the editor mounts (entering edit mode stops the
+  // music IF it's playing). This must NOT re-fire on every isPlaying change —
+  // keying the toggle to isPlaying flips would pause playback right after it
+  // starts (the self-pause bug: resume -> isPlaying true -> effect toggles
+  // pause). Use a ref to read the mount-time state without re-running.
+  const mountPauseRef = useRef(false);
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying && !mountPauseRef.current) {
+      mountPauseRef.current = true;
       wmmBus.invoke("wmm.playback.playpause");
     }
   }, [isPlaying]);
@@ -136,14 +141,6 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     );
     return selectedSongIndex === filteredSongs.length - 1;
   }
-
-  function handleEditMultipleChecked(checked: boolean) {
-    if (selectedSongIds.length > 1) {
-      setSelectedSongIds([]);
-    }
-    setIsSelectMultiple(checked);
-    wmmBus.publish("wmm.ui.editorModeChanged", { mode: checked ? "edit" : "song" });
-  }
   //#endregion
   //#endregion
 
@@ -191,6 +188,18 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     const albumIndex = albumIds.indexOf(selectedAlbum.id);
 
     return albumIndex === albumIds.length - 1;
+  }
+
+  /** Prev disabled when the selected song is the first in the filtered list. */
+  function isSongPrevButtonDisabled(): boolean {
+    const idx = filteredSongs.findIndex((s) => s.id === selectedSongIds[0]);
+    return idx <= 0;
+  }
+
+  /** Next disabled when the selected song is the last in the filtered list. */
+  function isSongNextButtonDisabled(): boolean {
+    const idx = filteredSongs.findIndex((s) => s.id === selectedSongIds[0]);
+    return idx === -1 || idx === filteredSongs.length - 1;
   }
   //#endregion
   //#region Interactivity handlers
@@ -319,7 +328,7 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
       const songs = filteredSongs.filter((s) => ids.includes(s.id));
       setSelectedSongs(songs);
       if (mode === "albums") {
-        if (!songs[0].album) return;
+        if (!songs[0]?.album) return;
         setSelectedAlbum(albums.find((a) => a.title == songs[0].album));
       }
     });
@@ -374,55 +383,21 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
         <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">
           <div className="max-w-240 mx-auto w-full">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <h3 className="font-medium">
-                  Quick Edit
-                  {isSelectMultiple && (
-                    <span className="pl-1">
-                      ({selectedSongIds.length} selected)
-                    </span>
-                  )}
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <PreviewButton
+                  key={selectedSongs[0]?.id ?? "none"}
+                  songId={selectedSongs[0]?.id}
+                  disabled={selectedSongIds.length !== 1}
+                />
+                <h3 className="font-medium truncate">
+                  {selectedSongs.length > 1 ? `Quick Edit (${selectedSongs.length} selected)` : selectedSongs[0]?.filename ?? "Quick Edit"}
                 </h3>
-
-                {!isSelectMultiple && (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handlePrevClick}
-                      disabled={isPrevButtonDisabled()}
-                    >
-                      <ChevronLeft />
-                      Prev
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleNextClick}
-                      disabled={isNextButtonDisabled()}
-                    >
-                      Next
-                      <ChevronRight />
-                    </Button>
-                  </div>
-                )}
               </div>
 
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline">
-                  <Label htmlFor="is-multi-edit">
-                    <Checkbox
-                      id="is-multi-edit"
-                      checked={isSelectMultiple}
-                      onCheckedChange={handleEditMultipleChecked}
-                    />
-                    Edit Multiple
-                  </Label>
-                </Button>
                 <Button
                   size="sm"
                   onClick={() => setIsAdvancedEdit(true)}
-                  disabled={isSelectMultiple}
                 >
                   <PencilRuler />
                   Advanced Edit
@@ -449,7 +424,26 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
                   <Save />
                   Save
                 </Button>
-
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handlePrevClick}
+                    disabled={isPrevButtonDisabled()}
+                  >
+                    <ChevronLeft />
+                    Prev
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleNextClick}
+                    disabled={isNextButtonDisabled()}
+                  >
+                    Next
+                    <ChevronRight />
+                  </Button>
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
@@ -475,18 +469,32 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
         onOpenChange={setIsAdvancedEdit}
       >
         {selectedSongs.length === 1 && (
-          <DrawerContent className="p-6">
-            <DrawerHeader className="select-none">
-              <DrawerTitle>{selectedSongs[0].filename}</DrawerTitle>
-              <DrawerDescription>
-                Update the metadata for the selected song
-              </DrawerDescription>
+          <DrawerContent className="p-6 pt-0">
+            <DrawerHeader className="select-none self-center">
+              <div className="flex items-center gap-3">
+                <PreviewButton
+                  key={selectedSongs[0]?.id ?? "none"}
+                  songId={selectedSongs[0]?.id}
+                  disabled={selectedSongs.length !== 1}
+                />
+                <div>
+                  <DrawerTitle>{selectedSongs[0].filename}</DrawerTitle>
+                  <DrawerDescription>
+                    Update the metadata for the selected song
+                  </DrawerDescription>
+                </div>
+              </div>
             </DrawerHeader>
 
             <div className="overflow-y-auto">
               <SongEditForm
+                key={selectedSongs[0].id}
                 song={selectedSongs[0]}
                 onFormSubmit={handleSongUpdate}
+                onNavigatePrev={handlePrevClick}
+                onNavigateNext={handleNextClick}
+                isPrevDisabled={isSongPrevButtonDisabled()}
+                isNextDisabled={isSongNextButtonDisabled()}
               />
             </div>
           </DrawerContent>
@@ -505,5 +513,3 @@ function Editor({ mode }: { mode: "songs" | "albums" }) {
     </>
   );
 }
-
-export { Editor };

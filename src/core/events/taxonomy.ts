@@ -57,6 +57,11 @@ export const WMM_COMMANDS = {
   "wmm.playback.toggleRepeat": undefined,
   "wmm.playback.playSong": {} as { songId: string },
   "wmm.playback.playQueue": {} as { songIds: string[] },
+  "wmm.playback.playCollection": {} as {
+    songIds: string[];
+    startSongId?: string;
+  },
+  "wmm.playback.setCollectionSource": {} as { songIds: string[] },
   "wmm.playback.clearQueue": undefined,
   "wmm.playback.removeFromQueue": {} as { songId: string },
   // library / browsing

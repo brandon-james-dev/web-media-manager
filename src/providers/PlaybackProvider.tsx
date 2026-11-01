@@ -37,11 +37,20 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
   //#region Refs
   //#region Playback State Refs
+  /** The current *collection* context (the view's filtered+sorted song ids).
+   * Set by the view (e.g. Songs) via setCollectionSource so that when the
+   * playlist is empty, next/prev walk the collection in its current
+   * sort/filter order. Live — updated on every sort/filter change. */
+  const collectionIdsRef = useRef<string[]>([]);
   const playlistRef = useRef<Song[]>([]);
   const shuffleRef = useRef<ShuffleState>(shuffleState.Off);
   const repeatRef = useRef<RepeatState>(repeatState.Off);
   const playedSongIdsRef = useRef<string[]>([]);
   const isPlayingRef = useRef(false);
+  /** Set true when the user asks to play a specific song (playSong) so the
+   * async load() knows to auto-start once the buffer is decoded — even before
+   * isPlayingRef has flipped. Cleared by load() after it starts. */
+  const pendingPlayIntentRef = useRef(false);
   const nowPlayingRef = useRef<Song | undefined>(undefined);
   const nowPlayingIndexRef = useRef<number>(0);
   const currentTimeRef = useRef(0);
@@ -100,7 +109,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     if (sourceRef.current) {
       try {
         sourceRef.current.stop();
-      } catch {}
+      } catch { }
       sourceRef.current.disconnect();
       sourceRef.current = null;
     }
@@ -115,7 +124,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
     // ensure context is running
     if (ctx.state === "suspended") {
-      ctx.resume().catch(() => {});
+      ctx.resume().catch(() => { });
+    }
+
+    // Sever the old source's onended BEFORE stopping it, so a replaced/stopped
+    // source can never fire its (stale) onended late — that was causing bursts
+    // of dead [diag-onended] fires after every pause/resume.
+    if (sourceRef.current) {
+      sourceRef.current.onended = null;
     }
 
     stopPlayback();
@@ -135,7 +151,13 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     navigator.mediaSession.playbackState = "playing";
 
     source.onended = () => {
-      if (sourceRef.current === source) {
+      // Ignore 'ended' that fires from a context suspend (pause): that is not
+      // a real end. Only handle genuine completion while the context is
+      // running, and only if this is still the active source.
+      if (
+        sourceRef.current === source &&
+        ctx.state !== "suspended"
+      ) {
         sourceRef.current = null;
         setIsPlaying(false);
         navigator.mediaSession.playbackState = "paused";
@@ -218,7 +240,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       bufferRef.current = decoded;
       currentTimeRef.current = 0;
 
-      startPlaybackAt.current(0);
+      // Only start playback here if the user actually asked to play (either
+      // isPlayingRef is true, or a playSong intent is pending). This avoids
+      // both a second-source self-pause AND missing the first play when
+      // isPlayingRef hasn't flipped yet (decode is async).
+      if (pendingPlayIntentRef.current || isPlayingRef.current) {
+        pendingPlayIntentRef.current = false;
+        startPlaybackAt.current(0);
+      }
       wmmBus.publish("wmm.playback.started", { songId: nowPlaying.id });
 
       artworkUrl256 = await getArtwork(ThumbnailSize.thumb256);
@@ -297,12 +326,37 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     if (!bufferRef.current) return;
 
     if (isPlayingRef.current) {
+      // Pause: capture the position, then stop the source. Explicit stop +
+      // saved position is deterministic — no context suspend, so no
+      // onended-on-suspend and no ctx.currentTime drift that inflates the
+      // position past the 30s preview cap on resume.
       stopPlayback();
+      isPlayingRef.current = false;
       setIsPlaying(false);
 
       navigator.mediaSession.playbackState = "paused";
     } else {
+      const ctx = audioCtxRef.current;
+
+      if (!ctx || ctx.state === "closed") {
+        // The browser cleared the context while paused (its resource policy).
+        // Recover: drop the closed context + its decoded buffer and let
+        // load() build a fresh one (nulling audioCtxRef forces the recreate).
+        audioCtxRef.current = null;
+        bufferRef.current = null;
+        setNowPlaying(nowPlayingRef.current);
+        return;
+      }
+
+      // Resume: (re)start at the saved position. If the context was merely
+      // suspended (not closed), wake it first; the source was stopped so we
+      // always rebuild — deterministic position, no drift.
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => { });
+      }
       startPlaybackAt.current(currentTimeRef.current);
+      isPlayingRef.current = true;
+      setIsPlaying(true);
       navigator.mediaSession.playbackState = "playing";
     }
   });
@@ -320,7 +374,12 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     if (isPlayingRef.current) {
       startPlaybackAt.current(newTime);
     } else {
-      currentTimeRef.current = newTime;
+      // Paused with a suspended context: the live source ignores a plain
+      // currentTimeRef change on resume, so rebuild it at the new position
+      // (stays silent — we don't resume the context here).
+      startPlaybackAt.current(newTime);
+      audioCtxRef.current?.suspend().catch(() => { });
+      isPlayingRef.current = false;
     }
     navigator.mediaSession.setPositionState?.({
       duration: nowPlayingRef.current.length,
@@ -333,22 +392,21 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     const pl = playlistRef.current;
     const playedSongIds = playedSongIdsRef.current;
 
-    if (!pl.length) return;
-    if (!nowPlaying) return;
+    if (!nowPlayingRef.current) return;
 
-    if (isPlaying && getCurrentTime() > 1.0) {
+    if (isPlayingRef.current && getCurrentTime() > 1.0) {
       startPlaybackAt.current(0);
       return;
     }
 
-    if (repeat === repeatState.One) {
+    if (repeatRef.current === repeatState.One) {
       startPlaybackAt.current(0);
       return;
     }
 
-    if (shuffle === shuffleState.On) {
+    if (shuffleRef.current === shuffleState.On && playlistRef.current.length) {
       if (playedSongIds.length < 2) {
-        if (repeat === repeatState.All) {
+        if (repeatRef.current === repeatState.All) {
           const lastSong = pl[pl.length - 1];
           setNowPlaying(lastSong);
         }
@@ -367,15 +425,51 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const prevIndex = nowPlayingIndex ?? 0 - 1;
+    const prevIndex = (nowPlayingIndex ?? 0) - 1;
 
-    if (repeat === repeatState.Off) {
+    // The "queue" for prev: the explicit playlist if one is loaded, otherwise
+    // the live collection (current view's sort+filter order).
+    const hasPlaylist = playlistRef.current.length > 0;
+    const collectionActive = !hasPlaylist;
+
+    // -- Collection context (playlist empty): walk the collection --
+    if (collectionActive) {
+      const coll = collectionIdsRef.current;
+      if (!coll.length) return;
+      const currentIdx = coll.indexOf(nowPlayingRef.current!.id);
+      // The current song is no longer in the filter: stop playback.
+      if (currentIdx === -1) {
+        stopPlayback();
+        setIsPlaying(false);
+        return;
+      }
+      const prevIdx = currentIdx - 1;
+      if (prevIdx < 0) {
+        // Start of the collection: repeat-All wraps to the last; otherwise stop.
+        if (repeatRef.current === repeatState.All) {
+          getStore()
+            .get(coll[coll.length - 1])
+            .then((song) => {
+              if (song) setNowPlaying(song);
+            });
+        }
+        return;
+      }
+      getStore()
+        .get(coll[prevIdx])
+        .then((song) => {
+          if (song) setNowPlaying(song);
+        });
+      return;
+    }
+
+    if (repeatRef.current === repeatState.Off) {
       if (prevIndex < 0) return;
       setNowPlaying(pl[prevIndex]);
       return;
     }
 
-    if (repeat === repeatState.All) {
+    if (repeatRef.current === repeatState.All) {
       const wrappedIndex = prevIndex < 0 ? pl.length - 1 : prevIndex;
       setNowPlaying(pl[wrappedIndex]);
       return;
@@ -384,21 +478,21 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
   const nextTrack = useRef(() => {
     const pl = playlistRef.current;
-    if (!playlistRef.current.length) {
-      return;
-    }
 
     if (!nowPlayingRef.current) {
       return;
     }
 
-    if (repeat === repeatState.One) {
+    // Read once at the top so TS doesn't narrow the ref across the function.
+    const repeatMode = repeatRef.current;
+
+    if (repeatMode === repeatState.One) {
       startPlaybackAt.current(0);
 
       return;
     }
 
-    if (shuffle === shuffleState.On) {
+    if (shuffleRef.current === shuffleState.On && playlistRef.current.length) {
       const updated = [nowPlayingRef.current.id, ...playedSongIdsRef.current];
       const unplayed = pl.filter((song) => !updated.includes(song.id));
 
@@ -417,15 +511,52 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
     const nextIndex = nowPlayingIndexRef.current + 1;
 
-    if (repeat === repeatState.Off) {
+    // The "queue" for next/prev: the explicit playlist if one is loaded,
+    // otherwise the live collection (current view's sort+filter order).
+    const hasPlaylist = playlistRef.current.length > 0;
+    const collectionActive = !hasPlaylist;
+
+    // -- Collection context (playlist empty): walk the collection --
+    if (collectionActive) {
+      const coll = collectionIdsRef.current;
+      if (!coll.length) return;
+      // nowPlayingRef is guarded at the top of nextTrack.
+      const currentIdx = coll.indexOf(nowPlayingRef.current!.id);
+      // The current song is no longer in the filter: stop playback.
+      if (currentIdx === -1) {
+        stopPlayback();
+        setIsPlaying(false);
+        return;
+      }
+      const nextIdx = currentIdx + 1;
+      if (nextIdx >= coll.length) {
+        // End of the collection: repeat-All wraps to the first; otherwise stop.
+        if (repeatMode === repeatState.All) {
+          getStore()
+            .get(coll[0])
+            .then((song) => {
+              if (song) setNowPlaying(song);
+            });
+        }
+        return;
+      }
+      getStore()
+        .get(coll[nextIdx])
+        .then((song) => {
+          if (song) setNowPlaying(song);
+        });
+      return;
+    }
+
+    if (repeatMode === repeatState.Off) {
       if (nextIndex >= pl.length) return;
       setNowPlaying(playlistRef.current[nextIndex]);
       return;
     }
 
-    if (repeat === repeatState.All) {
-      const wrappedIndex = nextIndex % playlist.length;
-      setNowPlaying(playlist[wrappedIndex]);
+    if (repeatMode === repeatState.All) {
+      const wrappedIndex = nextIndex % pl.length;
+      setNowPlaying(pl[wrappedIndex]);
       return;
     }
   });
@@ -458,7 +589,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     const unregisterVolume = commandDispatcher.register(
       "wmm.playback.setVolume",
       (payload?: { volume?: number }) => {
-        if (payload?.volume !== undefined) setVolume(payload.volume);
+        if (payload?.volume !== undefined) {
+          setVolume(payload.volume);
+        }
       }
     );
     const unregisterShuffle = commandDispatcher.register(
@@ -483,8 +616,15 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         if (!payload?.songId) return;
         const song = await getStore().get(payload.songId);
         if (!song) return;
+        // The user asked to play this song: record the intent so load()
+        // autoplays once the buffer is ready (isPlayingRef is still false at
+        // this point, so the load() gate must not key off it alone).
+        pendingPlayIntentRef.current = true;
         setNowPlaying(song);
-        startPlaybackAt.current(currentTimeRef.current);
+        // Always start a freshly-played song from the beginning, even if the
+        // same track was left at a non-zero position by a previous preview.
+        currentTimeRef.current = 0;
+        startPlaybackAt.current(0);
       }
     );
     const unregisterPlayQueue = commandDispatcher.register(
@@ -509,6 +649,41 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       () => {
         setPlaylist([]);
         wmmBus.publish("wmm.playback.queueChanged", { songIds: [] });
+      }
+    );
+    // Play a *collection* (the full view's songs) starting at a given song.
+    // Solo-song-in-a-view and album/artist grids use this: the "queue" for
+    // next/prev becomes the collection they were browsing, not just the one
+    // song. Separates the explicit Playlist context (what you queued) from
+    // the Collection context (what you're browsing).
+    const unregisterPlayCollection = commandDispatcher.register(
+      "wmm.playback.playCollection",
+      async (payload?: { songIds?: string[]; startSongId?: string }) => {
+        if (!payload?.songIds?.length) return;
+        const songs = (
+          await Promise.all(
+            payload.songIds.map((id) => getStore().get(id))
+          )
+        ).filter((s): s is Song => s !== null && s !== undefined);
+        if (!songs.length) return;
+
+        setPlaylist(songs);
+
+        // Start at the clicked song (or the first if not found in the list).
+        const startIndex = payload.startSongId
+          ? songs.findIndex((s) => s.id === payload.startSongId)
+          : 0;
+        const actualIndex = startIndex >= 0 ? startIndex : 0;
+
+        setNowPlaying(songs[actualIndex]);
+        currentTimeRef.current = 0;
+
+        wmmBus.publish("wmm.playback.queueChanged", {
+          songIds: songs.map((s) => s.id),
+        });
+        wmmBus.publish("wmm.playback.started", {
+          songId: songs[actualIndex].id,
+        });
       }
     );
     const unregisterRemoveFromQueue = commandDispatcher.register(
@@ -540,7 +715,17 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         });
       }
     );
-
+    // Set the current *collection* context (the view's live filtered+sorted
+    // song ids). When the playlist is empty, next/prev + end-of-song walk
+    // this list in order; if the current song leaves it (filter change),
+    // playback stops.
+    const unregisterSetCollection = commandDispatcher.register(
+      "wmm.playback.setCollectionSource",
+      (payload?: { songIds?: string[] }) => {
+        if (!payload?.songIds) return;
+        collectionIdsRef.current = payload.songIds;
+      }
+    );
     return () => {
       unregister();
       unregisterStop();
@@ -553,8 +738,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       unregisterPlaySong();
       unregisterPlayQueue();
       unregisterClearQueue();
+      unregisterPlayCollection();
       unregisterRemoveFromQueue();
       unregisterAddSong();
+      unregisterSetCollection();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

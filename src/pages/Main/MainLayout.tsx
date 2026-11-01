@@ -23,6 +23,7 @@ import { Toggle } from "@/components/ui/toggle";
 
 type MainContext = {
   queryText: string;
+  activeMode: "edit" | "playback" | undefined;
   sort: {
     selector: (item: Song) => any;
     desc: boolean;
@@ -196,7 +197,7 @@ function MainLayout() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <Outlet context={{ queryText, sort, setSort }} />
+        <Outlet context={{ queryText, activeMode, sort, setSort }} />
       </div>
 
       <div className="shrink-0" hidden={isSyncPage || (total ?? 0) === 0}>

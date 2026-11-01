@@ -23,7 +23,7 @@ function Songs() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const { filteredSongs, query, setQuery } = useSongs();
-  const { sort, setSort } = useOutletContext<MainContext>();
+  const { sort, setSort, activeMode } = useOutletContext<MainContext>();
 
   const [songSort] = useState({
     selector: (song: Song) => song.title,
@@ -78,6 +78,15 @@ function Songs() {
       subEditMultiple();
     };
   }, [filteredSongs]);
+
+  // Publish the Songs view's current filtered+sorted order as the playback
+  // *collection context*. When the playlist is empty, next/prev + end-of-song
+  // walk this list. Live: re-publishes on every sort/filter/query change.
+  useEffect(() => {
+    wmmBus.invoke("wmm.playback.setCollectionSource", {
+      songIds: filteredSongs.map((s) => s.id),
+    });
+  }, [filteredSongs]);
   //#endregion
 
   //#region Interactivity handlers
@@ -125,7 +134,14 @@ function Songs() {
   }
 
   function handleSongDoubleClicked(song: Song) {
-    wmmBus.invoke("wmm.playback.playSong", { songId: song.id });
+    const editingMultiple =
+      activeMode === "edit" || isEditMultiple || selectedSongIds.length > 1;
+    if (editingMultiple) {
+      // In edit mode, double-click opens the advanced editor for the song.
+      wmmBus.invoke("wmm.library.song.edit", { songId: song.id });
+    } else {
+      wmmBus.invoke("wmm.playback.playSong", { songId: song.id });
+    }
   }
   //#endregion
 

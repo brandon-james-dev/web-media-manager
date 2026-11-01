@@ -14,25 +14,93 @@ export const SongRow = memo(function SongRow({
   isEditMultiple,
   onSongDoubleClicked,
   registerRowRef,
+  orderedSongIds,
+  selectionAnchor,
+  setSelectionAnchor,
 }: TanstackSongRowProps) {
   const isSelected = row.getIsSelected();
   const { nowPlaying, isPlaying } = usePlayback();
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    if (e.detail === 1) {
+    if (e.detail === 2) {
+      onSongDoubleClicked?.(song);
+      return;
+    }
+
+    const isMeta = e.metaKey || e.ctrlKey;
+    const isShift = e.shiftKey;
+
+    // Plain click: select just this row (preserves double-click contract).
+    if (!isMeta && !isShift) {
       const selection: RowSelectionState = isEditMultiple
         ? {
-          ...rowSelection,
-          [song.id]: true,
-        }
+            ...rowSelection,
+            [song.id]: true,
+          }
         : {
-          [row.id]: true,
-        };
+            [row.id]: true,
+          };
 
       table.setRowSelection(selection);
-    } else if (e.detail === 2) {
-      onSongDoubleClicked?.(song);
+      setSelectionAnchor(song.id);
+      return;
     }
+
+    // Ctrl/Cmd-click: toggle this row in/out of the selection.
+    if (isMeta && !isShift) {
+      const next: RowSelectionState = { ...rowSelection };
+      if (next[song.id]) {
+        delete next[song.id];
+        // Toggling off — move the anchor to the previous remaining row so a
+        // subsequent shift-click has a sensible origin.
+        setSelectionAnchor(getPreviousOrdered(song.id) ?? null);
+      } else {
+        next[song.id] = true;
+        setSelectionAnchor(song.id);
+      }
+      table.setRowSelection(next);
+      return;
+    }
+
+    // Shift-click: select the contiguous range from the anchor to this row.
+    const range = getRangeIndices(song.id);
+
+    if (range) {
+      const [start, end] = range;
+      const next: RowSelectionState = { ...rowSelection };
+      for (let i = start; i <= end; i++) {
+        next[orderedSongIds[i]] = true;
+      }
+      table.setRowSelection(next);
+      // Keep the anchor stable for repeated shift-clicks.
+    } else {
+      // No anchor established — fall back to toggling like a meta-click.
+      const next: RowSelectionState = { ...rowSelection };
+      next[song.id] = true;
+      table.setRowSelection(next);
+      setSelectionAnchor(song.id);
+    }
+  };
+
+  /** Index of a row id within the current ordered list, or -1. */
+  const indexOf = (id: string) => {
+    const idx = orderedSongIds.indexOf(id);
+    return idx;
+  };
+
+  /** [start, end] indices for the shift range from anchor to this row. */
+  const getRangeIndices = (id: string) => {
+    if (selectionAnchor == null) return null;
+    const anchorIdx = indexOf(selectionAnchor);
+    const thisIdx = indexOf(id);
+    if (anchorIdx < 0 || thisIdx < 0) return null;
+    return anchorIdx <= thisIdx ? [anchorIdx, thisIdx] : [thisIdx, anchorIdx];
+  };
+
+  /** The row id immediately before `id` in the ordered list, or undefined. */
+  const getPreviousOrdered = (id: string) => {
+    const idx = indexOf(id);
+    return idx > 0 ? orderedSongIds[idx - 1] : undefined;
   };
 
   return (

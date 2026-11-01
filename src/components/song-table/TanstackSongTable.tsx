@@ -64,6 +64,7 @@ export function TanstackSongTable(props: SongTableProps) {
     onSongDoubleClicked,
   } = props;
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedSongIds.length === 1) {
@@ -184,6 +185,8 @@ export function TanstackSongTable(props: SongTableProps) {
   // Rows are mounted lazily by @tanstack/react-virtual; only the rows in the
   // viewport (plus overscan) are rendered at any time.
   const rows = table.getRowModel().rows;
+
+  const orderedSongIds = useMemo(() => rows.map((r) => r.id), [rows]);
 
   /**
    * Render non-virtualized for small collections: crisp, fully-rendered rows
@@ -324,6 +327,9 @@ export function TanstackSongTable(props: SongTableProps) {
                     isEditMultiple={isEditMultiple}
                     onSongDoubleClicked={onSongDoubleClicked}
                     registerRowRef={registerRowRef}
+                    orderedSongIds={orderedSongIds}
+                    selectionAnchor={selectionAnchor}
+                    setSelectionAnchor={setSelectionAnchor}
                   />
                 </div>
               );
@@ -341,6 +347,9 @@ export function TanstackSongTable(props: SongTableProps) {
                 isEditMultiple={isEditMultiple}
                 onSongDoubleClicked={onSongDoubleClicked}
                 registerRowRef={registerRowRef}
+                orderedSongIds={orderedSongIds}
+                selectionAnchor={selectionAnchor}
+                setSelectionAnchor={setSelectionAnchor}
               />
             ))}
           </div>

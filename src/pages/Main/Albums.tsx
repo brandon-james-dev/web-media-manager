@@ -29,7 +29,7 @@ function Albums() {
   //#region State
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
-  const { setSort } = useOutletContext<MainContext>();
+  const { setSort, activeMode } = useOutletContext<MainContext>();
   const [albumSort] = useState<{
     selector: (song: Song) => void;
     desc: boolean;
@@ -99,18 +99,41 @@ function Albums() {
   }
 
   function handleAlbumCardDoubleClick(album: Album) {
-    wmmBus.invoke("wmm.playback.playQueue", {
+    if (activeMode !== "edit") {
+      wmmBus.invoke("wmm.playback.playQueue", {
+        songIds: albums[selectedAlbumIndex].songs.map((s) => s.id),
+      });
+      wmmBus.invoke("wmm.playback.playSong", { songId: album.songs[0].id });
+    } else {
+      // Layout is already in edit mode: the Editor (albums mode) is mounted
+      // with the wmm.library.song.edit handler registered, so opening the
+      // album's advanced editor is deterministic — no navigation needed.
+      const firstSong = album.songs[0];
+      if (firstSong) {
+        wmmBus.invoke("wmm.library.song.edit", { songId: firstSong.id });
+      }
+      return;
+    }
+    // Not in edit mode: never start playback. Just select the album's songs
+    // (same as a single click) so the drawer shows the album contents.
+    wmmBus.publish("wmm.ui.selectionChanged", {
       songIds: album.songs.map((s) => s.id),
     });
-    wmmBus.publish("wmm.ui.editorModeChanged", { mode: "edit" });
-    wmmBus.invoke("wmm.playback.playSong", { songId: album.songs[0].id });
   }
 
   function handleSongDoubleClicked(song: Song) {
-    wmmBus.invoke("wmm.playback.playQueue", {
-      songIds: albums[selectedAlbumIndex].songs.map((s) => s.id),
-    });
-    wmmBus.invoke("wmm.playback.playSong", { songId: song.id });
+    if (activeMode !== "edit") {
+      // In playback mode, double-click plays the album queue + this song.
+      wmmBus.invoke("wmm.playback.playQueue", {
+        songIds: albums[selectedAlbumIndex].songs.map((s) => s.id),
+      });
+      wmmBus.invoke("wmm.playback.playSong", { songId: song.id });
+    } else {
+      // In edit mode (album clicked or app in edit mode), the song table is the
+      // edit surface for the selected album, so double-clicking a song opens the
+      // advanced editor.
+      wmmBus.invoke("wmm.library.song.edit", { songId: song.id });
+    }
   }
   //#endregion
 
