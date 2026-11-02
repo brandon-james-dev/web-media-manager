@@ -7,15 +7,16 @@ import {
 } from "react";
 import type { Song, SyncDevice } from "@/models";
 import { SyncContext } from "@/hooks";
-import { commandDispatcher, wmmBus } from "@/core/events";
+import { commandDispatcher, wmmBus } from "@/events";
 import { getStore } from "@/core/system";
+import { getPlaylists } from "@/core/playlists";
 import {
   SyncService,
   deviceTrackIdentities,
   isSongOnDevice,
   type UsbDeviceInfo,
 } from "@/lib/sync";
-import { notification$ } from "@/core/events/notification-events";
+import { notification$ } from "@/events/notification-events";
 import { uuidv7 } from "uuidv7";
 
 export function SyncProvider({ children }: { children: ReactNode }) {
@@ -116,7 +117,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const songsToSync = [...queuedSongs];
 
       try {
-        await syncService.syncSongs(syncDevice, songsToSync);
+        const playlists = await getPlaylists();
+        await syncService.sync(syncDevice, songsToSync, playlists);
       } catch (error) {
         notification$.next({
           id: uuidv7(),
@@ -297,6 +299,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       async (payload?: { deviceId: string }) => {
         const device = devices.find((d) => d.id === payload?.deviceId);
         if (!device) return;
+
+        // A single sync writes songs + playlists together (see syncQueue).
         await syncQueue(device);
         wmmBus.publish("wmm.sync.syncCompleted", { deviceId: device.id });
       }

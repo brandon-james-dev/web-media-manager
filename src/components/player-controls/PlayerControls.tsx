@@ -35,8 +35,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
-import { keyShortcut$ } from "@/core/events/keyboard-events";
-import { wmmBus } from "@/core/events";
+import { keyShortcut$ } from "@/events/keyboard-events";
+import { wmmBus } from "@/events";
 
 export function PlayerControls() {
   //#region State

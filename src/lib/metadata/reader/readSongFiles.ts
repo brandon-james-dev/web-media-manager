@@ -1,6 +1,7 @@
 import type { Song } from "@/models/Song";
 import type { IMetadataReader } from "@/lib/contracts";
 import { readSongFile } from "./readSongFile";
+import { isPlaylistFile } from "@/lib/playlists";
 import { uuidv7 } from "uuidv7";
 
 /**
@@ -15,6 +16,10 @@ export async function* readSongFiles(
   reader: IMetadataReader
 ): AsyncGenerator<Song> {
   for (const handle of handles) {
+    // Never feed playlist files (`.m3u*`) to TagLib — they are routed to
+    // the playlist import (see core/scanning/importPlaylists).
+    if (isPlaylistFile(handle.name)) continue;
+
     const metadata = await readSongFile(handle, reader);
     const size = (await handle.getFile()).size;
 

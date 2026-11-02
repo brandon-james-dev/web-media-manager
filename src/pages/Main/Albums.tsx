@@ -20,7 +20,7 @@ import {
   GalleryHorizontal,
   Grid2x2,
 } from "lucide-react";
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 import { TanstackSongTable } from "@/components/song-table";
 import { CoverFlow } from "@/components/cover-flow";
 import { cn } from "cn";

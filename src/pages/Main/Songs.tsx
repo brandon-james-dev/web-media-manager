@@ -9,7 +9,7 @@ import { TanstackSongTable } from "@/components/song-table";
 import { addFolder } from "@/core/scanning";
 import { getStore } from "@/core/system";
 import { getJobService } from "@/core/jobs";
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 import { selectors, type QueryOptions, type SortableColumn } from "@/lib/persistence";
 import { useSongs } from "@/hooks";
 import type { MusicSource, Song } from "@/models";

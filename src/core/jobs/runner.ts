@@ -15,7 +15,7 @@ export interface JobRunnerResult {
  *  - Server:  in-process queue / child process / Piscina pool
  *
  * Progress and completion events flow back via the platform's own event
- * mechanism (see `src/core/events`), not through this interface.
+ * mechanism (see `src/events`), not through this interface.
  */
 export interface IJobRunner {
   run(job: Job): Promise<JobRunnerResult>;

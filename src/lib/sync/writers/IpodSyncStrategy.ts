@@ -1,4 +1,4 @@
-import type { SyncDevice, Song } from "@/models";
+import type { Playlist, SyncDevice, Song } from "@/models";
 import type { ISyncStrategy } from "./ISyncStrategy";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { getMetadataStore } from "@/lib/persistence/initMetadataStore";
@@ -20,16 +20,25 @@ export class IpodSyncStrategy implements ISyncStrategy {
    * alone, and tracks not in the queue are never removed (use
    * {@link removeTracks} for that).
    */
-  async sync(device: SyncDevice, songs: Song[]): Promise<void> {
+  /**
+   * Sync a device in one pass: add missing songs and write playlists
+   * together — both concerns in one write.
+   */
+  async sync(
+    device: SyncDevice,
+    songs: Song[],
+    playlists: Playlist[]
+  ): Promise<void> {
     await this.withDatabase(device, async (itdb) => {
       const metadataStore = getMetadataStore() as CombinedMetadataStore;
 
+      let changed = false;
+
+      // -- Songs -----------------------------------------------------------
       const existing = new Set<string>();
       for (const track of itdb.tracks) {
         existing.add(trackIdentity(track.title, track.album, track.artist));
       }
-
-      let added = 0;
 
       for (const song of songs) {
         const key = trackIdentity(song.title, song.album, song.artist);
@@ -58,14 +67,66 @@ export class IpodSyncStrategy implements ISyncStrategy {
         await itdb.addTrack(this.mapSongToTrackStrings(song), trackBytes);
 
         existing.add(key);
-        added++;
+        changed = true;
+      }
+
+      // -- Playlists -------------------------------------------------------
+      if (playlists.length > 0) {
+        // Map by identity for matching on-device tracks to playlist entries.
+        const onDevice = new Map(
+          itdb.tracks.map((track) => [
+            trackIdentity(track.title, track.album, track.artist),
+            track.trackId,
+          ])
+        );
+
+        for (const playlist of playlists) {
+          this.lastSteps = `syncPlaylists("${playlist.name}")`;
+          let target = itdb.playlists.find((p) => p.name === playlist.name);
+
+          if (!target) {
+            target = itdb.addPlaylist(playlist.name);
+            changed = true;
+          }
+
+          // Resolve each entry to an on-device track id (skip if absent).
+          const items: number[] = [];
+          for (const entry of playlist.songs) {
+            const meta = await this.resolveSong(entry.songId);
+            if (!meta) continue;
+            const id = onDevice.get(
+              trackIdentity(meta.title, meta.album, meta.artist)
+            );
+            if (id != null) items.push(id);
+          }
+
+          // Clear existing items, then set the new order (adds are
+          // idempotent by trackId so re-adding the same id is safe).
+          for (const item of target.items) {
+            itdb.removeTrackFromPlaylist(item.trackId, target.playlistId);
+          }
+          for (const id of items) {
+            itdb.addTrackToPlaylist(id, target.playlistId);
+            changed = true;
+          }
+        }
       }
 
       // Nothing new: leave the databases untouched rather than rewriting them.
-      if (added === 0) return false;
-
-      return true;
+      return changed;
     });
+  }
+
+  /** Load a song by id from the metadata store (title/album/artist for identity). */
+  private async resolveSong(songId: string) {
+    const metadataStore = getMetadataStore() as CombinedMetadataStore;
+    const song = await metadataStore.get(songId);
+    if (!song) return null;
+    return {
+      title: song.title,
+      album: song.album,
+      artist: song.artist,
+    };
   }
 
   /**

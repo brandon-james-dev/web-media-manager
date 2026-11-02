@@ -11,7 +11,7 @@ import {
   ThumbnailSize,
 } from "@/lib";
 import { getPictureOfType } from "@/core/media";
-import { commandDispatcher, wmmBus } from "@/core/events";
+import { commandDispatcher, wmmBus } from "@/events";
 import { getStore } from "@/core/system";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { ArtworkType } from "@/lib/contracts";

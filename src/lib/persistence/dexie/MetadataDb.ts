@@ -1,6 +1,12 @@
 import Dexie, { type Table } from "dexie";
 
-import type { MusicSource, Song, SongArtwork, SyncDeviceRecord } from "@/models";
+import type {
+  MusicSource,
+  Playlist,
+  Song,
+  SongArtwork,
+  SyncDeviceRecord,
+} from "@/models";
 
 let db: MetadataDb | null = null;
 
@@ -18,6 +24,7 @@ export class MetadataDb extends Dexie {
   songs!: Table<Song, string>;
   songArtwork!: Table<SongArtwork, number>;
   syncDevices!: Table<SyncDeviceRecord, string>;
+  playlists!: Table<Playlist, string>;
 
   constructor() {
     super("metadata");
@@ -52,6 +59,13 @@ export class MetadataDb extends Dexie {
         usb.manufacturerName,
         usb.productName,
         createdAt
+      `,
+
+      playlists: `
+        id,
+        name,
+        createdAt,
+        updatedAt
       `,
     });
   }

@@ -31,6 +31,8 @@ export interface MusicSourceCapabilities {
   metadataWrite: boolean;
   /** The source's underlying storage can be (re)scanned by this app. */
   libraryScanning: boolean;
+  /** The source can persist playlists (local: .m3u file; remote: its API). */
+  playlistWrite: boolean;
 }
 
 /** Connection settings for a remote-attached instance. Credentials stay external. */

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { X } from "lucide-react";
 import { useSync } from "@/hooks";
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";

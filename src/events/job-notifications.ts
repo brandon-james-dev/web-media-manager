@@ -1,4 +1,4 @@
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 import { notification$ } from "./notification-events";
 import type { BackgroundJobState } from "./background-job-events";
 

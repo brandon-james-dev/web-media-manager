@@ -1,4 +1,4 @@
-import type { Song, SyncDevice } from "@/models";
+import type { Playlist, Song, SyncDevice } from "@/models";
 import { DexieSyncDeviceStore } from "../persistence/dexie/DexieSyncDeviceStore";
 import { DeviceScanner } from "./DeviceScanner";
 import { type UsbDeviceInfo } from "./usb";
@@ -88,14 +88,18 @@ export class SyncService {
     return usbInfo.vendorId === 0x05ac;
   }
 
-  async syncSongs(device: SyncDevice, songs: Song[]): Promise<void> {
+  async sync(
+    device: SyncDevice,
+    songs: Song[],
+    playlists: Playlist[]
+  ): Promise<void> {
     const strategy = this.strategies.find((x) => x.canHandle(device));
 
     if (!strategy) {
       throw new Error(`Unable to sync to "${device.type}".`);
     }
 
-    await strategy.sync(device, songs);
+    await strategy.sync(device, songs, playlists);
   }
 
   /**

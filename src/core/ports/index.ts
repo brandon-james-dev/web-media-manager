@@ -14,3 +14,13 @@ export {
 } from "./metadataReader";
 export { getSourcesStore, setSourcesProvider } from "./sources";
 export type { MusicSourceRepository } from "./sources";
+export {
+  getPlaylistStore,
+  setPlaylistStoreProvider,
+} from "./playlists";
+export type { PlaylistStore } from "./playlists";
+export {
+  getPlaylistWriteAdapter,
+  setPlaylistWriteProvider,
+} from "./playlists";
+export type { PlaylistWriteAdapter } from "./playlists";

@@ -23,6 +23,7 @@ function makeSource(
       searching: false,
       metadataWrite: true,
       libraryScanning: true,
+      playlistWrite: true,
     },
     kind: "subsonic",
     config: overrides.config ?? { baseUrl: "http://example.test" },

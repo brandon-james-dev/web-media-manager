@@ -7,7 +7,8 @@ import type { QueryOptions } from "@/lib/persistence";
 
 /**
  * Domain: Browsing.
- * Open Subsonic equivalent: getSongsByGenre().
+ * Open Subsonic equivalent: getAlbum() — songs of a single album.
+ * (The sibling file `song.ts` handles single-song lookup ≈ getSong().)
  */
 export async function getSongsByGenre(genre: string): Promise<Child[]> {
   const store = getStore();

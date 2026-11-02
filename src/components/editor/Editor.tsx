@@ -21,12 +21,12 @@ import {
 import { updateTags } from "@/core/metadata";
 import type { AlbumDetailDto, QuickEditDto, SongEditDto } from "@/dto";
 import { getJobService } from "@/core/jobs";
-import { commandDispatcher, wmmBus } from "@/core/events";
+import { commandDispatcher, wmmBus } from "@/events";
 import { useSongs, usePlayback } from "@/hooks";
 import type { Album, Song } from "@/models";
 import { AlbumDetailDialog } from "../album-detail-dialog";
-import { keyShortcut$ } from "@/core/events/keyboard-events";
-import { notification$ } from "@/core/events/notification-events";
+import { keyShortcut$ } from "@/events/keyboard-events";
+import { notification$ } from "@/events/notification-events";
 import { uuidv7 } from "uuidv7";
 
 export function Editor({ mode }: { mode: "songs" | "albums" }) {

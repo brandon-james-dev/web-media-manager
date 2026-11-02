@@ -29,6 +29,7 @@ export function addPersistedStoreDirectory(
       searching: true,
       metadataWrite: true,
       libraryScanning: true,
+      playlistWrite: true,
     },
   };
 

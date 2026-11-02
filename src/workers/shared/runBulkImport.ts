@@ -5,24 +5,24 @@ import { initMetadataStore } from "@/lib";
 import { readTags } from "@/core/metadata";
 import { getMetadataReader } from "@/core/ports";
 import { collectFileHandles } from "@/lib/persistence/file";
-import type { BackgroundJob } from "@/core/events/background-job-events";
+import type { BackgroundJob } from "@/events/background-job-events";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import type { MusicSource } from "@/models";
 import { isLocalSource } from "@/core/contracts/sources";
 
 /**
- * Worker bulk import job — receives a directory handle,
+ * Worker bulk import job — receives a music source,
  * traverses it, reads each file, extracts metadata, and returns Song objects.
  */
 export async function runBulkImport(
   payload: {
-    directory: MusicSource;
+    musicSource: MusicSource;
   },
   isCancelled: () => boolean,
   reportProgress: (progress: WorkerProgress) => void,
   id?: string
 ): Promise<{ ok: true; songs: Song[] } | { cancelled: true }> {
-  const { directory } = payload;
+  const { musicSource: directory } = payload;
   if (!isLocalSource(directory)) return { cancelled: true };
   const { handle: sourceHandle } = directory;
   if (!id) return { cancelled: true };

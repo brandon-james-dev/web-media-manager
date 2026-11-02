@@ -1,4 +1,4 @@
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 import type { Song } from "@/models";
 
 /**

@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/context-menu";
 import type { Song } from "@/models";
 import { useMemo, type ReactElement } from "react";
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 import {
   ListPlus,
   MinusCircle,

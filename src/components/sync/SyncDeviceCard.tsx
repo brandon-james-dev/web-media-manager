@@ -10,7 +10,7 @@ import {
 
 import type { SyncDevice } from "@/models";
 import { formatBytes } from "@/lib/sync/helpers";
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useMemo, useState } from "react";
 import { DeviceLibraryDialog } from "./DeviceLibraryDialog";

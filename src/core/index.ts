@@ -27,7 +27,7 @@ export * as media from "./media";
 export * as metadata from "./metadata";
 export * as playlists from "./playlists";
 export * as jobs from "./jobs";
-export * as events from "./events";
+export * as events from "../events";
 
 export * from "./contracts";
 export * from "./ports";

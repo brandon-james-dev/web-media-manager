@@ -1,4 +1,4 @@
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 import { getStore } from "@/core/system";
 import { songToChild } from "@/core/contracts";
 import { Observable, filter, from, map, mergeMap, toArray } from "rxjs";

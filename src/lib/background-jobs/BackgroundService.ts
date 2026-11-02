@@ -1,7 +1,7 @@
 import { uuidv7 } from "uuidv7";
 import { Subject } from "rxjs";
-import { type BackgroundJob } from "@/core/events/background-job-events";
-import { wmmBus } from "@/core/events";
+import { type BackgroundJob } from "@/events/background-job-events";
+import { wmmBus } from "@/events";
 import { type IJobRunner, JobProgressAggregator, type WorkerProgress } from "@/core/jobs";
 import { browserJobRunner } from "./BrowserJobRunner";
 import type {

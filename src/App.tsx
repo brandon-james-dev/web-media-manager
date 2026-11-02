@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toast";
 import { MainLayout } from "./pages/Main/MainLayout";
 import { PlaybackProvider } from "./providers/PlaybackProvider";
 import { useEffect, useState } from "react";
-import { keyShortcut$ } from "@/core/events";
+import { keyShortcut$ } from "@/events";
 import { registerDefaultShortcuts } from "./lib/keyboard-shortcuts/registerDefaultShortcuts";
 import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
 import { handleKey } from "./lib";
@@ -15,8 +15,8 @@ import { registerBrowserStoreProvider } from "./lib/persistence/browser/storePro
 import { registerBrowserMetadataReader } from "./lib/metadata/reader/browserMetadataReader";
 import { registerBrowserSourceProvider } from "./lib/persistence/browser/sourcesProvider";
 import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvider";
-import { connectCommandDispatch, wmmBus } from "./core/events";
-import "./core/events/job-notifications";
+import { connectCommandDispatch, wmmBus } from "./events";
+import "./events/job-notifications";
 
 // Wire the browser persistence adapter behind the core store port for the
 // lifetime of the app, before any component/provider calls into core.

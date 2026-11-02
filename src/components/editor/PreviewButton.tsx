@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import { usePlayback } from "@/hooks";
-import { wmmBus } from "@/core/events";
+import { wmmBus } from "@/events";
 
 /** How long a quick-edit preview plays before stopping automatically. */
 const PREVIEW_DURATION_SECONDS = 30;
