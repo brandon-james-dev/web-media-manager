@@ -15,8 +15,8 @@ import { uuidv7 } from "uuidv7";
 import type {
   IMusicSourceStrategy,
   IJobHandle,
-  MusicSourceConfigField,
 } from "../IMusicSourceStrategy";
+import type { MusicSourceConfigField } from "../MusicSourceConfigField";
 
 /**
  * "On device" source strategy: pick a local folder (browser FS Access),

@@ -19,7 +19,7 @@ export {
 export { resyncAllSources } from "./resync";
 
 export type { IMusicSourceStrategy } from "./IMusicSourceStrategy";
-export type { MusicSourceConfigField } from "./IMusicSourceStrategy";
+export type { MusicSourceConfigField } from "./MusicSourceConfigField";
 export { LocalMusicSourceStrategy } from "./file/LocalMusicSourceStrategy";
 export type { SubsonicSourceConfig } from "./subsonic/SubsonicMusicSourceStrategy";
 export { SubsonicMusicSourceStrategy } from "./subsonic/SubsonicMusicSourceStrategy";

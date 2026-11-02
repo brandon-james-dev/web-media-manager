@@ -15,8 +15,8 @@ import type { WorkerProgress } from "@/core/jobs";
 import type {
   IMusicSourceStrategy,
   IJobHandle,
-  MusicSourceConfigField,
 } from "../IMusicSourceStrategy";
+import type { MusicSourceConfigField } from "../MusicSourceConfigField";
 
 /** Config the Subsonic strategy's standardized form collects before add(). */
 export interface SubsonicSourceConfig {

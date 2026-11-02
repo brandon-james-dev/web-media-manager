@@ -7,12 +7,22 @@ import {
   restoreSyncDevice,
   waitForMount,
 } from "./helpers";
-import { IpodSyncStrategy } from "./writers";
+import type { ISyncStrategy } from "./writers/ISyncStrategy";
 
 export class SyncService {
-  private readonly scanner = new DeviceScanner();
-  private readonly deviceStore = new DexieSyncDeviceStore();
-  private readonly strategies = [new IpodSyncStrategy()];
+  private scanner = new DeviceScanner();
+  private deviceStore = new DexieSyncDeviceStore();
+
+  /* The iPod writer pulls in Node-only (sharp/itunesdb-ts) code, so it's
+   * lazily loaded only when an iPod actually needs syncing — keeping the
+   * node-builtin chain out of the main browser bundle. */
+  private async getStrategy(
+    device: SyncDevice
+  ): Promise<ISyncStrategy | undefined> {
+    const { IpodSyncStrategy } = await import("./writers/IpodSyncStrategy");
+    const options = [new IpodSyncStrategy()];
+    return options.find((x) => x.canHandle(device));
+  }
 
   async loadPersistedDevices() {
     const records = await this.deviceStore.getAll();
@@ -93,7 +103,7 @@ export class SyncService {
     songs: Song[],
     playlists: Playlist[]
   ): Promise<void> {
-    const strategy = this.strategies.find((x) => x.canHandle(device));
+    const strategy = await this.getStrategy(device);
 
     if (!strategy) {
       throw new Error(`Unable to sync to "${device.type}".`);
@@ -110,7 +120,7 @@ export class SyncService {
     device: SyncDevice,
     trackIds: number[]
   ): Promise<void> {
-    const strategy = this.strategies.find((x) => x.canHandle(device));
+    const strategy = await this.getStrategy(device);
 
     if (!strategy) {
       throw new Error(`Unable to manage "${device.type}".`);
