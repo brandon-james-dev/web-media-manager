@@ -1,0 +1,45 @@
+import type { MusicSource } from "@/models";
+import type { RemoteSourceConfig } from "@/core/contracts";
+import { getSubsonicSecret } from "./subsonic/subsonicSecrets";
+
+/**
+ * Generic config for an in-flight music-source import (bulk import /
+ * thumbnail generation job payloads). Carries the source's own config plus
+ * any transient auth secret, resolved on the main thread because web
+ * workers can't read localStorage secrets.
+ *
+ * This is deliberately source-agnostic: a future source kind contributes its
+ * config and (if it has one) a secret here, and the collectors/workers read
+ * what they need generically instead of taking a subsonic-specific param.
+ */
+export interface MusicSourceImportConfig {
+  sourceId: string;
+  config: RemoteSourceConfig | undefined;
+  secret?: string;
+}
+
+/**
+ * Resolve the generic import config for a music source. Reads the source's
+ * own config and any per-kind auth secret (e.g. Subsonic's password in
+ * localStorage). Called on the main thread so the secret is available;
+ * pass the result to worker jobs that need it.
+ */
+export function getMusicSourceImportConfig(
+  source: MusicSource
+): MusicSourceImportConfig {
+  return {
+    sourceId: source.id,
+    config: "config" in source ? source.config : undefined,
+    secret: getSecretForSource(source),
+  };
+}
+
+/** Resolve a source kind's auth secret (main-thread storage only). */
+function getSecretForSource(source: MusicSource): string | undefined {
+  switch (source.kind) {
+    case "subsonic":
+      return getSubsonicSecret(source.id) ?? undefined;
+    default:
+      return undefined;
+  }
+}

@@ -14,6 +14,8 @@ interface SongEditFormProps {
   isPrevDisabled?: boolean;
   /** Disable the next button (at the last song). */
   isNextDisabled?: boolean;
+  /** Close the advanced edit form (e.g. close the drawer it's shown in). */
+  onClose?: () => void;
 }
 
 export type { SongEditFormProps };

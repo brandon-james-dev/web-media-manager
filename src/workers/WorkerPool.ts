@@ -27,6 +27,7 @@ export class WorkerPool {
                   jobId: job.id,
                   jobType: job.type,
                   parentJobId: job.parentJobId,
+                  silent: job.silent,
                   payload: progressMsg,
                 });
               })
@@ -37,6 +38,7 @@ export class WorkerPool {
                   jobId: job.id,
                   jobType: job.type,
                   parentJobId: job.parentJobId,
+                  silent: job.silent,
                   payload: reason,
                 });
                 reject(reason);

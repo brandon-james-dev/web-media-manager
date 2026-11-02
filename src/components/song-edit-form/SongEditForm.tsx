@@ -7,18 +7,22 @@ import type { SongEditDto } from "@/dto";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
-import { Eraser, Globe, Pen, Save, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eraser, Globe, Pen, Save, ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { SongEditFormProps } from "./SongEditFormProps";
 import { AlbumArtImage } from "../album-art-image";
+import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
 
 export function SongEditForm(props: SongEditFormProps) {
   //#region State
-  const { song, formId, onFormSubmit, onNavigatePrev, onNavigateNext, isPrevDisabled, isNextDisabled } = props;
+  const { song, formId, onFormSubmit, onNavigatePrev, onNavigateNext, isPrevDisabled, isNextDisabled, onClose } = props;
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
   const [showSearch, setShowSearch] = useState(false);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const formRef = useRef<HTMLFormElement>(null);
   //#endregion
+
+  // Disable the form when the song's source doesn't allow metadata write-back.
+  const editable = useSourceEditable([song]);
 
   //#region Helpers
   const set = (name: string, value: any) => {
@@ -144,6 +148,7 @@ export function SongEditForm(props: SongEditFormProps) {
 
   async function handleEditSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!editable) return;
 
     const currentTarget = event.currentTarget;
     const formData = new FormData(currentTarget);
@@ -192,26 +197,9 @@ export function SongEditForm(props: SongEditFormProps) {
       <div className="mx-auto mt-3 max-w-4xl flex justify-center">
         <div className="flex gap-1 px-6 py-2">
           <Button
-            variant="secondary"
-            onClick={onNavigatePrev}
-            disabled={isPrevDisabled}
-            aria-label="Previous song"
-          >
-            <ChevronLeft />
-            Prev
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={onNavigateNext}
-            disabled={isNextDisabled}
-            aria-label="Next song"
-          >
-            Next
-            <ChevronRight />
-          </Button>
-          <Button
             variant={showSearch ? "default" : "secondary"}
             onClick={() => setShowSearch(!showSearch)}
+            disabled={!editable}
           >
             <Globe /> Online Search
           </Button>
@@ -232,9 +220,35 @@ export function SongEditForm(props: SongEditFormProps) {
             type="submit"
             className="bg-accent/50 hover:bg-accent text-white"
             form={formId || "song-edit-form"}
-            disabled={!Object.values(dirty).some((v) => v)}
+            disabled={!editable || !Object.values(dirty).some((v) => v)}
           >
-            <Save /> Save Changes
+            <Save /> Save
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={onNavigatePrev}
+            disabled={isPrevDisabled}
+            aria-label="Previous song"
+          >
+            <ChevronLeft />
+            Prev
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={onNavigateNext}
+            disabled={isNextDisabled}
+            aria-label="Next song"
+          >
+            Next
+            <ChevronRight />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onClose}
+          >
+            <X />
+            Close
           </Button>
         </div>
       </div>
@@ -256,6 +270,7 @@ export function SongEditForm(props: SongEditFormProps) {
         className="lg:w-4xl mx-auto pt-4 flex-1 flex flex-col gap-4"
         onSubmit={handleEditSubmit}
       >
+        <fieldset disabled={!editable} className="contents">
         <section>
           <div className="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-4">
             <div className="row-span-2">
@@ -277,16 +292,24 @@ export function SongEditForm(props: SongEditFormProps) {
                              text-muted-foreground bg-background
                             "
                 >
-                  <div className="w-32 aspect-square relative border rounded-md hover:border-accent group cursor-pointer">
+                  <div
+                    className={`w-32 aspect-square relative border rounded-md group ${
+                      editable
+                        ? "hover:border-accent cursor-pointer"
+                        : "cursor-not-allowed opacity-60"
+                    }`}
+                  >
                     <Pen
                       size={24}
                       className="
                         absolute top-1 right-1 p-1 rounded-md
                         dark:bg-accent text-white
                         opacity-0
-                        group-hover:opacity-100
                         transition-opacity
+                        group-hover:opacity-100
+                        data-[disabled=true]:opacity-0 data-[disabled=true]:group-hover:opacity-0
                       "
+                      data-disabled={!editable}
                     />
                     {updatedFrontCover ? (
                       <img
@@ -309,6 +332,12 @@ export function SongEditForm(props: SongEditFormProps) {
                         }
                       />
                     )}
+                    {!editable && (
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 rounded-md bg-gray-400/40"
+                      />
+                    )}
                   </div>
                 </div>
               </Label>
@@ -319,6 +348,7 @@ export function SongEditForm(props: SongEditFormProps) {
                 type="file"
                 name="coverFront"
                 accept="image/*"
+                disabled={!editable}
                 onChange={(evt) => {
                   const file = evt.currentTarget.files?.[0];
 
@@ -626,6 +656,7 @@ export function SongEditForm(props: SongEditFormProps) {
             </div>
           </div>
         </section>
+        </fieldset>
       </form>
     </>
   );

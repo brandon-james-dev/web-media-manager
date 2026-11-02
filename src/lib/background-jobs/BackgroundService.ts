@@ -92,6 +92,7 @@ export class BackgroundService {
       payload: job.payload,
       jobType: job.type,
       parentJobId: job.parentJobId,
+      silent: job.silent,
     });
 
     try {
@@ -122,6 +123,7 @@ export class BackgroundService {
         state: "progress",
         jobId: job.parentJobId,
         jobType: parent?.type ?? job.type,
+        silent: parent?.silent ?? job.silent,
         payload: parentDone
           ? {
               parent: {
@@ -152,6 +154,7 @@ export class BackgroundService {
       jobId: job.id,
       jobType: job.type,
       payload: result,
+      silent: job.silent,
     });
 
     this.emitJobCompleted(job);
@@ -175,6 +178,7 @@ export class BackgroundService {
       jobId,
       jobType: job.type,
       parentJobId: job.parentJobId,
+      silent: job.silent,
     });
 
     this.emitJobCompleted(job);

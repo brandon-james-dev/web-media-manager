@@ -5,6 +5,7 @@ type AutocompleteInputProps = {
   suggestions: string[];
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 };
 
 export type { AutocompleteInputProps };

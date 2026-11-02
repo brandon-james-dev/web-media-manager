@@ -1,21 +1,18 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router";
-import { isApiSupported, showDirectoryPicker } from "use-fs-access/core";
-import { FolderOpen, Loader2, Music } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2, Music } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { TanstackSongTable } from "@/components/song-table";
-import { addFolder } from "@/core/scanning";
 import { getStore } from "@/core/system";
-import { getJobService } from "@/core/jobs";
 import { wmmBus } from "@/events";
 import { selectors, type QueryOptions, type SortableColumn } from "@/lib/persistence";
 import { useSongs } from "@/hooks";
 import type { MusicSource, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
 
-function Songs() {
+export function Songs() {
   //#region State
   const [musicSources, setMusicSources] = useState<MusicSource[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
@@ -90,23 +87,6 @@ function Songs() {
   //#endregion
 
   //#region Interactivity handlers
-  async function handlePickMusicSource() {
-    if (!isApiSupported)
-      throw new Error("File System Access API not supported.");
-
-    const dirHandle = await showDirectoryPicker({ mode: "readwrite" });
-    if (!dirHandle) return;
-
-    const directory = await addFolder(dirHandle);
-
-    getJobService().enqueue({
-      type: "Bulk Import",
-      payload: { musicSource: directory },
-    });
-
-    await refresh();
-  }
-
   function handleSort(column: SortableColumn) {
     const selector = selectors[column];
     const isSame = sort?.selector === selector;
@@ -155,40 +135,28 @@ function Songs() {
         </div>
       ) : (
         <>
-          {noMusicSources && (
-            <div className="flex-1 flex items-center justify-center">
-              <Card className="p-10 flex flex-col items-center gap-6">
-                <Music color="var(--accent)" size={48} />
-                <h1 className="text-3xl font-bold">Add Music</h1>
-                <Button
-                  onClick={handlePickMusicSource}
-                  className="flex items-center gap-2"
-                >
-                  <FolderOpen className="h-5 w-5" />
-                  Select a directory…
-                </Button>
-              </Card>
-            </div>
-          )}
+          <div className="flex-1 flex items-center justify-center" hidden={!noMusicSources}>
+            <Card className="p-10 flex flex-col items-center gap-6">
+              <Music className="font-accent" size={48} />
+              <h1 className="text-3xl font-bold">Add Music</h1>
+              <AddMusicSource onSourceAdded={refresh} />
+            </Card>
+          </div>
 
-          {!noMusicSources && (
-            <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
-              <TanstackSongTable
-                songs={filteredSongs}
-                selectedSongIds={selectedSongIds}
-                isEditMultiple={isEditMultiple}
-                onSelect={handleSongsSelected}
-                onSort={handleSort}
-                sort={sort}
-                onSongDoubleClicked={handleSongDoubleClicked}
-              />
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          )}
+          <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto" hidden={noMusicSources}>
+            <TanstackSongTable
+              songs={filteredSongs}
+              selectedSongIds={selectedSongIds}
+              isEditMultiple={isEditMultiple}
+              onSelect={handleSongsSelected}
+              onSort={handleSort}
+              sort={sort}
+              onSongDoubleClicked={handleSongDoubleClicked}
+            />
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
         </>
       )}
     </div>
   );
 }
-
-export { Songs };

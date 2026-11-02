@@ -27,21 +27,25 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Item } from "@/components/ui/item";
-import { Sun, Moon, ArrowLeft, X } from "lucide-react";
+import { Sun, Moon, ArrowLeft, X, Cpu, RefreshCw, Loader2 } from "lucide-react";
 import { useTheme } from "@/hooks";
 import { clearLibrary } from "@/core/scanning";
 import { getSourcesStore } from "@/core/ports";
+import { AddMusicSource } from "@/components/add-source/AddMusicSource";
+import { Badge } from "@/components/ui/badge";
+import { musicSourceStrategies } from "@/lib/sources";
 import type { MusicSource } from "@/models";
 import { toast } from "@/components/ui/toast";
 import { AccentColorSelector } from "@/components/theme-provider";
 
-export default function Settings() {
+export function Settings() {
   //#region State
   const { setTheme, theme, accentColor, setAccentColor } = useTheme();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [directories, setDirectories] = useState<MusicSource[]>([]);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     theme: theme || "system",
     accentColor: accentColor || "#3b82f6",
@@ -53,17 +57,44 @@ export default function Settings() {
     const store = getSourcesStore();
     store.getSources().then(setDirectories);
 
-    const unsubDirDeleted = store.onSourceDeleted(refresh);
-    const unsubDirCleared = store.onSourcesCleared(refresh);
+    const unsubSourceAdded = store.onSourceAdded(refresh);
+    const unsubSourceDeleted = store.onSourceDeleted(refresh);
+    const unsubSourcesCleared = store.onSourcesCleared(refresh);
 
     return () => {
-      unsubDirDeleted();
-      unsubDirCleared();
+      unsubSourceAdded();
+      unsubSourceDeleted();
+      unsubSourcesCleared();
     };
   }, []);
   //#endregion
 
   //#region Helpers
+
+  /** Badge naming the type of a music source (on-device / subsonic / server). */
+  /** Badge naming the type of a music source — resolved from the source
+   *  strategy (each strategy owns its kind's presentation). */
+  function SourceKindBadge({ source }: { source: MusicSource }) {
+    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
+    if (strategy?.sourceKindBadge) return strategy.sourceKindBadge;
+    return (
+      <Badge variant="secondary">
+        <Cpu />
+        Server
+      </Badge>
+    );
+  }
+
+  /** Re-pull a source's library via its music source strategy. */
+  function handleSyncSource(source: MusicSource) {
+    if (syncingId) return;
+    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
+    if (!strategy) return;
+    setSyncingId(source.id);
+    const handle = strategy.sync({ source });
+    if (!handle) setSyncingId(null);
+  }
+
   async function refresh(dir?: MusicSource) {
     const store = getSourcesStore();
     const all = await store.getSources();
@@ -126,9 +157,30 @@ export default function Settings() {
   const handleDeleteMusicSource = async () => {
     if (!pendingDeleteId) return;
 
+    const source = (await getSourcesStore().getSources()).find(
+      (s) => s.id === pendingDeleteId
+    );
+    if (!source) {
+      setPendingDeleteId(null);
+      setDeleteDirDialogOpen(false);
+      return;
+    }
+
+    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
+    if (strategy) {
+      await strategy.removeSource({
+        source,
+        onSourceRemoved: async () => {
+          setPendingDeleteId(null);
+          setDeleteDirDialogOpen(false);
+        },
+      });
+      return;
+    }
+
+    // Fallback for an unregistered kind: plain removal (no kind cleanup).
     const store = getSourcesStore();
     await store.deleteSource(pendingDeleteId);
-
     setPendingDeleteId(null);
     setDeleteDirDialogOpen(false);
   };
@@ -208,16 +260,20 @@ export default function Settings() {
         <CardHeader>
           <CardTitle>Data</CardTitle>
           <CardDescription>
-            Manage all song data and the folders used for scanning and importing
-            music
+            Manage all song data and the sources used for scanning and
+            importing music
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-          <label>Directories</label>
+          <div className="flex items-center justify-between">
+            <label>Sources</label>
+            <AddMusicSource compact onSourceAdded={refresh} />
+          </div>
           {directories.length === 0 && (
             <p className="text-sm text-muted-foreground my-2">
-              No on-device sources added.
+              No music sources added yet. Add an on-device folder or a
+              Subsonic server.
             </p>
           )}
 
@@ -228,18 +284,39 @@ export default function Settings() {
                   key={dir.id}
                   className="flex items-center justify-between p-0"
                 >
-                  <span className="pl-2">{dir.name}</span>
+                  <div className="flex items-center gap-2 pl-2 overflow-hidden">
+                    <span className="truncate">{dir.name}</span>
+                    <SourceKindBadge source={dir} />
+                  </div>
 
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    onClick={() => {
-                      setPendingDeleteId(dir.id);
-                      setDeleteDirDialogOpen(true);
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    {musicSourceStrategies.some((s) => s.kind === dir.kind) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Sync ${dir.name}`}
+                        disabled={syncingId === dir.id}
+                        onClick={() => handleSyncSource(dir)}
+                      >
+                        {syncingId === dir.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={() => {
+                        setPendingDeleteId(dir.id);
+                        setDeleteDirDialogOpen(true);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </Item>
               ))}
             </div>
@@ -249,11 +326,11 @@ export default function Settings() {
             open={deleteDirDialogOpen}
             onOpenChange={setDeleteDirDialogOpen}
           >
-            <DialogContent className="select-none">
+            <DialogContent className="select-none w-lg">
               <DialogHeader>
-                <DialogTitle>Remove MusicSource</DialogTitle>
+                <DialogTitle>Remove Music Source</DialogTitle>
                 <DialogDescription>
-                  This will remove the directory from your library. Songs
+                  This will remove the source from your library. Songs
                   already imported will remain.
                 </DialogDescription>
               </DialogHeader>
@@ -264,7 +341,7 @@ export default function Settings() {
                 ></DialogClose>
 
                 <Button variant="destructive" onClick={handleDeleteMusicSource}>
-                  Remove MusicSource
+                  Remove Music Source
                 </Button>
               </DialogFooter>
             </DialogContent>

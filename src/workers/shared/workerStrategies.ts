@@ -2,9 +2,7 @@ import type { WorkerJobType, WorkerProgress } from "@/workers/WorkerJob";
 import {
   runArtworkProcess,
   runBulkEdit,
-  runHeavyMetadata,
   runBulkImport,
-  runTagWrite,
 } from ".";
 
 export const workerStrategies: Record<
@@ -19,7 +17,5 @@ export const workerStrategies: Record<
 > = {
   "Thumbnail Generation": runArtworkProcess,
   "Bulk Edit": runBulkEdit,
-  "Heavy Metadata": runHeavyMetadata,
   "Bulk Import": runBulkImport,
-  "Online Tag Write": runTagWrite,
 };

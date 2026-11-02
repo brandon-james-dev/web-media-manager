@@ -22,9 +22,7 @@ export type WorkerJobState =
  * left open so server/Tauri-defined job kinds don't force a core change.
  */
 export type WorkerJobType =
-  | "Online Tag Write"
   | "Thumbnail Generation"
-  | "Heavy Metadata"
   | "Bulk Import"
   | "Bulk Edit"
   | (string & {});
@@ -50,6 +48,8 @@ export interface Job {
   type: WorkerJobType;
   state: WorkerJobState;
   payload: any;
+  /** Suppress UI notifications for this job (e.g. silent startup resyncs). */
+  silent?: boolean;
 }
 
 export type JobState =

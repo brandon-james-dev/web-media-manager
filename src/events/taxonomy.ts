@@ -140,6 +140,7 @@ export const WMM_EVENTS = {
     jobType?: string;
     parentJobId?: string;
     payload?: unknown;
+    silent?: boolean;
   },
   // searching
   "wmm.searching.completed": {} as { query: string },

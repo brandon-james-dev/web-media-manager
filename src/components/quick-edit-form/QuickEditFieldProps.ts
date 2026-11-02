@@ -7,6 +7,7 @@ interface QuickEditFieldProps {
   songs: Song[];
   value: string | number | undefined;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
 export type { QuickEditFieldProps };

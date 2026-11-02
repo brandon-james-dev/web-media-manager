@@ -1,6 +1,6 @@
 import type { QuickEditDto } from "@/dto";
 import { Pen, Save } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QuickEditField } from "./QuickEditField";
 import { quickEditFields } from "./quickEditFields";
 import type { QuickEditFormProps, EditableField } from "./QuickEditFormProps";
@@ -8,14 +8,26 @@ import { ThumbnailSize } from "@/lib";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { AlbumArtImage } from "../album-art-image";
+import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
 
-export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
+export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEditFormProps) {
   //#region State
   const [values, setValues] = useState<
     Partial<Record<EditableField, string | number>>
   >({});
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob | null>(null);
   //#endregion
+
+  // Disable the form when a song's source doesn't allow metadata write-back.
+  const editable = useSourceEditable(songs);
+
+  // Report dirty state so external Save/Reset buttons (in the hosting editor)
+  // can disable themselves accordingly.
+  useEffect(() => {
+    const dirty =
+      Object.keys(values).length > 0 || updatedFrontCover !== null;
+    onDirtyChange?.(dirty);
+  }, [values, updatedFrontCover, onDirtyChange]);
 
   //#region Helpers
   function stripEmptyFields<T extends Record<string, any>>(obj: T): Partial<T> {
@@ -45,6 +57,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
     event: React.SubmitEvent<HTMLFormElement>
   ) {
     event.preventDefault();
+    if (!editable) return;
 
     const rawUpdates: QuickEditDto = {
       title: values.title as QuickEditDto["title"],
@@ -84,6 +97,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
             type="file"
             accept="image/*"
             className="hidden"
+            disabled={!editable}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file) return;
@@ -95,7 +109,11 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
 
           <Label
             htmlFor="quick-edit-art-input"
-            className="relative w-24 aspect-square cursor-pointer"
+            className={`relative w-24 aspect-square ${
+              editable
+                ? "cursor-pointer"
+                : "cursor-not-allowed opacity-60"
+            }`}
           >
             {songs.length > 1 && (
               <>
@@ -103,16 +121,18 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
                 <div className="absolute inset-0 rounded-md bg-secondary-foreground opacity-40 translate-x-2 translate-y-2" />
               </>
             )}
-            <div className="relative w-full h-full border rounded-md hover:border-accent group">
+            <div className={`relative w-full h-full border rounded-md group${editable ? ' hover:border-accent' : ''}`}>
               <Pen
                 size={24}
                 className="
                   absolute top-1 right-1 p-1 rounded-md
                   dark:bg-accent
                   opacity-0
-                  group-hover:opacity-100
                   transition-opacity
+                  group-hover:opacity-100
+                  data-[disabled=true]:opacity-0 data-[disabled=true]:group-hover:opacity-0
                 "
+                data-disabled={!editable}
               />
 
               {updatedFrontCover ? (
@@ -127,12 +147,13 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
                   thumbSize={ThumbnailSize.thumb256}
                   fallback={
                     <div
-                      className="w-full h-full rounded-md border
-                                 flex flex-col
-                                 items-center justify-center
-                                 text-xs text-foreground text-center
-                                 bg-background
-                                "
+                      className="
+                        w-full h-full rounded-md border
+                        flex flex-col
+                        items-center justify-center
+                        text-xs text-foreground text-center
+                        bg-background
+                      "
                     >
                       <div>No cover art</div>
                       <div className="text-muted-foreground">
@@ -140,6 +161,12 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
                       </div>
                     </div>
                   }
+                />
+              )}
+              {!editable && (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-md bg-gray-400/40"
                 />
               )}
             </div>
@@ -153,6 +180,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
             songs={songs}
             value={values[field]}
             name={`quick-edit-${field}`}
+            disabled={!editable}
             onChange={(v) =>
               setValues((prev) => ({
                 ...prev,
@@ -171,6 +199,7 @@ export function QuickEditForm({ formId, songs, onApply }: QuickEditFormProps) {
           form={formId || "quick-edit-form"}
           className="bg-accent hover:bg-accent/70 text-white"
           variant="default"
+          disabled={!editable}
         >
           <Save />
           Apply to {songs.length} songs

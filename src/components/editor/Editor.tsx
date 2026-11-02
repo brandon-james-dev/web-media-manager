@@ -23,6 +23,7 @@ import type { AlbumDetailDto, QuickEditDto, SongEditDto } from "@/dto";
 import { getJobService } from "@/core/jobs";
 import { commandDispatcher, wmmBus } from "@/events";
 import { useSongs, usePlayback } from "@/hooks";
+import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
 import type { Album, Song } from "@/models";
 import { AlbumDetailDialog } from "../album-detail-dialog";
 import { keyShortcut$ } from "@/events/keyboard-events";
@@ -36,6 +37,8 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isAdvancedEdit, setIsAdvancedEdit] = useState<boolean>(false);
+  const [quickDirty, setQuickDirty] = useState(false);
+  const editable = useSourceEditable(selectedSongs);
   const { isPlaying } = usePlayback();
   //#endregion
   //#region Helpers
@@ -408,6 +411,7 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
                   variant="ghost"
                   type="reset"
                   form="quick-edit-form"
+                  disabled={!quickDirty}
                   className="border-accent/50 hover:border-accent/70 text-white"
                 >
                   <Eraser />
@@ -419,6 +423,7 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
                   variant="default"
                   type="submit"
                   form="quick-edit-form"
+                  disabled={!editable || !quickDirty}
                   className="bg-accent/50 hover:bg-accent/70 text-white"
                 >
                   <Save />
@@ -459,6 +464,7 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
               formId="quick-edit-form"
               songs={selectedSongs}
               onApply={handleApply}
+              onDirtyChange={setQuickDirty}
             />
           </div>
         </div>
@@ -495,6 +501,7 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
                 onNavigateNext={handleNextClick}
                 isPrevDisabled={isSongPrevButtonDisabled()}
                 isNextDisabled={isSongNextButtonDisabled()}
+                onClose={() => setIsAdvancedEdit(false)}
               />
             </div>
           </DrawerContent>

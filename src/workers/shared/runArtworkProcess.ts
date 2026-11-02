@@ -1,11 +1,38 @@
 import { getMetadataDb } from "@/lib/persistence/dexie";
 import type { WorkerProgress } from "../WorkerJob";
 import { resizeBitmap, ThumbnailSize } from "@/lib";
+import { getSourcesStore } from "@/core/ports";
+import { getCollector } from "@/lib/sources/collectors";
+import type { MusicSourceImportConfig } from "@/lib/sources/config";
 import type { Song, SongArtwork } from "@/models";
+
+/**
+ * Resolve the raw image bytes for a picture by dispatching to the song's
+ * source-kind collector (worker-safe): `data` is used directly (embedded
+ * tag art, search results with bytes); a `subsonic://coverart/<id>` URL is
+ * resolved by the subsonic collector through the server at the largest
+ * available size.
+ */
+async function resolvePictureBytes(
+  pic: { data?: Uint8Array; url?: string },
+  song: Song,
+  musicSourceConfig?: MusicSourceImportConfig
+): Promise<Uint8Array | null> {
+  if (pic.data && pic.data.length > 0) return pic.data;
+
+  const sources = await getSourcesStore().getSources();
+  const source = sources.find((s) => s.id === song.sourceId);
+  if (!source) return null;
+
+  const collector = getCollector(source.kind);
+  if (!collector) return null;
+  return collector.resolvePictureBytes(pic, song, musicSourceConfig);
+}
 
 export async function runArtworkProcess(
   payload: {
     song: Song;
+    musicSourceConfig?: MusicSourceImportConfig;
   },
   isCancelled: () => boolean,
   reportProgress: (progress: WorkerProgress) => void,
@@ -44,7 +71,13 @@ export async function runArtworkProcess(
 
     if (isCancelled()) return { cancelled: true };
 
-    const bitmap = await createImageBitmap(new Blob([pic.data!.slice().buffer]));
+    // Resolve raw bytes (embedded data, or the largest available remote
+    // image for subsonic cover art), then resample locally into the
+    // thumbnail sizes.
+    const picBytes = await resolvePictureBytes(pic, song, payload.musicSourceConfig);
+    if (!picBytes) continue;
+
+    const bitmap = await createImageBitmap(new Blob([picBytes.slice().buffer]));
 
     reportProgress({
       index: i,

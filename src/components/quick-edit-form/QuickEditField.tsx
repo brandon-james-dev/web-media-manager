@@ -3,7 +3,7 @@ import type { QuickEditFieldProps } from "./QuickEditFieldProps";
 import { AutocompleteInput } from "@/components/autocomplete-input";
 
 export function QuickEditField(props: QuickEditFieldProps) {
-  const { name, field, songs, value, onChange } = props;
+  const { name, field, songs, value, onChange, disabled } = props;
 
   const unique = (() => {
     const set = new Set<string>();
@@ -37,6 +37,7 @@ export function QuickEditField(props: QuickEditFieldProps) {
         onChange={onChange}
         suggestions={unique}
         placeholder={placeholder}
+        disabled={disabled}
         className={cn("transition-colors", isDirty && "border-primary")}
       />
     </div>

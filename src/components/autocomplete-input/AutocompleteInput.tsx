@@ -16,7 +16,7 @@ import {
 } from "../ui/input-group";
 
 export function AutocompleteInput(props: AutocompleteInputProps) {
-  const { name, value, onChange, suggestions, className, placeholder } = props;
+  const { name, value, onChange, suggestions, className, placeholder, disabled } = props;
 
   const [active, setActive] = useState(false);
 
@@ -60,6 +60,7 @@ export function AutocompleteInput(props: AutocompleteInputProps) {
           name={name}
           placeholder={placeholder}
           autoComplete="off"
+          disabled={disabled}
           onFocus={() => setActive(true)}
           onBlur={() => {
             setTimeout(() => setActive(false), 100);

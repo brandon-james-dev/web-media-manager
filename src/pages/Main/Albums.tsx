@@ -25,7 +25,7 @@ import { TanstackSongTable } from "@/components/song-table";
 import { CoverFlow } from "@/components/cover-flow";
 import { cn } from "cn";
 
-function Albums() {
+export function Albums() {
   //#region State
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
@@ -197,85 +197,79 @@ function Albums() {
         </div>
       </div>
 
-      {viewMode === "grid" && (
-        <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
-          <div
-            className="
-              grid
-              grid-cols-2
-              sm:grid-cols-3
-              md:grid-cols-4
-              lg:grid-cols-5
-              xl:grid-cols-6
-              p-3 gap-3
-            "
-          >
-            {albums.map((a) => (
-              <AlbumCard
-                key={`${a.title}-${a.artist}`}
-                album={a}
-                onClick={handleAlbumCardClick}
-                onDoubleClick={handleAlbumCardDoubleClick}
-              />
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-      {viewMode === "coverflow" && (
-        <>
-          <CoverFlow
-            items={albums}
-            selectedIndex={selectedAlbumIndex}
-            onSelectedIndexChange={setSelectedAlbumIndex}
-            renderItem={(album, _, selected) => (
-              <AlbumCard
-                className={cn(
-                  "h-55 transition-all",
-                  selected && "ring-2 ring-accent"
-                )}
-                album={album}
-                onClick={handleAlbumCardClick}
-                onDoubleClick={handleAlbumCardDoubleClick}
-              />
-            )}
-            renderLabel={(album, _, selected) => (
-              <>
-                {selected && (
-                  <div
-                    className="
-                      absolute
-                      top-full
-                      left-1/2
-                      mt-2
-                      -translate-x-1/2
-                      text-center
-                      pointer-events-none
-                    "
-                  >
-                    <div className="font-medium whitespace-nowrap max-w-80 text-ellipsis overflow-clip">
-                      {album.title}
-                    </div>
-
-                    <div className="text-xs text-muted-foreground max-w-80 text-ellipsis overflow-clip">
-                      {album.artist}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          />
-          <ScrollArea className="flex-1 min-h-0">
-            <TanstackSongTable
-              songs={albums[selectedAlbumIndex]?.songs ?? []}
-              selectedSongIds={nowPlayingSongId ? [nowPlayingSongId] : []}
-              onSongDoubleClicked={handleSongDoubleClicked}
-              isEditMultiple={false}
+      <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto" hidden={viewMode !== "grid"}>
+        <div
+          className="
+            grid
+            grid-cols-2
+            sm:grid-cols-3
+            md:grid-cols-4
+            lg:grid-cols-5
+            xl:grid-cols-6
+            p-3 gap-3
+          "
+        >
+          {albums.map((a) => (
+            <AlbumCard
+              key={`${a.title}-${a.artist}`}
+              album={a}
+              onClick={handleAlbumCardClick}
+              onDoubleClick={handleAlbumCardDoubleClick}
             />
-          </ScrollArea>
-        </>
-      )}
+          ))}
+        </div>
+      </ScrollArea>
+      <div hidden={viewMode !== "coverflow"}>
+        <CoverFlow
+          items={albums}
+          selectedIndex={selectedAlbumIndex}
+          onSelectedIndexChange={setSelectedAlbumIndex}
+          renderItem={(album, _, selected) => (
+            <AlbumCard
+              className={cn(
+                "h-55 transition-all",
+                selected && "ring-2 ring-accent"
+              )}
+              album={album}
+              onClick={handleAlbumCardClick}
+              onDoubleClick={handleAlbumCardDoubleClick}
+            />
+          )}
+          renderLabel={(album, _, selected) => (
+            <>
+              {selected && (
+                <div
+                  className="
+                    absolute
+                    top-full
+                    left-1/2
+                    mt-2
+                    -translate-x-1/2
+                    text-center
+                    pointer-events-none
+                  "
+                >
+                  <div className="font-medium whitespace-nowrap max-w-80 text-ellipsis overflow-clip">
+                    {album.title}
+                  </div>
+
+                  <div className="text-xs text-muted-foreground max-w-80 text-ellipsis overflow-clip">
+                    {album.artist}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        />
+        <ScrollArea className="flex-1 min-h-0">
+          <TanstackSongTable
+            songs={albums[selectedAlbumIndex]?.songs ?? []}
+            selectedSongIds={nowPlayingSongId ? [nowPlayingSongId] : []}
+            onSongDoubleClicked={handleSongDoubleClicked}
+            isEditMultiple={false}
+          />
+        </ScrollArea>
+      </div>
     </div>
   );
 }
-
-export { Albums };

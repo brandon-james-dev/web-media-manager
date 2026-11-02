@@ -7,13 +7,13 @@ import {
   repeatState,
 } from "@/hooks/usePlayback";
 import {
-  getMetadataStore,
   ThumbnailSize,
 } from "@/lib";
 import { getPictureOfType } from "@/core/media";
 import { commandDispatcher, wmmBus } from "@/events";
 import { getStore } from "@/core/system";
-import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
+import { getSourcesStore } from "@/core/ports";
+import { musicSourceStrategies } from "@/lib/sources";
 import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
 
@@ -223,14 +223,27 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         return URL.createObjectURL(blob);
       }
 
-      const metadataStore = getMetadataStore() as CombinedMetadataStore;
-      const fsMetadataStore = metadataStore.getFileSystem();
-      const songFileHandle = await fsMetadataStore.getFileHandle(nowPlaying.id);
+      // Resolve the audio bytes through the song's source strategy (local
+      // file handle, Subsonic stream, ...) — the provider dispatches by
+      // source kind instead of branching on it.
+      const sources = await getSourcesStore().getSources();
+      const source = sources.find((s) => s.id === nowPlaying.sourceId);
+      const strategy = source
+        ? musicSourceStrategies.find((s) => s.kind === source.kind)
+        : undefined;
 
-      if (!songFileHandle) return;
+      let arrayBuffer: ArrayBuffer | null = null;
 
-      const songFile = await songFileHandle.getFile();
-      const arrayBuffer = await songFile.arrayBuffer();
+      if (strategy) {
+        try {
+          arrayBuffer = await strategy.resolveSongBytes(nowPlaying);
+        } catch (err) {
+          console.error("Failed to resolve song bytes:", err);
+          return;
+        }
+      }
+
+      if (!arrayBuffer) return;
 
       const ctx = audioCtxRef.current!;
       const decoded = await ctx.decodeAudioData(arrayBuffer);

@@ -7,6 +7,8 @@ import type { BackgroundJobState } from "./background-job-events";
 wmmBus.on("wmm.jobs.state", (evt) => {
   if (!evt) return;
   if (evt.parentJobId) return;
+  // Silent jobs (e.g. startup source resyncs) never surface notifications.
+  if (evt.silent) return;
 
   const jobType = evt.jobType ?? "Job";
   const state = evt.state as BackgroundJobState;

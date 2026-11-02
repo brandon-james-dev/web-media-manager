@@ -128,12 +128,12 @@ export class FileSystemMetadataStore implements IMetadataStore {
         const dir = await this.sources?.get(
           existingSong.sourceId.toString()
         );
-        let directoryHandle =
-          dir && isLocalSource(dir) ? dir.handle : undefined;
 
-        if (!directoryHandle) {
-          throw new Error("The directory the song is from was not found");
-        }
+        // Remote (e.g. subsonic) songs have no local file handle — treat as
+        // "no handle" instead of an error.
+        if (!dir || !isLocalSource(dir)) return undefined;
+
+        let directoryHandle = dir.handle;
 
         for (let i = 0; i < parts.length - 1; i++) {
           directoryHandle = await directoryHandle?.getDirectoryHandle(parts[i]);

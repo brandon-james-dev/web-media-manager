@@ -1,10 +1,9 @@
 import { Routes, Route } from "react-router";
-import { Songs, Albums, Settings, Sync } from "./pages";
+import { Songs, Albums, MainLayout, Settings, Sync } from "./pages";
 import { NavBar } from "./layout";
 import { SongProvider, SyncProvider } from "./providers";
 import { ThemeProvider } from "./components/theme-provider";
 import { Toaster } from "@/components/ui/toast";
-import { MainLayout } from "./pages/Main/MainLayout";
 import { PlaybackProvider } from "./providers/PlaybackProvider";
 import { useEffect, useState } from "react";
 import { keyShortcut$ } from "@/events";
@@ -15,6 +14,7 @@ import { registerBrowserStoreProvider } from "./lib/persistence/browser/storePro
 import { registerBrowserMetadataReader } from "./lib/metadata/reader/browserMetadataReader";
 import { registerBrowserSourceProvider } from "./lib/persistence/browser/sourcesProvider";
 import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvider";
+import { resyncAllSources } from "./lib/sources";
 import { connectCommandDispatch, wmmBus } from "./events";
 import "./events/job-notifications";
 
@@ -24,6 +24,10 @@ registerBrowserStoreProvider();
 registerBrowserMetadataReader();
 registerBrowserSourceProvider();
 registerBrowserJobService();
+
+// Re-import every configured source on startup so the library stays in sync
+// with what's on the sources (local folders + remote servers).
+void resyncAllSources();
 
 // Connect the bus to the command dispatcher: bus.invoke() -> registered
 // handlers (providers/UI register commands; this makes them reachable).

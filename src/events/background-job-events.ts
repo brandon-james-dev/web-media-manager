@@ -23,5 +23,7 @@ export interface BackgroundEvent {
   jobId: string;
   parentJobId?: string;
   payload?: any;
+  /** Suppress UI notifications for this event (silent jobs). */
+  silent?: boolean;
 }
 

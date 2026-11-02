@@ -1,5 +1,4 @@
-import { MainLayout } from "./MainLayout";
-import { Songs } from "./Songs";
-import { Albums } from "./Albums";
-
-export { Albums, MainLayout, Songs };
+export * from "./MainLayout";
+export * from "./Songs";
+export * from "./Albums";
+export * from "./Sync";

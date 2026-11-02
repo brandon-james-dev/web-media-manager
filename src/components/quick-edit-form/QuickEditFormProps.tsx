@@ -9,6 +9,8 @@ interface QuickEditFormProps {
   songs: Song[];
   onApply: (updates: QuickEditDto) => void;
   onNavigate?: (direction: "prev" | "next") => void;
+  /** Reports whether any field has been edited (for external Save/Reset buttons). */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export type { EditableField, QuickEditFormProps };
