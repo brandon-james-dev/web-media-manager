@@ -101,7 +101,7 @@ function Songs() {
 
     getJobService().enqueue({
       type: "Bulk Import",
-      payload: { directory },
+      payload: { musicSource: directory },
     });
 
     await refresh();
