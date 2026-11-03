@@ -5,7 +5,7 @@ import { initMetadataStore } from "@/lib";
 import type { BackgroundJob } from "@/events/background-job-events";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import type { MusicSource } from "@/models";
-import { musicSourceCollectors } from "@/lib/sources/collectors";
+import { getStrategy } from "@/lib/sources";
 import type { MusicSourceImportConfig } from "@/lib/sources/config";
 
 /**
@@ -29,17 +29,8 @@ export async function runBulkImport(
   const { musicSource: source } = payload;
   if (!id) return { cancelled: true };
 
-  const collector = musicSourceCollectors.find((c) => c.kind === source.kind);
+  const collector = getStrategy(source.kind);
   if (!collector) return { cancelled: true };
-
-  // Emit progress immediately so the "Bulk Import started" notification
-  // shows as soon as the job begins — not after the first save.
-  reportProgress({
-    index: 0,
-    total: 1,
-    percent: 0,
-    label: `Importing from "${source.name}"`,
-  });
 
   const songCollection = await collector.collectSongs({
     source,
@@ -68,6 +59,16 @@ export async function runBulkImport(
   }
 
   const total = songCollection.length;
+
+  // Emit progress immediately so the "Bulk Import started" notification
+  // shows as soon as the job begins — not after the first save.
+  reportProgress({
+    index: 0,
+    total,
+    percent: 0,
+    label: `Importing from "${source.name}"`,
+  });
+
   for (let index = 0; index < total; index++) {
     if (isCancelled()) return { cancelled: true };
 

@@ -15,6 +15,6 @@ export async function resyncAllSources(): Promise<void> {
   const sources = await getSourcesStore().getSources();
   for (const source of sources) {
     const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
-    strategy?.sync?.({ source, silent: true });
+    await strategy?.sync?.({ source, silent: true });
   }
 }

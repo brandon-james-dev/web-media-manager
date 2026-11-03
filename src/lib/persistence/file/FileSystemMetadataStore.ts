@@ -1,4 +1,3 @@
-import { uuidv7 } from "uuidv7";
 import type { Song, MusicSource } from "@/models";
 import type { IMetadataStore } from "../../contracts";
 import { TagLibMetadataWriter } from "../../metadata/writer";
@@ -95,7 +94,11 @@ export class FileSystemMetadataStore implements IMetadataStore {
   }
 
   async addSource(directory: MusicSource): Promise<MusicSource> {
-    return await this.sources.save(uuidv7(), directory);
+    if (!directory.id) {
+      throw new Error("addSource requires a source with an id");
+    }
+    await this.sources.save(directory.id, directory);
+    return directory;
   }
 
   async deleteSource(id: string): Promise<void> {
@@ -106,6 +109,10 @@ export class FileSystemMetadataStore implements IMetadataStore {
       songsInDirectory?.data?.map((s) => s.id) ?? []
     );
     await this.sources.delete(id);
+  }
+
+  async saveSource(updated: MusicSource): Promise<void> {
+    await this.sources.save(updated.id, updated);
   }
 
   async getSources(): Promise<MusicSource[]> {

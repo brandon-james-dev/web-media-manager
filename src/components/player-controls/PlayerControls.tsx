@@ -264,7 +264,11 @@ export function PlayerControls() {
               min={0}
               max={100}
               step={1}
-              value={(trackPosition / (nowPlaying?.length ?? 0)) * 100}
+              value={
+                nowPlaying && nowPlaying.length != null && nowPlaying.length > 0
+                  ? (trackPosition / nowPlaying.length) * 100
+                  : 0
+              }
               onValueChange={handleSeek}
               className="flex-1"
             />

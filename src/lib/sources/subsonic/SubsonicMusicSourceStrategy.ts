@@ -1,17 +1,16 @@
-import { Server } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { addSubsonicSource } from "@/lib/sources/subsonic/subsonicSourceFactory";
 import { fetchSubsonicSongBytes } from "@/lib/sources/subsonic/subsonicImport";
-import { deleteSubsonicSecret } from "@/lib/sources/subsonic/subsonicSecrets";
-import { subsonicMusicSourceCollector } from "@/lib/sources/collectors";
+import { collectSubsonicSongs } from "@/lib/sources/subsonic/subsonicImport";
+import { deleteSubsonicSecret, getSubsonicSecret } from "@/lib/sources/subsonic/subsonicSecrets";
+import { SubsonicClient, type SubsonicCredentials } from "@/lib/sources/subsonic/SubsonicClient";
 import { getMusicSourceImportConfig } from "@/lib/sources/config";
+import type { MusicSourceImportConfig } from "@/lib/sources/config";
 import { getJobService } from "@/core/jobs";
+import type { WorkerProgress } from "@/core/jobs";
 import { getSourcesStore } from "@/core/ports";
-import { toast } from "@/components/ui/toast";
 import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
-import type { MusicSource } from "@/models";
-import type { WorkerProgress } from "@/core/jobs";
+import type { MusicSource, SubsonicMusicSource } from "@/models";
 import type {
   IMusicSourceStrategy,
   IJobHandle,
@@ -29,24 +28,34 @@ export interface SubsonicSourceConfig {
 /** Validate the server URL field. */
 function isValidHttpUrl(s: string): boolean {
   try {
-    const url = new URL(s.trim());
-    return ["http:", "https:"].includes(url.protocol);
+    const url = new URL(s);
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch {
     return false;
   }
+}
+
+/** Build subsonic credentials from the source + generic import config
+ *  (main-thread-resolved secret preferred; stored secret as fallback). */
+async function sourceConfigToCredentials(
+  source: { id: string; config: { username?: string } },
+  config?: MusicSourceImportConfig
+): Promise<SubsonicCredentials | undefined> {
+  const password = config?.secret ?? (await getSubsonicSecret(source.id));
+  if (!password) return undefined;
+  return {
+    username:
+      config?.config && "username" in config.config
+        ? (config.config.username as string)
+        : source.config.username ?? "",
+    password,
+  };
 }
 
 export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
   readonly kind = "subsonic" as const;
   readonly name = "Subsonic server";
   readonly description = "Connect to an Open Subsonic API server";
-  readonly icon = <Server className="h-8 w-8" />;
-  readonly sourceKindBadge = (
-    <Badge variant="secondary">
-      <Server />
-      Subsonic
-    </Badge>
-  );
   readonly requiresConfig = true;
 
   /** Declarative fields — the caller's standard config form renders these. */
@@ -109,6 +118,31 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
     await options.onSourceAdded?.();
   }
 
+  async updateSource(options: {
+    source: MusicSource;
+    config?: unknown;
+  }): Promise<void> {
+    const input = options.config as SubsonicSourceConfig | undefined;
+    if (!input?.baseUrl || !input.username) {
+      throw new Error("Server URL and username are required");
+    }
+
+    // Persist the edited connection settings on the existing source record.
+    // The password is intentionally left unchanged: it stays in the secret
+    // store unless replaced via the auth flow — editing the config never
+    // wipes stored credentials.
+    const updated: SubsonicMusicSource = {
+      ...(options.source as SubsonicMusicSource),
+      config: {
+        baseUrl: input.baseUrl,
+        username: input.username,
+        musicFolderId: input.musicFolderId || undefined,
+      },
+    };
+    const store = getSourcesStore();
+    await store.saveSource(updated);
+  }
+
   async add(options: {
     onSourceAdded?: () => void | Promise<void>;
     config?: unknown;
@@ -127,13 +161,8 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
         musicSource: source,
         // Resolve the source config (incl. secret) on the main thread —
         // web workers can't read localStorage, so it's passed to the job.
-        musicSourceConfig: getMusicSourceImportConfig(source),
+        musicSourceConfig: await getMusicSourceImportConfig(source),
       },
-    });
-
-    toast.add({
-      type: "success",
-      title: "Importing library from Subsonic server",
     });
 
     await options.onSourceAdded?.();
@@ -160,27 +189,83 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
   }
 
   /**
-   * Resolve picture bytes for a subsonic song: embedded `data` is used
-   * directly; a `subsonic://coverart/<id>` URL is resolved to the server's
-   * cover art at the largest available size through the subsonic client.
-   */
-  async resolvePictureBytes(pic: {
-    data?: Uint8Array;
-    url?: string;
-  }, song: Song): Promise<Uint8Array | null> {
-    return subsonicMusicSourceCollector.resolvePictureBytes(pic, song);
-  }
-
-  /**
-   * Collect a subsonic source's songs — delegates to the pure
-   * `subsonicMusicSourceCollector` (shared with the worker's bulk import).
+   * Collect a subsonic source's songs: query the Open Subsonic library,
+   * walking albums (progress reports per resolved album). Runs inside
+   * the web worker (UI-free).
    */
   async collectSongs(options: {
     source: MusicSource;
     isCancelled?: () => boolean;
     reportProgress?: (progress: WorkerProgress) => void;
+    musicSourceConfig?: MusicSourceImportConfig;
   }): Promise<Song[]> {
-    return subsonicMusicSourceCollector.collectSongs(options);
+    if (options.source.kind !== "subsonic") return [];
+    const credentials = await sourceConfigToCredentials(
+      options.source,
+      options.musicSourceConfig
+    );
+    const songs = await collectSubsonicSongs(options.source, credentials, (resolved, total) => {
+      if (total) {
+        options.reportProgress?.({
+          index: resolved,
+          total,
+          percent: resolved / total,
+          label: `Fetched ${resolved}/${total} albums`,
+        });
+      } else {
+        options.reportProgress?.({
+          index: 0,
+          total: 1,
+          percent: 0,
+          label: `Fetched ${resolved} albums`,
+        });
+      }
+    });
+    const result: Song[] = [];
+    for (let index = 0; index < songs.length; index++) {
+      if (options.isCancelled?.()) return result;
+      result.push(songs[index]);
+    }
+    return result;
+  }
+
+  /**
+   * Resolve picture bytes for a subsonic song: embedded `data` is used
+   * directly; a `subsonic://coverart/<id>` URL is resolved to the server's
+   * cover art at the largest available size via the subsonic client.
+   */
+  async resolvePictureBytes(pic: {
+    data?: Uint8Array;
+    url?: string;
+  }, song: Song, musicSourceConfig?: MusicSourceImportConfig): Promise<Uint8Array | null> {
+    if (pic.data && pic.data.length > 0) return pic.data;
+
+    const match = /^subsonic:\/\/coverart\/(.+)$/.exec(pic.url ?? "");
+    if (!match) return null;
+
+    const sources = await getSourcesStore().getSources();
+    const source = sources.find((s) => s.id === song.sourceId);
+    if (!source || source.kind !== "subsonic") return null;
+
+    try {
+      const client = new SubsonicClient(source.config);
+      // Prefer the transient, main-thread-resolved secret (workers can't
+      // read localStorage); fall back to the stored secret when the
+      // config wasn't threaded (e.g. called on the main thread).
+      const password = musicSourceConfig?.secret ?? (await getSubsonicSecret(source.id));
+      if (!password) return null;
+      const creds: SubsonicCredentials = {
+        username: musicSourceConfig?.config && "username" in musicSourceConfig.config
+          ? (musicSourceConfig.config.username as string)
+          : source.config.username ?? "",
+        password,
+      };
+      const buf = await client.getCoverArtBytes(creds, match[1]);
+      return new Uint8Array(buf);
+    } catch (error) {
+      console.error("Failed to resolve subsonic cover art:", error);
+      return null;
+    }
   }
 
   /**
@@ -189,7 +274,9 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
    * center, consistent with a local folder re-scan. The returned handle
    * can cancel the job (passes a stable job id into the enqueue).
    */
-  sync(options: { source: MusicSource; silent?: boolean }): IJobHandle | null {
+  async sync(
+    options: { source: MusicSource; silent?: boolean }
+  ): Promise<IJobHandle | null> {
     const { source, silent } = options;
     if (source.kind !== "subsonic") return null;
 
@@ -199,7 +286,7 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
       silent,
       payload: {
         musicSource: source,
-        musicSourceConfig: getMusicSourceImportConfig(source),
+        musicSourceConfig: await getMusicSourceImportConfig(source),
       },
     }, jobId);
 
@@ -226,7 +313,7 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
     const store = getSourcesStore();
     const source = options.source;
     await store.deleteSource(source.id);
-    deleteSubsonicSecret(source.id);
+    await deleteSubsonicSecret(source.id);
     await options.onSourceRemoved?.();
   }
 }

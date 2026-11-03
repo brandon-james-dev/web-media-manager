@@ -16,6 +16,7 @@ function browserSourceRepository(): MusicSourceRepository {
   return {
     getSources: () => store.getSources(),
     addSource: (source) => store.addSource(source),
+    saveSource: (updated) => store.saveSource(updated),
     deleteSource: (id) => store.deleteSource(id),
     onSourceAdded: (cb) => store.onSourceAdded(cb),
     onSourceDeleted: (cb) => store.onSourceDeleted(cb),

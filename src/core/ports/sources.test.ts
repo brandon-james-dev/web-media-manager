@@ -53,6 +53,10 @@ class FakeSourceRepository implements MusicSourceRepository {
     this.deleted.forEach((cb) => cb(existing));
   }
 
+  async saveSource(updated: MusicSource): Promise<void> {
+    this.sources.set(updated.id, updated);
+  }
+
   async clear(): Promise<void> {
     this.sources.clear();
     this.cleared.forEach((cb) => cb());

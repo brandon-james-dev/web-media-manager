@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
 import type { MusicSourceKind } from "@/core/contracts";
 import type { MusicSource } from "@/models";
 import type { Song } from "@/models/Song";
 import type { WorkerProgress } from "@/core/jobs";
+import type { MusicSourceImportConfig } from "./config";
 import type { MusicSourceConfigField } from "./MusicSourceConfigField";
 
 /**
@@ -28,15 +28,10 @@ export interface IMusicSourceStrategy {
   readonly name: string;
   /** One-line description shown on the card. */
   readonly description: string;
-  /** Icon shown on the card. */
-  readonly icon: ReactNode;
   /** Whether this source kind can run on the current platform. E.g. the
    *  on-device source needs the File System Access API (showDirectoryPicker),
    *  which Safari lacks — the chooser disables it there. Default true. */
   readonly isAvailable?: boolean;
-  /** Badge element naming this source kind (icon + label), e.g. for the
-   *  Settings source list. The strategy owns its kind's presentation. */
-  readonly sourceKindBadge: ReactNode;
   /** Whether `add()` needs a config form to be filled in first. */
   readonly requiresConfig: boolean;
   /**
@@ -55,6 +50,18 @@ export interface IMusicSourceStrategy {
    */
   connect?(options: {
     onSourceAdded?: () => void | Promise<void>;
+    config?: unknown;
+  }): Promise<void>;
+
+  /**
+   * Persist edits to an existing configured source (e.g. a new baseUrl,
+   * username, or folder for a subsonic instance). The caller pre-fills the
+   * standard config form with the stored source's config and submits here.
+   * Optional — a source kind without editable settings omits it (its edit
+   * button won't appear).
+   */
+  updateSource?(options: {
+    source: MusicSource;
     config?: unknown;
   }): Promise<void>;
 
@@ -78,30 +85,6 @@ export interface IMusicSourceStrategy {
   resolveSongBytes(song: Song): Promise<ArrayBuffer | null>;
 
   /**
-   * Resolve the raw image bytes of a song picture for artwork processing.
-   * The picture's `data` is used directly when present (embedded tag art,
-   * search results with bytes); otherwise the strategy resolves the source's
-   * cover art at the largest available size (e.g. a Subsonic cover-art
-   * id through the server, or a URL). Returns null when no bytes are
-   * obtainable. This keeps per-source artwork resolution on the strategy,
-   * not hardcoded in the worker.
-   */
-  resolvePictureBytes(pic: {
-    data?: Uint8Array;
-    url?: string;
-  }, song: Song): Promise<Uint8Array | null>;
-
-  /**
-   * Collect this source kind's library entries as app songs (bulk import).
-   * Reports progress via the optional callback; return the imported songs.
-   */
-  collectSongs(options: {
-    source: MusicSource;
-    isCancelled?: () => boolean;
-    reportProgress?: (progress: WorkerProgress) => void;
-  }): Promise<Song[]>;
-
-  /**
    * Run a re-sync of an existing source of this kind (e.g. re-scan a local
    * folder, re-query a Subsonic server library). Returns a handle so the
    * caller can cancel the sync job (progress/completion still come through
@@ -112,7 +95,7 @@ export interface IMusicSourceStrategy {
     source: MusicSource;
     /** Suppress UI notifications for this sync (e.g. startup resyncs). */
     silent?: boolean;
-  }): IJobHandle | null;
+  }): IJobHandle | null | Promise<IJobHandle | null>;
 
   /**
    * Cancel an in-flight sync (or add) job. No-op when the job already
@@ -129,6 +112,32 @@ export interface IMusicSourceStrategy {
     source: MusicSource;
     onSourceRemoved?: () => void | Promise<void>;
   }): Promise<void>;
+
+  /**
+   * Collect this source kind's library entries as app songs (bulk import).
+   * Reports progress via the optional callback; returns the imported songs.
+   * Runs inside the web worker (UI-free), so implementations must not
+   * import UI modules.
+   */
+  collectSongs(options: {
+    source: MusicSource;
+    isCancelled?: () => boolean;
+    reportProgress?: (progress: WorkerProgress) => void;
+    /** Generic source config (incl. any main-thread-resolved secret). */
+    musicSourceConfig?: MusicSourceImportConfig;
+  }): Promise<Song[]>;
+
+  /**
+   * Resolve the raw image bytes of a song picture for artwork processing.
+   * `data` is used directly when present (embedded tag art); otherwise the
+   * source's cover art is resolved at the largest available size (e.g. a
+   * Subsonic cover-art id through the server). Returns null when no bytes
+   * are obtainable. Runs inside the web worker (UI-free).
+   */
+  resolvePictureBytes(pic: {
+    data?: Uint8Array;
+    url?: string;
+  }, song: Song, musicSourceConfig?: MusicSourceImportConfig): Promise<Uint8Array | null>;
 }
 
 /** Handle to a cancellable background job (sync, add import). */

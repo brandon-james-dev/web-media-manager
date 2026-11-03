@@ -12,12 +12,8 @@ export const musicSourceStrategies: IMusicSourceStrategy[] = [
   new SubsonicMusicSourceStrategy(),
 ];
 
-export {
-  getMusicSourceImportConfig,
-  type MusicSourceImportConfig,
-} from "./config";
+export * from "./config";
 export { resyncAllSources } from "./resync";
-
 export type { IMusicSourceStrategy } from "./IMusicSourceStrategy";
 export type { MusicSourceConfigField } from "./MusicSourceConfigField";
 export { LocalMusicSourceStrategy } from "./file/LocalMusicSourceStrategy";

@@ -2,7 +2,7 @@ import { getMetadataDb } from "@/lib/persistence/dexie";
 import type { WorkerProgress } from "../WorkerJob";
 import { resizeBitmap, ThumbnailSize } from "@/lib";
 import { getSourcesStore } from "@/core/ports";
-import { getCollector } from "@/lib/sources/collectors";
+import { getStrategy } from "@/lib/sources";
 import type { MusicSourceImportConfig } from "@/lib/sources/config";
 import type { Song, SongArtwork } from "@/models";
 
@@ -24,7 +24,7 @@ async function resolvePictureBytes(
   const source = sources.find((s) => s.id === song.sourceId);
   if (!source) return null;
 
-  const collector = getCollector(source.kind);
+  const collector = getStrategy(source.kind);
   if (!collector) return null;
   return collector.resolvePictureBytes(pic, song, musicSourceConfig);
 }

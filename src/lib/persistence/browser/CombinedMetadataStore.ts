@@ -115,6 +115,10 @@ export class CombinedMetadataStore implements IMetadataStore {
     await this.fsStore.deleteSource(id);
   }
 
+  saveSource(updated: MusicSource): Promise<void> {
+    return this.fsStore.saveSource(updated);
+  }
+
   getSources(): Promise<MusicSource[]> {
     return this.fsStore.getSources();
   }

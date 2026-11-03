@@ -77,12 +77,14 @@ export async function addSubsonicSource(
   await getSourcesStore().addSource(source);
 
   // Auth material lives apart from the entity (never persisted on it).
-  setSubsonicSecret(id, input.password);
+  await setSubsonicSecret(id, input.password);
 
   return source;
 }
 
 /** Retrieve the stored password for a Subsonic source (or null). */
-export function getSubsonicSourceSecret(sourceId: string): string | null {
-  return getSubsonicSecret(sourceId);
+export async function getSubsonicSourceSecret(
+  sourceId: string
+): Promise<string | null> {
+  return await getSubsonicSecret(sourceId);
 }

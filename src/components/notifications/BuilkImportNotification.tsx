@@ -44,13 +44,19 @@ export function BulkImportNotification({
 
   const payload = notification.payload;
 
+  // `?? 0` does NOT guard NaN (NaN is not nullish); a NaN `percent`/`overall`
+  // from a 0-total progress report would flow into <Progress value={...}>
+  // and render "NaN" / trigger React's "Received NaN for `value`" warning.
+  const finiteProgress = (n: number | undefined | null): number =>
+    Number.isFinite(n) ? (n as number) : 0;
+
   if (payload && typeof payload === "object" && "parent" in payload) {
     const progress = payload as BulkImportPayload;
 
     parent = {
       completed: progress.parent?.completed ?? 0,
       total: progress.parent?.total ?? 0,
-      overall: progress.parent?.overall ?? 0,
+      overall: finiteProgress(progress.parent?.overall),
       label: progress.parent?.label ?? "",
       state:
         (progress.parent?.state as BackgroundJobState) ?? notification.state,
@@ -59,7 +65,7 @@ export function BulkImportNotification({
     child = {
       completed: progress.child?.completed ?? 0,
       total: progress.child?.total ?? 0,
-      overall: progress.child?.overall ?? 0,
+      overall: finiteProgress(progress.child?.overall),
       state: progress.child?.state ?? "running",
     };
   } else {
@@ -68,7 +74,7 @@ export function BulkImportNotification({
     parent = {
       completed: progress?.index ?? 0,
       total: progress?.total ?? 0,
-      overall: progress?.overall ?? progress?.percent ?? 0,
+      overall: finiteProgress(progress?.overall ?? progress?.percent),
       label: progress?.label ?? "",
       state: notification.state,
     };

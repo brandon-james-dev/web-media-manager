@@ -10,6 +10,8 @@ export interface MusicSourceRepository {
   getSources(): Promise<MusicSource[]>;
   /** Add a source (e.g. a user-picked on-device folder). */
   addSource(source: MusicSource): Promise<MusicSource>;
+  /** Persist edits to an existing source record. */
+  saveSource(updated: MusicSource): Promise<void>;
   /** Remove a source by id. */
   deleteSource(id: string): Promise<void>;
   /** Subscribe to source add/delete/clear notifications. */

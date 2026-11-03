@@ -1,16 +1,23 @@
-import { FolderOpen } from "lucide-react";
-import { isApiSupported } from "use-fs-access/core";
-import { Badge } from "@/components/ui/badge";
+// Local eval-safe File System Access check. NOTE: must not import
+// `use-fs-access` here — its module-scope `window` reference throws inside
+// the web worker (which imports this strategy). `typeof` guards the worker.
+const fsAccessSupported =
+  typeof window !== "undefined" &&
+  typeof (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker ===
+    "function";
+
 import { addFolder } from "@/core/scanning";
+import { readTags } from "@/core/metadata";
+import { getMetadataReader } from "@/core/ports";
+import { collectFileHandles } from "@/lib/persistence/file";
 import { getJobService } from "@/core/jobs";
 import { getSourcesStore } from "@/core/ports";
 import { getMetadataStore } from "@/lib";
-import { toast } from "@/components/ui/toast";
-import { fileMusicSourceCollector } from "@/lib/sources/collectors";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import type { Song } from "@/models/Song";
 import type { MusicSource } from "@/models";
 import type { WorkerProgress } from "@/core/jobs";
+import type { MusicSourceImportConfig } from "../config";
 import { uuidv7 } from "uuidv7";
 import type {
   IMusicSourceStrategy,
@@ -27,14 +34,7 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
   readonly kind = "local" as const;
   readonly name = "On device";
   readonly description = "Add a music folder from this computer";
-  readonly icon = <FolderOpen className="h-8 w-8" />;
-  readonly isAvailable = isApiSupported;
-  readonly sourceKindBadge = (
-    <Badge variant="secondary">
-      <FolderOpen />
-      On device
-    </Badge>
-  );
+  readonly isAvailable = fsAccessSupported;
   readonly requiresConfig = true;
 
   /** A single folder-picker field — the standard form renders a
@@ -58,13 +58,7 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
     };
     const dirHandle = config.folder;
 
-    if (!isApiSupported) {
-      toast.add({
-        type: "error",
-        title: "File System Access not supported in this browser.",
-      });
-      return;
-    }
+    if (!fsAccessSupported) return;
     if (!dirHandle) return;
 
     const source = await addFolder(dirHandle);
@@ -73,12 +67,6 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
       type: "Bulk Import",
       payload: { musicSource: source },
     });
-
-    toast.add({
-      type: "success",
-      title: `Added music source "${source.name}"`,
-    });
-
     await options.onSourceAdded?.();
   }
 
@@ -99,6 +87,44 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
   }
 
   /**
+   * Collect a local source's songs: walk the folder + read tags via TagLib.
+   * Runs inside the web worker (UI-free).
+   */
+  async collectSongs(options: {
+    source: MusicSource;
+    isCancelled?: () => boolean;
+    reportProgress?: (progress: WorkerProgress) => void;
+    musicSourceConfig?: MusicSourceImportConfig;
+  }): Promise<Song[]> {
+    const reader = getMetadataReader();
+    const handle = (options.source as { handle: FileSystemDirectoryHandle }).handle;
+    const entries: Array<{
+      handle: FileSystemFileHandle;
+      relativePath: string;
+    }> = [];
+    await collectFileHandles(handle, entries);
+
+    const songs: Song[] = [];
+    for (let index = 0; index < entries.length; index++) {
+      if (options.isCancelled?.()) return songs;
+
+      const { handle: fileHandle, relativePath } = entries[index];
+      const metadata = await readTags(fileHandle, reader);
+      const song: Song = {
+        ...metadata,
+        id: uuidv7(),
+        filename: fileHandle.name,
+        filesize: metadata?.filesize ?? 0,
+        relativePath,
+        sourceId: options.source.id,
+      };
+      songs.push(song);
+    }
+
+    return songs;
+  }
+
+  /**
    * Resolve picture bytes for a local song: embedded `data` is used
    * directly (local files carry their artwork inline); a URL without
    * data is not resolvable from the file system.
@@ -106,21 +132,9 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
   async resolvePictureBytes(pic: {
     data?: Uint8Array;
     url?: string;
-  }, song: Song): Promise<Uint8Array | null> {
-    return fileMusicSourceCollector.resolvePictureBytes(pic, song);
-  }
-
-  /**
-   * Collect a local source's songs — delegates to the pure `fileMusicSourceCollector`
-   * (the same one the worker's bulk import uses), so UI and worker share
-   * one implementation.
-   */
-  async collectSongs(options: {
-    source: MusicSource;
-    isCancelled?: () => boolean;
-    reportProgress?: (progress: WorkerProgress) => void;
-  }): Promise<Song[]> {
-    return fileMusicSourceCollector.collectSongs(options);
+  }, _song: Song, _musicSourceConfig?: MusicSourceImportConfig): Promise<Uint8Array | null> {
+    if (pic.data && pic.data.length > 0) return pic.data;
+    return null;
   }
 
   /**
@@ -128,7 +142,7 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
    * job (progress + completion appear in the notification center). Always
    * returns true — a local folder is always re-scannable.
    */
-  sync(options: { source: MusicSource; silent?: boolean }): IJobHandle | null {
+  async sync(options: { source: MusicSource; silent?: boolean }): Promise<IJobHandle | null> {
     const { source, silent } = options;
     if (source.kind !== "local") return null;
 

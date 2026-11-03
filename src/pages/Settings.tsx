@@ -27,13 +27,15 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Item } from "@/components/ui/item";
-import { Sun, Moon, ArrowLeft, X, Cpu, RefreshCw, Loader2 } from "lucide-react";
+import { Sun, Moon, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil } from "lucide-react";
 import { useTheme } from "@/hooks";
 import { clearLibrary } from "@/core/scanning";
+import { clearSubsonicSecrets } from "@/lib/sources/subsonic/subsonicSecrets";
 import { getSourcesStore } from "@/core/ports";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { Badge } from "@/components/ui/badge";
 import { musicSourceStrategies } from "@/lib/sources";
+import { sourceKindBadge } from "@/lib/sources/source-ui";
 import type { MusicSource } from "@/models";
 import { toast } from "@/components/ui/toast";
 import { AccentColorSelector } from "@/components/theme-provider";
@@ -44,6 +46,7 @@ export function Settings() {
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [editingSource, setEditingSource] = useState<MusicSource | null>(null);
   const [directories, setDirectories] = useState<MusicSource[]>([]);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [settings, setSettings] = useState({
@@ -73,10 +76,10 @@ export function Settings() {
 
   /** Badge naming the type of a music source (on-device / subsonic / server). */
   /** Badge naming the type of a music source — resolved from the source
-   *  strategy (each strategy owns its kind's presentation). */
+   *  kind's presentation registry (each kind owns its badge). */
   function SourceKindBadge({ source }: { source: MusicSource }) {
-    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
-    if (strategy?.sourceKindBadge) return strategy.sourceKindBadge;
+    const badge = sourceKindBadge(source.kind);
+    if (badge) return badge;
     return (
       <Badge variant="secondary">
         <Cpu />
@@ -86,12 +89,12 @@ export function Settings() {
   }
 
   /** Re-pull a source's library via its music source strategy. */
-  function handleSyncSource(source: MusicSource) {
+  async function handleSyncSource(source: MusicSource) {
     if (syncingId) return;
     const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
     if (!strategy) return;
     setSyncingId(source.id);
-    const handle = strategy.sync({ source });
+    const handle = await strategy.sync({ source });
     if (!handle) setSyncingId(null);
   }
 
@@ -146,6 +149,7 @@ export function Settings() {
 
   const handleClearSongs = async () => {
     await clearLibrary();
+    await clearSubsonicSecrets();
     await refresh();
     setClearSongsDialogOpen(false);
     toast.add({
@@ -269,6 +273,17 @@ export function Settings() {
           <div className="flex items-center justify-between">
             <label>Sources</label>
             <AddMusicSource compact onSourceAdded={refresh} />
+            {editingSource && (
+              <AddMusicSource
+                compact
+                editingSource={editingSource}
+                onSourceAdded={() => {
+                  setEditingSource(null);
+                  void refresh();
+                }}
+                onClose={() => setEditingSource(null)}
+              />
+            )}
           </div>
           {directories.length === 0 && (
             <p className="text-sm text-muted-foreground my-2">
@@ -290,6 +305,19 @@ export function Settings() {
                   </div>
 
                   <div className="flex items-center gap-1">
+                    {musicSourceStrategies.some(
+                      (s) => s.kind === dir.kind && s.updateSource
+                    ) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Edit ${dir.name}`}
+                        onClick={() => setEditingSource(dir)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+
                     {musicSourceStrategies.some((s) => s.kind === dir.kind) && (
                       <Button
                         variant="ghost"

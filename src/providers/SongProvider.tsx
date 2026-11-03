@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { isValidAudioFile } from "taglib-wasm";
 import useFileSystemAccess from "use-fs-access";
-import type { FileOrDirectoryInfo } from "use-fs-access/core";
+import { isApiSupported, type FileOrDirectoryInfo } from "use-fs-access/core";
 import { readTags } from "@/core/metadata";
 import { getStore } from "@/core/system";
 import { getMetadataReader } from "@/core/ports";
@@ -107,7 +107,10 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   });
 
   const { openDirectory } = useFileSystemAccess({
-    enableFileWatcher: true,
+    // The file watcher (FileSystemObserver/polling) is not supported in all
+    // browsers (e.g. Safari); without the File System Access API it would
+    // throw at mount. Only enable watching when the API is actually present.
+    enableFileWatcher: isApiSupported,
     fileWatcherOptions: {
       debug: false,
       pollInterval: 250,

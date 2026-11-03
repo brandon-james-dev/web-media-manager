@@ -87,8 +87,10 @@ export function childToSong(
   };
 }
 
-function credentialsFor(source: SubsonicMusicSource): SubsonicCredentials {
-  const password = getSubsonicSecret(source.id);
+async function credentialsFor(
+  source: SubsonicMusicSource
+): Promise<SubsonicCredentials> {
+  const password = await getSubsonicSecret(source.id);
   if (!password) {
     throw new Error(
       `No stored credentials for Subsonic source "${source.name}".`
@@ -168,14 +170,7 @@ export async function collectSubsonicSongs(
   // Credentials may be passed explicitly (main thread resolves the secret,
   // which web workers can't read from localStorage); otherwise fall back to
   // the stored secret when running on the main thread.
-  const creds =
-    credentials ?? (() => {
-      try {
-        return credentialsFor(source);
-      } catch {
-        return undefined;
-      }
-    })();
+  const creds = credentials ?? (await credentialsFor(source).catch(() => undefined));
   if (!creds) return [];
 
   const songs: Song[] = [];
@@ -297,7 +292,7 @@ export async function fetchSubsonicSongBytes(
   const parsed = parseSourceUri(song.id);
   const remoteId = parsed?.itemId ?? song.id;
 
-  const creds = credentialsFor(source);
+  const creds = await credentialsFor(source);
   const url = await client.streamUrl(creds, remoteId);
   const res = await fetch(url);
 

@@ -1,6 +1,8 @@
 import type { MusicSource } from "@/models";
 import type { RemoteSourceConfig } from "@/core/contracts";
 import { getSubsonicSecret } from "./subsonic/subsonicSecrets";
+import { musicSourceStrategies } from ".";
+import type { IMusicSourceStrategy } from "./IMusicSourceStrategy";
 
 /**
  * Generic config for an in-flight music-source import (bulk import /
@@ -24,22 +26,33 @@ export interface MusicSourceImportConfig {
  * localStorage). Called on the main thread so the secret is available;
  * pass the result to worker jobs that need it.
  */
-export function getMusicSourceImportConfig(
+export async function getMusicSourceImportConfig(
   source: MusicSource
-): MusicSourceImportConfig {
+): Promise<MusicSourceImportConfig> {
   return {
     sourceId: source.id,
     config: "config" in source ? source.config : undefined,
-    secret: getSecretForSource(source),
+    secret: await getSecretForSource(source),
   };
 }
 
 /** Resolve a source kind's auth secret (main-thread storage only). */
-function getSecretForSource(source: MusicSource): string | undefined {
+async function getSecretForSource(
+  source: MusicSource
+): Promise<string | undefined> {
   switch (source.kind) {
     case "subsonic":
-      return getSubsonicSecret(source.id) ?? undefined;
+      return (await getSubsonicSecret(source.id)) ?? undefined;
     default:
       return undefined;
   }
+}
+
+/** Find the strategy for a source kind, or null when unsupported. */
+export function getStrategy(
+  kind: MusicSource["kind"]
+): IMusicSourceStrategy | null {
+  return (
+    musicSourceStrategies.find((s) => s.kind === kind) ?? null
+  );
 }
