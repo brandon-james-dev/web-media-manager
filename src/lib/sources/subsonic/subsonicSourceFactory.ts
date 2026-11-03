@@ -58,12 +58,26 @@ export async function addSubsonicSource(
   const id = uuidv7();
   const uriDomain = new URL(input.baseUrl).hostname;
 
+  // Dedupe on baseUrl: re-adding an existing server (e.g. re-connect, edit,
+  // or a second add) must NOT create a new source id — otherwise every song
+  // id changes (wmm://<domain>/<sourceId>/<itemId>) and re-imports produce
+  // duplicates. Reuse the existing source's id, updating config instead.
+  const existing = (await getSourcesStore().getSources()).find(
+    (s) =>
+      s.kind === "subsonic" &&
+      "config" in s &&
+      (s.config as { baseUrl?: string }).baseUrl ===
+        input.baseUrl.replace(/\/+$/, "")
+  );
+
+  const finalId = existing?.id ?? id;
+
   const source: SubsonicMusicSource = {
-    id,
+    id: finalId,
     uriDomain,
-    name: input.name ?? `Subsonic: ${uriDomain}`,
+    name: input.name ?? existing?.name ?? `Subsonic: ${uriDomain}`,
     enabled: true,
-    createdAt: new Date(),
+    createdAt: existing?.createdAt ?? new Date(),
     priority: 50,
     capabilities: SUBSONIC_CAPABILITIES,
     kind: "subsonic",
@@ -74,10 +88,14 @@ export async function addSubsonicSource(
     },
   };
 
-  await getSourcesStore().addSource(source);
+  if (existing) {
+    await getSourcesStore().saveSource(source);
+  } else {
+    await getSourcesStore().addSource(source);
+  }
 
   // Auth material lives apart from the entity (never persisted on it).
-  await setSubsonicSecret(id, input.password);
+  await setSubsonicSecret(finalId, input.password);
 
   return source;
 }
