@@ -16,13 +16,19 @@ import { getSourcesStore } from "@/core/ports";
 import { musicSourceStrategies } from "@/lib/sources";
 import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
+import {
+  restoreVolume,
+  VOLUME_STORAGE_KEY,
+} from "./volume";
 
 export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#region State
   const [playlist, setPlaylist] = useState<Song[]>([]);
   const [shuffle, setShuffle] = useState<ShuffleState>(shuffleState.Off);
   const [repeat, setRepeat] = useState<RepeatState>(repeatState.Off);
-  const [volume, setVolume] = useState(0.75);
+  const [volume, setVolume] = useState<number>(() =>
+    restoreVolume(localStorage.getItem(VOLUME_STORAGE_KEY))
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<Song | undefined>(undefined);
 
@@ -96,6 +102,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     if (gainRef.current) {
       gainRef.current.gain.value = volume;
     }
+
+    // Persist the volume slider so the initial state can be restored on a
+    // later load (see the useState initializer above).
+    localStorage.setItem(VOLUME_STORAGE_KEY, String(volume));
   }, [volume]);
 
   //#endregion
