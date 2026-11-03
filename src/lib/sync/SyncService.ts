@@ -30,10 +30,14 @@ export class SyncService {
     // Show only devices physically connected right now: match persisted
     // records against the USB devices currently enumerated by the browser.
     // `addDevice` requires a serial number, so every saved record has one.
+    // WebUSB (`navigator.usb`) is not available in all browsers (Safari,
+    // Firefox) — when absent, there are no connected devices to match.
     const connectedSerials = new Set(
-      (await navigator.usb.getDevices())
-        .map((device) => device.serialNumber)
-        .filter((serial): serial is string => typeof serial === "string")
+      "usb" in navigator
+        ? (await navigator.usb.getDevices())
+            .map((device) => device.serialNumber)
+            .filter((serial): serial is string => typeof serial === "string")
+        : []
     );
 
     const connectedRecords = records.filter((record) => {

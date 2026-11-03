@@ -38,50 +38,62 @@ export class IpodDetector implements DeviceDetector {
     if (!device.name) throw new Error("Unable to detect the iPod model");
     const model = device.name;
 
-    using itdb = await Itdb.open(createBrowserFs(root), {
+    const itdb = await Itdb.open(createBrowserFs(root), {
       device,
     });
-    // Carry the on-device GUID/serial onto the resolved device so the
-    // hash58 checksum works on devices that need it (nano 3/4G, classic).
-    const resolved = itdb.resolvedDevice;
-    if (resolved?.firewireGuid) {
-      device.firewireGuid = resolved.firewireGuid;
-      device.serialNumber = resolved.serialNumber ?? device.serialNumber;
-    }
-
-    // One-time setup (mirrors tunesreloaded's FirewireSetup.performSetup):
-    // "encrypted" models — those whose iTunesDB needs a checksum (hash58 /
-    // hash72 / hashAB) — require `FirewireGuid` and `ModelNumStr` written
-    // into SysInfo before a checksum-written DB will be accepted. The GUID
-    // is just the USB serial number. Idempotent: only written when the
-    // resolved device has no GUID yet, only on models that need it.
-    const needsChecksum =
-      checksumTypeForGeneration(resolved?.generation ?? device.generation) !==
-      "none";
-    if (needsChecksum && usbInfo?.serialNumber && !device.firewireGuid) {
-      try {
-        await writeSysInfo(
-          createBrowserFs(root),
-          usbInfo.serialNumber,
-          device.modelNumber
-        );
-        // Re-read so the resolved device carries the freshly-set GUID.
-        using setupItdb = await Itdb.open(createBrowserFs(root), {
-          device: {
-            ...device,
-            firewireGuid: usbInfo.serialNumber,
-            serialNumber: usbInfo.serialNumber,
-          },
-        });
-        const setupResolved = setupItdb.resolvedDevice;
-        if (setupResolved?.firewireGuid) {
-          device.firewireGuid = setupResolved.firewireGuid;
-          device.serialNumber =
-            setupResolved.serialNumber ?? device.serialNumber;
-        }
-      } catch (err) {
-        console.warn("[IpodDetector] One-time SysInfo setup failed:", err);
+    let resolved: Awaited<ReturnType<typeof Itdb.open>>["resolvedDevice"] | undefined;
+    try {
+      // Carry the on-device GUID/serial onto the resolved device so the
+      // hash58 checksum works on devices that need it (nano 3/4G, classic).
+      resolved = itdb.resolvedDevice;
+      if (resolved?.firewireGuid) {
+        device.firewireGuid = resolved.firewireGuid;
+        device.serialNumber = resolved.serialNumber ?? device.serialNumber;
       }
+
+      // One-time setup (mirrors tunesreloaded's FirewireSetup.performSetup):
+      // "encrypted" models — those whose iTunesDB needs a checksum (hash58 /
+      // hash72 / hashAB) — require `FirewireGuid` and `ModelNumStr` written
+      // into SysInfo before a checksum-written DB will be accepted. The GUID
+      // is just the USB serial number. Idempotent: only written when the
+      // resolved device has no GUID yet, only on models that need it.
+      const needsChecksum =
+        checksumTypeForGeneration(resolved?.generation ?? device.generation) !==
+        "none";
+      if (needsChecksum && usbInfo?.serialNumber && !device.firewireGuid) {
+        try {
+          await writeSysInfo(
+            createBrowserFs(root),
+            usbInfo.serialNumber,
+            device.modelNumber
+          );
+          // Re-read so the resolved device carries the freshly-set GUID.
+          const setupItdb = await Itdb.open(createBrowserFs(root), {
+            device: {
+              ...device,
+              firewireGuid: usbInfo.serialNumber,
+              serialNumber: usbInfo.serialNumber,
+            },
+          });
+          try {
+            const setupResolved = setupItdb.resolvedDevice;
+            if (setupResolved?.firewireGuid) {
+              device.firewireGuid = setupResolved.firewireGuid;
+              device.serialNumber =
+                setupResolved.serialNumber ?? device.serialNumber;
+            }
+          } finally {
+            setupItdb[Symbol.dispose]();
+          }
+        } catch (err) {
+          console.warn(
+            "[IpodDetector] One-time SysInfo setup failed:",
+            err
+          );
+        }
+      }
+    } finally {
+      itdb[Symbol.dispose]();
     }
 
     // #region Map to sync models

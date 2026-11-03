@@ -20,6 +20,7 @@ import {
   restoreVolume,
   VOLUME_STORAGE_KEY,
 } from "./volume";
+import { safeStorageGet, safeStorageSet } from "@/lib/safeStorage";
 
 export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#region State
@@ -27,7 +28,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const [shuffle, setShuffle] = useState<ShuffleState>(shuffleState.Off);
   const [repeat, setRepeat] = useState<RepeatState>(repeatState.Off);
   const [volume, setVolume] = useState<number>(() =>
-    restoreVolume(localStorage.getItem(VOLUME_STORAGE_KEY))
+    restoreVolume(safeStorageGet(VOLUME_STORAGE_KEY))
   );
   const [isPlaying, setIsPlaying] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<Song | undefined>(undefined);
@@ -105,7 +106,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
     // Persist the volume slider so the initial state can be restored on a
     // later load (see the useState initializer above).
-    localStorage.setItem(VOLUME_STORAGE_KEY, String(volume));
+    safeStorageSet(VOLUME_STORAGE_KEY, String(volume));
   }, [volume]);
 
   //#endregion
@@ -202,7 +203,16 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       if (!nowPlaying) return;
 
       if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioContext();
+        // Older Safari exposes the AudioContext under the webkit prefix.
+        const AudioCtx =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext;
+        if (!AudioCtx) {
+          // No audio support — playback simply won't start.
+          return;
+        }
+        audioCtxRef.current = new AudioCtx();
 
         gainRef.current = audioCtxRef.current.createGain();
         gainRef.current.gain.value = volumeRef.current;

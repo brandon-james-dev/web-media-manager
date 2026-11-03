@@ -1,4 +1,5 @@
 import { createElement, useEffect, useState } from "react";
+import { safeStorageGet, safeStorageSet } from "@/lib/safeStorage";
 import {
   type ThemeProviderProps,
   type Theme,
@@ -14,11 +15,11 @@ export function ThemeProvider({
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+    () => (safeStorageGet(storageKey) as Theme) || defaultTheme
   );
 
   const [accentColor, setAccentColorState] = useState<string>(
-    () => localStorage.getItem(accentStorageKey) || defaultAccentColor
+    () => safeStorageGet(accentStorageKey) || defaultAccentColor
   );
 
   // Apply theme (existing behavior)
@@ -44,14 +45,14 @@ export function ThemeProvider({
   }, [accentColor]);
 
   const setAccentColor = (color: string) => {
-    localStorage.setItem(accentStorageKey, color);
+    safeStorageSet(accentStorageKey, color);
     setAccentColorState(color);
   };
 
   const value = {
     theme,
     setTheme: (t: Theme) => {
-      localStorage.setItem(storageKey, t);
+      safeStorageSet(storageKey, t);
       setTheme(t);
     },
 

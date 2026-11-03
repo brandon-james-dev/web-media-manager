@@ -30,6 +30,10 @@ export interface IMusicSourceStrategy {
   readonly description: string;
   /** Icon shown on the card. */
   readonly icon: ReactNode;
+  /** Whether this source kind can run on the current platform. E.g. the
+   *  on-device source needs the File System Access API (showDirectoryPicker),
+   *  which Safari lacks — the chooser disables it there. Default true. */
+  readonly isAvailable?: boolean;
   /** Badge element naming this source kind (icon + label), e.g. for the
    *  Settings source list. The strategy owns its kind's presentation. */
   readonly sourceKindBadge: ReactNode;

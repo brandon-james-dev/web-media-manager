@@ -7,10 +7,12 @@ import { notification$ } from "@/events/notification-events";
 import { AddDeviceDialog, SyncDeviceCard, SyncQueue } from "@/components/sync";
 import { useSync } from "@/hooks";
 import { DevicePromptOrchestrator } from "@/lib/sync";
+import { usbAvailable } from "@/lib/sync/usbAvailable";
 
 export function Sync() {
   //#region State
   const { devices, addDevice, refreshDevices } = useSync();
+  const usbSupported = usbAvailable();
   const [isAddDeviceDialogOpen, setIsAddDeviceDialogOpen] =
     useState<boolean>(false);
   // The dialog is shown twice for a mass-storage device (e.g. an iPod):
@@ -106,11 +108,25 @@ export function Sync() {
             <Button
               onClick={() => setIsAddDeviceDialogOpen(true)}
               hidden={devices.length > 0}
+              disabled={!usbSupported}
+              title={
+                usbSupported
+                  ? undefined
+                  : "WebUSB is not supported in this browser"
+              }
             >
               <Plus className="h-4 w-4" />
               Add Device
             </Button>
-            <Button onClick={handleRefreshButtonClicked}>
+            <Button
+              onClick={handleRefreshButtonClicked}
+              disabled={!usbSupported}
+              title={
+                usbSupported
+                  ? undefined
+                  : "WebUSB is not supported in this browser"
+              }
+            >
               <RefreshCw className="h-4 w-4" />
               Refresh Device
             </Button>

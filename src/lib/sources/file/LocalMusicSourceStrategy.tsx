@@ -28,6 +28,7 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
   readonly name = "On device";
   readonly description = "Add a music folder from this computer";
   readonly icon = <FolderOpen className="h-8 w-8" />;
+  readonly isAvailable = isApiSupported;
   readonly sourceKindBadge = (
     <Badge variant="secondary">
       <FolderOpen />

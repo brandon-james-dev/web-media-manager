@@ -221,6 +221,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [refreshDevices]);
 
   useEffect(() => {
+    if (!("usb" in navigator)) return;
+
     const handleConnect = () => {
       void refreshDevices();
     };

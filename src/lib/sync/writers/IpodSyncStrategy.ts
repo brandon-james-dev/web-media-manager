@@ -192,7 +192,7 @@ export class IpodSyncStrategy implements ISyncStrategy {
         }
       : undefined;
 
-    using itdb = await Itdb.open(fs, { device: iPod });
+    const itdb = await Itdb.open(fs, { device: iPod });
 
     try {
       const changed = await work(itdb);
@@ -215,6 +215,8 @@ export class IpodSyncStrategy implements ISyncStrategy {
       enriched.stack = stack;
 
       throw enriched;
+    } finally {
+      itdb[Symbol.dispose]();
     }
   }
 

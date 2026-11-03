@@ -93,12 +93,25 @@ export function AddMusicSource({
                 <button
                   key={strategy.kind}
                   type="button"
-                  className="flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-accent/5"
+                  disabled={strategy.isAvailable === false}
+                  className="flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
                   onClick={() => handleChoose(strategy)}
+                  title={
+                    strategy.isAvailable === false
+                      ? "Not supported in this browser"
+                      : undefined
+                  }
                 >
                   <div className="mt-1 text-accent">{strategy.icon}</div>
                   <div className="min-w-0">
-                    <div className="font-medium">{strategy.name}</div>
+                    <div className="font-medium">
+                      {strategy.name}
+                      {strategy.isAvailable === false && (
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          Not supported in this browser
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {strategy.description}
                     </div>
