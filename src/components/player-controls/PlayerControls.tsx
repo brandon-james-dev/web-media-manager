@@ -20,23 +20,14 @@ import { ThumbnailSize } from "@/lib";
 import { Slider } from "@/components/ui/slider";
 import { repeatState, shuffleState, usePlayback } from "@/hooks/usePlayback";
 import { useEffect, useRef, useState } from "react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
-} from "@/components/ui/item";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import { wmmBus } from "@/events";
+import { formatLength } from "@/lib/formatLength";
 
 export function PlayerControls() {
   //#region State
@@ -63,8 +54,7 @@ export function PlayerControls() {
       if (shortcut === "next") wmmBus.invoke("wmm.playback.next");
       if (shortcut === "prev") wmmBus.invoke("wmm.playback.prev");
       if (shortcut === "queue") {
-        if (nowPlaying)
-          wmmBus.invoke("wmm.playlists.addSong", { songId: nowPlaying.id });
+        if (nowPlaying) wmmBus.invoke("wmm.playlists.addSong", { songId: nowPlaying.id });
       }
     });
 
@@ -83,7 +73,7 @@ export function PlayerControls() {
       () => {
         setTrackPosition(getCurrentTime());
       },
-      (nowPlaying?.length ?? 0) / 100
+      (nowPlaying?.length ?? 0) / 100,
     );
 
     return () => {
@@ -91,15 +81,6 @@ export function PlayerControls() {
     };
   }, [isPlaying, nowPlaying, getCurrentTime]);
 
-  function formatTime(time: number) {
-    if (time === 0) {
-      return '--:--'
-    }
-    const d = time;
-    const m = Math.floor(d / 60);
-    const s = `${Math.floor(d % 60)}`.padStart(2, "0");
-    return `${m}:${s}`;
-  }
   //#endregion
 
   //#region Mute (UI-local: remembers the pre-mute volume for restore)
@@ -192,27 +173,13 @@ export function PlayerControls() {
 
         <div className="flex flex-col items-center flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <Button
-              size="lg"
-              variant="ghost"
-              title={shuffle}
-              onClick={handleShuffleToggle}
-            >
+            <Button size="lg" variant="ghost" title={shuffle} onClick={handleShuffleToggle}>
               <Shuffle
-                className={
-                  shuffle === shuffleState.On
-                    ? "stroke-accent"
-                    : "stroke-foreground"
-                }
+                className={shuffle === shuffleState.On ? "stroke-accent" : "stroke-foreground"}
               />
             </Button>
 
-            <Button
-              size="lg"
-              variant="ghost"
-              onClick={handlePrev}
-              disabled={!nowPlaying}
-            >
+            <Button size="lg" variant="ghost" onClick={handlePrev} disabled={!nowPlaying}>
               <SkipBack className="fill-secondary-foreground" />
             </Button>
 
@@ -229,34 +196,20 @@ export function PlayerControls() {
               )}
             </Button>
 
-            <Button
-              size="lg"
-              variant="ghost"
-              onClick={handleNext}
-              disabled={!nowPlaying}
-            >
+            <Button size="lg" variant="ghost" onClick={handleNext} disabled={!nowPlaying}>
               <SkipForward className="fill-secondary-foreground" />
             </Button>
 
-            <Button
-              size="lg"
-              variant="ghost"
-              onClick={handleRepeatToggle}
-              title={repeat}
-            >
+            <Button size="lg" variant="ghost" onClick={handleRepeatToggle} title={repeat}>
               {repeat === repeatState.Off && <RepeatOff />}
-              {repeat === repeatState.One && (
-                <Repeat1 className="stroke-accent" />
-              )}
-              {repeat === repeatState.All && (
-                <Repeat2 className="stroke-accent" />
-              )}
+              {repeat === repeatState.One && <Repeat1 className="stroke-accent" />}
+              {repeat === repeatState.All && <Repeat2 className="stroke-accent" />}
             </Button>
           </div>
 
           <div className="flex items-center gap-3 w-full max-w-lg">
             <span className="text-xs w-10 text-right">
-              {formatTime(trackPosition)}
+              {trackPosition > 0 ? formatLength(trackPosition) : "--:--"}
             </span>
 
             <Slider
@@ -274,7 +227,7 @@ export function PlayerControls() {
             />
 
             <span className="text-xs w-10">
-              {formatTime(nowPlaying?.length ?? 0)}
+              {nowPlaying?.length ? formatLength(nowPlaying.length) : "--:--"}
             </span>
           </div>
         </div>
@@ -314,9 +267,7 @@ export function PlayerControls() {
                   <div className="divide-y">
                     {playlist.map((s, i) => (
                       <div
-                        data-now-playing={
-                          nowPlayingIndex == i ? "true" : "false"
-                        }
+                        data-now-playing={nowPlayingIndex == i ? "true" : "false"}
                         key={s.id}
                         className={nowPlayingIndex == i ? "bg-accent/15" : ""}
                       >
@@ -350,12 +301,8 @@ export function PlayerControls() {
                               }
                               onClick={() => handlePlaylistItemClick(s)}
                             >
-                              {nowPlayingIndex == i && isPlaying && (
-                                <PauseCircle />
-                              )}
-                              {nowPlayingIndex == i && !isPlaying && (
-                                <PlayCircle />
-                              )}
+                              {nowPlayingIndex == i && isPlaying && <PauseCircle />}
+                              {nowPlayingIndex == i && !isPlaying && <PlayCircle />}
                               {nowPlayingIndex !== i && <PlayCircle />}
                             </Button>
                           </ItemActions>
@@ -368,11 +315,7 @@ export function PlayerControls() {
             </PopoverContent>
           </Popover>
 
-          <Button
-            variant="ghost"
-            onClick={handleMuteToggle}
-            title={muted ? "Unmute" : "Mute"}
-          >
+          <Button variant="ghost" onClick={handleMuteToggle} title={muted ? "Unmute" : "Mute"}>
             {muted ? (
               <VolumeX className="fill-secondary-foreground w-6" />
             ) : (

@@ -30,13 +30,21 @@ import { keyShortcut$ } from "@/events/keyboard-events";
 import { notification$ } from "@/events/notification-events";
 import { uuidv7 } from "uuidv7";
 
-export function Editor({ mode }: { mode: "songs" | "albums" }) {
+export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
   //#region Songs
   //#region State
   const { filteredSongs } = useSongs();
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isAdvancedEdit, setIsAdvancedEdit] = useState<boolean>(false);
+  // Which advanced dialog `isAdvancedEdit` refers to. The song drawer and the
+  // album dialog share one open flag, so the artist view (which can open
+  // either) distinguishes them here; other modes are unchanged.
+  const [advancedDialog, setAdvancedDialog] = useState<"song" | "album">("song");
+  function openAdvancedEdit(target: "song" | "album") {
+    setAdvancedDialog(target);
+    setIsAdvancedEdit(true);
+  }
   const [quickDirty, setQuickDirty] = useState(false);
   const editable = useSourceEditable(selectedSongs);
   const { isPlaying } = usePlayback();
@@ -193,16 +201,27 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
     return albumIndex === albumIds.length - 1;
   }
 
-  /** Prev disabled when the selected song is the first in the filtered list. */
+  /**
+   * The list prev/next navigate for the song editor: the artist's own
+   * tracks on the artist page, the full filtered list elsewhere. Shared by
+   * the handlers and the disabled checks so the buttons match the behavior.
+   */
+  function songNavList(): Song[] {
+    return mode === "artists" ? artistSongContext() : filteredSongs;
+  }
+
+  /** Prev disabled when the selected song is the first in the nav list. */
   function isSongPrevButtonDisabled(): boolean {
-    const idx = filteredSongs.findIndex((s) => s.id === selectedSongIds[0]);
+    const list = songNavList();
+    const idx = list.findIndex((s) => s.id === selectedSongIds[0]);
     return idx <= 0;
   }
 
-  /** Next disabled when the selected song is the last in the filtered list. */
+  /** Next disabled when the selected song is the last in the nav list. */
   function isSongNextButtonDisabled(): boolean {
-    const idx = filteredSongs.findIndex((s) => s.id === selectedSongIds[0]);
-    return idx === -1 || idx === filteredSongs.length - 1;
+    const list = songNavList();
+    const idx = list.findIndex((s) => s.id === selectedSongIds[0]);
+    return idx === -1 || idx === list.length - 1;
   }
   //#endregion
   //#region Interactivity handlers
@@ -222,6 +241,19 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
     const albumIndex = albumIds.indexOf(selectedAlbum.id);
 
     setSelectedAlbum(albums.at(albumIndex + 1));
+  }
+
+  /**
+   * The song navigation list for the artist page: the songs surrounding the
+   * current one (its album when resolvable, else the full filtered list), so
+   * next/prev walk the artist's tracks rather than the whole library.
+   */
+  function artistSongContext(): Song[] {
+    const currentId = selectedSongIds[0];
+    const album = albums.find((a) =>
+      a.songs.some((s) => s.id === currentId)
+    );
+    return album?.songs ?? filteredSongs;
   }
 
   async function handleAlbumDetailFormSubmit(dto: AlbumDetailDto) {
@@ -288,6 +320,20 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
       setSelectedSongIds(newIds);
       wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
     }
+    if (mode === "artists") {
+      // On the artist page, prev walks the artist's own tracks in the song
+      // editor, and steps albums in the album editor.
+      if (advancedDialog === "album") {
+        handleAlbumDetailsPrevClicked();
+        return;
+      }
+      const list = artistSongContext();
+      const i = list.findIndex((s) => s.id === selectedSongIds[0]);
+      if (i <= 0) return;
+      const newIds = [list[i - 1].id];
+      setSelectedSongIds(newIds);
+      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
+    }
   }
 
   function handleNextClick() {
@@ -321,6 +367,20 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
       setSelectedSongIds(newIds);
       wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
     }
+    if (mode === "artists") {
+      // Symmetric with prev: walk the artist's tracks, or albums in the
+      // album editor.
+      if (advancedDialog === "album") {
+        handleAlbumDetailsNextClicked();
+        return;
+      }
+      const list = artistSongContext();
+      const i = list.findIndex((s) => s.id === selectedSongIds[0]);
+      if (i === -1 || i >= list.length - 1) return;
+      const newIds = [list[i + 1].id];
+      setSelectedSongIds(newIds);
+      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
+    }
   }
   //#endregion
   //#region Subscribe to domain events
@@ -349,21 +409,55 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
           case "albums":
             if (!song.album) return;
             setSelectedAlbum(albums.find((a) => a.title == song.album));
+            openAdvancedEdit("album");
             break;
+          case "artists": {
+            // The artist view edits per-row: a double-clicked song opens the
+            // song's advanced editor (the song drawer). Double-clicking an
+            // album is a separate command (`wmm.library.album.edit`) and
+            // opens the album dialog instead.
+            setSelectedSongIds([song.id]);
+            setSelectedSongs([song]);
+            setAdvancedDialog("song");
+            setIsAdvancedEdit(true);
+            break;
+          }
           case "songs":
             setSelectedSongIds([song.id]);
             setSelectedSongs([song]);
+            setAdvancedDialog("song");
+            setIsAdvancedEdit(true);
             break;
           default:
             break;
         }
-        setIsAdvancedEdit(true);
+      }
+    );
+
+    // Album advanced editor (opened from the artist view's album double-click).
+    const unregisterAlbumEdit = commandDispatcher.register(
+      "wmm.library.album.edit",
+      (payload?: { songId?: string }) => {
+        if (!payload?.songId) return;
+        const song =
+          filteredSongs.find((s) => s.id === payload.songId) ??
+          albums.flatMap((a) => a.songs).find((s) => s.id === payload.songId);
+        if (!song?.album) return;
+        const album = albums.find(
+          (a) =>
+            a.title === song.album &&
+            a.artist === (song.artist ?? "Unknown Artist")
+        );
+        if (!album) return;
+        setSelectedAlbum(album);
+        openAdvancedEdit("album");
       }
     );
 
     return () => {
       subSelected();
       unregisterEdit();
+      unregisterAlbumEdit();
     };
   }, [filteredSongs, albums, mode]);
 
@@ -471,7 +565,11 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
       )}
 
       <Drawer
-        open={isAdvancedEdit && mode == "songs"}
+        open={
+          isAdvancedEdit &&
+          advancedDialog === "song" &&
+          (mode === "songs" || mode === "artists")
+        }
         onOpenChange={setIsAdvancedEdit}
       >
         {selectedSongs.length === 1 && (
@@ -508,7 +606,10 @@ export function Editor({ mode }: { mode: "songs" | "albums" }) {
         )}
       </Drawer>
       <AlbumDetailDialog
-        open={isAdvancedEdit && mode == "albums"}
+        open={
+          isAdvancedEdit &&
+          (mode === "albums" || (mode === "artists" && advancedDialog === "album"))
+        }
         onOpenChange={setIsAdvancedEdit}
         album={selectedAlbum}
         isPrevButtonDisabled={isAlbumDetailsPrevButtonDisabled()}

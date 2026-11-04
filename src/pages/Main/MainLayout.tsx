@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSongs, useSync } from "@/hooks";
 import type { QueryOptions } from "@/lib/persistence";
 import type { Song } from "@/models";
-import { Music, DiscAlbum, Search, Pen, MonitorSmartphone } from "lucide-react";
+import { Music, DiscAlbum, Search, Pen, MonitorSmartphone, MicVocal } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
 import {
   Outlet,
@@ -51,7 +51,9 @@ function MainLayout() {
     ? "sync"
     : pathname.includes("albums")
       ? "albums"
-      : "songs";
+      : pathname.includes("artists")
+        ? "artists"
+        : "songs";
 
   const activeMode = isSyncPage
     ? undefined
@@ -160,6 +162,20 @@ function MainLayout() {
                   </NavLink>
                 }
               />
+
+              <TabsTrigger
+                value="artists"
+                render={
+                  <NavLink
+                    to={`artists/${routeMode}`}
+                    draggable={false}
+                    className="flex items-center gap-2 cursor-default"
+                  >
+                    <MicVocal className="h-4 w-4" />
+                    Artists
+                  </NavLink>
+                }
+              />
             </TabsList>
           </Tabs>
 
@@ -202,7 +218,7 @@ function MainLayout() {
 
       <div className="shrink-0" hidden={isSyncPage || (total ?? 0) === 0}>
         {activeMode === "edit" && (
-          <Editor mode={activeTab as "songs" | "albums"} />
+          <Editor mode={activeTab as "songs" | "albums" | "artists"} />
         )}
 
         {activeMode === "playback" && <PlayerControls />}

@@ -19,6 +19,10 @@ export async function getPersistedRootDirectories(): Promise<
     if (!isLocalSource(directory)) continue;
     const { handle } = directory;
 
+    // A persisted row can predate handle saving (or lose it to a storage
+    // migration) — skip it rather than throw and unmount the library load.
+    if (!handle) continue;
+
     const perm = await handle.queryPermission?.({ mode: "readwrite" });
 
     if (perm === "granted") {

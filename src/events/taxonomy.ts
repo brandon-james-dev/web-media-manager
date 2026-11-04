@@ -66,6 +66,10 @@ export const WMM_COMMANDS = {
   "wmm.playback.removeFromQueue": {} as { songId: string },
   // library / browsing
   "wmm.library.song.edit": {} as { songId: string },
+  /** Open the album advanced editor for the album containing `songId`.
+   *  (Carries a song id rather than an album id so the resolver matches its
+   *  own album grouping, which other views can't assume.) */
+  "wmm.library.album.edit": {} as { songId: string },
   "wmm.library.song.quickEdit": {} as { songIds: string[] },
   "wmm.library.song.open": {} as { songId: string },
   "wmm.library.queue": {} as { songIds: string[] },

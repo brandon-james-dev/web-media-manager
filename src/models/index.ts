@@ -1,4 +1,5 @@
 export * from "./Album";
+export * from "./Artist";
 export * from "./MusicSource";
 export * from "./Playlist";
 export * from "./Song";

@@ -1,3 +1,1 @@
-import { PlayerControls } from "./PlayerControls";
-
-export { PlayerControls };
+export * from "./PlayerControls"

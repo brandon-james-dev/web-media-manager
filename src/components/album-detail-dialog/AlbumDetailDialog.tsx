@@ -5,6 +5,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ThumbnailSize } from "@/lib";
+import { formatLength } from "@/lib/formatLength";
 import { Input } from "../ui/input";
 import { useState } from "react";
 import { Label } from "../ui/label";
@@ -28,15 +29,6 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
     handlePrevClick,
   } = props;
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob | null>(null);
-  //#endregion
-
-  //#region Helpers
-  function formatLength(length: number | undefined): string {
-    if (!length) return "0:00";
-    const m = Math.floor(length / 60);
-    const s = `${Math.floor(length % 60)}`.padStart(2, "0");
-    return `${m}:${s}`;
-  }
   //#endregion
 
   //#region Interactivity handlers

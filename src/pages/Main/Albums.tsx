@@ -14,12 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
-import {
-  ArrowDownAZ,
-  ArrowUpAZ,
-  GalleryHorizontal,
-  Grid2x2,
-} from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, GalleryHorizontal, Grid2x2 } from "lucide-react";
 import { wmmBus } from "@/events";
 import { TanstackSongTable } from "@/components/song-table";
 import { CoverFlow } from "@/components/cover-flow";
@@ -56,9 +51,7 @@ export function Albums() {
 
   useEffect(() => {
     const selector =
-      sortField === "album"
-        ? (song: Song) => song.album
-        : (song: Song) => song.artist;
+      sortField === "album" ? (song: Song) => song.album : (song: Song) => song.artist;
 
     const sort = { selector, desc: sortDesc };
 
@@ -169,10 +162,7 @@ export function Albums() {
 
         <div className="flex items-center gap-3">
           <div className="bg-muted flex border border-foreground/15 rounded-md">
-            <Select
-              value={sortField}
-              onValueChange={(v) => setSortField(v as "album" | "artist")}
-            >
+            <Select value={sortField} onValueChange={(v) => setSortField(v as "album" | "artist")}>
               <SelectTrigger className="w-35">
                 <SelectValue>{sortFieldLabels[sortField]}</SelectValue>
               </SelectTrigger>
@@ -187,59 +177,57 @@ export function Albums() {
               onPressedChange={(p) => setSortDesc(p)}
               className="px-3 py-1 aria-pressed:bg-transparent"
             >
-              {sortDesc ? (
-                <ArrowDownAZ className="h-4 w-4" />
-              ) : (
-                <ArrowUpAZ className="h-4 w-4" />
-              )}
+              {sortDesc ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpAZ className="h-4 w-4" />}
             </Toggle>
           </div>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto" hidden={viewMode !== "grid"}>
-        <div
-          className="
-            grid
-            grid-cols-2
-            sm:grid-cols-3
-            md:grid-cols-4
-            lg:grid-cols-5
-            xl:grid-cols-6
-            p-3 gap-3
-          "
-        >
-          {albums.map((a) => (
-            <AlbumCard
-              key={`${a.title}-${a.artist}`}
-              album={a}
-              onClick={handleAlbumCardClick}
-              onDoubleClick={handleAlbumCardDoubleClick}
-            />
-          ))}
-        </div>
-      </ScrollArea>
-      <div hidden={viewMode !== "coverflow"}>
-        <CoverFlow
-          items={albums}
-          selectedIndex={selectedAlbumIndex}
-          onSelectedIndexChange={setSelectedAlbumIndex}
-          renderItem={(album, _, selected) => (
-            <AlbumCard
-              className={cn(
-                "h-55 transition-all",
-                selected && "ring-2 ring-accent"
-              )}
-              album={album}
-              onClick={handleAlbumCardClick}
-              onDoubleClick={handleAlbumCardDoubleClick}
-            />
-          )}
-          renderLabel={(album, _, selected) => (
-            <>
-              {selected && (
-                <div
-                  className="
+      {viewMode === "grid" && (
+        <>
+          <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
+            <div
+              className="
+              grid
+              grid-cols-2
+              sm:grid-cols-3
+              md:grid-cols-4
+              lg:grid-cols-5
+              xl:grid-cols-6
+              p-3 gap-3
+            "
+            >
+              {albums.map((a) => (
+                <AlbumCard
+                  key={`${a.title}-${a.artist}`}
+                  album={a}
+                  onClick={handleAlbumCardClick}
+                  onDoubleClick={handleAlbumCardDoubleClick}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+        </>
+      )}
+      {viewMode === "coverflow" && (
+        <>
+          <CoverFlow
+            items={albums}
+            selectedIndex={selectedAlbumIndex}
+            onSelectedIndexChange={setSelectedAlbumIndex}
+            renderItem={(album, _, selected) => (
+              <AlbumCard
+                className={cn("h-55 transition-all", selected && "ring-2 ring-accent")}
+                album={album}
+                onClick={handleAlbumCardClick}
+                onDoubleClick={handleAlbumCardDoubleClick}
+              />
+            )}
+            renderLabel={(album, _, selected) => (
+              <>
+                {selected && (
+                  <div
+                    className="
                     absolute
                     top-full
                     left-1/2
@@ -248,28 +236,29 @@ export function Albums() {
                     text-center
                     pointer-events-none
                   "
-                >
-                  <div className="font-medium whitespace-nowrap max-w-80 text-ellipsis overflow-clip">
-                    {album.title}
-                  </div>
+                  >
+                    <div className="font-medium whitespace-nowrap max-w-80 text-ellipsis overflow-clip">
+                      {album.title}
+                    </div>
 
-                  <div className="text-xs text-muted-foreground max-w-80 text-ellipsis overflow-clip">
-                    {album.artist}
+                    <div className="text-xs text-muted-foreground max-w-80 text-ellipsis overflow-clip">
+                      {album.artist}
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-        />
-        <ScrollArea className="flex-1 min-h-0">
-          <TanstackSongTable
-            songs={albums[selectedAlbumIndex]?.songs ?? []}
-            selectedSongIds={nowPlayingSongId ? [nowPlayingSongId] : []}
-            onSongDoubleClicked={handleSongDoubleClicked}
-            isEditMultiple={false}
+                )}
+              </>
+            )}
           />
-        </ScrollArea>
-      </div>
+          <ScrollArea className="flex-1 min-h-0">
+            <TanstackSongTable
+              songs={albums[selectedAlbumIndex]?.songs ?? []}
+              selectedSongIds={nowPlayingSongId ? [nowPlayingSongId] : []}
+              onSongDoubleClicked={handleSongDoubleClicked}
+              isEditMultiple={false}
+            />
+          </ScrollArea>
+        </>
+      )}
     </div>
   );
 }

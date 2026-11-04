@@ -1,6 +1,7 @@
 import { createColumnHelper } from "@tanstack/react-table";
 
 import type { Song } from "@/models";
+import { formatLength } from "@/lib/formatLength";
 
 export function createSongColumns(features: any) {
   const columnHelper = createColumnHelper<typeof features, Song>();
@@ -53,15 +54,7 @@ export function createSongColumns(features: any) {
       minSize: 90,
       maxSize: 90,
 
-      cell: ({ getValue }) => {
-        const d = getValue<number>();
-
-        const m = Math.floor(d / 60);
-
-        const s = `${Math.floor(d % 60)}`.padStart(2, "0");
-
-        return `${m}:${s}`;
-      },
+      cell: ({ getValue }) => formatLength(getValue<number>()),
     }),
 
     columnHelper.accessor("bitrate", {

@@ -45,7 +45,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
           }
         }
       },
-      { rootMargin: `${marginPx}px 0px ${marginPx}px 0px` }
+      { rootMargin: `${marginPx}px 0px ${marginPx}px 0px` },
     );
 
     observer.observe(el);
@@ -68,11 +68,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
 
       loadingRef.current = true;
 
-      const picture = await getPictureOfType(
-        songId,
-        artworkType,
-        thumbSize
-      );
+      const picture = await getPictureOfType(songId, artworkType, thumbSize);
 
       if (!cancelled) {
         if (picture) {
@@ -119,11 +115,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
 
       loadingRef.current = true;
 
-      const picture = await getPictureOfType(
-        songId,
-        artworkType,
-        thumbSize
-      );
+      const picture = await getPictureOfType(songId, artworkType, thumbSize);
 
       if (picture) {
         const blob = new Blob([picture.data!.slice()]);
@@ -147,13 +139,13 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
   }, [songId, artworkType, thumbSize]);
 
   return (
-    <div ref={elementRef}>
+    <div ref={elementRef} className="h-full">
       {!artwork ? (
-        fallback ?? (
+        (fallback ?? (
           <div className="bg-foreground rounded flex justify-center items-center w-full h-full">
             <span>No artwork</span>
           </div>
-        )
+        ))
       ) : (
         <img
           src={artwork}
