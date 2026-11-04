@@ -19,6 +19,7 @@ import { wmmBus } from "@/events";
 import { TanstackSongTable } from "@/components/song-table";
 import { CoverFlow } from "@/components/cover-flow";
 import { cn } from "cn";
+import { AlbumDetailModal } from "@/components/album-modal";
 
 export function Albums() {
   //#region State
@@ -35,6 +36,9 @@ export function Albums() {
   const [nowPlayingSongId, setNowPlayingSongId] = useState<string>();
   const [selectedAlbumIndex, setSelectedAlbumIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<"grid" | "coverflow">("grid");
+  // Playback-mode album modal (single click). Edit mode keeps selecting the
+  // album's songs for the editor dock instead.
+  const [albumModal, setAlbumModal] = useState<Album | undefined>();
   const [sortField, setSortField] = useState<"album" | "artist">("album");
   const [sortDesc, setSortDesc] = useState<boolean>(false);
   const sortFieldLabels = {
@@ -86,6 +90,13 @@ export function Albums() {
 
   //#region Interactivity handlers
   function handleAlbumCardClick(album: Album) {
+    if (activeMode !== "edit") {
+      // Playback mode: show the album (art, actions, tracks) in a modal
+      // rather than jumping into the editor.
+      setAlbumModal(album);
+      return;
+    }
+
     const ids = album.songs.map((s) => s.id);
     wmmBus.publish("wmm.ui.editorModeChanged", { mode: "edit" });
     wmmBus.publish("wmm.ui.selectionChanged", { songIds: ids });
@@ -259,6 +270,14 @@ export function Albums() {
           </ScrollArea>
         </>
       )}
+
+      <AlbumDetailModal
+        album={albumModal}
+        open={albumModal !== undefined}
+        onOpenChange={(next) => {
+          if (!next) setAlbumModal(undefined);
+        }}
+      />
     </div>
   );
 }

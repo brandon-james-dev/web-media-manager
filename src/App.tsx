@@ -80,7 +80,10 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="flex flex-col h-screen">
+      {/* h-dvh: track the dynamic viewport height so the bottom app bar stays
+          visible when mobile browsers collapse/expand their address bar
+          (100vh can exceed the visible viewport, hiding the player/editor). */}
+      <div className="flex flex-col h-dvh">
         <header className="shrink-0 border-b">
           <NavBar />
         </header>

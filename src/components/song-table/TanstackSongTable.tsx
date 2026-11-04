@@ -58,6 +58,7 @@ export function TanstackSongTable(props: SongTableProps) {
   const {
     songs,
     isEditMultiple,
+    virtualRowRenderer,
     selectedSongIds,
     onSort,
     onSelect,
@@ -318,40 +319,48 @@ export function TanstackSongTable(props: SongTableProps) {
                   }}
                   ref={rowVirtualizer.measureElement}
                 >
-                  <SongRow
-                    key={row.id}
-                    song={row.original}
-                    row={row}
-                    table={table}
-                    rowSelection={rowSelection}
-                    isEditMultiple={isEditMultiple}
-                    onSongDoubleClicked={onSongDoubleClicked}
-                    registerRowRef={registerRowRef}
-                    orderedSongIds={orderedSongIds}
-                    selectionAnchor={selectionAnchor}
-                    setSelectionAnchor={setSelectionAnchor}
-                  />
+                  {virtualRowRenderer ? (
+                    virtualRowRenderer(row.original)
+                  ) : (
+                    <SongRow
+                      key={row.id}
+                      song={row.original}
+                      row={row}
+                      table={table}
+                      rowSelection={rowSelection}
+                      isEditMultiple={isEditMultiple}
+                      onSongDoubleClicked={onSongDoubleClicked}
+                      registerRowRef={registerRowRef}
+                      orderedSongIds={orderedSongIds}
+                      selectionAnchor={selectionAnchor}
+                      setSelectionAnchor={setSelectionAnchor}
+                    />
+                  )}
                 </div>
               );
             })}
           </div>
         ) : (
           <div className="flex flex-col">
-            {rows.map((row) => (
-              <SongRow
-                key={row.id}
-                song={row.original}
-                row={row}
-                table={table}
-                rowSelection={rowSelection}
-                isEditMultiple={isEditMultiple}
-                onSongDoubleClicked={onSongDoubleClicked}
-                registerRowRef={registerRowRef}
-                orderedSongIds={orderedSongIds}
-                selectionAnchor={selectionAnchor}
-                setSelectionAnchor={setSelectionAnchor}
-              />
-            ))}
+            {rows.map((row) =>
+              virtualRowRenderer ? (
+                virtualRowRenderer(row.original)
+              ) : (
+                <SongRow
+                  key={row.id}
+                  song={row.original}
+                  row={row}
+                  table={table}
+                  rowSelection={rowSelection}
+                  isEditMultiple={isEditMultiple}
+                  onSongDoubleClicked={onSongDoubleClicked}
+                  registerRowRef={registerRowRef}
+                  orderedSongIds={orderedSongIds}
+                  selectionAnchor={selectionAnchor}
+                  setSelectionAnchor={setSelectionAnchor}
+                />
+              )
+            )}
           </div>
         )}
       </div>

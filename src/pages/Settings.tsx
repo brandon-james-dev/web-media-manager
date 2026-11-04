@@ -2,13 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -35,6 +29,8 @@ import { getSourcesStore } from "@/core/ports";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { Badge } from "@/components/ui/badge";
 import { musicSourceStrategies } from "@/lib/sources";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { cn } from "cn"
 import { sourceKindBadge } from "@/lib/sources/source-ui";
 import type { MusicSource } from "@/models";
 import { toast } from "@/components/ui/toast";
@@ -42,12 +38,13 @@ import { AccentColorSelector } from "@/components/theme-provider";
 
 export function Settings() {
   //#region State
+  const isMobile = useIsMobile();
   const { setTheme, theme, accentColor, setAccentColor } = useTheme();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [editingSource, setEditingSource] = useState<MusicSource | null>(null);
-  const [directories, setDirectories] = useState<MusicSource[]>([]);
+  const [sources, setDirectories] = useState<MusicSource[]>([]);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     theme: theme || "system",
@@ -112,15 +109,10 @@ export function Settings() {
 
   //#region Getters
   const getUserThemePreference = (): "dark" | "light" => {
-    if (
-      typeof window === "undefined" ||
-      typeof window.matchMedia !== "function"
-    ) {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
       return "light";
     }
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   };
 
   const showSun = () =>
@@ -161,9 +153,7 @@ export function Settings() {
   const handleDeleteMusicSource = async () => {
     if (!pendingDeleteId) return;
 
-    const source = (await getSourcesStore().getSources()).find(
-      (s) => s.id === pendingDeleteId
-    );
+    const source = (await getSourcesStore().getSources()).find((s) => s.id === pendingDeleteId);
     if (!source) {
       setPendingDeleteId(null);
       setDeleteDirDialogOpen(false);
@@ -191,7 +181,7 @@ export function Settings() {
   //#endregion
 
   return (
-    <div className="max-w-2xl mx-auto p-8 space-y-8 select-none">
+    <div className="max-w-2xl mx-auto p-2 md:p-8 space-y-2 md:space-y-8 select-none">
       <div className="flex gap-3 items-center">
         <Link to="/">
           <Button variant="outline">
@@ -227,17 +217,13 @@ export function Settings() {
               ></DropdownMenuTrigger>
 
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => handleChange("theme", "light")}
-                >
+                <DropdownMenuItem onClick={() => handleChange("theme", "light")}>
                   Light
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleChange("theme", "dark")}>
                   Dark
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleChange("theme", "system")}
-                >
+                <DropdownMenuItem onClick={() => handleChange("theme", "system")}>
                   System
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -264,53 +250,47 @@ export function Settings() {
         <CardHeader>
           <CardTitle>Data</CardTitle>
           <CardDescription>
-            Manage all song data and the sources used for scanning and
-            importing music
+            Manage all song data and the sources used for scanning and importing music
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <div className="flex items-center justify-between">
-            <label>Sources</label>
-            <AddMusicSource compact onSourceAdded={refresh} />
-            {editingSource && (
-              <AddMusicSource
-                compact
-                editingSource={editingSource}
-                onSourceAdded={() => {
-                  setEditingSource(null);
-                  void refresh();
-                }}
-                onClose={() => setEditingSource(null)}
-              />
-            )}
+            <Label>Sources</Label>
           </div>
-          {directories.length === 0 && (
+          {sources.length === 0 && (
             <p className="text-sm text-muted-foreground my-2">
-              No music sources added yet. Add an on-device folder or a
-              Subsonic server.
+              No music sources added yet. Add an on-device folder or a Subsonic server.
             </p>
           )}
 
           <ScrollArea className="max-h-75 my-2">
-            <div className="border rounded-sm">
-              {directories.map((dir) => (
+            <div className="border rounded-sm flex flex-col gap-0.5">
+              {sources.map((dir) => (
+                // Desktop: one line (name + badge left, actions right).
+                // Mobile: stacks — the name gets the first line and the
+                // badge + wider touch buttons sit below it.
                 <Item
                   key={dir.id}
-                  className="flex items-center justify-between p-0"
+                  className={cn(
+                    "p-0",
+                    isMobile
+                      ? "flex flex-col items-stretch gap-1.5 py-2"
+                      : "flex items-center justify-between gap-1"
+                  )}
                 >
-                  <div className="flex items-center gap-2 pl-2 overflow-hidden">
+                  <div className="flex items-center gap-2 pl-2 min-w-0 overflow-hidden">
                     <span className="truncate">{dir.name}</span>
-                    <SourceKindBadge source={dir} />
+                    {!isMobile && <SourceKindBadge source={dir} />}
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    {musicSourceStrategies.some(
-                      (s) => s.kind === dir.kind && s.updateSource
-                    ) && (
+                  <div className={cn("flex items-center gap-1 shrink-0", isMobile ? "pl-1" : undefined)}>
+                    {isMobile && <SourceKindBadge source={dir} />}
+                    {musicSourceStrategies.some((s) => s.kind === dir.kind && s.updateSource) && (
                       <Button
                         variant="ghost"
                         size="icon"
+                        className={isMobile ? "w-auto px-3" : undefined}
                         aria-label={`Edit ${dir.name}`}
                         onClick={() => setEditingSource(dir)}
                       >
@@ -322,6 +302,7 @@ export function Settings() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        className={isMobile ? "w-auto px-3" : undefined}
                         aria-label={`Sync ${dir.name}`}
                         disabled={syncingId === dir.id}
                         onClick={() => handleSyncSource(dir)}
@@ -337,6 +318,7 @@ export function Settings() {
                     <Button
                       variant="secondary"
                       size="icon"
+                      className={isMobile ? "w-auto px-3" : undefined}
                       onClick={() => {
                         setPendingDeleteId(dir.id);
                         setDeleteDirDialogOpen(true);
@@ -347,26 +329,33 @@ export function Settings() {
                   </div>
                 </Item>
               ))}
+
+              <AddMusicSource onSourceAdded={refresh} />
+              {editingSource && (
+                <AddMusicSource
+                  compact
+                  editingSource={editingSource}
+                  onSourceAdded={() => {
+                    setEditingSource(null);
+                    void refresh();
+                  }}
+                  onClose={() => setEditingSource(null)}
+                />
+              )}
             </div>
           </ScrollArea>
 
-          <Dialog
-            open={deleteDirDialogOpen}
-            onOpenChange={setDeleteDirDialogOpen}
-          >
+          <Dialog open={deleteDirDialogOpen} onOpenChange={setDeleteDirDialogOpen}>
             <DialogContent className="select-none w-lg">
               <DialogHeader>
                 <DialogTitle>Remove Music Source</DialogTitle>
                 <DialogDescription>
-                  This will remove the source from your library. Songs
-                  already imported will remain.
+                  This will remove the source from your library. Songs already imported will remain.
                 </DialogDescription>
               </DialogHeader>
 
               <DialogFooter>
-                <DialogClose
-                  render={<Button variant="outline">Cancel</Button>}
-                ></DialogClose>
+                <DialogClose render={<Button variant="outline">Cancel</Button>}></DialogClose>
 
                 <Button variant="destructive" onClick={handleDeleteMusicSource}>
                   Remove Music Source
@@ -377,10 +366,7 @@ export function Settings() {
           <div className="flex items-center justify-between">
             <Label htmlFor="clearDb">Clear Song Database</Label>
 
-            <Dialog
-              open={clearSongsDialogOpen}
-              onOpenChange={setClearSongsDialogOpen}
-            >
+            <Dialog open={clearSongsDialogOpen} onOpenChange={setClearSongsDialogOpen}>
               <DialogTrigger
                 render={
                   <Button id="clearDb" variant="destructive">
@@ -393,15 +379,13 @@ export function Settings() {
                 <DialogHeader>
                   <DialogTitle>Are you absolutely sure?</DialogTitle>
                   <DialogDescription>
-                    This action cannot be undone. This will remove all song data
-                    from this machine.
+                    This action cannot be undone. This will remove all song data managed by Web
+                    Media Manager.
                   </DialogDescription>
                 </DialogHeader>
 
                 <DialogFooter>
-                  <DialogClose
-                    render={<Button variant="outline">Cancel</Button>}
-                  ></DialogClose>
+                  <DialogClose render={<Button variant="outline">Cancel</Button>}></DialogClose>
                   <Button variant="destructive" onClick={handleClearSongs}>
                     Clear
                   </Button>

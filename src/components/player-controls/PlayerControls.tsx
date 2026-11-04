@@ -27,12 +27,17 @@ import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import { wmmBus } from "@/events";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { formatLength } from "@/lib/formatLength";
 
 export function PlayerControls() {
   //#region State
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const [trackPosition, setTrackPosition] = useState<number>(0);
+  // Mobile renders a compact mini-player (now-playing info + one large play
+  // button) instead of the wide three-column bar, whose controls are too
+  // small to reach with a thumb.
+  const isMobile = useIsMobile();
   const {
     playlist,
     nowPlayingIndex,
@@ -64,17 +69,24 @@ export function PlayerControls() {
   //#endregion
 
   //#region Helpers
+  // Tick while playing at ~100 ticks per track (1% progress per tick).
+  // `Song.length` is in SECONDS, so the tick period in ms is
+  // `(length * 1000) / 100` = length * 10. Dividing length straight by 100
+  // (as before) yields a few-ms period for a normal track, which re-renders
+  // hundreds of times a second and restarts the progress rule's width
+  // transition before it can advance — the bar looked frozen until pausing.
   useEffect(() => {
     if (!isPlaying) {
+      // Paused/seeking: snap to the real position once so the UI is accurate.
+      setTrackPosition(getCurrentTime());
       return;
     }
 
-    const id = setInterval(
-      () => {
-        setTrackPosition(getCurrentTime());
-      },
-      (nowPlaying?.length ?? 0) / 100,
-    );
+    const tickMs = Math.max(250, (nowPlaying?.length ?? 0) * 10);
+
+    const id = setInterval(() => {
+      setTrackPosition(getCurrentTime());
+    }, tickMs);
 
     return () => {
       clearInterval(id);
@@ -145,6 +157,131 @@ export function PlayerControls() {
     wmmBus.invoke("wmm.playback.removeFromQueue", { songId: song.id });
   }
   //#endregion
+
+  // Queue panel, shared by the desktop bar and the mobile mini-player.
+  const queuePanel = (
+    <PopoverContent align="center" className="w-80 select-none">
+      <div className="flex flex-col h-80 gap-2">
+        <div className="shrink-0">
+          <div className="flex justify-between items-center">
+            <div>{`Playlist - ${playlist.length} ${playlist.length == 1 ? "song" : "songs"}`}</div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => wmmBus.invoke("wmm.playback.clearQueue")}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+        <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
+          <div className="divide-y">
+            {playlist.map((s, i) => (
+              <div
+                data-now-playing={nowPlayingIndex == i ? "true" : "false"}
+                key={s.id}
+                className={nowPlayingIndex == i ? "bg-accent/15" : ""}
+              >
+                <Item size="xs">
+                  <ItemContent className="overflow-hidden">
+                    <ItemTitle className="w-full min-w-0">
+                      <span className="truncate">{s.title}</span>
+                    </ItemTitle>
+
+                    <ItemDescription className="w-full min-w-0">
+                      <span className="truncate">{s.artist}</span>
+                    </ItemDescription>
+                  </ItemContent>
+
+                  <ItemActions className="gap-0.5">
+                    <Button
+                      variant="ghost"
+                      title="Remove"
+                      size="sm"
+                      onClick={() => handlePlaylistItemRemove(s)}
+                    >
+                      <XCircle className="stroke-destructive" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className={
+                        nowPlayingIndex == i ? "bg-accent hover:bg-accent/70 text-white" : ""
+                      }
+                      onClick={() => handlePlaylistItemClick(s)}
+                    >
+                      {nowPlayingIndex == i && isPlaying && <PauseCircle />}
+                      {nowPlayingIndex == i && !isPlaying && <PlayCircle />}
+                      {nowPlayingIndex !== i && <PlayCircle />}
+                    </Button>
+                  </ItemActions>
+                </Item>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    </PopoverContent>
+  );
+
+  const meta = [nowPlaying?.artist, nowPlaying?.album].filter(Boolean).join(" — ");
+  const progress =
+    nowPlaying?.length && nowPlaying.length > 0
+      ? Math.min(100, (trackPosition / nowPlaying.length) * 100)
+      : 0;
+
+  if (isMobile) {
+    return (
+      <div className="relative flex shrink-0 items-center gap-2 px-2 py-2 border-t bg-secondary supports-[backdrop-filter]:bg-secondary/60 supports-[backdrop-filter]:backdrop-blur-lg select-none">
+        {/* Slim progress rule along the top edge, like the mini-player. */}
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-muted overflow-hidden">
+          <div
+            className="h-full bg-accent transition-[width] duration-200"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Art + title / artist — album: the same fields a track row shows,
+            truncated the same way. It's display-only — the play button owns
+            playback. */}
+        <div className="flex min-w-0 flex-1 items-center gap-3 px-1">
+          <AlbumArtImage
+            songId={nowPlaying?.id}
+            thumbSize={ThumbnailSize.thumb128}
+            className="w-12 shrink-0 rounded-md"
+            fallback={
+              <div className="w-10 aspect-square rounded-md border flex items-center justify-center">
+                <Disc3 className="text-accent" />
+              </div>
+            }
+          />
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <div className="min-w-0 truncate text-sm font-medium">
+              {nowPlaying?.title ?? "Nothing is playing"}
+            </div>
+            <div className="min-w-0 truncate text-xs text-muted-foreground">{meta || " "}</div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-14 w-14 rounded-full bg-secondary-foreground/10 hover:bg-secondary-foreground/20"
+            onClick={handlePlayPause}
+            disabled={!nowPlaying}
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? (
+              <Pause className="h-7 w-7 fill-secondary-foreground" />
+            ) : (
+              <Play className="h-7 w-7 fill-secondary-foreground" />
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">
@@ -247,72 +384,7 @@ export function PlayerControls() {
                 </Button>
               }
             />
-            <PopoverContent align="center" className="w-80 select-none">
-              <div className="flex flex-col h-80 gap-2">
-                <div className="shrink-0">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      {`Playlist - ${playlist.length} ${playlist.length == 1 ? "song" : "songs"}`}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => wmmBus.invoke("wmm.playback.clearQueue")}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                </div>
-                <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
-                  <div className="divide-y">
-                    {playlist.map((s, i) => (
-                      <div
-                        data-now-playing={nowPlayingIndex == i ? "true" : "false"}
-                        key={s.id}
-                        className={nowPlayingIndex == i ? "bg-accent/15" : ""}
-                      >
-                        <Item size="xs">
-                          <ItemContent className="overflow-hidden">
-                            <ItemTitle className="w-full min-w-0">
-                              <span className="truncate">{s.title}</span>
-                            </ItemTitle>
-
-                            <ItemDescription className="w-full min-w-0">
-                              <span className="truncate">{s.artist}</span>
-                            </ItemDescription>
-                          </ItemContent>
-
-                          <ItemActions className="gap-0.5">
-                            <Button
-                              variant="ghost"
-                              title="Remove"
-                              size="sm"
-                              onClick={() => handlePlaylistItemRemove(s)}
-                            >
-                              <XCircle className="stroke-destructive" />
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className={
-                                nowPlayingIndex == i
-                                  ? "bg-accent hover:bg-accent/70 text-white"
-                                  : ""
-                              }
-                              onClick={() => handlePlaylistItemClick(s)}
-                            >
-                              {nowPlayingIndex == i && isPlaying && <PauseCircle />}
-                              {nowPlayingIndex == i && !isPlaying && <PlayCircle />}
-                              {nowPlayingIndex !== i && <PlayCircle />}
-                            </Button>
-                          </ItemActions>
-                        </Item>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </PopoverContent>
+            {queuePanel}
           </Popover>
 
           <Button variant="ghost" onClick={handleMuteToggle} title={muted ? "Unmute" : "Mute"}>

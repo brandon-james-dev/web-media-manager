@@ -5,6 +5,9 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { TanstackSongTable } from "@/components/song-table";
+import { TrackItem } from "@/components/track-item";
+import { ItemGroup } from "@/components/ui/item";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { getStore } from "@/core/system";
 import { wmmBus } from "@/events";
 import { selectors, type QueryOptions, type SortableColumn } from "@/lib/persistence";
@@ -18,6 +21,7 @@ export function Songs() {
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isEditMultiple, setIsEditMultiple] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [nowPlayingSongId, setNowPlayingSongId] = useState<string>();
 
   const { filteredSongs, query, setQuery } = useSongs();
   const { sort, setSort, activeMode } = useOutletContext<MainContext>();
@@ -28,6 +32,15 @@ export function Songs() {
   });
 
   const noMusicSources = musicSources.length === 0;
+
+  // Highlight the row of the currently playing song in the mobile list.
+  useEffect(() => {
+    return wmmBus.on("wmm.playback.started", (payload) => {
+      setNowPlayingSongId(payload?.songId);
+    });
+  }, []);
+
+  const isMobile = useIsMobile();
   //#endregion
 
   //#region Subscribe to domain events
@@ -114,8 +127,7 @@ export function Songs() {
   }
 
   function handleSongDoubleClicked(song: Song) {
-    const editingMultiple =
-      activeMode === "edit" || isEditMultiple || selectedSongIds.length > 1;
+    const editingMultiple = activeMode === "edit" || isEditMultiple || selectedSongIds.length > 1;
     if (editingMultiple) {
       // In edit mode, double-click opens the advanced editor for the song.
       wmmBus.invoke("wmm.library.song.edit", { songId: song.id });
@@ -144,16 +156,45 @@ export function Songs() {
           </div>
 
           <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto" hidden={noMusicSources}>
-            <TanstackSongTable
-              songs={filteredSongs}
-              selectedSongIds={selectedSongIds}
-              isEditMultiple={isEditMultiple}
-              onSelect={handleSongsSelected}
-              onSort={handleSort}
-              sort={sort}
-              onSongDoubleClicked={handleSongDoubleClicked}
-            />
-            <ScrollBar orientation="horizontal" />
+            {isMobile ? (
+              <ItemGroup>
+                {filteredSongs.map((song, i) => (
+                  <TrackItem
+                    key={song.id}
+                    song={song}
+                    index={i}
+                    size="sm"
+                    showArtwork
+                    isPlaying={nowPlayingSongId === song.id}
+                    // Touch: single tap plays (the row becomes a finger-size
+                    // target). Double-click still works on desktop-modality
+                    // touchpads/mice. No inline play button here.
+                    onClick={
+                      activeMode === "edit"
+                        ? handleSongDoubleClicked
+                        : () =>
+                            wmmBus.invoke("wmm.playback.playSong", {
+                              songId: song.id,
+                            })
+                    }
+                    onDoubleClick={handleSongDoubleClicked}
+                  />
+                ))}
+              </ItemGroup>
+            ) : (
+              <>
+                <TanstackSongTable
+                  songs={filteredSongs}
+                  selectedSongIds={selectedSongIds}
+                  isEditMultiple={isEditMultiple}
+                  onSelect={handleSongsSelected}
+                  onSort={handleSort}
+                  sort={sort}
+                  onSongDoubleClicked={handleSongDoubleClicked}
+                />
+                <ScrollBar orientation="horizontal" />
+              </>
+            )}
           </ScrollArea>
         </>
       )}

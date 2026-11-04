@@ -80,7 +80,9 @@ export function TrackItem(props: TrackItemProps) {
         className={cn(
           // Item is flex-wrap by default; a track row stays on one line and
           // lets ItemContent truncate instead.
-          "group/track flex-nowrap cursor-default py-0 transition-colors",
+          "group/track flex-nowrap cursor-default py-0 pr-0 transition-colors",
+          // Touch devices: taller row so a finger can hit it comfortably.
+          "pointer-coarse:py-0.5",
           // Hover styling follows interactivity, not just playback: in edit
           // mode the row activates via click/double-click, so it gets the
           // same hover affordance as in playback mode.
@@ -92,100 +94,104 @@ export function TrackItem(props: TrackItemProps) {
         // The row itself never takes the pointer cursor: activation is a
         // deliberate double-click (play in playback mode, editor in edit
         // mode). Right-click opens the shared song context menu.
-        onDoubleClick={
-          onDoubleClick ? () => onDoubleClick(song) : onPlay ? activate : undefined
-        }
+        onDoubleClick={onDoubleClick ? () => onDoubleClick(song) : onPlay ? activate : undefined}
       >
-      {/* Track number — or artwork when browsing without a table context */}
-      {showArtwork ? (
-        <ItemMedia variant="image" className="rounded-md">
-          <AlbumArtImage
-            songId={song.id}
-            thumbSize={ThumbnailSize.thumb128}
-            fallback={<div className="w-full h-full bg-muted" />}
-          />
-        </ItemMedia>
-      ) : (
-        trackNumber != null && (
-          <span className="w-6 shrink-0 text-right text-sm text-muted-foreground tabular-nums">
-            {trackNumber}
-          </span>
-        )
-      )}
-
-      <ItemContent className="min-w-0">
-        <ItemTitle className={cn(isPlaying && "text-accent")}>
-          {song.title ?? song.filename}
-        </ItemTitle>
-        {showMeta && meta && <ItemDescription>{meta}</ItemDescription>}
-      </ItemContent>
-
-      <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
-        {formatLength(song.length)}
-      </span>
-
-      <ItemActions className="shrink-0">
-        {/* Play/pause affordance: always visible for the active row and on
-            touch (no hover to reveal it), hover-revealed otherwise. The row
-            itself isn't clickable, so single-tap play on mobile uses this. */}
-        {onPlay ? (
-          <button
-            className={cn(
-              "inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity",
-              "hover:bg-accent/15 hover:text-foreground",
-              "opacity-0 group-hover/track:opacity-100 [@media(hover:none)]:opacity-100",
-              isPlaying && "opacity-100",
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              activate();
-            }}
-            title={isPlaying ? "Now playing" : "Play"}
-            aria-label={isPlaying ? "Now playing" : "Play"}
-          >
-            {isPlaying ? (
-              <Pause size={14} className="fill-current" />
-            ) : (
-              <Play size={14} className="fill-current" />
-            )}
-          </button>
+        {/* Track number — or artwork when browsing without a table context */}
+        {showArtwork ? (
+          <ItemMedia variant="image" className="rounded-md">
+            <AlbumArtImage
+              songId={song.id}
+              thumbSize={ThumbnailSize.thumb128}
+              fallback={<div className="w-full h-full bg-muted" />}
+            />
+          </ItemMedia>
         ) : (
-          // Reserve the action slot so the row's width and text layout stay
-          // identical in edit mode (where the play affordance is dropped).
-          <span className="h-7 w-7 shrink-0" aria-hidden="true" />
+          trackNumber != null && (
+            <span className="w-6 shrink-0 text-right text-sm text-muted-foreground tabular-nums">
+              {trackNumber}
+            </span>
+          )
         )}
 
-        {overflow.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger
+        {/* min-w-0 is what lets the flex child shrink below content width;
+            the primitives' own line-clamp is defeated by their `flex`/`w-fit`
+            base classes, so each needs an explicit nowrap+ellipsis override. */}
+        <ItemContent className="min-w-0 overflow-hidden gap-0">
+          <ItemTitle className={cn("block! w-full min-w-0 truncate", isPlaying && "text-accent")}>
+            {song.title ?? song.filename}
+          </ItemTitle>
+          {showMeta && meta && (
+            <ItemDescription className="block! w-full min-w-0 truncate">{meta}</ItemDescription>
+          )}
+        </ItemContent>
+
+        <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
+          {formatLength(song.length)}
+        </span>
+
+        <ItemActions className="shrink-0">
+          {/* Play/pause affordance: always visible for the active row and on
+            touch (no hover to reveal it), hover-revealed otherwise. The row
+            itself isn't clickable, so single-tap play on mobile uses this. */}
+          {onPlay ? (
+            <button
               className={cn(
                 "inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity",
                 "hover:bg-accent/15 hover:text-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                "opacity-0 group-hover/track:opacity-100 data-[state=open]:opacity-100",
+                "opacity-0 group-hover/track:opacity-100 [@media(hover:none)]:opacity-100",
+                isPlaying && "opacity-100",
               )}
-              onClick={(e) => e.stopPropagation()}
-              title="More actions"
-              aria-label="More actions"
+              onClick={(e) => {
+                e.stopPropagation();
+                activate();
+              }}
+              title={isPlaying ? "Now playing" : "Play"}
+              aria-label={isPlaying ? "Now playing" : "Play"}
             >
-              <MoreHorizontal size={16} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {overflow.map((item, i) => (
-                <div key={item.key}>
-                  {i > 0 && <DropdownMenuSeparator />}
-                  <DropdownMenuItem
-                    className={cn(item.destructive && "text-destructive")}
-                    onSelect={() => item.onSelect(song)}
-                  >
-                    {item.label}
-                  </DropdownMenuItem>
-                </div>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </ItemActions>
+              {isPlaying ? (
+                <Pause size={14} className="fill-current" />
+              ) : (
+                <Play size={14} className="fill-current" />
+              )}
+            </button>
+          ) : (
+            // Reserve the action slot so the row's width and text layout stay
+            // identical in edit mode (where the play affordance is dropped).
+            // No hover affordance to align on touch, so it is dropped there.
+            <span className="h-7 w-7 shrink-0 pointer-coarse:hidden" aria-hidden="true" />
+          )}
+
+          {overflow.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  "inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity",
+                  "hover:bg-accent/15 hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "opacity-0 group-hover/track:opacity-100 data-[state=open]:opacity-100",
+                )}
+                onClick={(e) => e.stopPropagation()}
+                title="More actions"
+                aria-label="More actions"
+              >
+                <MoreHorizontal size={16} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {overflow.map((item, i) => (
+                  <div key={item.key}>
+                    {i > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuItem
+                      className={cn(item.destructive && "text-destructive")}
+                      onSelect={() => item.onSelect(song)}
+                    >
+                      {item.label}
+                    </DropdownMenuItem>
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </ItemActions>
       </Item>
     </SongContextMenu>
   );

@@ -14,11 +14,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Play, Shuffle, Pencil, MoreHorizontal, ArrowDownAZ, ArrowUpAZ, Users } from "lucide-react";
+import {
+  Play,
+  Shuffle,
+  Pencil,
+  MoreHorizontal,
+  ArrowDownAZ,
+  ArrowUpAZ,
+  Users,
+  ChevronLeft,
+} from "lucide-react";
 import { cn } from "cn";
+import { useIsMobile } from "@/lib/hooks/useIsMobile";
 import { ItemGroup } from "@/components/ui/item";
 import { SongContextMenu } from "@/components/song-context-menu";
 import { TrackItem } from "@/components/track-item";
+import {
+  albumGenre,
+  albumPictureSong,
+  albumYear,
+  trackSorted,
+} from "@/lib/albums/albumDisplay";
 
 const ALL_ARTISTS = "__all_artists__";
 
@@ -41,6 +57,10 @@ export function Artists() {
   const [nowPlayingSongId, setNowPlayingSongId] = useState<string>();
   const [selectedArtistId, setSelectedArtistId] = useState<string>(ALL_ARTISTS);
   const [sortDesc, setSortDesc] = useState(false);
+  const isMobile = useIsMobile();
+  // Mobile shows one column at a time (artist list -> artist detail), so an
+  // explicit "show the list" flag decides which column is visible.
+  const [mobileShowingList, setMobileShowingList] = useState(true);
   //#endregion
 
   //#region Helpers
@@ -206,7 +226,14 @@ export function Artists() {
 
   return (
     <div className="h-full w-full flex">
-      <div className="w-60 shrink-0 border-r flex flex-col min-h-0">
+      {/* Mobile shows one column at a time; desktop keeps both panes. */}
+      <div
+        className={cn(
+          "shrink-0 border-r flex flex-col min-h-0",
+          isMobile ? "w-full" : "w-60",
+          isMobile && !mobileShowingList && "hidden"
+        )}
+      >
         <div className="px-3 py-2 border-b flex items-center justify-between">
           <div>
             <div className="font-bold">Artists</div>
@@ -228,7 +255,10 @@ export function Artists() {
           <div className="py-1">
             <SongContextMenu songs={filteredSongs}>
               <button
-                onClick={() => setSelectedArtistId(ALL_ARTISTS)}
+                onClick={() => {
+                  setSelectedArtistId(ALL_ARTISTS);
+                  setMobileShowingList(false);
+                }}
                 className={cn(
                   "w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left rounded-md transition-colors",
                   isAllArtists
@@ -256,7 +286,10 @@ export function Artists() {
             {orderedArtists.map((a) => (
               <SongContextMenu key={a.id} songs={a.songs}>
                 <button
-                  onClick={() => setSelectedArtistId(a.id)}
+                  onClick={() => {
+                    setSelectedArtistId(a.id);
+                    setMobileShowingList(false);
+                  }}
                   className={cn(
                     "w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left rounded-md transition-colors",
                     a.id === selectedArtist?.id
@@ -283,11 +316,31 @@ export function Artists() {
         </ScrollArea>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0 min-w-0">
+      <div
+        className={cn(
+          "flex-1 flex flex-col min-h-0 min-w-0",
+          isMobile && mobileShowingList && "hidden"
+        )}
+      >
         {/* Name/details (as in the master list) above the album groupings */}
-        <div className="px-5 pt-4 pb-2 shrink-0">
+        <div className={cn("shrink-0", isMobile ? "px-3 pt-3 pb-2" : "px-5 pt-4 pb-2")}>
           <div className="flex items-center justify-between gap-3">
-            <div className="truncate text-3xl font-bold">{detailName}</div>
+            <div className="flex min-w-0 items-center gap-2">
+              {isMobile && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="shrink-0"
+                  aria-label="Back to artists"
+                  onClick={() => setMobileShowingList(true)}
+                >
+                  <ChevronLeft />
+                </Button>
+              )}
+              <div className={cn("truncate font-bold", isMobile ? "text-xl" : "text-3xl")}>
+                {detailName}
+              </div>
+            </div>
             {activeMode !== "edit" && detailSongs.length > 0 && (
               <div className="flex items-center gap-1 shrink-0">
                 <Button
@@ -324,11 +377,12 @@ export function Artists() {
 
         {/* Album sections: art → sticky title row → songs underneath */}
         <ScrollArea className="flex-1 min-h-0">
-          <div className="px-5 pb-6">
+          <div className={cn("pb-6", isMobile ? "px-3" : "px-5")}>
             {detailAlbums.map((album) => (
               <AlbumSection
                 key={album.id}
                 album={album}
+                isMobile={isMobile}
                 activeMode={activeMode}
                 nowPlayingSongId={nowPlayingSongId}
                 onPlay={() => playAlbum(album)}
@@ -349,6 +403,7 @@ export function Artists() {
 //#region Piece components
 function AlbumSection({
   album,
+  isMobile = false,
   activeMode,
   nowPlayingSongId,
   onPlay,
@@ -359,6 +414,8 @@ function AlbumSection({
   onArtDoubleClick,
 }: {
   album: Album;
+  /** Narrow screen: smaller artwork, so the title row keeps usable width. */
+  isMobile?: boolean;
   activeMode: string | undefined;
   nowPlayingSongId: string | undefined;
   onPlay: () => void;
@@ -379,7 +436,11 @@ function AlbumSection({
     <section className="mt-4">
       <SongContextMenu songs={album.songs}>
         <div className="contents">
-          <div className="w-44" onDoubleClick={onArtDoubleClick} title="Play album">
+          <div
+            className={cn("w-44", isMobile && "w-32 self-start")}
+            onDoubleClick={onArtDoubleClick}
+            title="Play album"
+          >
             <div className="aspect-square rounded-lg overflow-hidden border bg-muted shadow-sm">
               <AlbumArtImage
                 songId={album.pictureSongId ?? albumPictureSong(album)?.id}
@@ -505,30 +566,8 @@ function MoreActionsButton({
 //#endregion
 
 //#region Detail helpers
-/** Albums' songs in track order (missing track numbers sort last by title). */
-function trackSorted(album: Album): Song[] {
-  return [...album.songs].sort((a, b) => {
-    const ta = a.track;
-    const tb = b.track;
-    if (ta != null && tb != null && ta !== tb) return ta - tb;
-    if (ta != null && tb == null) return -1;
-    if (ta == null && tb != null) return 1;
-    return (a.title ?? "").localeCompare(b.title ?? "");
-  });
-}
-
-/** First song carrying artwork (drives album art selection). */
-function albumPictureSong(album: Album): Song | undefined {
-  return album.songs.find((s) => s.pictures?.length) ?? album.songs[0];
-}
-
-function albumGenre(album: Album): string | undefined {
-  return album.songs.find((s) => s.genre)?.genre;
-}
-
-function albumYear(album: Album): number | undefined {
-  return album.songs.find((s) => s.year)?.year;
-}
+// trackSorted / albumPictureSong / albumGenre / albumYear come from the
+// shared `lib/albums/albumDisplay` module (also used by AlbumCard's modal).
 
 /** Deterministic per-artist/album gradient (kept from the earlier design). */
 function artistGradient(name: string): string {

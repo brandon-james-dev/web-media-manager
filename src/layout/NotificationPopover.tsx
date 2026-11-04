@@ -1,16 +1,9 @@
 import { NotificationRenderer } from "@/components/notifications";
 import { Button } from "@/components/ui/button";
 import { Item } from "@/components/ui/item";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/components/ui/toast";
-import {
-  notification$,
-  type AppNotificationEvent,
-} from "@/events/notification-events";
+import { notification$, type AppNotificationEvent } from "@/events/notification-events";
 import { Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -37,9 +30,7 @@ function NotificationPopover() {
         id: toastId,
         type: event.state == "completed" ? "success" : "info",
         title: event.title,
-        description: (
-          <NotificationRenderer notification={event} showTitle={false} />
-        ),
+        description: <NotificationRenderer notification={event} showTitle={false} />,
       });
     });
 
@@ -75,7 +66,7 @@ function NotificationPopover() {
         }
       />
 
-      <PopoverContent className="w-80 max-h-80 overflow-y-auto gap-0.5 select-none">
+      <PopoverContent className="w-screen md:w-80 max-h-80 overflow-y-auto gap-0.5 select-none">
         <div className="flex justify-end" hidden={items.length === 0}>
           <Button size="xs" variant="outline" onClick={() => setItems([])}>
             Clear
