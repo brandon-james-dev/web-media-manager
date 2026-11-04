@@ -85,6 +85,15 @@ export interface IMusicSourceStrategy {
   resolveSongBytes(song: Song): Promise<ArrayBuffer | null>;
 
   /**
+   * Resolve this source kind's transient auth secret (e.g. a Subsonic
+   * password stored encrypted in the browser secret store), if it has one.
+   * Returns undefined for kinds without auth material. Called on the main
+   * thread (web workers can't read localStorage/IDB secrets); the result is
+   * threaded into worker jobs via MusicSourceImportConfig.
+   */
+  getSecret?(source: MusicSource): Promise<string | undefined>;
+
+  /**
    * Run a re-sync of an existing source of this kind (e.g. re-scan a local
    * folder, re-query a Subsonic server library). Returns a handle so the
    * caller can cancel the sync job (progress/completion still come through

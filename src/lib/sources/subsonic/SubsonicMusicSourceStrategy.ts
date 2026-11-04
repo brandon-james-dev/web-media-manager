@@ -301,6 +301,11 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
     if (jobId) getJobService().cancelJob(jobId);
   }
 
+  /** Resolve the subsonic auth password (main-thread secret store). */
+  async getSecret(source: MusicSource): Promise<string | undefined> {
+    return (await getSubsonicSecret(source.id)) ?? undefined;
+  }
+
   /**
    * Remove the subsonic source: the store's `deleteSource` drops the source
    * record + its songs, and the stored auth secret is wiped so removing the

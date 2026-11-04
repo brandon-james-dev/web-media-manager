@@ -1,6 +1,5 @@
 import type { MusicSource } from "@/models";
 import type { RemoteSourceConfig } from "@/core/contracts";
-import { getSubsonicSecret } from "./subsonic/subsonicSecrets";
 import { musicSourceStrategies } from ".";
 import type { IMusicSourceStrategy } from "./IMusicSourceStrategy";
 
@@ -36,16 +35,11 @@ export async function getMusicSourceImportConfig(
   };
 }
 
-/** Resolve a source kind's auth secret (main-thread storage only). */
+/** Resolve a source kind's auth secret via its strategy (main thread). */
 async function getSecretForSource(
   source: MusicSource
 ): Promise<string | undefined> {
-  switch (source.kind) {
-    case "subsonic":
-      return (await getSubsonicSecret(source.id)) ?? undefined;
-    default:
-      return undefined;
-  }
+  return (await getStrategy(source.kind)?.getSecret?.(source)) ?? undefined;
 }
 
 /** Find the strategy for a source kind, or null when unsupported. */
