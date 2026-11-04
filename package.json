@@ -1,5 +1,11 @@
 {
   "name": "web-media-manager",
+  "displayName": "Web Media Manager",
+  "author": {
+    "email": "brandonjames-dev@outlook.com",
+    "name": "Brandon James"
+  },
+  "homepage": "https://wmm.brandonjames.app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
