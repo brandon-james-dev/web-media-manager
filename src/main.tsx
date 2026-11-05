@@ -74,3 +74,15 @@ try {
 } catch (error) {
   renderBootFailure("[boot] mount error:", error);
 }
+
+// --- Offline PWA: register the workbox service worker (only in production).
+// `registerSW` is a tiny no-op import in dev; in the built app it registers
+// `sw.js` (precache + navigation fallback) and wires the "installed" signal
+// that mobile browsers use to launch the app addresses-bar-free.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((error) => {
+      console.warn("[pwa] service worker registration failed:", error);
+    });
+  });
+}

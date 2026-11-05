@@ -222,7 +222,7 @@ function MainLayout() {
           covers it. Scoped to playback: edit mode's own editor drawer is
           meant to overlay the dock. */}
       <div
-        className={cn("shrink-0", isMobile && activeMode === "playback" && "relative z-[60]")}
+        className={cn("shrink-0", isMobile && activeMode === "playback" && "relative z-60")}
         hidden={isSyncPage || (total ?? 0) === 0}
       >
         {activeMode === "edit" && <Editor mode={activeTab as "songs" | "albums" | "artists"} />}
