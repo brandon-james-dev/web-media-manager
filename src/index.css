@@ -126,5 +126,11 @@
   }
   html {
     @apply font-sans;
+    /* Stop the browser's pull-to-refresh at the page level: when the app's
+       own scroll containers overscroll instead of the page, the gesture that
+       would refresh the page just rubber-bands the container. Edge Android's
+       refresh gesture is a page-root overscroll, so containing it here
+       prevents the destructive reload. */
+    overscroll-behavior-y: none;
   }
 }

@@ -69,7 +69,7 @@ function App() {
     // Also listen for the ui.openShortcuts command on the bus so any
     // gesture/configurable binding can open the shortcuts modal.
     const offCmd = wmmBus.onCommand("wmm.ui.openShortcuts", () =>
-      setIsShortcutsOpen((prev) => !prev)
+      setIsShortcutsOpen((prev) => !prev),
     );
 
     return () => {
@@ -84,7 +84,7 @@ function App() {
           visible when mobile browsers collapse/expand their address bar
           (100vh can exceed the visible viewport, hiding the player/editor). */}
       <div className="flex flex-col h-dvh">
-        <header className="shrink-0 border-b">
+        <header className="shrink-0 border-b pt-[env(safe-area-inset-top)]">
           <NavBar />
         </header>
 
@@ -110,10 +110,7 @@ function App() {
             </PlaybackProvider>
           </SongProvider>
 
-          <KeyboardShortcutsModal
-            open={isShortcutsOpen}
-            onOpenChange={setIsShortcutsOpen}
-          />
+          <KeyboardShortcutsModal open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
         </main>
       </div>
       <Toaster />
