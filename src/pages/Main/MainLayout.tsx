@@ -222,10 +222,7 @@ function MainLayout() {
           covers it. Scoped to playback: edit mode's own editor drawer is
           meant to overlay the dock. */}
       <div
-        className={cn(
-          "shrink-0",
-          isMobile && activeMode === "playback" && "relative z-[60]"
-        )}
+        className={cn("shrink-0", isMobile && activeMode === "playback" && "relative z-[60]")}
         hidden={isSyncPage || (total ?? 0) === 0}
       >
         {activeMode === "edit" && <Editor mode={activeTab as "songs" | "albums" | "artists"} />}
@@ -238,7 +235,7 @@ function MainLayout() {
           is too small to hit with a thumb. Sync is not offered here (it is a
           desktop-first feature); it stays reachable by URL. */}
       {isMobile && (total ?? 0) > 0 && !isSyncPage && (
-        <nav className="relative z-[60] shrink-0 border-t bg-secondary supports-[backdrop-filter]:bg-secondary/60 supports-[backdrop-filter]:backdrop-blur-lg">
+        <nav className="relative z-60 shrink-0 border-t bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg">
           {/* Frosted bar: the z-50 sheet and its scrim composite under this
               bar, and the backdrop blur makes it visibly slide past on
               open/close. Falls back to an opaque fill where

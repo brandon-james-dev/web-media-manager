@@ -83,6 +83,7 @@ export function TrackItem(props: TrackItemProps) {
           "group/track flex-nowrap cursor-default py-0 pr-0 transition-colors",
           // Touch devices: taller row so a finger can hit it comfortably.
           "pointer-coarse:py-0.5",
+          "pointer-coarse:pr-3",
           // Hover styling follows interactivity, not just playback: in edit
           // mode the row activates via click/double-click, so it gets the
           // same hover affordance as in playback mode.
@@ -107,7 +108,7 @@ export function TrackItem(props: TrackItemProps) {
           </ItemMedia>
         ) : (
           trackNumber != null && (
-            <span className="w-6 shrink-0 text-right text-sm text-muted-foreground tabular-nums">
+            <span className="w-4 shrink-0 text-right text-sm text-muted-foreground tabular-nums">
               {trackNumber}
             </span>
           )

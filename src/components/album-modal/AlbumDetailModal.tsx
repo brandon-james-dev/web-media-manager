@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import { Play, Pause, Shuffle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Play, Pause, Shuffle, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { TrackItem } from "@/components/track-item";
@@ -11,6 +11,7 @@ import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks/usePlayback";
 import { shuffleState } from "@/hooks/usePlayback";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { cn } from "cn";
 import { albumGenre, albumPictureSong, albumYear, trackSorted } from "@/lib/albums/albumDisplay";
 import type { Album } from "@/models";
 import type { AlbumDetailModalProps } from "./AlbumDetailModalProps";
@@ -26,6 +27,23 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
   // including playback started from elsewhere (library rows, artist view).
   const { isPlaying, nowPlaying, shuffle } = usePlayback();
   const isMobile = useIsMobile();
+  // Manual exit animation: Base UI's `data-ending-style` doesn't run on a
+  // programmatic close (its duration is `calc(--drawer-swipe-strength * 400ms)`
+  // and the strength var stays 0 off-swipe), so the popup vanishes instantly.
+  // Instead, `closing` translates it down for 450 ms, then open flips off.
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  function requestClose() {
+    if (closing) return;
+    setClosing(true);
+    closeTimer.current = setTimeout(() => {
+      setClosing(false);
+      onOpenChange(false);
+    }, 450);
+  }
+
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   const tracks = useMemo(() => (album ? trackSorted(album) : []), [album]);
 
@@ -115,6 +133,10 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
               isPlaying={nowPlaying?.id === song.id}
               showMeta={false}
               onPlay={() => play(song)}
+              // Mobile: single tap plays (touch has no reliable double-tap
+              // gesture at this density); desktop keeps double-click.
+              onClick={isMobile ? () => play(song) : undefined}
+              onDoubleClick={isMobile ? undefined : () => play(song)}
             />
           </div>
         ))}
@@ -136,13 +158,55 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
         // (play/pause stays reachable without closing it). Close via swipe,
         // the X, or tapping another album.
         modal={false}
+        showSwipeHandle={false}
       >
+        {/* Non-modal drawers render no overlay (the DrawerContent only emits
+            one when `modal` is true), so supply the full-page frost here.
+            Tapping it dismisses the drawer; the player/nav sit above it
+            (z-60) and keep their own taps. */}
+        {open && !!album && (
+          <div
+            data-slot="album-drawer-frost"
+            aria-hidden="true"
+            onClick={requestClose}
+            className="fixed inset-0 z-40 bg-black/10 supports-backdrop-filter:backdrop-blur-lg cursor-pointer"
+          />
+        )}
+
         {album && (
-          <DrawerContent className="rounded-b-none data-[swipe-direction=down]:bottom-32 max-h-[calc(100dvh-11rem)] data-[swipe-direction=down]:[--closed-transform:translate3d(0,calc(100%+9.5rem+2px),0)] p-0 overflow-hidden">
-            <div className="shrink-0 bg-accent/10 px-4 pt-5 pb-4">
-              <DrawerHeader className="self-center select-none">
+          <DrawerContent
+            className={cn(
+              "rounded-b-none",
+              "data-[swipe-direction=down]:bottom-32",
+              "max-h-[calc(100dvh-11rem)]",
+              "data-[swipe-direction=down]:[--closed-transform:translate3d(0,calc(100%+9.5rem+2px),0)]",
+              "p-0 overflow-hidden",
+              // Closing: translate the popup down past the player/nav for the
+              // 450ms exit, then open flips off (unmount off-screen).
+              closing &&
+                "data-[swipe-direction=down]:[--translate-y:calc(100%+9.5rem+2px)]"
+            )}
+          >
+            <div className="relative shrink-0 bg-accent/10 px-4 pt-9 pb-4">
+              {/* Our own swipe handle, on the accent background (the built-in
+                  one renders on the popup's white strip above the block). */}
+              <div
+                aria-hidden="true"
+                className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-muted-foreground/25"
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="absolute right-2 top-8"
+                aria-label="Close album"
+                onClick={requestClose}
+              >
+                <X />
+              </Button>
+
+              <div className="w-full flex justify-center">
                 <div className="w-40">{albumArt}</div>
-              </DrawerHeader>
+              </div>
 
               <div className="mt-4 flex items-end justify-between gap-3">
                 <div className="min-w-0">
@@ -179,7 +243,6 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
           <>
             <DialogHeader>
               <div className="flex items-start gap-4">
-                {/* Album art, shown once. */}
                 <div className="w-32 shrink-0 self-start sm:w-40">{albumArt}</div>
 
                 <div className="min-w-0 flex-1">
@@ -189,8 +252,6 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
                   <div className="mt-1 truncate text-sm text-muted-foreground">{album.artist}</div>
                   <div className="truncate text-sm text-muted-foreground">{meta || trackCount}</div>
 
-                  {/* Actions: play/pause this album, shuffle it, or open its
-                      editor (which closes the modal). */}
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {playButton}
                     {shuffleButton}

@@ -69,28 +69,33 @@ export function PlayerControls() {
   //#endregion
 
   //#region Helpers
-  // Tick while playing at ~100 ticks per track (1% progress per tick).
-  // `Song.length` is in SECONDS, so the tick period in ms is
-  // `(length * 1000) / 100` = length * 10. Dividing length straight by 100
-  // (as before) yields a few-ms period for a normal track, which re-renders
-  // hundreds of times a second and restarts the progress rule's width
-  // transition before it can advance — the bar looked frozen until pausing.
+  // Track motion: when transitioning playing→stopped we snap to the real
+  // final position once. A ref avoids a sync setState on mount/guidle (the
+  // effect lint), and only re-snaps when the engine actually changed state.
+  const wasPlayingRef = useRef<boolean>(false);
+
   useEffect(() => {
-    if (!isPlaying) {
-      // Paused/seeking: snap to the real position once so the UI is accurate.
-      setTrackPosition(getCurrentTime());
-      return;
+    // Playing: tick at ~100 ticks per track (1% per tick). `Song.length` is
+    // in SECONDS, so the period in ms is `(length * 1000) / 100` = length*10.
+    // Dividing length straight by 100 gives a ~2ms period for a normal track,
+    // re-rendering hundreds of times a second and restarting the progress
+    // rule's width transition before it advances — the bar looks frozen until
+    // pausing.
+    if (isPlaying) {
+      wasPlayingRef.current = true;
+      const tickMs = Math.max(250, (nowPlaying?.length ?? 0) * 10);
+      const id = setInterval(() => {
+        setTrackPosition(getCurrentTime());
+      }, tickMs);
+      return () => clearInterval(id);
     }
 
-    const tickMs = Math.max(250, (nowPlaying?.length ?? 0) * 10);
-
-    const id = setInterval(() => {
+    // Stopped/paused: if we were previously playing, snap to the real final
+    // cursor so the bar/rule is accurate.
+    if (wasPlayingRef.current) {
+      wasPlayingRef.current = false;
       setTrackPosition(getCurrentTime());
-    }, tickMs);
-
-    return () => {
-      clearInterval(id);
-    };
+    }
   }, [isPlaying, nowPlaying, getCurrentTime]);
 
   //#endregion
@@ -232,7 +237,7 @@ export function PlayerControls() {
 
   if (isMobile) {
     return (
-      <div className="relative flex shrink-0 items-center gap-2 px-2 py-2 border-t bg-secondary supports-[backdrop-filter]:bg-secondary/60 supports-[backdrop-filter]:backdrop-blur-lg select-none">
+      <div className="relative flex shrink-0 items-center gap-2 px-2 py-2 border-t bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg select-none">
         {/* Slim progress rule along the top edge, like the mini-player. */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-muted overflow-hidden">
           <div
