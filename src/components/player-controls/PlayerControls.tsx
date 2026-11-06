@@ -34,6 +34,9 @@ export function PlayerControls() {
   //#region State
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const [trackPosition, setTrackPosition] = useState<number>(0);
+  // Elapsed-time readout ticks once a second; the progress bar keeps its own
+  // (faster) rate from trackPosition.
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   // Mobile renders a compact mini-player (now-playing info + one large play
   // button) instead of the wide three-column bar, whose controls are too
   // small to reach with a thumb.
@@ -73,6 +76,7 @@ export function PlayerControls() {
   // final position once. A ref avoids a sync setState on mount/guidle (the
   // effect lint), and only re-snaps when the engine actually changed state.
   const wasPlayingRef = useRef<boolean>(false);
+  const wasPlayingElapsedRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Playing: tick at ~100 ticks per track (1% per tick). `Song.length` is
@@ -95,6 +99,24 @@ export function PlayerControls() {
     if (wasPlayingRef.current) {
       wasPlayingRef.current = false;
       setTrackPosition(getCurrentTime());
+    }
+  }, [isPlaying, nowPlaying, getCurrentTime]);
+
+  // Elapsed-time readout: once a second, independent of the bar's tick rate.
+  // The paused snap is guarded by a ref so no setState runs synchronously on
+  // mount (only on a real playing -> stopped transition).
+  useEffect(() => {
+    if (isPlaying) {
+      wasPlayingElapsedRef.current = true;
+      const id = setInterval(() => {
+        setElapsedSeconds(getCurrentTime());
+      }, 1000);
+      return () => clearInterval(id);
+    }
+
+    if (wasPlayingElapsedRef.current) {
+      wasPlayingElapsedRef.current = false;
+      setElapsedSeconds(getCurrentTime());
     }
   }, [isPlaying, nowPlaying, getCurrentTime]);
 
@@ -140,6 +162,7 @@ export function PlayerControls() {
   function handleSeek(v: number | readonly number[]) {
     wmmBus.invoke("wmm.playback.seek", { positionSeconds: Number(v) });
     setTrackPosition(getCurrentTime());
+    setElapsedSeconds(getCurrentTime());
   }
 
   function handleShuffleToggle() {
@@ -351,7 +374,7 @@ export function PlayerControls() {
 
           <div className="flex items-center gap-3 w-full max-w-lg">
             <span className="text-xs w-10 text-right">
-              {trackPosition > 0 ? formatLength(trackPosition) : "--:--"}
+              {elapsedSeconds > 0 ? formatLength(elapsedSeconds) : "--:--"}
             </span>
 
             <Slider
