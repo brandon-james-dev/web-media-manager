@@ -117,6 +117,21 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@utility scrollbar-slider {
+  @apply shrink-0 px-8 pb-3
+    **:data-[slot=slider-track]:h-2.5
+    **:data-[slot=slider-track]:bg-muted/40
+    **:data-[slot=slider-range]:hidden
+    **:data-[slot=slider-thumb]:h-2.5
+    **:data-[slot=slider-thumb]:w-[max(8%,3rem)]
+    **:data-[slot=slider-thumb]:rounded-full
+    **:data-[slot=slider-thumb]:border-0
+    **:data-[slot=slider-thumb]:bg-muted-foreground/50
+    **:data-[slot=slider-thumb]:ring-0
+    **:data-[slot=slider-thumb]:hover:bg-muted-foreground/70
+    **:data-[slot=slider-thumb]:active:bg-muted-foreground/80;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

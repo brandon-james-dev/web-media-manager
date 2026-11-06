@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import {
   ArrowDownAZ,
@@ -20,14 +21,17 @@ import {
   GalleryHorizontal,
   Grid2x2,
 } from "lucide-react";
+import { useIsCompact } from "@/lib/hooks/useIsMobile";
 import { wmmBus } from "@/events";
 import { TanstackSongTable } from "@/components/song-table";
-import { CoverFlow } from "@/components/cover-flow";
-import { cn } from "cn";
+import { CoverFlow, type CoverFlowItem } from "@/components/ui/CoverFlow";
+import { AlbumArtImage } from "@/components/album-art-image";
+import { ThumbnailSize } from "@/lib";
 import { AlbumDetailModal } from "@/components/album-modal";
 
 export function Albums() {
   //#region State
+  const isCompact = useIsCompact();
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
   const { setSort, activeMode, selectedSourceIds } =
@@ -78,8 +82,8 @@ export function Albums() {
       selectedSourceIds.length === 0
         ? filteredSongs
         : filteredSongs.filter((song) =>
-            selectedSourceIds.includes(song.sourceId)
-          ),
+          selectedSourceIds.includes(song.sourceId)
+        ),
     [filteredSongs, selectedSourceIds]
   );
 
@@ -106,6 +110,17 @@ export function Albums() {
 
     return Array.from(map.values());
   }, [visibleSongs]);
+
+  const coverFlowItems = useMemo<CoverFlowItem[]>(
+    () =>
+      albums.map((a) => ({
+        id: a.id,
+        image: a.pictureSongId ?? "",
+        title: a.title,
+        subtitle: a.artist,
+      })),
+    [albums]
+  );
   //#endregion
 
   //#region Interactivity handlers
@@ -249,47 +264,49 @@ export function Albums() {
       )}
       {viewMode === "coverflow" && (
         <>
-          <CoverFlow
-            items={albums}
-            selectedIndex={selectedAlbumIndex}
-            onSelectedIndexChange={setSelectedAlbumIndex}
-            renderItem={(album, _, selected) => (
-              <AlbumCard
-                className={cn(
-                  "h-55 transition-all",
-                  selected && "ring-2 ring-accent"
-                )}
-                album={album}
-                onClick={handleAlbumCardClick}
-                onDoubleClick={handleAlbumCardDoubleClick}
+          <div className="h-80 shrink-0">
+            <CoverFlow
+              items={coverFlowItems}
+              itemWidth={220}
+              itemHeight={220}
+              centerGap={160}
+              stackSpacing={50}
+              initialIndex={selectedAlbumIndex}
+              onIndexChange={setSelectedAlbumIndex}
+              enableReflection
+              onItemClick={(_, index) => {
+                const opensPanel = isCompact || activeMode === "edit";
+                if (
+                  opensPanel &&
+                  index === selectedAlbumIndex &&
+                  albums[index]
+                ) {
+                  handleAlbumCardClick(albums[index]);
+                }
+              }}
+              renderImage={({ src, className }) => (
+                <AlbumArtImage
+                  songId={src || undefined}
+                  thumbSize={ThumbnailSize.thumb512}
+                  className={className}
+                />
+              )}
+            />
+          </div>
+          {albums.length > 1 && (
+            <div className="scrollbar-slider mt-2">
+              <Slider
+                aria-label="Scroll albums"
+                min={0}
+                max={albums.length - 1}
+                step={1}
+                value={[Math.min(selectedAlbumIndex, albums.length - 1)]}
+                onValueChange={(v) =>
+                  setSelectedAlbumIndex(Array.isArray(v) ? v[0] : v)
+                }
               />
-            )}
-            renderLabel={(album, _, selected) => (
-              <>
-                {selected && (
-                  <div
-                    className="
-                    absolute
-                    top-full
-                    left-1/2
-                    mt-2
-                    -translate-x-1/2
-                    text-center
-                    pointer-events-none
-                  "
-                  >
-                    <div className="font-medium whitespace-nowrap max-w-80 text-ellipsis overflow-clip">
-                      {album.title}
-                    </div>
-
-                    <div className="text-xs text-muted-foreground max-w-80 text-ellipsis overflow-clip">
-                      {album.artist}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          />
+            </div>
+          )}
           <ScrollArea className="flex-1 min-h-0">
             <TanstackSongTable
               songs={albums[selectedAlbumIndex]?.songs ?? []}
