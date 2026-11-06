@@ -1,7 +1,4 @@
-import type {
-  WmmCommandName,
-  WmmCommandPayload,
-} from "./taxonomy";
+import type { WmmCommandName, WmmCommandPayload } from "./taxonomy";
 import { wmmBus } from "./bus";
 
 /**

@@ -45,7 +45,12 @@ describe("wmmBus.invoke", () => {
 
   it("does not deliver a command to event subscribers of the same name", () => {
     const called: string[] = [];
-    sub(wmmBus.on("wmm.playback.playpause".replace("playpause", "paused") as never, () => called.push("event")));
+    sub(
+      wmmBus.on(
+        "wmm.playback.playpause".replace("playpause", "paused") as never,
+        () => called.push("event")
+      )
+    );
     wmmBus.invoke("wmm.playback.playpause");
     expect(called).toEqual([]);
   });
@@ -70,7 +75,11 @@ describe("wmmBus.publish", () => {
 
   it("does not deliver an event to command subscribers", () => {
     const called: string[] = [];
-    sub(wmmBus.onCommand("wmm.library.song.updated" as never, () => called.push("cmd")));
+    sub(
+      wmmBus.onCommand("wmm.library.song.updated" as never, () =>
+        called.push("cmd")
+      )
+    );
     wmmBus.publish("wmm.library.song.updated");
     expect(called).toEqual([]);
   });
@@ -96,7 +105,9 @@ describe("wmmBus subscriptions", () => {
 
   it("on$ returns an observable of typed payloads", () => {
     const seen: Array<{ volume: number } | undefined> = [];
-    const subObj = wmmBus.on$("wmm.playback.volumeChanged").subscribe((p) => seen.push(p));
+    const subObj = wmmBus
+      .on$("wmm.playback.volumeChanged")
+      .subscribe((p) => seen.push(p));
     wmmBus.publish("wmm.playback.volumeChanged", { volume: 0.5 });
     subObj.unsubscribe();
     expect(seen).toEqual([{ volume: 0.5 }]);

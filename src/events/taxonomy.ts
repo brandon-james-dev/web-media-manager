@@ -64,6 +64,8 @@ export const WMM_COMMANDS = {
   "wmm.playback.setCollectionSource": {} as { songIds: string[] },
   "wmm.playback.clearQueue": undefined,
   "wmm.playback.removeFromQueue": {} as { songId: string },
+  /** Append songs to the playback queue (not the sync queue). */
+  "wmm.playback.addToQueue": {} as { songIds: string[] },
   // library / browsing
   "wmm.library.song.edit": {} as { songId: string },
   /** Open the album advanced editor for the album containing `songId`.
@@ -149,7 +151,26 @@ export const WMM_EVENTS = {
   // searching
   "wmm.searching.completed": {} as { query: string },
   // playlists
-  "wmm.playlists.songAdded": {} as { songId: string, playlistName?: string },
+  "wmm.playlists.songAdded": {} as { songId: string; playlistName?: string },
+  "wmm.playlists.created": {} as { playlistId: string },
+  "wmm.playlists.updated": {} as { playlistId: string },
+  "wmm.playlists.deleted": {} as { playlistId: string },
+  "wmm.playlists.songsAdded": {} as {
+    playlistId: string;
+    songIds: string[];
+  },
+  "wmm.playlists.songRemoved": {} as { playlistId: string; songId: string },
+  // A source's playlists were imported/synced (bulk import job).
+  "wmm.playlists.imported": {} as {
+    sourceId: string;
+    playlistIds: string[];
+    removedIds: string[];
+  },
+  "wmm.playlists.songMoved": {} as {
+    playlistId: string;
+    songId: string;
+    toIndex: number;
+  },
   // sync
   "wmm.sync.queued": {} as { songIds: string[] },
   "wmm.sync.dequeued": {} as { songIds: string[] },

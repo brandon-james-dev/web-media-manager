@@ -3,8 +3,8 @@
 // the web worker (which imports this strategy). `typeof` guards the worker.
 const fsAccessSupported =
   typeof window !== "undefined" &&
-  typeof (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker ===
-    "function";
+  typeof (window as Window & { showDirectoryPicker?: unknown })
+    .showDirectoryPicker === "function";
 
 import { addFolder } from "@/core/scanning";
 import { readTags } from "@/core/metadata";
@@ -16,13 +16,16 @@ import { getMetadataStore } from "@/lib";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import type { Song } from "@/models/Song";
 import type { MusicSource } from "@/models";
+import type { LocalMusicSource } from "@/core/contracts/sources";
+import {
+  isLocalSource,
+  localSourceFolders,
+  localSourceName,
+} from "@/core/contracts/sources";
 import type { WorkerProgress } from "@/core/jobs";
 import type { MusicSourceImportConfig } from "../config";
 import { uuidv7 } from "uuidv7";
-import type {
-  IMusicSourceStrategy,
-  IJobHandle,
-} from "../IMusicSourceStrategy";
+import type { IMusicSourceStrategy, IJobHandle } from "../IMusicSourceStrategy";
 import type { MusicSourceConfigField } from "../MusicSourceConfigField";
 
 /**
@@ -37,15 +40,16 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
   readonly isAvailable = fsAccessSupported;
   readonly requiresConfig = true;
 
-  /** A single folder-picker field — the standard form renders a
-   *  "Choose folder" button; the picked handle is submitted as `config.folder`. */
+  /** A multi-folder picker field — the standard form renders the folder
+   *  list with "Add folder"; the picked handles are submitted as
+   *  `config.folders`. */
   readonly configFields: MusicSourceConfigField[] = [
     {
-      name: "folder",
-      label: "Music folder",
+      name: "folders",
+      label: "Music folders",
       type: "folder",
+      options: { multiple: true },
       required: true,
-      validate: (v) => (!v ? "Choose a folder" : undefined),
     },
   ];
 
@@ -54,20 +58,46 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
     config?: unknown;
   }): Promise<void> {
     const config = (options.config ?? {}) as {
-      folder?: FileSystemDirectoryHandle;
+      folders?: FileSystemDirectoryHandle[];
     };
-    const dirHandle = config.folder;
+    const folders = config.folders ?? [];
 
     if (!fsAccessSupported) return;
-    if (!dirHandle) return;
+    if (folders.length === 0) return;
 
-    const source = await addFolder(dirHandle);
+    const source = await addFolder(folders);
 
     getJobService().enqueue({
       type: "Bulk Import",
       payload: { musicSource: source },
     });
     await options.onSourceAdded?.();
+  }
+
+  /**
+   * Replace the folders of an existing local source and re-import, so songs
+   * from added folders appear and songs from removed ones are dropped.
+   */
+  async updateSource(options: {
+    source: MusicSource;
+    config?: unknown;
+  }): Promise<void> {
+    const { source } = options;
+    if (!isLocalSource(source)) return;
+
+    const folders = (
+      options.config as { folders?: FileSystemDirectoryHandle[] }
+    )?.folders;
+    if (!folders?.length) throw new Error("Choose at least one folder");
+
+    const updated: LocalMusicSource = {
+      ...source,
+      handle: folders[0],
+      handles: folders,
+      name: localSourceName(folders),
+    };
+    await getSourcesStore().saveSource(updated);
+    await this.sync({ source: updated });
   }
 
   /**
@@ -97,12 +127,27 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
     musicSourceConfig?: MusicSourceImportConfig;
   }): Promise<Song[]> {
     const reader = getMetadataReader();
-    const handle = (options.source as { handle: FileSystemDirectoryHandle }).handle;
+    const folders = localSourceFolders(options.source as LocalMusicSource);
     const entries: Array<{
       handle: FileSystemFileHandle;
       relativePath: string;
     }> = [];
-    await collectFileHandles(handle, entries);
+    for (const folder of folders) {
+      const found: typeof entries = [];
+      await collectFileHandles(folder, found);
+      // With several folders, each path leads with its folder's name so the
+      // file can be found again (see `resolveLocalSongFolder`).
+      for (const entry of found) {
+        entries.push(
+          folders.length > 1
+            ? {
+                ...entry,
+                relativePath: `${folder.name}/${entry.relativePath}`,
+              }
+            : entry
+        );
+      }
+    }
 
     const songs: Song[] = [];
     for (let index = 0; index < entries.length; index++) {
@@ -129,10 +174,14 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
    * directly (local files carry their artwork inline); a URL without
    * data is not resolvable from the file system.
    */
-  async resolvePictureBytes(pic: {
-    data?: Uint8Array;
-    url?: string;
-  }, _song: Song, _musicSourceConfig?: MusicSourceImportConfig): Promise<Uint8Array | null> {
+  async resolvePictureBytes(
+    pic: {
+      data?: Uint8Array;
+      url?: string;
+    },
+    _song: Song,
+    _musicSourceConfig?: MusicSourceImportConfig
+  ): Promise<Uint8Array | null> {
     if (pic.data && pic.data.length > 0) return pic.data;
     return null;
   }
@@ -142,16 +191,22 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
    * job (progress + completion appear in the notification center). Always
    * returns true — a local folder is always re-scannable.
    */
-  async sync(options: { source: MusicSource; silent?: boolean }): Promise<IJobHandle | null> {
+  async sync(options: {
+    source: MusicSource;
+    silent?: boolean;
+  }): Promise<IJobHandle | null> {
     const { source, silent } = options;
     if (source.kind !== "local") return null;
 
     const jobId = uuidv7();
-    getJobService().enqueue({
-      type: "Bulk Import",
-      silent,
-      payload: { musicSource: source },
-    }, jobId);
+    getJobService().enqueue(
+      {
+        type: "Bulk Import",
+        silent,
+        payload: { musicSource: source },
+      },
+      jobId
+    );
 
     return {
       jobId,

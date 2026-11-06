@@ -1,5 +1,6 @@
 import { uuidv7 } from "uuidv7";
 import type { MusicSource } from "@/models";
+import { localSourceName } from "@/core/contracts/sources";
 import type { CombinedMetadataStore } from "./browser/CombinedMetadataStore";
 import { getMetadataStore } from "./initMetadataStore";
 
@@ -10,16 +11,19 @@ import { getMetadataStore } from "./initMetadataStore";
  * the same table can later hold subsonic/server instances too.
  */
 export function addPersistedStoreDirectory(
-  directory: FileSystemDirectoryHandle
+  directories: FileSystemDirectoryHandle | FileSystemDirectoryHandle[]
 ): Promise<MusicSource> {
+  const folders = Array.isArray(directories) ? directories : [directories];
+  const directory = folders[0];
   const store = getMetadataStore() as CombinedMetadataStore;
 
   const source: MusicSource = {
     id: uuidv7(),
     uriDomain: "local",
     kind: "local",
-    name: directory.name,
+    name: localSourceName(folders),
     handle: directory,
+    handles: folders,
     enabled: true,
     priority: 50,
     createdAt: new Date(),

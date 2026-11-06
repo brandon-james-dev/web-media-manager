@@ -25,6 +25,13 @@ export interface Playlist {
   /** Ordered playlist entries (order = play order). */
   songs: PlaylistEntry[];
 
+  /**
+   * The music source this playlist was imported from (e.g. a Subsonic
+   * server). Absent for playlists created in the app. Whether it can be
+   * edited follows that source's `capabilities.playlistWrite`.
+   */
+  sourceId?: string;
+
   /** Whether this is the reserved, non-deletable favorites playlist. */
   isFavorites?: boolean;
 

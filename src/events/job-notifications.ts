@@ -4,6 +4,14 @@ import type { BackgroundJobState } from "./background-job-events";
 
 // Bridges job lifecycle events on the WmmBus into UI toast notifications.
 // Notifications for child jobs are intentionally skipped.
+/** True while a bulk import is in its playlist phase (after the songs). */
+function isPlaylistPhase(payload: unknown): boolean {
+  return (
+    (payload as { data?: { phase?: string } } | undefined)?.data?.phase ===
+    "playlists"
+  );
+}
+
 wmmBus.on("wmm.jobs.state", (evt) => {
   if (!evt) return;
   if (evt.parentJobId) return;
@@ -13,7 +21,8 @@ wmmBus.on("wmm.jobs.state", (evt) => {
   const jobType = evt.jobType ?? "Job";
   const state = evt.state as BackgroundJobState;
   const message =
-    (evt.payload as { message?: string } | undefined)?.message ?? "Unknown error";
+    (evt.payload as { message?: string } | undefined)?.message ??
+    "Unknown error";
 
   switch (evt.state) {
     case "progress":
@@ -23,7 +32,9 @@ wmmBus.on("wmm.jobs.state", (evt) => {
         kind: jobType,
         state,
         payload: evt.payload,
-        title: `${jobType} started`,
+        title: isPlaylistPhase(evt.payload)
+          ? "Importing playlists"
+          : `${jobType} started`,
         detail: "Started",
       });
       break;

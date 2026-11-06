@@ -3,11 +3,7 @@ import type { WorkerJob } from "@/workers";
 import type { WorkerJobType } from "@/workers/WorkerJob";
 
 export type BackgroundJobState =
-  | "started"
-  | "progress"
-  | "completed"
-  | "error"
-  | "canceled";
+  "started" | "progress" | "completed" | "error" | "canceled";
 
 export interface BackgroundJob extends WorkerJob {
   token?: CancellationToken;
@@ -26,4 +22,3 @@ export interface BackgroundEvent {
   /** Suppress UI notifications for this event (silent jobs). */
   silent?: boolean;
 }
-

@@ -35,6 +35,11 @@ export function BulkImportNotification({
     state: notification.state,
   };
 
+  // Playlist phase (after the songs): set once the worker reports it.
+  let playlists:
+    | { completed: number; total: number; overall: number; done: boolean }
+    | undefined;
+
   let child = {
     completed: 0,
     total: 0,
@@ -71,16 +76,46 @@ export function BulkImportNotification({
   } else {
     const progress = payload as ProgressPayload | undefined;
 
-    parent = {
-      completed: progress?.index ?? 0,
-      total: progress?.total ?? 0,
-      overall: finiteProgress(progress?.overall ?? progress?.percent),
-      label: progress?.label ?? "",
-      state: notification.state,
+    if (progress?.data?.phase === "playlists") {
+      // Songs are finished by the time playlists start.
+      parent = {
+        completed: 0,
+        total: 0,
+        overall: 1,
+        label: progress.label ?? "",
+        state: "completed",
+      };
+      playlists = {
+        completed: progress.index ?? 0,
+        total: progress.total ?? 0,
+        overall: finiteProgress(progress.percent),
+        done: Boolean(progress.data.done),
+      };
+    } else {
+      parent = {
+        completed: progress?.index ?? 0,
+        total: progress?.total ?? 0,
+        overall: finiteProgress(progress?.overall ?? progress?.percent),
+        label: progress?.label ?? "",
+        state: notification.state,
+      };
+    }
+  }
+
+  // The finished job's result lists the playlists it imported.
+  const resultPlaylists = (payload as { playlists?: unknown[] } | undefined)
+    ?.playlists;
+  if (Array.isArray(resultPlaylists) && resultPlaylists.length > 0) {
+    playlists = {
+      completed: resultPlaylists.length,
+      total: resultPlaylists.length,
+      overall: 1,
+      done: true,
     };
   }
 
   const parentComplete = parent.state === "completed";
+  const importDone = notification.state === "completed";
 
   const childComplete = child.completed === child.total;
 
@@ -106,6 +141,30 @@ export function BulkImportNotification({
             </>
           )}
         </div>
+
+        {playlists && (
+          <div>
+            <div className="text-xs font-medium mb-1">Importing Playlists</div>
+
+            {playlists.done || importDone ? (
+              <div className="text-xs text-muted-foreground">
+                Completed
+                {playlists.total > 0 &&
+                  ` · ${playlists.total} ${playlists.total === 1 ? "playlist" : "playlists"}`}
+              </div>
+            ) : (
+              <>
+                <Progress value={playlists.overall * 100} />
+
+                {playlists.total > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {playlists.completed} / {playlists.total}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {child.total > 0 && (
           <div>

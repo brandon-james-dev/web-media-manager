@@ -29,7 +29,7 @@ import { getSourcesStore } from "@/core/ports";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { Badge } from "@/components/ui/badge";
 import { musicSourceStrategies } from "@/lib/sources";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsCompact } from "@/lib/hooks/useIsMobile";
 import { cn } from "cn"
 import { sourceKindBadge } from "@/lib/sources/source-ui";
 import type { MusicSource } from "@/models";
@@ -38,7 +38,7 @@ import { AccentColorSelector } from "@/components/theme-provider";
 
 export function Settings() {
   //#region State
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const { setTheme, theme, accentColor, setAccentColor } = useTheme();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
@@ -274,23 +274,23 @@ export function Settings() {
                   key={dir.id}
                   className={cn(
                     "p-0",
-                    isMobile
+                    isCompact
                       ? "flex flex-col items-stretch gap-1.5 py-2"
                       : "flex items-center justify-between gap-1"
                   )}
                 >
                   <div className="flex items-center gap-2 pl-2 min-w-0 overflow-hidden">
                     <span className="truncate">{dir.name}</span>
-                    {!isMobile && <SourceKindBadge source={dir} />}
+                    {!isCompact && <SourceKindBadge source={dir} />}
                   </div>
 
-                  <div className={cn("flex items-center gap-1 shrink-0", isMobile ? "pl-1" : undefined)}>
-                    {isMobile && <SourceKindBadge source={dir} />}
+                  <div className={cn("flex items-center gap-1 shrink-0", isCompact ? "pl-1" : undefined)}>
+                    {isCompact && <SourceKindBadge source={dir} />}
                     {musicSourceStrategies.some((s) => s.kind === dir.kind && s.updateSource) && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={isMobile ? "w-auto px-3" : undefined}
+                        className={isCompact ? "w-auto px-3" : undefined}
                         aria-label={`Edit ${dir.name}`}
                         onClick={() => setEditingSource(dir)}
                       >
@@ -302,7 +302,7 @@ export function Settings() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={isMobile ? "w-auto px-3" : undefined}
+                        className={isCompact ? "w-auto px-3" : undefined}
                         aria-label={`Sync ${dir.name}`}
                         disabled={syncingId === dir.id}
                         onClick={() => handleSyncSource(dir)}
@@ -318,7 +318,7 @@ export function Settings() {
                     <Button
                       variant="secondary"
                       size="icon"
-                      className={isMobile ? "w-auto px-3" : undefined}
+                      className={isCompact ? "w-auto px-3" : undefined}
                       onClick={() => {
                         setPendingDeleteId(dir.id);
                         setDeleteDirDialogOpen(true);

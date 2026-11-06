@@ -1,21 +1,42 @@
 import { PlayerControls } from "@/components/player-controls";
 import { Badge } from "@/components/ui/badge";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Toggle } from "@/components/ui/toggle";
+import { SourceFilter } from "@/components/source-filter";
 import { useSongs, useSync } from "@/hooks";
 import type { QueryOptions } from "@/lib/persistence";
 import type { Song } from "@/models";
-import { Music, DiscAlbum, Search, Pen, MonitorSmartphone, MicVocal } from "lucide-react";
+import {
+  Music,
+  DiscAlbum,
+  Search,
+  Pen,
+  MonitorSmartphone,
+  MicVocal,
+  ListMusic,
+} from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { Outlet, NavLink, useLocation, useParams, useNavigate } from "react-router";
+import {
+  Outlet,
+  NavLink,
+  useLocation,
+  useParams,
+  useNavigate,
+} from "react-router";
 import { Editor } from "@/components/editor";
-import { Toggle } from "@/components/ui/toggle";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsMobile, useIsTablet } from "@/lib/hooks/useIsMobile";
 import { cn } from "cn";
 
 type MainContext = {
   queryText: string;
   activeMode: "edit" | "playback" | undefined;
+  selectedSourceIds: string[];
+  setSelectedSourceIds: React.Dispatch<React.SetStateAction<string[]>>;
   sort: {
     selector: (item: Song) => any;
     desc: boolean;
@@ -33,6 +54,9 @@ function MainLayout() {
   const { pathname } = useLocation();
   const { mode } = useParams();
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  // Phones and tablets share the compact chrome (bottom bars, no header tabs).
+  const isCompact = isMobile || isTablet;
   const navigate = useNavigate();
 
   const isSyncPage = pathname.startsWith("/sync");
@@ -42,13 +66,19 @@ function MainLayout() {
 
   const activeTab = isSyncPage
     ? "sync"
-    : pathname.includes("albums")
-      ? "albums"
-      : pathname.includes("artists")
-        ? "artists"
-        : "songs";
+    : pathname.includes("playlists")
+      ? "playlists"
+      : pathname.includes("albums")
+        ? "albums"
+        : pathname.includes("artists")
+          ? "artists"
+          : "songs";
 
-  const activeMode = isSyncPage ? undefined : mode === "edit" ? "edit" : "playback";
+  const activeMode = isSyncPage
+    ? undefined
+    : mode === "edit"
+      ? "edit"
+      : "playback";
 
   const routeMode = activeMode ?? "playback";
 
@@ -60,25 +90,40 @@ function MainLayout() {
   }>();
 
   const [queryText, setQueryText] = useState<string>("");
+  // Source filter shared by the Songs, Albums and Artists pages. Empty means
+  // "every source"; the chips live in each page's own filter bar.
+  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   // Mobile: the search field lives above the bottom nav and is toggled by a
   // Search tab there, instead of always occupying header width.
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState<boolean>(false);
   const mobileSearchRef = useRef<HTMLInputElement>(null);
 
   // Opening the field should drop the keyboard straight away; closing it
-  // clears the filter so a hidden search box isn't silently narrowing results.
+  // blurs. Clearing the query happens in the toggle handler (the event that
+  // caused it) so no setState runs synchronously inside this effect.
   useEffect(() => {
     if (isMobileSearchOpen) {
       mobileSearchRef.current?.focus();
     } else {
-      setQueryText("");
       mobileSearchRef.current?.blur();
     }
-  }, [isMobileSearchOpen, setQueryText]);
+  }, [isMobileSearchOpen]);
   //#endregion
 
   //#region Interactivity Handlers
-  function handleFilterTextChange(evt: ChangeEvent<HTMLInputElement, HTMLInputElement>): void {
+  function toggleMobileSearch(): void {
+    if (isMobileSearchOpen) {
+      setIsMobileSearchOpen(false);
+      // A hidden search box must not keep narrowing the results.
+      setQueryText("");
+    } else {
+      setIsMobileSearchOpen(true);
+    }
+  }
+
+  function handleFilterTextChange(
+    evt: ChangeEvent<HTMLInputElement, HTMLInputElement>
+  ): void {
     const text = evt.target.value;
     setQueryText(text);
 
@@ -96,44 +141,46 @@ function MainLayout() {
   }
   //#endregion
 
+  // The compact bottom navigation replaces the header tabs on phones and
+  // tablets. Sync is desktop-first and stays reachable by URL.
+  const showBottomNav = isCompact && (total ?? 0) > 0 && !isSyncPage;
+
+  // The album drawer portals to <body>, so it cannot read this subtree's
+  // layout. Publish the bottom chrome's measured height as a root variable
+  // instead of hardcoding an offset per breakpoint.
+  const chromeRef = useRef<HTMLDivElement>(null);
+  // Anchor for the source-filter popup: the search field, so the popup opens
+  // centred on it. Held in state (via a callback ref) rather than read from a
+  // ref during render.
+  const [searchAnchor, setSearchAnchor] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = chromeRef.current;
+    if (!el) return;
+
+    const apply = () => {
+      document.documentElement.style.setProperty(
+        "--sheet-offset",
+        `${el.offsetHeight}px`
+      );
+    };
+
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--sheet-offset");
+    };
+  }, [showBottomNav]);
+
   return (
     <div className="flex flex-col h-full select-none">
       <div
         className="border-b px-4 py-2 flex gap-2 items-center justify-between"
-        hidden={(total ?? 0) == 0}
+        hidden={isCompact || (total ?? 0) == 0}
       >
-        <div className="w-45 sm:flex">
-          <Toggle
-            variant="outline"
-            className="bg-muted aria-pressed:bg-accent"
-            disabled={isSyncPage}
-            pressed={!isSyncPage && activeMode === "edit"}
-            onPressedChange={(pressed) => {
-              navigate(`${activeTab}/${pressed ? "edit" : "playback"}`);
-            }}
-          >
-            <Pen className="h-4 w-4" />
-            Edit
-          </Toggle>
-        </div>
-        {/* On mobile search moves above the bottom nav (toggled there). */}
-        <div className="w-full md:w-120" hidden={isMobile}>
-          <InputGroup className="max-w-xs mx-auto">
-            <InputGroupInput
-              placeholder="Search..."
-              value={queryText}
-              onChange={handleFilterTextChange}
-              disabled={isSyncPage}
-            />
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            {filteredTotal != total && (
-              <InputGroupAddon align="inline-end">{filteredTotal} results</InputGroupAddon>
-            )}
-          </InputGroup>
-        </div>
-        <div className="w-45 flex justify-end gap-2" hidden={isMobile}>
+        <div className="flex shrink-0 items-center gap-2" hidden={isCompact}>
           <Tabs value={activeTab}>
             <TabsList>
               <TabsTrigger
@@ -179,6 +226,72 @@ function MainLayout() {
               />
             </TabsList>
           </Tabs>
+        </div>
+
+        <div
+          className="flex min-w-0 flex-1 items-center justify-center"
+          hidden={isCompact}
+        >
+          <InputGroup ref={setSearchAnchor} className="w-full max-w-xs">
+            <InputGroupInput
+              placeholder="Search..."
+              value={queryText}
+              onChange={handleFilterTextChange}
+              disabled={isSyncPage}
+            />
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            {filteredTotal != total && (
+              <InputGroupAddon align="inline-end">
+                {filteredTotal} results
+              </InputGroupAddon>
+            )}
+            <InputGroupAddon align="inline-end">
+              <SourceFilter
+                selected={selectedSourceIds}
+                onSelectedChange={setSelectedSourceIds}
+                anchor={searchAnchor}
+              />
+            </InputGroupAddon>
+          </InputGroup>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2" hidden={isCompact}>
+          <Toggle
+            variant="outline"
+            className="bg-muted aria-pressed:bg-accent"
+            disabled={isSyncPage}
+            pressed={!isSyncPage && activeMode === "edit"}
+            onPressedChange={(pressed) => {
+              navigate(`${activeTab}/${pressed ? "edit" : "playback"}`);
+            }}
+          >
+            <Pen className="h-4 w-4" />
+            Edit
+          </Toggle>
+
+          <div className="relative rounded-lg bg-muted py-px px-2">
+            <NavLink
+              to={`playlists/${routeMode}`}
+              draggable={false}
+              className={({ isActive }) => `
+                inline-flex items-center gap-2
+                p-0.75 rounded-md
+                text-sm font-medium
+                transition-all cursor-default
+
+                ${
+                  isActive
+                    ? "text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }
+              `}
+            >
+              <ListMusic className="h-4 w-4" />
+              Playlists
+            </NavLink>
+          </div>
 
           <div className="relative rounded-lg bg-muted py-px px-2">
             <NavLink
@@ -201,8 +314,6 @@ function MainLayout() {
               Sync
             </NavLink>
 
-            {/* Queued-song count. Positioned absolutely so the fixed-width
-                nav row does not reflow when the queue changes. */}
             {queuedSongs.length > 0 && (
               <Badge className="pointer-events-none absolute -top-1.5 -right-1.5 z-10 h-4.5 min-w-4.5 rounded-full px-1 text-[0.65rem] font-semibold tabular-nums">
                 {queuedSongs.length > 99 ? "99+" : queuedSongs.length}
@@ -213,112 +324,139 @@ function MainLayout() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <Outlet context={{ queryText, activeMode, sort, setSort }} />
+        <Outlet
+          context={{
+            queryText,
+            activeMode,
+            selectedSourceIds,
+            setSelectedSourceIds,
+            sort,
+            setSort,
+          }}
+        />
       </div>
 
-      {/* In mobile playback mode the playback dock rides above z-50 sheets
-          (bottom drawers portal at the root, which shares the root stacking
-          context, so a higher sibling z wins) — the album sheet no longer
-          covers it. Scoped to playback: edit mode's own editor drawer is
-          meant to overlay the dock. */}
       <div
-        className={cn("shrink-0", isMobile && activeMode === "playback" && "relative z-60")}
-        hidden={isSyncPage || (total ?? 0) === 0}
+        ref={chromeRef}
+        className={cn(
+          "relative w-full shrink-0 px-2 pb-2",
+          isCompact && "mx-auto max-w-3xl",
+          isTablet && showBottomNav && "flex items-stretch gap-2"
+        )}
       >
-        {activeMode === "edit" && <Editor mode={activeTab as "songs" | "albums" | "artists"} />}
-
-        {activeMode === "playback" && <PlayerControls />}
-      </div>
-
-      {/* Mobile primary navigation: icons with the label underneath, pinned
-          to the bottom of the viewport — replaces the header tab row, which
-          is too small to hit with a thumb. Sync is not offered here (it is a
-          desktop-first feature); it stays reachable by URL. */}
-      {isMobile && (total ?? 0) > 0 && !isSyncPage && (
-        <nav className="relative z-60 shrink-0 border-t bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg">
-          {/* Frosted bar: the z-50 sheet and its scrim composite under this
-              bar, and the backdrop blur makes it visibly slide past on
-              open/close. Falls back to an opaque fill where
-              backdrop-filter isn't supported. */}
-          {/* Search field toggled by the Search button below; sits above the
-              button row so the thumb targets never shrink. */}
-          {isMobileSearchOpen && (
-            <div className="px-2 pb-1">
-              <InputGroup className="h-14">
-                <InputGroupInput
-                  ref={mobileSearchRef}
-                  placeholder="Search..."
-                  value={queryText}
-                  onChange={handleFilterTextChange}
-                  enterKeyHint="search"
-                  inputMode="search"
-                />
-                <InputGroupAddon className="p-4">
-                  <Search />
+        {isMobileSearchOpen && (
+          <div className="absolute bottom-full left-0 right-0 z-70 mb-2 overflow-hidden rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg">
+            <InputGroup className="h-14 border-0">
+              <InputGroupInput
+                ref={mobileSearchRef}
+                placeholder="Search..."
+                value={queryText}
+                onChange={handleFilterTextChange}
+                enterKeyHint="search"
+                inputMode="search"
+              />
+              <InputGroupAddon className="p-4">
+                <Search />
+              </InputGroupAddon>
+              {filteredTotal != total && (
+                <InputGroupAddon className="p-4" align="inline-end">
+                  {filteredTotal} results
                 </InputGroupAddon>
-                {filteredTotal != total && (
-                  <InputGroupAddon className="p-4" align="inline-end">
-                    {filteredTotal} results
-                  </InputGroupAddon>
-                )}
-              </InputGroup>
-            </div>
+              )}
+            </InputGroup>
+          </div>
+        )}
+
+        <div
+          className={cn(
+            "w-full min-w-0 shrink-0 overflow-hidden rounded-xl shadow-lg",
+            isTablet && showBottomNav && "order-2 min-w-0 flex-1",
+            isCompact && activeMode === "playback" && "relative z-60"
+          )}
+          hidden={isSyncPage || (total ?? 0) === 0}
+        >
+          {activeMode === "edit" && (
+            <Editor
+              mode={activeTab as "songs" | "albums" | "artists" | "playlists"}
+            />
           )}
 
-          <div className="flex items-stretch justify-around">
-            {(
-              [
-                {
-                  tab: "songs",
-                  label: "Songs",
-                  icon: <Music className="h-5 w-5" />,
-                },
-                {
-                  tab: "albums",
-                  label: "Albums",
-                  icon: <DiscAlbum className="h-5 w-5" />,
-                },
-                {
-                  tab: "artists",
-                  label: "Artists",
-                  icon: <MicVocal className="h-5 w-5" />,
-                },
-              ] as const
-            ).map((item) => {
-              const isActive = activeTab === item.tab;
-              return (
-                <NavLink
-                  key={item.tab}
-                  to={`${item.tab}/${routeMode}`}
-                  draggable={false}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "flex flex-1 flex-col items-center gap-1 py-2 text-xs transition-colors",
-                    isActive ? "text-foreground font-medium" : "text-muted-foreground",
-                  )}
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
+          {activeMode === "playback" && <PlayerControls />}
+        </div>
 
-            <button
-              type="button"
-              onClick={() => setIsMobileSearchOpen((open) => !open)}
-              aria-expanded={isMobileSearchOpen}
-              aria-current={isMobileSearchOpen ? "page" : undefined}
-              className={cn(
-                "flex flex-1 cursor-default flex-col items-center gap-1 py-2 text-xs transition-colors",
-                isMobileSearchOpen ? "text-foreground font-medium" : "text-muted-foreground",
-              )}
-            >
-              <Search className="h-5 w-5" />
-              <span>Search</span>
-            </button>
-          </div>
-        </nav>
-      )}
+        {showBottomNav && (
+          <nav
+            className={cn(
+              "relative z-60 w-full min-w-0 shrink-0 rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg",
+              isTablet && showBottomNav && "order-1 min-w-0 flex-1"
+            )}
+          >
+            <div className="flex h-full items-stretch justify-center">
+              {(
+                [
+                  {
+                    tab: "songs",
+                    label: "Songs",
+                    icon: <Music className="h-5 w-5" />,
+                  },
+                  {
+                    tab: "albums",
+                    label: "Albums",
+                    icon: <DiscAlbum className="h-5 w-5" />,
+                  },
+                  {
+                    tab: "artists",
+                    label: "Artists",
+                    icon: <MicVocal className="h-5 w-5" />,
+                  },
+                  {
+                    tab: "playlists",
+                    label: "Playlists",
+                    icon: <ListMusic className="h-5 w-5" />,
+                  },
+                ] as const
+              ).map((item) => {
+                const isActive = activeTab === item.tab;
+                return (
+                  <NavLink
+                    key={item.tab}
+                    to={`${item.tab}/${routeMode}`}
+                    draggable={false}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex h-full flex-col items-center justify-center gap-1 py-2 text-xs transition-colors",
+                      isMobile ? "flex-1" : "px-3",
+                      isActive
+                        ? "text-foreground font-medium"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </NavLink>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={toggleMobileSearch}
+                aria-expanded={isMobileSearchOpen}
+                aria-current={isMobileSearchOpen ? "page" : undefined}
+                className={cn(
+                  "flex h-full cursor-default flex-col items-center justify-center gap-1 py-2 text-xs transition-colors",
+                  isMobile ? "flex-1" : "px-3",
+                  isMobileSearchOpen
+                    ? "text-foreground font-medium"
+                    : "text-muted-foreground"
+                )}
+              >
+                <Search className="h-5 w-5" />
+                <span>Search</span>
+              </button>
+            </div>
+          </nav>
+        )}
+      </div>
     </div>
   );
 }

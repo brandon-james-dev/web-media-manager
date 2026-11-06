@@ -3,6 +3,7 @@ import "./index.css";
 import { Component, StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";
+import { BrowserHistorySync } from "./lib/router/BrowserHistorySync.tsx";
 import App from "./App.tsx";
 
 function formatError(error: unknown): string {
@@ -66,6 +67,7 @@ try {
     <StrictMode>
       <ErrorBoundary>
         <MemoryRouter>
+          <BrowserHistorySync />
           <App />
         </MemoryRouter>
       </ErrorBoundary>

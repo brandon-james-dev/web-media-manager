@@ -27,7 +27,7 @@ import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import { wmmBus } from "@/events";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsCompact } from "@/lib/hooks/useIsMobile";
 import { formatLength } from "@/lib/formatLength";
 
 export function PlayerControls() {
@@ -37,10 +37,12 @@ export function PlayerControls() {
   // Elapsed-time readout ticks once a second; the progress bar keeps its own
   // (faster) rate from trackPosition.
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  // Which track the readout belongs to (see the reset below).
+  const [elapsedSongId, setElapsedSongId] = useState<string | undefined>(undefined);
   // Mobile renders a compact mini-player (now-playing info + one large play
   // button) instead of the wide three-column bar, whose controls are too
   // small to reach with a thumb.
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   const {
     playlist,
     nowPlayingIndex,
@@ -51,6 +53,15 @@ export function PlayerControls() {
     isPlaying,
     getCurrentTime,
   } = usePlayback();
+
+  // When playback rolls onto the next track the readout restarts at zero
+  // immediately, instead of showing the previous track's time until the next
+  // one-second tick. Adjusting state during render (rather than in an effect)
+  // is React's documented pattern for reacting to a changed prop.
+  if (elapsedSongId !== nowPlaying?.id) {
+    setElapsedSongId(nowPlaying?.id);
+    setElapsedSeconds(0);
+  }
   //#endregion
 
   //#region Subscribe to domain events
@@ -258,9 +269,9 @@ export function PlayerControls() {
       ? Math.min(100, (trackPosition / nowPlaying.length) * 100)
       : 0;
 
-  if (isMobile) {
+  if (isCompact) {
     return (
-      <div className="relative flex shrink-0 items-center gap-2 px-2 py-2 border-t bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg select-none">
+      <div className="relative flex shrink-0 items-center gap-2 px-2 py-2 border bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg select-none">
         {/* Slim progress rule along the top edge, like the mini-player. */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-muted overflow-hidden">
           <div

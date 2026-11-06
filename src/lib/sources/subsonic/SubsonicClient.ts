@@ -136,19 +136,22 @@ export class SubsonicClient {
       creds
     );
     const folder = body["subsonic-response"].musicFolders?.musicFolder;
-    return (Array.isArray(folder) ? folder : []) as Array<{ id: string; name: string }>;
+    return (Array.isArray(folder) ? folder : []) as Array<{
+      id: string;
+      name: string;
+    }>;
   }
 
   /** Root-level artist index plus any unindexed root songs. Exhaustive walk
    *  of a library starts here: each index entry feeds getArtist(); each root
    *  child is a song without an artist bucket. */
-  async getIndexes(
-    creds: SubsonicCredentials
-  ): Promise<{
+  async getIndexes(creds: SubsonicCredentials): Promise<{
     index: Array<{ id?: string; name?: string; artist?: unknown[] }>;
     child: unknown[];
   }> {
-    const body = await this.request<{ indexes: { index?: unknown; child?: unknown } }>(
+    const body = await this.request<{
+      indexes: { index?: unknown; child?: unknown };
+    }>(
       "getIndexes",
       creds,
       this.config.musicFolderId
@@ -159,7 +162,11 @@ export class SubsonicClient {
     const index = Array.isArray(indexes?.index) ? indexes.index : [];
     const child = Array.isArray(indexes?.child) ? indexes.child : [];
     return {
-      index: index.slice() as Array<{ id?: string; name?: string; artist?: unknown[] }>,
+      index: index.slice() as Array<{
+        id?: string;
+        name?: string;
+        artist?: unknown[];
+      }>,
       child,
     };
   }
@@ -203,15 +210,56 @@ export class SubsonicClient {
     const body = await this.request<{ albumList: { album: unknown } }>(
       "getAlbumList",
       creds,
-      { type, size: String(size), ...(this.config.musicFolderId ? { musicFolderId: this.config.musicFolderId } : {}) }
+      {
+        type,
+        size: String(size),
+        ...(this.config.musicFolderId
+          ? { musicFolderId: this.config.musicFolderId }
+          : {}),
+      }
     );
     const album = body["subsonic-response"].albumList?.album;
     return Array.isArray(album) ? album : [];
   }
 
+  /** Playlists visible to the authenticated user (no entries). */
+  async getPlaylists(
+    creds: SubsonicCredentials
+  ): Promise<
+    Array<{ id: string; name?: string; created?: string; changed?: string }>
+  > {
+    const body = await this.request<{ playlists: { playlist?: unknown } }>(
+      "getPlaylists",
+      creds
+    );
+    const list = body["subsonic-response"].playlists?.playlist;
+    return (Array.isArray(list) ? list : []) as Array<{
+      id: string;
+      name?: string;
+      created?: string;
+      changed?: string;
+    }>;
+  }
+
+  /** One playlist with its ordered entries (songs). */
+  async getPlaylist(
+    creds: SubsonicCredentials,
+    id: string
+  ): Promise<{ entry: unknown[] }> {
+    const body = await this.request<{ playlist: { entry?: unknown } }>(
+      "getPlaylist",
+      creds,
+      { id }
+    );
+    const entry = body["subsonic-response"].playlist?.entry;
+    return { entry: Array.isArray(entry) ? entry : [] };
+  }
+
   /** A single song by its Open Subsonic id. */
   async getSong(creds: SubsonicCredentials, id: string): Promise<unknown> {
-    const body = await this.request<{ song: unknown }>("getSong", creds, { id });
+    const body = await this.request<{ song: unknown }>("getSong", creds, {
+      id,
+    });
     return body["subsonic-response"].song;
   }
 
@@ -229,7 +277,8 @@ export class SubsonicClient {
     if (size != null) extra.size = String(size);
     const url = this.buildUrl("getCoverArt", creds, extra);
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`Subsonic getCoverArt failed: HTTP ${res.status}`);
+    if (!res.ok)
+      throw new Error(`Subsonic getCoverArt failed: HTTP ${res.status}`);
     return await res.arrayBuffer();
   }
 

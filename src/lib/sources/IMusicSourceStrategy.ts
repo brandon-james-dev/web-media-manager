@@ -1,5 +1,5 @@
 import type { MusicSourceKind } from "@/core/contracts";
-import type { MusicSource } from "@/models";
+import type { MusicSource, Playlist } from "@/models";
 import type { Song } from "@/models/Song";
 import type { WorkerProgress } from "@/core/jobs";
 import type { MusicSourceImportConfig } from "./config";
@@ -137,16 +137,34 @@ export interface IMusicSourceStrategy {
   }): Promise<Song[]>;
 
   /**
+   * Collect this source kind's playlists as app playlists (stamped with the
+   * source's `sourceId`). Optional: kinds without source-held playlists omit
+   * it. Return null when playlists could not be read, so the import leaves
+   * the source's existing playlists untouched instead of pruning them.
+   * Runs inside the web worker (UI-free).
+   */
+  collectPlaylists?(options: {
+    source: MusicSource;
+    isCancelled?: () => boolean;
+    reportProgress?: (progress: WorkerProgress) => void;
+    musicSourceConfig?: MusicSourceImportConfig;
+  }): Promise<Playlist[] | null>;
+
+  /**
    * Resolve the raw image bytes of a song picture for artwork processing.
    * `data` is used directly when present (embedded tag art); otherwise the
    * source's cover art is resolved at the largest available size (e.g. a
    * Subsonic cover-art id through the server). Returns null when no bytes
    * are obtainable. Runs inside the web worker (UI-free).
    */
-  resolvePictureBytes(pic: {
-    data?: Uint8Array;
-    url?: string;
-  }, song: Song, musicSourceConfig?: MusicSourceImportConfig): Promise<Uint8Array | null>;
+  resolvePictureBytes(
+    pic: {
+      data?: Uint8Array;
+      url?: string;
+    },
+    song: Song,
+    musicSourceConfig?: MusicSourceImportConfig
+  ): Promise<Uint8Array | null>;
 }
 
 /** Handle to a cancellable background job (sync, add import). */

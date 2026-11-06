@@ -17,8 +17,12 @@ export interface TrackItemAction {
 export interface TrackItemProps {
   /** The song this row represents. */
   song: Song;
-  /** Leading track number (defaults to the song's own track). */
+  /** Leading track number fallback (the song's own track wins). */
   index?: number;
+  /** Leading number that wins over the album track (e.g. playlist position). */
+  position?: number;
+  /** Hide the leading number entirely (e.g. search results). */
+  hideNumber?: boolean;
   /** Highlight the row (accent text) — e.g. the currently playing song. */
   isPlaying?: boolean;
   /** Show a cover thumbnail on the leading edge (mobile browsing aid). */

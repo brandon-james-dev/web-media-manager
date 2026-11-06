@@ -13,10 +13,11 @@
  * persisted source config plus username, and the credential is read from
  * localStorage at call time.
  */
-import type { Song, SubsonicMusicSource } from "@/models";
+import type { Playlist, Song, SubsonicMusicSource } from "@/models";
 import { SubsonicClient, type SubsonicCredentials } from "./SubsonicClient";
 import { getSubsonicSecret } from "./subsonicSecrets";
 import { getStore } from "@/core/system";
+import { getPlaylistStore } from "@/core/ports";
 import { parseSourceUri, sourceUri } from "@/core/contracts/sources";
 import { ArtworkType } from "@/lib/contracts";
 
@@ -170,7 +171,8 @@ export async function collectSubsonicSongs(
   // Credentials may be passed explicitly (main thread resolves the secret,
   // which web workers can't read from localStorage); otherwise fall back to
   // the stored secret when running on the main thread.
-  const creds = credentials ?? (await credentialsFor(source).catch(() => undefined));
+  const creds =
+    credentials ?? (await credentialsFor(source).catch(() => undefined));
   if (!creds) return [];
 
   const songs: Song[] = [];
@@ -223,29 +225,33 @@ export async function collectSubsonicSongs(
   // Fetch each album's songs in parallel, reporting progress by album page.
   const totalAlbums = albumsDefs.length;
   let resolved = 0;
-  const results = await asyncPool(albumsDefs, MAX_CONCURRENCY, async (album) => {
-    try {
-      const { name: albumName, song: children } = await client.getAlbum(
-        creds,
-        album.id
-      );
-      return {
-        albumName: albumName ?? album.name,
-        artistName: album.artist,
-        children: (children ?? []) as unknown[],
-      };
-    } catch (error) {
-      if (subsonicErrorCode(error) !== 70) throw error;
-      return {
-        albumName: album.name,
-        artistName: album.artist,
-        children: [] as unknown[],
-      };
-    } finally {
-      resolved++;
-      onProgress?.(resolved, totalAlbums);
+  const results = await asyncPool(
+    albumsDefs,
+    MAX_CONCURRENCY,
+    async (album) => {
+      try {
+        const { name: albumName, song: children } = await client.getAlbum(
+          creds,
+          album.id
+        );
+        return {
+          albumName: albumName ?? album.name,
+          artistName: album.artist,
+          children: (children ?? []) as unknown[],
+        };
+      } catch (error) {
+        if (subsonicErrorCode(error) !== 70) throw error;
+        return {
+          albumName: album.name,
+          artistName: album.artist,
+          children: [] as unknown[],
+        };
+      } finally {
+        resolved++;
+        onProgress?.(resolved, totalAlbums);
+      }
     }
-  });
+  );
 
   for (const result of results) {
     for (const rawChild of result.children) {
@@ -277,6 +283,83 @@ export async function importSubsonicLibrary(
   }
 
   return songs.length;
+}
+
+/** Stable app-side id for a server playlist (re-sync upserts the same row). */
+export function subsonicPlaylistId(
+  source: SubsonicMusicSource,
+  remoteId: string
+): string {
+  return sourceUri(source, `playlist/${remoteId}`);
+}
+
+/**
+ * Map a server playlist to the app's Playlist model. Entry song ids use the
+ * same source-qualified scheme as imported songs, so they resolve against
+ * the catalog without a lookup. Entries without an id are dropped.
+ */
+export function subsonicPlaylistToPlaylist(
+  source: SubsonicMusicSource,
+  remote: { id: string; name?: string; created?: string; changed?: string },
+  entries: unknown[]
+): Playlist {
+  const created = remote.created ? Date.parse(remote.created) : NaN;
+  const changed = remote.changed ? Date.parse(remote.changed) : NaN;
+  const createdAt = Number.isNaN(created) ? Date.now() : created;
+
+  return {
+    id: subsonicPlaylistId(source, remote.id),
+    name: remote.name ?? "Untitled playlist",
+    sourceId: source.id,
+    songs: (entries as SubsonicChild[])
+      .filter((entry) => entry.id)
+      .map((entry) => ({
+        songId: sourceUri(source, entry.id as string),
+        addedAt: createdAt,
+      })),
+    createdAt,
+    updatedAt: Number.isNaN(changed) ? createdAt : changed,
+  };
+}
+
+/**
+ * Fetch the server's playlists and map them to the app's Playlist model
+ * (no persistence — the bulk-import job stores them). Worker-safe: pass the
+ * main-thread-resolved credentials, since workers can't read the secret
+ * store. Returns null when no credentials are available, so the caller
+ * leaves existing playlists untouched rather than pruning them.
+ */
+export async function collectSubsonicPlaylists(
+  source: SubsonicMusicSource,
+  credentials?: SubsonicCredentials,
+  onProgress?: (resolved: number, total: number) => void
+): Promise<Playlist[] | null> {
+  const client = new SubsonicClient(source.config);
+  const creds =
+    credentials ?? (await credentialsFor(source).catch(() => undefined));
+  if (!creds) return null;
+
+  const remote = await client.getPlaylists(creds);
+  let resolved = 0;
+
+  return asyncPool(remote, 4, async (item) => {
+    try {
+      const { entry } = await client.getPlaylist(creds, item.id);
+      return subsonicPlaylistToPlaylist(source, item, entry);
+    } finally {
+      onProgress?.(++resolved, remote.length);
+    }
+  });
+}
+
+/** Drop every playlist imported from a source (used when it is removed). */
+export async function removeSubsonicPlaylists(
+  source: Pick<SubsonicMusicSource, "id">
+): Promise<void> {
+  const store = getPlaylistStore();
+  for (const existing of await store.getAll()) {
+    if (existing.sourceId === source.id) await store.delete(existing.id);
+  }
 }
 
 /**

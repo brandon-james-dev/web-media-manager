@@ -10,7 +10,7 @@ import { ThumbnailSize } from "@/lib";
 import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks/usePlayback";
 import { shuffleState } from "@/hooks/usePlayback";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsCompact } from "@/lib/hooks/useIsMobile";
 import { cn } from "cn";
 import { albumGenre, albumPictureSong, albumYear, trackSorted } from "@/lib/albums/albumDisplay";
 import type { Album } from "@/models";
@@ -26,7 +26,7 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
   // Real playback state, so the Play button reflects what is actually going,
   // including playback started from elsewhere (library rows, artist view).
   const { isPlaying, nowPlaying, shuffle } = usePlayback();
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   // Manual exit animation: Base UI's `data-ending-style` doesn't run on a
   // programmatic close (its duration is `calc(--drawer-swipe-strength * 400ms)`
   // and the strength var stays 0 off-swipe), so the popup vanishes instantly.
@@ -123,7 +123,12 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
 
   const trackList = (
     <div className="min-h-0 flex-1 overflow-y-auto my-6">
-      <ItemGroup className="gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0! divide-y divide-border">
+      <ItemGroup
+        className={cn(
+          "gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0! divide-y divide-border",
+          isCompact && "mx-auto w-full max-w-3xl",
+        )}
+      >
         {tracks.map((song, i) => (
           <div key={song.id}>
             <TrackItem
@@ -133,10 +138,8 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
               isPlaying={nowPlaying?.id === song.id}
               showMeta={false}
               onPlay={() => play(song)}
-              // Mobile: single tap plays (touch has no reliable double-tap
-              // gesture at this density); desktop keeps double-click.
-              onClick={isMobile ? () => play(song) : undefined}
-              onDoubleClick={isMobile ? undefined : () => play(song)}
+              onClick={isCompact ? () => play(song) : undefined}
+              onDoubleClick={isCompact ? undefined : () => play(song)}
             />
           </div>
         ))}
@@ -144,26 +147,14 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
     </div>
   );
 
-  if (isMobile) {
-    // The drawer popup is `fixed bottom-0`, which would bury the mobile
-    // playback dock and the bottom nav. It is anchored above them instead
-    // (9.5rem ≈ dock + nav row + gaps), capped below the header, and its
-    // closed transform is extended by the same offset so swiping still
-    // slides it fully out of view.
+  if (isCompact) {
     return (
       <Drawer
         open={open && !!album}
         onOpenChange={onOpenChange}
-        // Non-modal so the mini-player keeps working underneath the sheet
-        // (play/pause stays reachable without closing it). Close via swipe,
-        // the X, or tapping another album.
         modal={false}
         showSwipeHandle={false}
       >
-        {/* Non-modal drawers render no overlay (the DrawerContent only emits
-            one when `modal` is true), so supply the full-page frost here.
-            Tapping it dismisses the drawer; the player/nav sit above it
-            (z-60) and keep their own taps. */}
         {open && !!album && (
           <div
             data-slot="album-drawer-frost"
@@ -176,20 +167,18 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
         {album && (
           <DrawerContent
             className={cn(
-              "rounded-b-none",
-              "data-[swipe-direction=down]:bottom-32",
-              "max-h-[calc(100dvh-11rem)]",
-              "data-[swipe-direction=down]:[--closed-transform:translate3d(0,calc(100%+9.5rem+2px),0)]",
-              "p-0 overflow-hidden",
-              // Closing: translate the popup down past the player/nav for the
-              // 450ms exit, then open flips off (unmount off-screen).
+              "rounded-xl",
+              "mx-auto w-full max-w-3xl",
+              "data-[swipe-direction=down]:bottom-(--sheet-offset,9.5rem)",
+              "max-h-[calc(100dvh-var(--sheet-offset,9.5rem)-1.5rem)]",
+              "data-[swipe-direction=down]:[--closed-transform:translate3d(0,calc(100%+var(--sheet-offset,9.5rem)+2px),0)]",
+              "p-0 overflow-hidden select-none",
+              "[--bleed:0px]",
               closing &&
-                "data-[swipe-direction=down]:[--translate-y:calc(100%+9.5rem+2px)]"
+              "data-[swipe-direction=down]:[--translate-y:calc(100%+var(--sheet-offset,9.5rem)+2px)]",
             )}
           >
             <div className="relative shrink-0 bg-accent/10 px-4 pt-9 pb-4">
-              {/* Our own swipe handle, on the accent background (the built-in
-                  one renders on the popup's white strip above the block). */}
               <div
                 aria-hidden="true"
                 className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-muted-foreground/25"
@@ -238,12 +227,12 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
 
   return (
     <Dialog open={open && !!album} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85dvh] overflow-hidden">
+      <DialogContent className="max-w-lg sm:max-w-lg max-h-[85dvh] select-none overflow-hidden">
         {album && (
           <>
             <DialogHeader>
-              <div className="flex items-start gap-4">
-                <div className="w-32 shrink-0 self-start sm:w-40">{albumArt}</div>
+              <div className="flex items-end gap-4">
+                <div className="w-32 shrink-0 sm:w-40">{albumArt}</div>
 
                 <div className="min-w-0 flex-1">
                   <DialogTitle className="text-xl leading-tight sm:text-2xl">

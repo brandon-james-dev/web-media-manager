@@ -14,7 +14,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
-import { ArrowDownAZ, ArrowUpAZ, GalleryHorizontal, Grid2x2 } from "lucide-react";
+import {
+  ArrowDownAZ,
+  ArrowUpAZ,
+  GalleryHorizontal,
+  Grid2x2,
+} from "lucide-react";
 import { wmmBus } from "@/events";
 import { TanstackSongTable } from "@/components/song-table";
 import { CoverFlow } from "@/components/cover-flow";
@@ -25,7 +30,8 @@ export function Albums() {
   //#region State
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
-  const { setSort, activeMode } = useOutletContext<MainContext>();
+  const { setSort, activeMode, selectedSourceIds } =
+    useOutletContext<MainContext>();
   const [albumSort] = useState<{
     selector: (song: Song) => void;
     desc: boolean;
@@ -55,7 +61,9 @@ export function Albums() {
 
   useEffect(() => {
     const selector =
-      sortField === "album" ? (song: Song) => song.album : (song: Song) => song.artist;
+      sortField === "album"
+        ? (song: Song) => song.album
+        : (song: Song) => song.artist;
 
     const sort = { selector, desc: sortDesc };
 
@@ -63,10 +71,22 @@ export function Albums() {
     setSort(sort);
   }, [sortField, sortDesc, setQuery, setSort]);
 
+  // Source chips narrow the already-filtered list; an empty selection keeps
+  // every song.
+  const visibleSongs = useMemo(
+    () =>
+      selectedSourceIds.length === 0
+        ? filteredSongs
+        : filteredSongs.filter((song) =>
+            selectedSourceIds.includes(song.sourceId)
+          ),
+    [filteredSongs, selectedSourceIds]
+  );
+
   const albums = useMemo(() => {
     const map = new Map<string, Album>();
 
-    for (const song of filteredSongs) {
+    for (const song of visibleSongs) {
       const title = song.album || "Unknown Album";
       const artist = song.artist || "Unknown Artist";
       const key = `${title}-${artist}`;
@@ -85,7 +105,7 @@ export function Albums() {
     }
 
     return Array.from(map.values());
-  }, [filteredSongs]);
+  }, [visibleSongs]);
   //#endregion
 
   //#region Interactivity handlers
@@ -173,7 +193,10 @@ export function Albums() {
 
         <div className="flex items-center gap-3">
           <div className="bg-muted flex border border-foreground/15 rounded-md">
-            <Select value={sortField} onValueChange={(v) => setSortField(v as "album" | "artist")}>
+            <Select
+              value={sortField}
+              onValueChange={(v) => setSortField(v as "album" | "artist")}
+            >
               <SelectTrigger className="w-35">
                 <SelectValue>{sortFieldLabels[sortField]}</SelectValue>
               </SelectTrigger>
@@ -188,7 +211,11 @@ export function Albums() {
               onPressedChange={(p) => setSortDesc(p)}
               className="px-3 py-1 aria-pressed:bg-transparent"
             >
-              {sortDesc ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpAZ className="h-4 w-4" />}
+              {sortDesc ? (
+                <ArrowDownAZ className="h-4 w-4" />
+              ) : (
+                <ArrowUpAZ className="h-4 w-4" />
+              )}
             </Toggle>
           </div>
         </div>
@@ -228,7 +255,10 @@ export function Albums() {
             onSelectedIndexChange={setSelectedAlbumIndex}
             renderItem={(album, _, selected) => (
               <AlbumCard
-                className={cn("h-55 transition-all", selected && "ring-2 ring-accent")}
+                className={cn(
+                  "h-55 transition-all",
+                  selected && "ring-2 ring-accent"
+                )}
                 album={album}
                 onClick={handleAlbumCardClick}
                 onDoubleClick={handleAlbumCardDoubleClick}

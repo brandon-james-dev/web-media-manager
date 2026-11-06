@@ -46,7 +46,5 @@ async function getSecretForSource(
 export function getStrategy(
   kind: MusicSource["kind"]
 ): IMusicSourceStrategy | null {
-  return (
-    musicSourceStrategies.find((s) => s.kind === kind) ?? null
-  );
+  return musicSourceStrategies.find((s) => s.kind === kind) ?? null;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Loader2, Music } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -7,10 +7,14 @@ import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { TanstackSongTable } from "@/components/song-table";
 import { TrackItem } from "@/components/track-item";
 import { ItemGroup } from "@/components/ui/item";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsCompact } from "@/lib/hooks/useIsMobile";
 import { getStore } from "@/core/system";
 import { wmmBus } from "@/events";
-import { selectors, type QueryOptions, type SortableColumn } from "@/lib/persistence";
+import {
+  selectors,
+  type QueryOptions,
+  type SortableColumn,
+} from "@/lib/persistence";
 import { useSongs } from "@/hooks";
 import type { MusicSource, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
@@ -24,7 +28,20 @@ export function Songs() {
   const [nowPlayingSongId, setNowPlayingSongId] = useState<string>();
 
   const { filteredSongs, query, setQuery } = useSongs();
-  const { sort, setSort, activeMode } = useOutletContext<MainContext>();
+  const { sort, setSort, activeMode, selectedSourceIds } =
+    useOutletContext<MainContext>();
+
+  // Source chips narrow the already-filtered list; an empty selection keeps
+  // every song.
+  const visibleSongs = useMemo(
+    () =>
+      selectedSourceIds.length === 0
+        ? filteredSongs
+        : filteredSongs.filter((song) =>
+            selectedSourceIds.includes(song.sourceId)
+          ),
+    [filteredSongs, selectedSourceIds]
+  );
 
   const [songSort] = useState({
     selector: (song: Song) => song.title,
@@ -40,7 +57,7 @@ export function Songs() {
     });
   }, []);
 
-  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
   //#endregion
 
   //#region Subscribe to domain events
@@ -94,9 +111,9 @@ export function Songs() {
   // walk this list. Live: re-publishes on every sort/filter/query change.
   useEffect(() => {
     wmmBus.invoke("wmm.playback.setCollectionSource", {
-      songIds: filteredSongs.map((s) => s.id),
+      songIds: visibleSongs.map((s) => s.id),
     });
-  }, [filteredSongs]);
+  }, [visibleSongs]);
   //#endregion
 
   //#region Interactivity handlers
@@ -127,7 +144,8 @@ export function Songs() {
   }
 
   function handleSongDoubleClicked(song: Song) {
-    const editingMultiple = activeMode === "edit" || isEditMultiple || selectedSongIds.length > 1;
+    const editingMultiple =
+      activeMode === "edit" || isEditMultiple || selectedSongIds.length > 1;
     if (editingMultiple) {
       // In edit mode, double-click opens the advanced editor for the song.
       wmmBus.invoke("wmm.library.song.edit", { songId: song.id });
@@ -147,7 +165,10 @@ export function Songs() {
         </div>
       ) : (
         <>
-          <div className="flex-1 flex items-center justify-center" hidden={!noMusicSources}>
+          <div
+            className="flex-1 flex items-center justify-center"
+            hidden={!noMusicSources}
+          >
             <Card className="p-10 flex flex-col items-center gap-6">
               <Music className="font-accent" size={48} />
               <h1 className="text-3xl font-bold">Add Music</h1>
@@ -155,10 +176,13 @@ export function Songs() {
             </Card>
           </div>
 
-          <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto" hidden={noMusicSources}>
-            {isMobile ? (
-              <ItemGroup>
-                {filteredSongs.map((song, i) => (
+          <ScrollArea
+            className="flex-1 min-h-0 min-w-0 overflow-auto"
+            hidden={noMusicSources}
+          >
+            {isCompact ? (
+              <ItemGroup className="mx-auto w-full max-w-3xl gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0!">
+                {visibleSongs.map((song, i) => (
                   <TrackItem
                     key={song.id}
                     song={song}
@@ -184,7 +208,7 @@ export function Songs() {
             ) : (
               <>
                 <TanstackSongTable
-                  songs={filteredSongs}
+                  songs={visibleSongs}
                   selectedSongIds={selectedSongIds}
                   isEditMultiple={isEditMultiple}
                   onSelect={handleSongsSelected}

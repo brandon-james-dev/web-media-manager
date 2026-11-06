@@ -1,12 +1,20 @@
 import { useState } from "react";
 import { Plus, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import { musicSourceStrategies } from "@/lib/sources";
 import { sourceKindIcon } from "@/lib/sources/source-ui";
 import type { IMusicSourceStrategy } from "@/lib/sources";
 import type { MusicSource } from "@/models";
+import { isLocalSource, localSourceFolders } from "@/core/contracts/sources";
 import { MusicSourceConfigForm } from "./MusicSourceConfigForm";
 
 export interface AddMusicSourceProps {
@@ -39,13 +47,13 @@ export function AddMusicSource({
   onClose,
 }: AddMusicSourceProps) {
   const [open, setOpen] = useState(Boolean(editingSource));
-  const [activeStrategy, setActiveStrategy] = useState<IMusicSourceStrategy | null>(null);
+  const [activeStrategy, setActiveStrategy] =
+    useState<IMusicSourceStrategy | null>(null);
   const [pendingConfig, setPendingConfig] = useState<unknown>(undefined);
 
-  const editingStrategy =
-    editingSource
-      ? musicSourceStrategies.find((s) => s.kind === editingSource.kind) ?? null
-      : null;
+  const editingStrategy = editingSource
+    ? (musicSourceStrategies.find((s) => s.kind === editingSource.kind) ?? null)
+    : null;
 
   const isEditing = Boolean(editingSource && editingStrategy);
 
@@ -85,7 +93,10 @@ export function AddMusicSource({
     } catch (error) {
       toast.add({
         type: "error",
-        title: error instanceof Error ? error.message : `Unable to update ${editingSource.name}`,
+        title:
+          error instanceof Error
+            ? error.message
+            : `Unable to update ${editingSource.name}`,
       });
     } finally {
       setOpen(false);
@@ -107,7 +118,10 @@ export function AddMusicSource({
     } catch (error) {
       toast.add({
         type: "error",
-        title: error instanceof Error ? error.message : `Unable to add ${activeStrategy.name}`,
+        title:
+          error instanceof Error
+            ? error.message
+            : `Unable to add ${activeStrategy.name}`,
       });
     } finally {
       setOpen(false);
@@ -133,7 +147,10 @@ export function AddMusicSource({
     >
       <DialogTrigger
         render={
-          <Button size={compact ? "sm" : "default"} className={compact ? "" : "w-full"}>
+          <Button
+            size={compact ? "sm" : "default"}
+            className={compact ? "" : "w-full"}
+          >
             <Plus className="h-4 w-4 mr-1" />
             {isEditing ? "Edit" : "Add Music Source"}
           </Button>
@@ -164,7 +181,9 @@ export function AddMusicSource({
                       : undefined
                   }
                 >
-                  <div className="mt-1 text-accent">{sourceKindIcon(strategy.kind)}</div>
+                  <div className="mt-1 text-accent">
+                    {sourceKindIcon(strategy.kind)}
+                  </div>
                   <div className="min-w-0">
                     <div className="font-medium">
                       {strategy.name}
@@ -199,7 +218,9 @@ export function AddMusicSource({
                   </Button>
                 )}
                 <DialogTitle>
-                  {isEditing ? `Edit ${editingSource?.name}` : formStrategy.name}
+                  {isEditing
+                    ? `Edit ${editingSource?.name}`
+                    : formStrategy.name}
                 </DialogTitle>
               </div>
               <DialogDescription>{formStrategy.description}</DialogDescription>
@@ -210,9 +231,11 @@ export function AddMusicSource({
                 strategy={formStrategy}
                 initialValue={
                   isEditing
-                    ? "config" in editingSource!
-                      ? editingSource!.config
-                      : pendingConfig
+                    ? isLocalSource(editingSource!)
+                      ? { folders: localSourceFolders(editingSource) }
+                      : "config" in editingSource!
+                        ? editingSource!.config
+                        : pendingConfig
                     : pendingConfig
                 }
                 onSubmit={handleConfigSubmit}

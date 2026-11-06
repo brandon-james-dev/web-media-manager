@@ -1,14 +1,18 @@
 import type { Playlist } from "@/models";
-import { getMetadataDb } from "./MetadataDb";
-import type {
-  DataChangedCallback,
-  IRepository,
-  QueryOptions,
-} from "..";
+import { getMetadataDb, type MetadataDb } from "./MetadataDb";
+import type { DataChangedCallback, IRepository, QueryOptions } from "..";
 import type { DataSourceResult } from "../DataSourceResult";
 
 /** Reserved id for the pinned, non-deletable favorites playlist. */
 export const FAVORITES_PLAYLIST_ID = "favorites";
+
+/** One observed playlists-table write (Dexie hook payload). */
+interface PlaylistChange {
+  /** 1 = create, 2 = update, 3 = delete (Dexie hook convention). */
+  type: 1 | 2 | 3;
+  key: string;
+  obj: Playlist;
+}
 
 /**
  * Dexie-backed playlist store. One playlist per row in the `playlists`
@@ -85,21 +89,87 @@ export class DexiePlaylistStore implements IRepository<Playlist> {
     await this.db.playlists.clear();
   }
 
-  onAdded(_cb: DataChangedCallback<Playlist>): () => void {
+  onAdded(cb: DataChangedCallback<Playlist>): () => void {
+    return this.onTableChanges("create", (obj) => cb(obj));
+  }
+
+  onUpdated(cb: DataChangedCallback<Playlist>): () => void {
+    return this.onTableChanges("update", (obj) => cb(obj));
+  }
+
+  onDeleted(cb: DataChangedCallback<Playlist>): () => void {
+    return this.onTableChanges("delete", (_obj, key) =>
+      cb({ id: key } as Playlist)
+    );
+  }
+
+  onStoreCleared(cb: () => void): () => void {
+    // Core Dexie has no clear notification (the 'changes' event belongs to
+    // the Observable addon, which this app doesn't ship), and a clear is
+    // not distinguishable from a delete burst in the hooks. Callers get
+    // per-row onDeleted instead.
+    void cb;
     return () => {};
   }
 
-  onUpdated(_cb: DataChangedCallback<Playlist>): () => void {
-    return () => {};
+  /**
+   * Subscribe to the playlists table's write hooks — core Dexie's only
+   * change channel. These callbacks used to be no-ops, so subscribers
+   * never heard about writes and rendered stale lists until reload.
+   */
+  private onTableChanges(
+    type: "create" | "update" | "delete",
+    onData: (obj: Playlist, key: string) => void
+  ): () => void {
+    DexiePlaylistStore.bindHooks(this.db);
+
+    const want = type === "create" ? 1 : type === "update" ? 2 : 3;
+    const listener = (change: PlaylistChange) => {
+      if (change.type === want) onData(change.obj, change.key);
+    };
+
+    DexiePlaylistStore.changeListeners.add(listener);
+    return () => {
+      DexiePlaylistStore.changeListeners.delete(listener);
+    };
   }
 
-  onDeleted(_cb: DataChangedCallback<Playlist>): () => void {
-    return () => {};
+  private static readonly hooksBound = new WeakSet<object>();
+  private static readonly changeListeners = new Set<
+    (change: PlaylistChange) => void
+  >();
+
+  /** Register the table hooks once per database instance. */
+  private static bindHooks(db: MetadataDb): void {
+    if (DexiePlaylistStore.hooksBound.has(db)) return;
+    DexiePlaylistStore.hooksBound.add(db);
+
+    const emit = (change: PlaylistChange) => {
+      for (const listener of DexiePlaylistStore.changeListeners) {
+        listener(change);
+      }
+    };
+
+    db.playlists.hook("creating", (primKey, obj) => {
+      emit({ type: 1, key: String(primKey), obj });
+    });
+    db.playlists.hook("updating", (mods, primKey, obj) => {
+      emit({
+        type: 2,
+        key: String(primKey),
+        obj: { ...obj, ...mods },
+      });
+    });
+    db.playlists.hook("deleting", (primKey) => {
+      emit({
+        type: 3,
+        key: String(primKey),
+        obj: undefined as unknown as Playlist,
+      });
+    });
   }
 
-  onStoreCleared(_cb: () => void): () => void {
-    return () => {};
-  }
+  /** Seed the reserved favorites playlist the first time it is used. */
 
   /** Seed the reserved favorites playlist the first time it is used. */
   async ensureFavorites(): Promise<void> {

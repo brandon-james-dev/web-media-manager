@@ -1,5 +1,13 @@
 import { Routes, Route } from "react-router";
-import { Songs, Albums, Artists, MainLayout, Settings, Sync } from "./pages";
+import {
+  Songs,
+  Albums,
+  Artists,
+  Playlists,
+  MainLayout,
+  Settings,
+  Sync,
+} from "./pages";
 import { NavBar } from "./layout";
 import { SongProvider, SyncProvider } from "./providers";
 import { ThemeProvider } from "./components/theme-provider";
@@ -17,6 +25,7 @@ import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvi
 import { resyncAllSources } from "./lib/sources";
 import { connectCommandDispatch, wmmBus } from "./events";
 import "./events/job-notifications";
+import "./events/playlist-import-events";
 
 // Wire the browser persistence adapter behind the core store port for the
 // lifetime of the app, before any component/provider calls into core.
@@ -69,7 +78,7 @@ function App() {
     // Also listen for the ui.openShortcuts command on the bus so any
     // gesture/configurable binding can open the shortcuts modal.
     const offCmd = wmmBus.onCommand("wmm.ui.openShortcuts", () =>
-      setIsShortcutsOpen((prev) => !prev),
+      setIsShortcutsOpen((prev) => !prev)
     );
 
     return () => {
@@ -101,6 +110,8 @@ function App() {
                     <Route path="albums/:mode" element={<Albums />} />
                     <Route path="artists" element={<Artists />} />
                     <Route path="artists/:mode" element={<Artists />} />
+                    <Route path="playlists" element={<Playlists />} />
+                    <Route path="playlists/:mode" element={<Playlists />} />
                     <Route path="sync" element={<Sync />} />
                   </Route>
 
@@ -110,7 +121,10 @@ function App() {
             </PlaybackProvider>
           </SongProvider>
 
-          <KeyboardShortcutsModal open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
+          <KeyboardShortcutsModal
+            open={isShortcutsOpen}
+            onOpenChange={setIsShortcutsOpen}
+          />
         </main>
       </div>
       <Toaster />

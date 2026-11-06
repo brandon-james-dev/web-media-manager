@@ -41,6 +41,8 @@ export function TrackItem(props: TrackItemProps) {
     isPlaying = false,
     showArtwork = false,
     showMeta = true,
+    hideNumber,
+    position,
     onPlay,
     onDoubleClick,
     onClick,
@@ -49,7 +51,9 @@ export function TrackItem(props: TrackItemProps) {
     className,
   } = props;
 
-  const trackNumber = song.track ?? index ?? undefined;
+  const trackNumber = hideNumber
+    ? undefined
+    : (position ?? song.track ?? index ?? undefined);
   const meta = [song.artist, song.album].filter(Boolean).join(" — ");
 
   // The ⋯ menu is opt-in via `actions` only. Play/shuffle/edit callbacks are
@@ -80,7 +84,7 @@ export function TrackItem(props: TrackItemProps) {
         className={cn(
           // Item is flex-wrap by default; a track row stays on one line and
           // lets ItemContent truncate instead.
-          "group/track flex-nowrap cursor-default py-0 pr-0 transition-colors",
+          "group/track flex-nowrap cursor-default gap-2 py-0 pr-0 transition-colors",
           // Touch devices: taller row so a finger can hit it comfortably.
           "pointer-coarse:py-0.5",
           "pointer-coarse:pr-3",
@@ -89,13 +93,19 @@ export function TrackItem(props: TrackItemProps) {
           // same hover affordance as in playback mode.
           (onPlay || onClick || onDoubleClick) && "hover:bg-accent/10",
           isPlaying && "bg-accent/10",
-          className,
+          className
         )}
         onClick={onClick ? () => onClick(song) : undefined}
         // The row itself never takes the pointer cursor: activation is a
         // deliberate double-click (play in playback mode, editor in edit
         // mode). Right-click opens the shared song context menu.
-        onDoubleClick={onDoubleClick ? () => onDoubleClick(song) : onPlay ? activate : undefined}
+        onDoubleClick={
+          onDoubleClick
+            ? () => onDoubleClick(song)
+            : onPlay
+              ? activate
+              : undefined
+        }
       >
         {/* Track number — or artwork when browsing without a table context */}
         {showArtwork ? (
@@ -118,11 +128,18 @@ export function TrackItem(props: TrackItemProps) {
             the primitives' own line-clamp is defeated by their `flex`/`w-fit`
             base classes, so each needs an explicit nowrap+ellipsis override. */}
         <ItemContent className="min-w-0 overflow-hidden gap-0">
-          <ItemTitle className={cn("block! w-full min-w-0 truncate", isPlaying && "text-accent")}>
+          <ItemTitle
+            className={cn(
+              "block! w-full min-w-0 truncate",
+              isPlaying && "text-accent"
+            )}
+          >
             {song.title ?? song.filename}
           </ItemTitle>
           {showMeta && meta && (
-            <ItemDescription className="block! w-full min-w-0 truncate">{meta}</ItemDescription>
+            <ItemDescription className="block! w-full min-w-0 truncate">
+              {meta}
+            </ItemDescription>
           )}
         </ItemContent>
 
@@ -140,7 +157,7 @@ export function TrackItem(props: TrackItemProps) {
                 "inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity",
                 "hover:bg-accent/15 hover:text-foreground",
                 "opacity-0 group-hover/track:opacity-100 [@media(hover:none)]:opacity-100",
-                isPlaying && "opacity-100",
+                isPlaying && "opacity-100"
               )}
               onClick={(e) => {
                 e.stopPropagation();
@@ -159,7 +176,10 @@ export function TrackItem(props: TrackItemProps) {
             // Reserve the action slot so the row's width and text layout stay
             // identical in edit mode (where the play affordance is dropped).
             // No hover affordance to align on touch, so it is dropped there.
-            <span className="h-7 w-7 shrink-0 pointer-coarse:hidden" aria-hidden="true" />
+            <span
+              className="h-7 w-7 shrink-0 pointer-coarse:hidden"
+              aria-hidden="true"
+            />
           )}
 
           {overflow.length > 0 && (
@@ -169,7 +189,7 @@ export function TrackItem(props: TrackItemProps) {
                   "inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity",
                   "hover:bg-accent/15 hover:text-foreground",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  "opacity-0 group-hover/track:opacity-100 data-[state=open]:opacity-100",
+                  "opacity-0 group-hover/track:opacity-100 data-[state=open]:opacity-100"
                 )}
                 onClick={(e) => e.stopPropagation()}
                 title="More actions"

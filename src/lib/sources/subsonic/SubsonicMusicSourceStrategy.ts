@@ -1,8 +1,18 @@
 import { addSubsonicSource } from "@/lib/sources/subsonic/subsonicSourceFactory";
 import { fetchSubsonicSongBytes } from "@/lib/sources/subsonic/subsonicImport";
-import { collectSubsonicSongs } from "@/lib/sources/subsonic/subsonicImport";
-import { deleteSubsonicSecret, getSubsonicSecret } from "@/lib/sources/subsonic/subsonicSecrets";
-import { SubsonicClient, type SubsonicCredentials } from "@/lib/sources/subsonic/SubsonicClient";
+import {
+  collectSubsonicPlaylists,
+  collectSubsonicSongs,
+  removeSubsonicPlaylists,
+} from "@/lib/sources/subsonic/subsonicImport";
+import {
+  deleteSubsonicSecret,
+  getSubsonicSecret,
+} from "@/lib/sources/subsonic/subsonicSecrets";
+import {
+  SubsonicClient,
+  type SubsonicCredentials,
+} from "@/lib/sources/subsonic/SubsonicClient";
 import { getMusicSourceImportConfig } from "@/lib/sources/config";
 import type { MusicSourceImportConfig } from "@/lib/sources/config";
 import { getJobService } from "@/core/jobs";
@@ -10,11 +20,8 @@ import type { WorkerProgress } from "@/core/jobs";
 import { getSourcesStore } from "@/core/ports";
 import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
-import type { MusicSource, SubsonicMusicSource } from "@/models";
-import type {
-  IMusicSourceStrategy,
-  IJobHandle,
-} from "../IMusicSourceStrategy";
+import type { MusicSource, Playlist, SubsonicMusicSource } from "@/models";
+import type { IMusicSourceStrategy, IJobHandle } from "../IMusicSourceStrategy";
 import type { MusicSourceConfigField } from "../MusicSourceConfigField";
 
 /** Config the Subsonic strategy's standardized form collects before add(). */
@@ -47,7 +54,7 @@ async function sourceConfigToCredentials(
     username:
       config?.config && "username" in config.config
         ? (config.config.username as string)
-        : source.config.username ?? "",
+        : (source.config.username ?? ""),
     password,
   };
 }
@@ -204,23 +211,27 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
       options.source,
       options.musicSourceConfig
     );
-    const songs = await collectSubsonicSongs(options.source, credentials, (resolved, total) => {
-      if (total) {
-        options.reportProgress?.({
-          index: resolved,
-          total,
-          percent: resolved / total,
-          label: `Fetched ${resolved}/${total} albums`,
-        });
-      } else {
-        options.reportProgress?.({
-          index: 0,
-          total: 1,
-          percent: 0,
-          label: `Fetched ${resolved} albums`,
-        });
+    const songs = await collectSubsonicSongs(
+      options.source,
+      credentials,
+      (resolved, total) => {
+        if (total) {
+          options.reportProgress?.({
+            index: resolved,
+            total,
+            percent: resolved / total,
+            label: `Fetched ${resolved}/${total} albums`,
+          });
+        } else {
+          options.reportProgress?.({
+            index: 0,
+            total: 1,
+            percent: 0,
+            label: `Fetched ${resolved} albums`,
+          });
+        }
       }
-    });
+    );
     const result: Song[] = [];
     for (let index = 0; index < songs.length; index++) {
       if (options.isCancelled?.()) return result;
@@ -230,14 +241,51 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
   }
 
   /**
+   * Collect a subsonic source's playlists (worker-safe). The bulk import
+   * stores them and prunes any the server no longer has. A server without
+   * playlist support yields none rather than failing the song import.
+   */
+  async collectPlaylists(options: {
+    source: MusicSource;
+    reportProgress?: (progress: WorkerProgress) => void;
+    musicSourceConfig?: MusicSourceImportConfig;
+  }): Promise<Playlist[] | null> {
+    if (options.source.kind !== "subsonic") return null;
+    const credentials = await sourceConfigToCredentials(
+      options.source,
+      options.musicSourceConfig
+    );
+    try {
+      return await collectSubsonicPlaylists(
+        options.source,
+        credentials,
+        (resolved, total) =>
+          options.reportProgress?.({
+            index: resolved,
+            total,
+            percent: total ? resolved / total : 1,
+            label: `Fetched ${resolved}/${total} playlists`,
+          })
+      );
+    } catch (error) {
+      console.warn("Subsonic playlist fetch failed:", error);
+      return null;
+    }
+  }
+
+  /**
    * Resolve picture bytes for a subsonic song: embedded `data` is used
    * directly; a `subsonic://coverart/<id>` URL is resolved to the server's
    * cover art at the largest available size via the subsonic client.
    */
-  async resolvePictureBytes(pic: {
-    data?: Uint8Array;
-    url?: string;
-  }, song: Song, musicSourceConfig?: MusicSourceImportConfig): Promise<Uint8Array | null> {
+  async resolvePictureBytes(
+    pic: {
+      data?: Uint8Array;
+      url?: string;
+    },
+    song: Song,
+    musicSourceConfig?: MusicSourceImportConfig
+  ): Promise<Uint8Array | null> {
     if (pic.data && pic.data.length > 0) return pic.data;
 
     const match = /^subsonic:\/\/coverart\/(.+)$/.exec(pic.url ?? "");
@@ -252,12 +300,14 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
       // Prefer the transient, main-thread-resolved secret (workers can't
       // read localStorage); fall back to the stored secret when the
       // config wasn't threaded (e.g. called on the main thread).
-      const password = musicSourceConfig?.secret ?? (await getSubsonicSecret(source.id));
+      const password =
+        musicSourceConfig?.secret ?? (await getSubsonicSecret(source.id));
       if (!password) return null;
       const creds: SubsonicCredentials = {
-        username: musicSourceConfig?.config && "username" in musicSourceConfig.config
-          ? (musicSourceConfig.config.username as string)
-          : source.config.username ?? "",
+        username:
+          musicSourceConfig?.config && "username" in musicSourceConfig.config
+            ? (musicSourceConfig.config.username as string)
+            : (source.config.username ?? ""),
         password,
       };
       const buf = await client.getCoverArtBytes(creds, match[1]);
@@ -274,21 +324,25 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
    * center, consistent with a local folder re-scan. The returned handle
    * can cancel the job (passes a stable job id into the enqueue).
    */
-  async sync(
-    options: { source: MusicSource; silent?: boolean }
-  ): Promise<IJobHandle | null> {
+  async sync(options: {
+    source: MusicSource;
+    silent?: boolean;
+  }): Promise<IJobHandle | null> {
     const { source, silent } = options;
     if (source.kind !== "subsonic") return null;
 
     const jobId = uuidv7();
-    getJobService().enqueue({
-      type: "Bulk Import",
-      silent,
-      payload: {
-        musicSource: source,
-        musicSourceConfig: await getMusicSourceImportConfig(source),
+    getJobService().enqueue(
+      {
+        type: "Bulk Import",
+        silent,
+        payload: {
+          musicSource: source,
+          musicSourceConfig: await getMusicSourceImportConfig(source),
+        },
       },
-    }, jobId);
+      jobId
+    );
 
     return {
       jobId,
@@ -318,6 +372,7 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
     const store = getSourcesStore();
     const source = options.source;
     await store.deleteSource(source.id);
+    await removeSubsonicPlaylists(source);
     await deleteSubsonicSecret(source.id);
     await options.onSourceRemoved?.();
   }

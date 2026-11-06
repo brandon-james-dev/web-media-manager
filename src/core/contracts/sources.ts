@@ -66,8 +66,13 @@ export interface MusicSourceBase {
  */
 export interface LocalMusicSource extends MusicSourceBase {
   kind: "local";
-  /** Browser: the granted FileSystemDirectoryHandle of the chosen folder. */
+  /** Browser: the granted FileSystemDirectoryHandle of the first folder. */
   handle: FileSystemDirectoryHandle;
+  /**
+   * Every folder the source reads, `handle` first. Absent on sources saved
+   * before multi-folder support; use `localSourceFolders()` to read.
+   */
+  handles?: FileSystemDirectoryHandle[];
   /** JSON-safe display/path hint (server/Tauri: absolute path). */
   path?: string;
 }
@@ -85,14 +90,47 @@ export interface WmmServerMusicSource extends MusicSourceBase {
 }
 
 export type MusicSource =
-  | LocalMusicSource
-  | SubsonicMusicSource
-  | WmmServerMusicSource;
+  LocalMusicSource | SubsonicMusicSource | WmmServerMusicSource;
+
+/** Display name of a local source: its folder, or "first +N" for several. */
+export function localSourceName(
+  folders: Pick<FileSystemDirectoryHandle, "name">[]
+): string {
+  const [first, ...rest] = folders;
+  return rest.length ? `${first.name} +${rest.length}` : first.name;
+}
+
+/** All folders of a local source (older records only carry `handle`). */
+export function localSourceFolders(
+  source: Pick<LocalMusicSource, "handle" | "handles">
+): FileSystemDirectoryHandle[] {
+  return source.handles?.length ? source.handles : [source.handle];
+}
+
+/**
+ * Locate the folder a local song lives in and the path inside it.
+ *
+ * A single-folder source stores plain relative paths. With several folders
+ * each song's path starts with its folder's name (names are unique within a
+ * source). Paths saved before a second folder was added have no such prefix
+ * and belong to the first folder, so an unmatched prefix falls back to it.
+ */
+export function resolveLocalSongFolder(
+  source: Pick<LocalMusicSource, "handle" | "handles">,
+  relativePath: string
+): { folder: FileSystemDirectoryHandle; path: string } {
+  const folders = localSourceFolders(source);
+  if (folders.length > 1) {
+    const [first, ...rest] = relativePath.split("/");
+    const match = folders.find((f) => f.name === first);
+    if (match && rest.length > 0)
+      return { folder: match, path: rest.join("/") };
+  }
+  return { folder: folders[0], path: relativePath };
+}
 
 /** Type guard: is this source the device's own storage ("on device")? */
-export function isLocalSource(
-  source: MusicSource
-): source is LocalMusicSource {
+export function isLocalSource(source: MusicSource): source is LocalMusicSource {
   return source.kind === "local";
 }
 
@@ -118,7 +156,9 @@ export function parseSourceUri(
   uri: string
 ): { uriDomain: string; sourceId: string; itemId: string } | null {
   if (!uri.startsWith(SOURCE_URI_PREFIX)) return null;
-  const [uriDomain, sourceId, ...rest] = uri.slice(SOURCE_URI_PREFIX.length).split("/");
+  const [uriDomain, sourceId, ...rest] = uri
+    .slice(SOURCE_URI_PREFIX.length)
+    .split("/");
   if (!uriDomain || !sourceId || rest.length === 0) return null;
   return { uriDomain, sourceId, itemId: rest.join("/") };
 }

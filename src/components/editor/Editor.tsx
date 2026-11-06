@@ -23,6 +23,7 @@ import type { AlbumDetailDto, QuickEditDto, SongEditDto } from "@/dto";
 import { getJobService } from "@/core/jobs";
 import { commandDispatcher, wmmBus } from "@/events";
 import { useSongs, usePlayback } from "@/hooks";
+import { getCurrentNavSongs } from "./navContext";
 import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
 import type { Album, Song } from "@/models";
 import { AlbumDetailDialog } from "../album-detail-dialog";
@@ -30,7 +31,11 @@ import { keyShortcut$ } from "@/events/keyboard-events";
 import { notification$ } from "@/events/notification-events";
 import { uuidv7 } from "uuidv7";
 
-export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
+export function Editor({
+  mode,
+}: {
+  mode: "songs" | "albums" | "artists" | "playlists";
+}) {
   //#region Songs
   //#region State
   const { filteredSongs } = useSongs();
@@ -40,7 +45,9 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
   // Which advanced dialog `isAdvancedEdit` refers to. The song drawer and the
   // album dialog share one open flag, so the artist view (which can open
   // either) distinguishes them here; other modes are unchanged.
-  const [advancedDialog, setAdvancedDialog] = useState<"song" | "album">("song");
+  const [advancedDialog, setAdvancedDialog] = useState<"song" | "album">(
+    "song"
+  );
   function openAdvancedEdit(target: "song" | "album") {
     setAdvancedDialog(target);
     setIsAdvancedEdit(true);
@@ -71,7 +78,10 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
       ? { coverFront: updates.coverFront }
       : undefined;
     const editUpdates: Partial<Song> = {};
-    for (const [k, v] of Object.entries(updates) as [keyof SongEditDto, unknown][]) {
+    for (const [k, v] of Object.entries(updates) as [
+      keyof SongEditDto,
+      unknown,
+    ][]) {
       if (k === "coverFront") continue;
       if (v !== undefined) (editUpdates as Record<string, unknown>)[k] = v;
     }
@@ -116,7 +126,11 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
       : undefined;
 
     if (selectedSongs.length === 1) {
-      const updatedSong = await updateTags(selectedSongs[0], editUpdates, cover);
+      const updatedSong = await updateTags(
+        selectedSongs[0],
+        editUpdates,
+        cover
+      );
 
       notification$.next({
         id: uuidv7(),
@@ -139,18 +153,16 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
     wmmBus.publish("wmm.ui.selectionChanged", { songIds: selectedSongIds });
   }
 
+  // The quick dock's prev/next walk the SAME list as the handlers
+  // (songNavList: the page's published context, e.g. the open playlist's
+  // tracks) — not the global filtered library, which may be a different or
+  // empty set on pages like Playlists.
   function isPrevButtonDisabled() {
-    const selectedSongIndex = filteredSongs.findIndex(
-      (s) => s.id === selectedSongIds[0]
-    );
-    return selectedSongIndex === 0;
+    return isSongPrevButtonDisabled();
   }
 
   function isNextButtonDisabled() {
-    const selectedSongIndex = filteredSongs.findIndex(
-      (s) => s.id === selectedSongIds[0]
-    );
-    return selectedSongIndex === filteredSongs.length - 1;
+    return isSongNextButtonDisabled();
   }
   //#endregion
   //#endregion
@@ -203,11 +215,19 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
 
   /**
    * The list prev/next navigate for the song editor: the artist's own
-   * tracks on the artist page, the full filtered list elsewhere. Shared by
-   * the handlers and the disabled checks so the buttons match the behavior.
+   * tracks on the artist page, the open playlist's tracks on the playlist
+   * page, the full filtered list elsewhere. Shared by the handlers and the
+   * disabled checks so the buttons match the behavior.
    */
   function songNavList(): Song[] {
-    return mode === "artists" ? artistSongContext() : filteredSongs;
+    if (mode === "artists") return artistSongContext();
+    // The playlist page publishes its visible tracks; an empty snapshot
+    // (no page context) falls back to the library.
+    if (mode === "playlists") {
+      const nav = getCurrentNavSongs();
+      return nav.length > 0 ? nav : filteredSongs;
+    }
+    return filteredSongs;
   }
 
   /** Prev disabled when the selected song is the first in the nav list. */
@@ -250,9 +270,7 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
    */
   function artistSongContext(): Song[] {
     const currentId = selectedSongIds[0];
-    const album = albums.find((a) =>
-      a.songs.some((s) => s.id === currentId)
-    );
+    const album = albums.find((a) => a.songs.some((s) => s.id === currentId));
     return album?.songs ?? filteredSongs;
   }
 
@@ -293,19 +311,6 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
 
   //#region Interactivity handlers
   function handlePrevClick() {
-    if (mode === "songs") {
-      const selectedSongIndex = filteredSongs.findIndex(
-        (s) => s.id === selectedSongIds[0]
-      );
-
-      if (selectedSongIndex === -1) return;
-
-      const prevIndex = Math.max(0, selectedSongIndex - 1);
-      const newIds = [filteredSongs[prevIndex].id];
-
-      setSelectedSongIds(newIds);
-      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
-    }
     if (mode === "albums") {
       if (!selectedAlbum) return;
 
@@ -319,40 +324,24 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
 
       setSelectedSongIds(newIds);
       wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
+      return;
     }
-    if (mode === "artists") {
-      // On the artist page, prev walks the artist's own tracks in the song
-      // editor, and steps albums in the album editor.
-      if (advancedDialog === "album") {
-        handleAlbumDetailsPrevClicked();
-        return;
-      }
-      const list = artistSongContext();
-      const i = list.findIndex((s) => s.id === selectedSongIds[0]);
-      if (i <= 0) return;
-      const newIds = [list[i - 1].id];
-      setSelectedSongIds(newIds);
-      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
+    // In the album editor, prev steps albums instead of songs.
+    if (mode === "artists" && advancedDialog === "album") {
+      handleAlbumDetailsPrevClicked();
+      return;
     }
+    // Songs, artists, and playlists all walk the page's nav list (the
+    // artist's tracks / open playlist's tracks / filtered library).
+    const list = songNavList();
+    const i = list.findIndex((s) => s.id === selectedSongIds[0]);
+    if (i <= 0) return;
+    const newIds = [list[i - 1].id];
+    setSelectedSongIds(newIds);
+    wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
   }
 
   function handleNextClick() {
-    if (mode === "songs") {
-      const selectedSongIndex = filteredSongs.findIndex(
-        (s) => s.id === selectedSongIds[0]
-      );
-
-      if (selectedSongIndex === -1) return;
-
-      const nextIndex = Math.min(
-        filteredSongs.length - 1,
-        selectedSongIndex + 1
-      );
-      const newIds = [filteredSongs[nextIndex].id];
-
-      setSelectedSongIds(newIds);
-      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
-    }
     if (mode === "albums") {
       if (!selectedAlbum) return;
 
@@ -366,21 +355,20 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
 
       setSelectedSongIds(newIds);
       wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
+      return;
     }
-    if (mode === "artists") {
-      // Symmetric with prev: walk the artist's tracks, or albums in the
-      // album editor.
-      if (advancedDialog === "album") {
-        handleAlbumDetailsNextClicked();
-        return;
-      }
-      const list = artistSongContext();
-      const i = list.findIndex((s) => s.id === selectedSongIds[0]);
-      if (i === -1 || i >= list.length - 1) return;
-      const newIds = [list[i + 1].id];
-      setSelectedSongIds(newIds);
-      wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
+    // Symmetric with prev: walk the artist's tracks, or albums in the
+    // album editor.
+    if (mode === "artists" && advancedDialog === "album") {
+      handleAlbumDetailsNextClicked();
+      return;
     }
+    const list = songNavList();
+    const i = list.findIndex((s) => s.id === selectedSongIds[0]);
+    if (i === -1 || i >= list.length - 1) return;
+    const newIds = [list[i + 1].id];
+    setSelectedSongIds(newIds);
+    wmmBus.publish("wmm.ui.selectionChanged", { songIds: newIds });
   }
   //#endregion
   //#region Subscribe to domain events
@@ -487,15 +475,14 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
                   disabled={selectedSongIds.length !== 1}
                 />
                 <h3 className="font-medium truncate">
-                  {selectedSongs.length > 1 ? `Quick Edit (${selectedSongs.length} selected)` : selectedSongs[0]?.filename ?? "Quick Edit"}
+                  {selectedSongs.length > 1
+                    ? `Quick Edit (${selectedSongs.length} selected)`
+                    : (selectedSongs[0]?.filename ?? "Quick Edit")}
                 </h3>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => setIsAdvancedEdit(true)}
-                >
+                <Button size="sm" onClick={() => setIsAdvancedEdit(true)}>
                   <PencilRuler />
                   Advanced Edit
                 </Button>
@@ -608,7 +595,8 @@ export function Editor({ mode }: { mode: "songs" | "albums" | "artists" }) {
       <AlbumDetailDialog
         open={
           isAdvancedEdit &&
-          (mode === "albums" || (mode === "artists" && advancedDialog === "album"))
+          (mode === "albums" ||
+            (mode === "artists" && advancedDialog === "album"))
         }
         onOpenChange={setIsAdvancedEdit}
         album={selectedAlbum}

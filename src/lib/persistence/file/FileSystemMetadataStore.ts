@@ -3,7 +3,10 @@ import type { IMetadataStore } from "../../contracts";
 import { TagLibMetadataWriter } from "../../metadata/writer";
 import type { DataChangedCallback, IRepository } from "..";
 import type { QueryOptions } from "../QueryOptions";
-import { isLocalSource } from "@/core/contracts/sources";
+import {
+  isLocalSource,
+  resolveLocalSongFolder,
+} from "@/core/contracts/sources";
 import type { DataSourceResult } from "../DataSourceResult";
 
 export class FileSystemMetadataStore implements IMetadataStore {
@@ -131,16 +134,18 @@ export class FileSystemMetadataStore implements IMetadataStore {
 
     if (!existingFileHandle && existingSong) {
       try {
-        const parts = existingSong.relativePath.split("/").filter(Boolean);
-        const dir = await this.sources?.get(
-          existingSong.sourceId.toString()
-        );
+        const dir = await this.sources?.get(existingSong.sourceId.toString());
 
         // Remote (e.g. subsonic) songs have no local file handle — treat as
         // "no handle" instead of an error.
         if (!dir || !isLocalSource(dir)) return undefined;
 
-        let directoryHandle = dir.handle;
+        const { folder, path } = resolveLocalSongFolder(
+          dir,
+          existingSong.relativePath
+        );
+        const parts = path.split("/").filter(Boolean);
+        let directoryHandle = folder;
 
         for (let i = 0; i < parts.length - 1; i++) {
           directoryHandle = await directoryHandle?.getDirectoryHandle(parts[i]);

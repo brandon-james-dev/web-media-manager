@@ -2,12 +2,13 @@ import { addPersistedStoreDirectory } from "@/lib/persistence/addPersistedStoreD
 import type { MusicSource } from "@/models";
 
 /**
- * Add a chosen folder to the library (persisted).
+ * Add one or more chosen folders to the library as a single local source
+ * (persisted).
  * Open Subsonic equivalent: n/a — WMM extension (no Open Subsonic
  * `addFolder` endpoint; closest is the read-only `getMusicFolders`).
  */
 export async function addFolder(
-  handle: FileSystemDirectoryHandle
+  handles: FileSystemDirectoryHandle | FileSystemDirectoryHandle[]
 ): Promise<MusicSource> {
-  return addPersistedStoreDirectory(handle);
+  return addPersistedStoreDirectory(handles);
 }

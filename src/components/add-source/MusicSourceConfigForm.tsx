@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, FolderPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +43,10 @@ export function MusicSourceConfigForm({
 
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      fields.map((f) => [f.name, String(initial[f.name] ?? f.options?.default ?? "")])
+      fields.map((f) => [
+        f.name,
+        String(initial[f.name] ?? f.options?.default ?? ""),
+      ])
     )
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,6 +57,21 @@ export function MusicSourceConfigForm({
   const [folderHandles, setFolderHandles] = useState<
     Record<string, FileSystemDirectoryHandle>
   >({});
+  // Multi-folder fields (`options.multiple`) hold a list, seeded from the
+  // initial value when editing an existing source.
+  const [folderLists, setFolderLists] = useState<
+    Record<string, FileSystemDirectoryHandle[]>
+  >(() =>
+    Object.fromEntries(
+      fields
+        .filter((f) => f.type === "folder" && f.options?.multiple)
+        .map((f) => [
+          f.name,
+          ((initialValue as Record<string, unknown> | undefined)?.[f.name] ??
+            []) as FileSystemDirectoryHandle[],
+        ])
+    )
+  );
 
   async function pickFolder(field: MusicSourceConfigField) {
     if (!isApiSupported) {
@@ -66,6 +84,36 @@ export function MusicSourceConfigForm({
     try {
       const dirHandle = await showDirectoryPicker({ mode: "readwrite" });
       if (!dirHandle) return;
+      if (field.options?.multiple) {
+        const current = folderLists[field.name] ?? [];
+        // Names are unique within a source: they prefix each song's path.
+        let error: string | undefined;
+        if (current.some((f) => f.name === dirHandle.name)) {
+          error = `A folder named "${dirHandle.name}" is already added`;
+        } else {
+          for (const f of current) {
+            if (await f.isSameEntry(dirHandle)) {
+              error = `"${dirHandle.name}" is already added`;
+              break;
+            }
+          }
+        }
+        if (error) {
+          setErrors((prev) => ({ ...prev, [field.name]: error }));
+          return;
+        }
+        setFolderLists((prev) => ({
+          ...prev,
+          [field.name]: [...current, dirHandle],
+        }));
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next[field.name];
+          return next;
+        });
+        setConnectionError(null);
+        return;
+      }
       setFolderHandles((prev) => ({ ...prev, [field.name]: dirHandle }));
       setValues((prev) => ({ ...prev, [field.name]: dirHandle.name }));
       setErrors((prev) => {
@@ -79,11 +127,17 @@ export function MusicSourceConfigForm({
     }
   }
 
-  function validate(): Record<string, string | FileSystemDirectoryHandle> | null {
+  function validate(): Record<string, unknown> | null {
     const next: Record<string, string> = {};
     for (const f of fields) {
       const v = values[f.name] ?? "";
       if (f.type === "folder") {
+        if (f.options?.multiple) {
+          if (!folderLists[f.name]?.length) {
+            next[f.name] = "Choose at least one folder";
+          }
+          continue;
+        }
         if (!folderHandles[f.name]) {
           next[f.name] = "Choose a folder";
           continue;
@@ -102,7 +156,7 @@ export function MusicSourceConfigForm({
 
     // Include picked folder handles (type: "folder") in the submitted config
     // so the strategy's add() can read `config.<fieldName>` as the handle.
-    return { ...values, ...folderHandles };
+    return { ...values, ...folderHandles, ...folderLists };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -126,7 +180,54 @@ export function MusicSourceConfigForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       {fields.map((f) =>
-        f.type === "folder" ? (
+        f.type === "folder" && f.options?.multiple ? (
+          <div className="space-y-1.5" key={f.name}>
+            <Label>{f.label}</Label>
+            <ul className="space-y-1">
+              {(folderLists[f.name] ?? []).map((folder) => (
+                <li
+                  key={folder.name}
+                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+                >
+                  <FolderOpen className="h-4 w-4 shrink-0 text-accent" />
+                  <span className="min-w-0 flex-1 truncate">{folder.name}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    aria-label={`Remove ${folder.name}`}
+                    title={`Remove ${folder.name}`}
+                    disabled={connecting}
+                    onClick={() =>
+                      setFolderLists((prev) => ({
+                        ...prev,
+                        [f.name]: prev[f.name].filter((x) => x !== folder),
+                      }))
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => pickFolder(f)}
+              disabled={connecting}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-4 text-sm font-medium text-muted-foreground transition-colors border-border hover:border-accent hover:bg-accent/5"
+              aria-label="Add folder"
+            >
+              <FolderPlus className="h-5 w-5 shrink-0 text-accent" />
+              {folderLists[f.name]?.length
+                ? "Add another folder"
+                : "Choose a folder"}
+            </button>
+            {errors[f.name] && (
+              <p className="text-sm text-destructive">{errors[f.name]}</p>
+            )}
+          </div>
+        ) : f.type === "folder" ? (
           <div className="space-y-1.5" key={f.name}>
             <Label htmlFor={`src-config-${f.name}`}>{f.label}</Label>
             <button
@@ -143,9 +244,7 @@ export function MusicSourceConfigForm({
               <FolderOpen className="h-6 w-6 shrink-0 text-accent" />
               {values[f.name] ? (
                 <>
-                  <span className="text-sm font-medium">
-                    {values[f.name]}
-                  </span>
+                  <span className="text-sm font-medium">{values[f.name]}</span>
                   <span className="text-xs text-muted-foreground">
                     Click to change folder
                   </span>
@@ -197,11 +296,7 @@ export function MusicSourceConfigForm({
         </div>
       )}
       <div className="flex justify-end pt-2">
-        <Button
-          type="submit"
-          disabled={connecting}
-          className="gap-1.5"
-        >
+        <Button type="submit" disabled={connecting} className="gap-1.5">
           {connecting ? "Connecting..." : "Connect"}
         </Button>
       </div>
