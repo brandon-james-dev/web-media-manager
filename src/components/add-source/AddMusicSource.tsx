@@ -20,6 +20,11 @@ import { MusicSourceConfigForm } from "./MusicSourceConfigForm";
 export interface AddMusicSourceProps {
   onSourceAdded?: () => void | Promise<void>;
   compact?: boolean;
+  /**
+   * Render the flow in place instead of in a dialog: the trigger button is
+   * replaced by the type list / form once opened.
+   */
+  inline?: boolean;
   /** Called when an edit-mode dialog closes (so the caller can clear the editing source). */
   onClose?: () => void;
   /**
@@ -43,6 +48,7 @@ export interface AddMusicSourceProps {
 export function AddMusicSource({
   onSourceAdded,
   compact = false,
+  inline = false,
   editingSource,
   onClose,
 }: AddMusicSourceProps) {
@@ -137,6 +143,119 @@ export function AddMusicSource({
 
   const formStrategy = activeStrategy ?? editingStrategy;
 
+  const Header = inline ? "div" : DialogHeader;
+  const Title = inline ? InlineTitle : DialogTitle;
+  const Description = inline ? InlineDescription : DialogDescription;
+
+  const body = !formStrategy ? (
+    <>
+      <div className="flex items-center gap-2">
+        {inline && (
+          <Button
+            variant="outline"
+            size="icon"
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Cancel"
+            title="Cancel"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
+        <Header className="flex-1 text-left">
+          <Title>Add a music source</Title>
+          <Description>Choose a source type to connect to.</Description>
+        </Header>
+      </div>
+
+      <div className="divide-y rounded-lg border">
+        {musicSourceStrategies.map((strategy) => (
+          <button
+            key={strategy.kind}
+            type="button"
+            disabled={strategy.isAvailable === false}
+            className="flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+            onClick={() => handleChoose(strategy)}
+            title={
+              strategy.isAvailable === false
+                ? "Not supported in this browser"
+                : undefined
+            }
+          >
+            <div className="mt-1 text-accent">
+              {sourceKindIcon(strategy.kind)}
+            </div>
+            <div className="min-w-0">
+              <div className="font-medium">
+                {strategy.name}
+                {strategy.isAvailable === false && (
+                  <span className="text-xs font-normal text-muted-foreground">
+                    Not supported in this browser
+                  </span>
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {strategy.description}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </>
+  ) : (
+    <>
+      <Header className="text-left">
+        <div className="flex items-center gap-2">
+          {!isEditing && (
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              onClick={handleBack}
+              aria-label="Back"
+              title="Back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <Title>
+            {isEditing ? `Edit ${editingSource?.name}` : formStrategy.name}
+          </Title>
+        </div>
+        <Description>{formStrategy.description}</Description>
+      </Header>
+
+      {formStrategy.configFields?.length ? (
+        <MusicSourceConfigForm
+          strategy={formStrategy}
+          initialValue={
+            isEditing
+              ? isLocalSource(editingSource!)
+                ? { folders: localSourceFolders(editingSource) }
+                : "config" in editingSource!
+                  ? editingSource!.config
+                  : pendingConfig
+              : pendingConfig
+          }
+          onSubmit={handleConfigSubmit}
+          onConnect={handleConnect}
+        />
+      ) : null}
+    </>
+  );
+
+  if (inline) {
+    if (!open) {
+      return (
+        <Button className="w-full" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" />
+          Add Music Source
+        </Button>
+      );
+    }
+    return <div className="flex w-full flex-col gap-4 select-none">{body}</div>;
+  }
+
   return (
     <Dialog
       open={open}
@@ -158,93 +277,16 @@ export function AddMusicSource({
       />
 
       <DialogContent className="w-full sm:w-lg select-none">
-        {!formStrategy ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Add a music source</DialogTitle>
-              <DialogDescription>
-                Choose a source type to connect to.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="divide-y rounded-lg border">
-              {musicSourceStrategies.map((strategy) => (
-                <button
-                  key={strategy.kind}
-                  type="button"
-                  disabled={strategy.isAvailable === false}
-                  className="flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
-                  onClick={() => handleChoose(strategy)}
-                  title={
-                    strategy.isAvailable === false
-                      ? "Not supported in this browser"
-                      : undefined
-                  }
-                >
-                  <div className="mt-1 text-accent">
-                    {sourceKindIcon(strategy.kind)}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium">
-                      {strategy.name}
-                      {strategy.isAvailable === false && (
-                        <span className="text-xs font-normal text-muted-foreground">
-                          Not supported in this browser
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {strategy.description}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <div className="flex items-center gap-2">
-                {!isEditing && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    type="button"
-                    onClick={handleBack}
-                    aria-label="Back"
-                    title="Back"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                )}
-                <DialogTitle>
-                  {isEditing
-                    ? `Edit ${editingSource?.name}`
-                    : formStrategy.name}
-                </DialogTitle>
-              </div>
-              <DialogDescription>{formStrategy.description}</DialogDescription>
-            </DialogHeader>
-
-            {formStrategy.configFields?.length ? (
-              <MusicSourceConfigForm
-                strategy={formStrategy}
-                initialValue={
-                  isEditing
-                    ? isLocalSource(editingSource!)
-                      ? { folders: localSourceFolders(editingSource) }
-                      : "config" in editingSource!
-                        ? editingSource!.config
-                        : pendingConfig
-                    : pendingConfig
-                }
-                onSubmit={handleConfigSubmit}
-                onConnect={handleConnect}
-              />
-            ) : null}
-          </>
-        )}
+        {body}
       </DialogContent>
     </Dialog>
   );
+}
+
+function InlineTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-base font-medium">{children}</h2>;
+}
+
+function InlineDescription({ children }: { children: React.ReactNode }) {
+  return <p className="text-sm text-muted-foreground">{children}</p>;
 }

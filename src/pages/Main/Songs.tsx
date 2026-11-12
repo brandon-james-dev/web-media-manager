@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router";
-import { Loader2, Music } from "lucide-react";
+import { Disc3, Loader2, Music, Music4 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
@@ -179,13 +179,46 @@ export function Songs() {
       ) : (
         <>
           <div
-            className="flex-1 flex items-center justify-center"
+            className="relative flex-1 flex items-center justify-center p-4"
             hidden={!noMusicSources}
           >
-            <Card className="p-10 flex flex-col items-center gap-6">
-              <Music className="font-accent" size={48} />
-              <h1 className="text-3xl font-bold">Add Music</h1>
-              <AddMusicSource onSourceAdded={refresh} />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 text-accent opacity-[0.12] bg-[radial-gradient(circle,currentColor_1px,transparent_1.5px)] bg-size-[18px_18px] mask-[radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
+            />
+            <Card className="relative w-full max-w-md gap-0 py-0 text-center">
+              <div className="relative flex flex-col items-center gap-3 overflow-hidden bg-accent px-10 py-10 text-accent-foreground">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgb(255_255_255/0.28),transparent_55%),radial-gradient(circle_at_90%_100%,rgb(0_0_0/0.25),transparent_50%)]"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -left-8 -top-8 size-32 rounded-full bg-white/10"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -bottom-10 -right-6 size-36 rounded-full bg-black/10"
+                />
+                <Music
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-6 bottom-4 size-8 -rotate-12 opacity-20"
+                />
+                <Music4
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-8 top-5 size-10 rotate-12 opacity-20"
+                />
+                <Disc3
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-5 bottom-6 size-6 opacity-20"
+                />
+                <div className="relative flex size-20 items-center justify-center rounded-full bg-white/20 ring-4 ring-white/25 backdrop-blur-sm">
+                  <Music size={40} />
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-6 p-8">
+                <AddMusicSource inline onSourceAdded={refresh} />
+              </div>
             </Card>
           </div>
 

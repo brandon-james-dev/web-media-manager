@@ -21,6 +21,7 @@ import {
   ListMusic,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { getSourcesStore } from "@/core/ports";
 import {
   Outlet,
   NavLink,
@@ -84,6 +85,21 @@ function MainLayout() {
 
   const { query, setQuery, total, filteredTotal } = useSongs();
 
+  const [sourceCount, setSourceCount] = useState<number | null>(null);
+  useEffect(() => {
+    const store = getSourcesStore();
+    const load = () =>
+      void store.getSources().then((next) => setSourceCount(next.length));
+    load();
+    const unsubAdded = store.onSourceAdded(load);
+    const unsubCleared = store.onSourcesCleared(load);
+    return () => {
+      unsubAdded();
+      unsubCleared();
+    };
+  }, [total]);
+  const hasSources = (sourceCount ?? 0) > 0;
+
   const [sort, setSort] = useState<{
     selector: (item: Song) => any;
     desc: boolean;
@@ -143,7 +159,8 @@ function MainLayout() {
 
   // The compact bottom navigation replaces the header tabs on phones and
   // tablets. Sync is desktop-first and stays reachable by URL.
-  const showBottomNav = isCompact && (total ?? 0) > 0 && !isSyncPage;
+  const showBottomNav =
+    isCompact && hasSources && (total ?? 0) > 0 && !isSyncPage;
 
   // The album drawer portals to <body>, so it cannot read this subtree's
   // layout. Publish the bottom chrome's measured height as a root variable
@@ -178,7 +195,7 @@ function MainLayout() {
     <div className="flex flex-col h-full select-none">
       <div
         className="border-b px-4 py-2 flex gap-2 items-center justify-between"
-        hidden={isCompact || (total ?? 0) == 0}
+        hidden={isCompact || !hasSources || (total ?? 0) == 0}
       >
         <div className="flex shrink-0 items-center gap-2" hidden={isCompact}>
           <Tabs value={activeTab}>
@@ -281,10 +298,9 @@ function MainLayout() {
                 text-sm font-medium
                 transition-all cursor-default
 
-                ${
-                  isActive
-                    ? "text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                ${isActive
+                  ? "text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
                 }
               `}
             >
@@ -303,10 +319,9 @@ function MainLayout() {
                 text-sm font-medium
                 transition-all cursor-default
 
-                ${
-                  isActive
-                    ? "text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                ${isActive
+                  ? "text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
                 }
               `}
             >
@@ -371,9 +386,11 @@ function MainLayout() {
           className={cn(
             "w-full min-w-0 shrink-0 overflow-hidden rounded-xl shadow-lg",
             isTablet && showBottomNav && "order-2 min-w-0 flex-1",
-            isCompact && activeMode === "playback" && "relative z-60 overflow-visible"
+            isCompact &&
+            activeMode === "playback" &&
+            "relative z-60 overflow-visible"
           )}
-          hidden={isSyncPage || (total ?? 0) === 0}
+          hidden={isSyncPage || !hasSources || (total ?? 0) === 0}
         >
           {activeMode === "edit" && (
             <Editor
