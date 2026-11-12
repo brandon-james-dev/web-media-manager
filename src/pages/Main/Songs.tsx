@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router";
 import { Loader2, Music } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -7,6 +7,8 @@ import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { TanstackSongTable } from "@/components/song-table";
 import { TrackItem } from "@/components/track-item";
 import { ItemGroup } from "@/components/ui/item";
+import { AlphabetScrubber } from "@/components/alphabet-scrubber";
+import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
 import { useIsCompact } from "@/lib/hooks/useIsMobile";
 import { getStore } from "@/core/system";
 import { wmmBus } from "@/events";
@@ -49,6 +51,17 @@ export function Songs() {
   });
 
   const noMusicSources = musicSources.length === 0;
+
+  const listRef = useRef<HTMLDivElement>(null);
+  const letterIndex = useMemo(() => {
+    const selector = sort?.selector ?? songSort.selector;
+    return buildLetterIndex(
+      visibleSongs.map((song) => {
+        const value: unknown = selector(song);
+        return typeof value === "string" ? value : null;
+      })
+    );
+  }, [visibleSongs, sort, songSort]);
 
   // Highlight the row of the currently playing song in the mobile list.
   useEffect(() => {
@@ -176,50 +189,67 @@ export function Songs() {
             </Card>
           </div>
 
-          <ScrollArea
-            className="flex-1 min-h-0 min-w-0 overflow-auto"
+          <div
+            className="relative flex-1 min-h-0 min-w-0"
             hidden={noMusicSources}
           >
-            {isCompact ? (
-              <ItemGroup className="mx-auto w-full max-w-3xl gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0!">
-                {visibleSongs.map((song, i) => (
-                  <TrackItem
-                    key={song.id}
-                    song={song}
-                    index={i}
-                    size="sm"
-                    showArtwork
-                    isPlaying={nowPlayingSongId === song.id}
-                    // Touch: single tap plays (the row becomes a finger-size
-                    // target). Double-click still works on desktop-modality
-                    // touchpads/mice. No inline play button here.
-                    onClick={
-                      activeMode === "edit"
-                        ? handleSongDoubleClicked
-                        : () =>
-                            wmmBus.invoke("wmm.playback.playSong", {
-                              songId: song.id,
-                            })
-                    }
-                    onDoubleClick={handleSongDoubleClicked}
+            <ScrollArea ref={listRef} className="h-full min-w-0 overflow-auto">
+              {isCompact ? (
+                <ItemGroup className="mx-auto w-full max-w-3xl gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0!">
+                  {visibleSongs.map((song, i) => (
+                    <TrackItem
+                      key={song.id}
+                      song={song}
+                      index={i}
+                      size="sm"
+                      showArtwork
+                      isPlaying={nowPlayingSongId === song.id}
+                      // Touch: single tap plays (the row becomes a finger-size
+                      // target). Double-click still works on desktop-modality
+                      // touchpads/mice. No inline play button here.
+                      onClick={
+                        activeMode === "edit"
+                          ? handleSongDoubleClicked
+                          : () =>
+                              wmmBus.invoke("wmm.playback.playSong", {
+                                songId: song.id,
+                              })
+                      }
+                      onDoubleClick={handleSongDoubleClicked}
+                    />
+                  ))}
+                </ItemGroup>
+              ) : (
+                <>
+                  <TanstackSongTable
+                    songs={visibleSongs}
+                    selectedSongIds={selectedSongIds}
+                    isEditMultiple={isEditMultiple}
+                    onSelect={handleSongsSelected}
+                    onSort={handleSort}
+                    sort={sort}
+                    onSongDoubleClicked={handleSongDoubleClicked}
                   />
-                ))}
-              </ItemGroup>
-            ) : (
-              <>
-                <TanstackSongTable
-                  songs={visibleSongs}
-                  selectedSongIds={selectedSongIds}
-                  isEditMultiple={isEditMultiple}
-                  onSelect={handleSongsSelected}
-                  onSort={handleSort}
-                  sort={sort}
-                  onSongDoubleClicked={handleSongDoubleClicked}
-                />
-                <ScrollBar orientation="horizontal" />
-              </>
+                  <ScrollBar orientation="horizontal" />
+                </>
+              )}
+            </ScrollArea>
+            {letterIndex.size > 0 && (
+              <AlphabetScrubber
+                availableLetters={new Set(letterIndex.keys())}
+                className={isCompact ? "right-0" : "right-3"}
+                autoHide={isCompact}
+                scrollRef={listRef}
+                onSelect={(letter) =>
+                  scrollListToIndex(
+                    listRef.current,
+                    letterIndex.get(letter) ?? 0,
+                    visibleSongs.length
+                  )
+                }
+              />
             )}
-          </ScrollArea>
+          </div>
         </>
       )}
     </div>

@@ -127,7 +127,7 @@ function clampIndex(index: number, length: number) {
   return Math.min(Math.max(index, 0), Math.max(length - 1, 0));
 }
 
-const subscribeNever = () => () => {};
+const subscribeNever = () => () => { };
 
 const SPRING_SCROLL = { stiffness: 150, damping: 24, mass: 1 };
 const DRAG_DIVISOR_RATIO = 0.8;
@@ -571,7 +571,7 @@ export function CoverFlow({
         {...containerProps}
       >
         <div
-          className="relative flex h-[calc(100%-6.5rem)] w-full items-center justify-center pointer-events-none"
+          className="relative flex h-[calc(100%-6.5rem)] w-full items-center justify-center pointer-events-none mb-4"
           style={{ transformStyle: "preserve-3d", perspective: 1000 }}
         >
           {items.map((item, index) =>
@@ -706,7 +706,7 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
   return (
     <motion.div
       className={cn(
-        "absolute top-1/2 left-1/2 preserve-3d will-change-transform group-[.is-dragging]/cf:!cursor-grabbing",
+        "absolute top-1/2 left-1/2 preserve-3d will-change-transform group-[.is-dragging]/cf:cursor-grabbing!",
         cursorClass
       )}
       style={{

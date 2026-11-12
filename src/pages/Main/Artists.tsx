@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlphabetScrubber } from "@/components/alphabet-scrubber";
+import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
 import { useShufflePlay, useSongs } from "@/hooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOutletContext } from "react-router";
@@ -185,6 +187,16 @@ export function Artists() {
     [artists, sortDesc]
   );
 
+  const artistListRef = useRef<HTMLDivElement>(null);
+  const artistLetterIndex = useMemo(
+    () => buildLetterIndex(orderedArtists.map((a) => a.name)),
+    [orderedArtists]
+  );
+  const artistLetters = useMemo(
+    () => new Set(artistLetterIndex.keys()),
+    [artistLetterIndex]
+  );
+
   // All Artists groups albums under each artist (in the list's A–Z / Z–A
   // order) so a sticky artist header can label them; a single artist needs
   // no extra header.
@@ -196,6 +208,19 @@ export function Artists() {
             .map((a) => ({ key: a.id, artistName: a.name, albums: a.albums }))
         : [{ key: "single", artistName: undefined, albums: detailAlbums }],
     [isAllArtists, orderedArtists, detailAlbums]
+  );
+
+  const detailListRef = useRef<HTMLDivElement>(null);
+  const groupLetterIndex = useMemo(
+    () =>
+      isAllArtists
+        ? buildLetterIndex(albumGroups.map((g) => g.artistName))
+        : new Map<string, number>(),
+    [isAllArtists, albumGroups]
+  );
+  const groupLetters = useMemo(
+    () => new Set(groupLetterIndex.keys()),
+    [groupLetterIndex]
   );
   //#endregion
 
@@ -294,74 +319,92 @@ export function Artists() {
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="py-1">
-            <SongContextMenu songs={visibleSongs}>
-              <button
-                onClick={() => {
-                  setSelectedArtistId(ALL_ARTISTS);
-                  setMobileShowingList(false);
-                }}
-                className={cn(
-                  "w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left rounded-md transition-colors",
-                  isAllArtists
-                    ? "bg-accent/15 text-foreground"
-                    : "text-muted-foreground hover:bg-accent/10"
-                )}
-              >
-                <div
-                  className="relative w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, hsl(0 0% 45%), hsl(0 0% 28%))",
-                  }}
-                >
-                  <Users size={18} />
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">
-                    All Artists
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {artists.length}{" "}
-                    {artists.length === 1 ? "artist" : "artists"}
-                  </div>
-                </div>
-              </button>
-            </SongContextMenu>
-
-            {orderedArtists.map((a) => (
-              <SongContextMenu key={a.id} songs={a.songs}>
+        <div className="relative flex-1 min-h-0">
+          <ScrollArea ref={artistListRef} className="h-full">
+            <div className="py-1">
+              <SongContextMenu songs={visibleSongs}>
                 <button
                   onClick={() => {
-                    setSelectedArtistId(a.id);
+                    setSelectedArtistId(ALL_ARTISTS);
                     setMobileShowingList(false);
                   }}
                   className={cn(
                     "w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left rounded-md transition-colors",
-                    a.id === selectedArtist?.id
+                    isAllArtists
                       ? "bg-accent/15 text-foreground"
                       : "text-muted-foreground hover:bg-accent/10"
                   )}
                 >
                   <div
-                    className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
-                    style={{ background: artistGradient(a.name) }}
+                    className="relative w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, hsl(0 0% 45%), hsl(0 0% 28%))",
+                    }}
                   >
-                    {artistInitials(a.name)}
+                    <Users size={18} />
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{a.name}</div>
+                    <div className="truncate text-sm font-medium">
+                      All Artists
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      {a.albums.length}{" "}
-                      {a.albums.length === 1 ? "album" : "albums"}
+                      {artists.length}{" "}
+                      {artists.length === 1 ? "artist" : "artists"}
                     </div>
                   </div>
                 </button>
               </SongContextMenu>
-            ))}
-          </div>
-        </ScrollArea>
+
+              {orderedArtists.map((a) => (
+                <SongContextMenu key={a.id} songs={a.songs}>
+                  <button
+                    onClick={() => {
+                      setSelectedArtistId(a.id);
+                      setMobileShowingList(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left rounded-md transition-colors",
+                      a.id === selectedArtist?.id
+                        ? "bg-accent/15 text-foreground"
+                        : "text-muted-foreground hover:bg-accent/10"
+                    )}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
+                      style={{ background: artistGradient(a.name) }}
+                    >
+                      {artistInitials(a.name)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">
+                        {a.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {a.albums.length}{" "}
+                        {a.albums.length === 1 ? "album" : "albums"}
+                      </div>
+                    </div>
+                  </button>
+                </SongContextMenu>
+              ))}
+            </div>
+          </ScrollArea>
+          {artistLetterIndex.size > 0 && (
+            <AlphabetScrubber
+              availableLetters={artistLetters}
+              autoHide={isCompact}
+              scrollRef={artistListRef}
+              onSelect={(letter) =>
+                scrollListToIndex(
+                  artistListRef.current,
+                  (artistLetterIndex.get(letter) ?? 0) + 1,
+                  orderedArtists.length + 1
+                )
+              }
+            />
+          )}
+        </div>
       </div>
 
       <div
@@ -439,35 +482,61 @@ export function Artists() {
           </div>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0">
-          <div className={cn("pb-6", isCompact ? "px-3" : "px-5")}>
-            {albumGroups.map(({ key, artistName, albums }) => (
-              <div key={key}>
-                {artistName && (
-                  <div className="sticky top-0 z-20 flex h-10 items-center truncate bg-background text-sm font-bold uppercase tracking-wide text-primary">
-                    {artistName}
-                  </div>
-                )}
-                {albums.map((album) => (
-                  <AlbumSection
-                    key={album.id}
-                    album={album}
-                    stickyTop={artistName ? "top-10" : "top-0"}
-                    isCompact={isCompact}
-                    activeMode={activeMode}
-                    nowPlayingSongId={nowPlayingSongId}
-                    onPlay={() => playAlbum(album)}
-                    onShuffle={() => shuffleAlbum(album)}
-                    onEdit={() => editAlbum(album)}
-                    onEditSong={editSong}
-                    onQuickEditSong={quickEditSong}
-                    onArtDoubleClick={() => handleAlbumArtDoubleClick(album)}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+        <div className="relative flex-1 min-h-0">
+          <ScrollArea ref={detailListRef} className="h-full">
+            <div className={cn("pb-6", isCompact ? "px-3" : "px-5")}>
+              {albumGroups.map(({ key, artistName, albums }) => (
+                <div key={key} data-artist-group={artistName}>
+                  {artistName && (
+                    <div className="sticky top-0 z-20 flex h-10 items-center truncate bg-background text-sm font-bold uppercase tracking-wide text-primary">
+                      {artistName}
+                    </div>
+                  )}
+                  {albums.map((album) => (
+                    <AlbumSection
+                      key={album.id}
+                      album={album}
+                      stickyTop={artistName ? "top-10" : "top-0"}
+                      isCompact={isCompact}
+                      activeMode={activeMode}
+                      nowPlayingSongId={nowPlayingSongId}
+                      onPlay={() => playAlbum(album)}
+                      onShuffle={() => shuffleAlbum(album)}
+                      onEdit={() => editAlbum(album)}
+                      onEditSong={editSong}
+                      onQuickEditSong={quickEditSong}
+                      onArtDoubleClick={() => handleAlbumArtDoubleClick(album)}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          {isAllArtists && groupLetterIndex.size > 0 && (
+            <AlphabetScrubber
+              availableLetters={groupLetters}
+              className={isCompact ? "right-0" : "right-3"}
+              autoHide={isCompact}
+              scrollRef={detailListRef}
+              onSelect={(letter) => {
+                const name =
+                  albumGroups[groupLetterIndex.get(letter) ?? 0]?.artistName;
+                const root = detailListRef.current;
+                const viewport = root?.querySelector<HTMLElement>(
+                  '[data-slot="scroll-area-viewport"]'
+                );
+                const group = Array.from(
+                  root?.querySelectorAll<HTMLElement>("[data-artist-group]") ??
+                    []
+                ).find((el) => el.dataset.artistGroup === name);
+                if (!viewport || !group) return;
+                viewport.scrollTop +=
+                  group.getBoundingClientRect().top -
+                  viewport.getBoundingClientRect().top;
+              }}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

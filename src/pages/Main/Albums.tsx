@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSongs } from "@/hooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlbumCard } from "@/components/album-card";
@@ -22,6 +22,8 @@ import {
   Grid2x2,
 } from "lucide-react";
 import { useIsCompact } from "@/lib/hooks/useIsMobile";
+import { AlphabetScrubber } from "@/components/alphabet-scrubber";
+import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
 import { wmmBus } from "@/events";
 import { TanstackSongTable } from "@/components/song-table";
 import { CoverFlow, type CoverFlowItem } from "@/components/ui/CoverFlow";
@@ -82,8 +84,8 @@ export function Albums() {
       selectedSourceIds.length === 0
         ? filteredSongs
         : filteredSongs.filter((song) =>
-          selectedSourceIds.includes(song.sourceId)
-        ),
+            selectedSourceIds.includes(song.sourceId)
+          ),
     [filteredSongs, selectedSourceIds]
   );
 
@@ -110,6 +112,19 @@ export function Albums() {
 
     return Array.from(map.values());
   }, [visibleSongs]);
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const letterIndex = useMemo(
+    () =>
+      buildLetterIndex(
+        albums.map((a) => (sortField === "album" ? a.title : a.artist))
+      ),
+    [albums, sortField]
+  );
+  const availableLetters = useMemo(
+    () => new Set(letterIndex.keys()),
+    [letterIndex]
+  );
 
   const coverFlowItems = useMemo<CoverFlowItem[]>(
     () =>
@@ -237,18 +252,18 @@ export function Albums() {
       </div>
 
       {viewMode === "grid" && (
-        <>
-          <ScrollArea className="flex-1 min-h-0 min-w-0 overflow-auto">
+        <div className="relative flex-1 min-h-0 min-w-0">
+          <ScrollArea ref={gridRef} className="h-full min-w-0 overflow-auto">
             <div
               className="
-              grid
-              grid-cols-2
-              sm:grid-cols-3
-              md:grid-cols-4
-              lg:grid-cols-5
-              xl:grid-cols-6
-              p-3 gap-3
-            "
+                grid
+                grid-cols-2
+                sm:grid-cols-3
+                md:grid-cols-4
+                lg:grid-cols-5
+                xl:grid-cols-6
+                p-3 gap-3
+              "
             >
               {albums.map((a) => (
                 <AlbumCard
@@ -260,11 +275,31 @@ export function Albums() {
               ))}
             </div>
           </ScrollArea>
-        </>
+          <AlphabetScrubber
+            availableLetters={availableLetters}
+            className={isCompact ? "right-0" : "right-3"}
+            autoHide={isCompact}
+            scrollRef={gridRef}
+            onSelect={(letter) =>
+              scrollListToIndex(
+                gridRef.current,
+                letterIndex.get(letter) ?? 0,
+                albums.length
+              )
+            }
+          />
+        </div>
       )}
       {viewMode === "coverflow" && (
         <>
-          <div className="h-80 shrink-0">
+          <div className="relative h-80 shrink-0">
+            <AlphabetScrubber
+              availableLetters={availableLetters}
+              className="right-1"
+              onSelect={(letter) =>
+                setSelectedAlbumIndex(letterIndex.get(letter) ?? 0)
+              }
+            />
             <CoverFlow
               items={coverFlowItems}
               itemWidth={220}
