@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  Check,
+  ChevronLeft,
   GripVertical,
+  Pen,
   Play,
   Plus,
   Save,
@@ -143,6 +146,8 @@ export function Playlists() {
   const isCompact = useIsCompact();
   const isMobile = useIsMobile();
   const { activeMode } = useOutletContext<MainContext>();
+  const [compactEditing, setCompactEditing] = useState(false);
+  const editMode = activeMode === "edit" || (isCompact && compactEditing);
   //#endregion
 
   const sensors = useSensors(
@@ -236,7 +241,7 @@ export function Playlists() {
     : false;
   // Structural edits (rename, reorder, add/remove songs) need an editable
   // playlist in edit mode.
-  const canEdit = activeMode === "edit" && !selectedReadOnly;
+  const canEdit = editMode && !selectedReadOnly;
 
   // The inline title form tracks the open playlist's name (and picks up the
   // rename after a save).
@@ -439,10 +444,7 @@ export function Playlists() {
                   variant="ghost"
                   className="shrink-0 dark:hover:bg-destructive hover:bg-destructive"
                   title={`Delete ${playlist.name}`}
-                  hidden={
-                    activeMode !== "edit" ||
-                    isPlaylistReadOnly(playlist, sources)
-                  }
+                  hidden={!editMode || isPlaylistReadOnly(playlist, sources)}
                   onClick={() => {
                     setPendingDeleteId(playlist.id);
                     setDeleteDialogOpen(true);
@@ -476,6 +478,17 @@ export function Playlists() {
                 isCompact ? "px-3 pt-3 pb-2" : "px-5 pt-4 pb-2"
               )}
             >
+              {isMobile && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="shrink-0"
+                  aria-label="Back to playlists"
+                  onClick={() => setMobileShowingList(true)}
+                >
+                  <ChevronLeft />
+                </Button>
+              )}
               {canEdit ? (
                 // Edit mode: the title is an inline form — name box with a
                 // save button beside it, no modal step.
@@ -512,7 +525,7 @@ export function Playlists() {
                   </Button>
                 </form>
               ) : (
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div
                     className={cn(
                       "truncate font-bold",
@@ -532,26 +545,41 @@ export function Playlists() {
                 </div>
               )}
 
-              {tracks.length > 0 && activeMode !== "edit" && (
-                <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
+                {tracks.length > 0 && !editMode && (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Play all"
+                      onClick={() => playSongs(tracks)}
+                    >
+                      <Play className="fill-current" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Shuffle"
+                      onClick={() => shuffleSongs(tracks)}
+                    >
+                      <Shuffle />
+                    </Button>
+                  </>
+                )}
+
+                {isCompact && !selectedReadOnly && (
                   <Button
-                    size="icon"
-                    variant="ghost"
-                    title="Play all"
-                    onClick={() => playSongs(tracks)}
+                    size="sm"
+                    variant={compactEditing ? "default" : "outline"}
+                    className="shrink-0"
+                    aria-pressed={compactEditing}
+                    onClick={() => setCompactEditing((prev) => !prev)}
                   >
-                    <Play className="fill-current" />
+                    {compactEditing ? <Check /> : <Pen />}
+                    {compactEditing ? "Done" : "Edit"}
                   </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    title="Shuffle"
-                    onClick={() => shuffleSongs(tracks)}
-                  >
-                    <Shuffle />
-                  </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {!selectedReadOnly && (

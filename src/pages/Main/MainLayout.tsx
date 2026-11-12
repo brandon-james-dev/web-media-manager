@@ -371,7 +371,7 @@ function MainLayout() {
           className={cn(
             "w-full min-w-0 shrink-0 overflow-hidden rounded-xl shadow-lg",
             isTablet && showBottomNav && "order-2 min-w-0 flex-1",
-            isCompact && activeMode === "playback" && "relative z-60"
+            isCompact && activeMode === "playback" && "relative z-60 overflow-visible"
           )}
           hidden={isSyncPage || (total ?? 0) === 0}
         >

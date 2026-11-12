@@ -20,8 +20,18 @@ import { ThumbnailSize } from "@/lib";
 import { Slider } from "@/components/ui/slider";
 import { repeatState, shuffleState, usePlayback } from "@/hooks/usePlayback";
 import { useEffect, useRef, useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
@@ -38,11 +48,14 @@ export function PlayerControls() {
   // (faster) rate from trackPosition.
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   // Which track the readout belongs to (see the reset below).
-  const [elapsedSongId, setElapsedSongId] = useState<string | undefined>(undefined);
+  const [elapsedSongId, setElapsedSongId] = useState<string | undefined>(
+    undefined
+  );
   // Mobile renders a compact mini-player (now-playing info + one large play
   // button) instead of the wide three-column bar, whose controls are too
   // small to reach with a thumb.
   const isCompact = useIsCompact();
+  const [scrubPct, setScrubPct] = useState<number | null>(null);
   const {
     playlist,
     nowPlayingIndex,
@@ -73,7 +86,8 @@ export function PlayerControls() {
       if (shortcut === "next") wmmBus.invoke("wmm.playback.next");
       if (shortcut === "prev") wmmBus.invoke("wmm.playback.prev");
       if (shortcut === "queue") {
-        if (nowPlaying) wmmBus.invoke("wmm.playlists.addSong", { songId: nowPlaying.id });
+        if (nowPlaying)
+          wmmBus.invoke("wmm.playlists.addSong", { songId: nowPlaying.id });
       }
     });
 
@@ -245,7 +259,9 @@ export function PlayerControls() {
                       variant="secondary"
                       size="sm"
                       className={
-                        nowPlayingIndex == i ? "bg-accent hover:bg-accent/70 text-white" : ""
+                        nowPlayingIndex == i
+                          ? "bg-accent hover:bg-accent/70 text-white"
+                          : ""
                       }
                       onClick={() => handlePlaylistItemClick(s)}
                     >
@@ -263,15 +279,30 @@ export function PlayerControls() {
     </PopoverContent>
   );
 
-  const meta = [nowPlaying?.artist, nowPlaying?.album].filter(Boolean).join(" — ");
+  const meta = [nowPlaying?.artist, nowPlaying?.album]
+    .filter(Boolean)
+    .join(" — ");
   const progress =
     nowPlaying?.length && nowPlaying.length > 0
       ? Math.min(100, (trackPosition / nowPlaying.length) * 100)
       : 0;
 
+  function pctFromPointer(e: React.PointerEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return Math.min(
+      100,
+      Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)
+    );
+  }
+
+  const scrubSeconds =
+    scrubPct !== null && nowPlaying?.length
+      ? (scrubPct / 100) * nowPlaying.length
+      : null;
+
   if (isCompact) {
     return (
-      <div className="relative flex shrink-0 items-center gap-2 px-2 py-2 border bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg select-none">
+      <div className="relative flex shrink-0 flex-col border bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg select-none">
         {/* Slim progress rule along the top edge, like the mini-player. */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-muted overflow-hidden">
           <div
@@ -280,43 +311,97 @@ export function PlayerControls() {
           />
         </div>
 
-        {/* Art + title / artist — album: the same fields a track row shows,
+        {nowPlaying?.length ? (
+          <div
+            role="slider"
+            aria-label="Seek"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(scrubPct ?? progress)}
+            className="absolute inset-x-0 top-0 z-10 h-6 touch-none cursor-default"
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              setScrubPct(pctFromPointer(e));
+            }}
+            onPointerMove={(e) => {
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                setScrubPct(pctFromPointer(e));
+              }
+            }}
+            onPointerUp={(e) => {
+              if (scrubPct !== null) handleSeek((scrubPct / 100) * 100);
+              setScrubPct(null);
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }}
+            onPointerCancel={() => setScrubPct(null)}
+          >
+            {scrubPct !== null && (
+              <>
+                <div className="absolute inset-x-0 top-0 h-1.5 bg-muted">
+                  <div
+                    className="h-full bg-accent"
+                    style={{ width: `${scrubPct}%` }}
+                  />
+                </div>
+                <div
+                  className="absolute top-0 size-4 -translate-x-1/2 -translate-y-1/4 rounded-full bg-white shadow"
+                  style={{ left: `${scrubPct}%` }}
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-full mb-4 -translate-x-1/2 rounded-xl bg-accent px-3 py-1.5 text-xl font-bold tabular-nums text-accent-foreground shadow-lg"
+                  style={{
+                    left: `clamp(2.25rem, ${scrubPct}%, calc(100% - 2.25rem))`,
+                  }}
+                >
+                  {formatLength(scrubSeconds ?? 0)}
+                </div>
+              </>
+            )}
+          </div>
+        ) : null}
+
+        <div className="flex items-center gap-2 px-2 py-2">
+          {/* Art + title / artist — album: the same fields a track row shows,
             truncated the same way. It's display-only — the play button owns
             playback. */}
-        <div className="flex min-w-0 flex-1 items-center gap-3 px-1">
-          <AlbumArtImage
-            songId={nowPlaying?.id}
-            thumbSize={ThumbnailSize.thumb128}
-            className="w-12 shrink-0 rounded-md"
-            fallback={
-              <div className="w-10 aspect-square rounded-md border flex items-center justify-center">
-                <Disc3 className="text-accent" />
+          <div className="flex min-w-0 flex-1 items-center gap-3 px-1">
+            <AlbumArtImage
+              songId={nowPlaying?.id}
+              thumbSize={ThumbnailSize.thumb128}
+              className="w-12 shrink-0 rounded-md"
+              fallback={
+                <div className="w-10 aspect-square rounded-md border flex items-center justify-center">
+                  <Disc3 className="text-accent" />
+                </div>
+              }
+            />
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <div className="min-w-0 truncate text-sm font-medium">
+                {nowPlaying?.title ?? "Nothing is playing"}
               </div>
-            }
-          />
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <div className="min-w-0 truncate text-sm font-medium">
-              {nowPlaying?.title ?? "Nothing is playing"}
+              <div className="min-w-0 truncate text-xs text-muted-foreground">
+                {meta || " "}
+              </div>
             </div>
-            <div className="min-w-0 truncate text-xs text-muted-foreground">{meta || " "}</div>
           </div>
-        </div>
 
-        <div className="flex shrink-0 items-center">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-14 w-14 rounded-full bg-secondary-foreground/10 hover:bg-secondary-foreground/20"
-            onClick={handlePlayPause}
-            disabled={!nowPlaying}
-            aria-label={isPlaying ? "Pause" : "Play"}
-          >
-            {isPlaying ? (
-              <Pause className="h-7 w-7 fill-secondary-foreground" />
-            ) : (
-              <Play className="h-7 w-7 fill-secondary-foreground" />
-            )}
-          </Button>
+          <div className="flex shrink-0 items-center">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-14 w-14 rounded-full bg-secondary-foreground/10 hover:bg-secondary-foreground/20"
+              onClick={handlePlayPause}
+              disabled={!nowPlaying}
+              aria-label={isPlaying ? "Pause" : "Play"}
+            >
+              {isPlaying ? (
+                <Pause className="h-7 w-7 fill-secondary-foreground" />
+              ) : (
+                <Play className="h-7 w-7 fill-secondary-foreground" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -349,13 +434,27 @@ export function PlayerControls() {
 
         <div className="flex flex-col items-center flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <Button size="lg" variant="ghost" title={shuffle} onClick={handleShuffleToggle}>
+            <Button
+              size="lg"
+              variant="ghost"
+              title={shuffle}
+              onClick={handleShuffleToggle}
+            >
               <Shuffle
-                className={shuffle === shuffleState.On ? "stroke-accent" : "stroke-foreground"}
+                className={
+                  shuffle === shuffleState.On
+                    ? "stroke-accent"
+                    : "stroke-foreground"
+                }
               />
             </Button>
 
-            <Button size="lg" variant="ghost" onClick={handlePrev} disabled={!nowPlaying}>
+            <Button
+              size="lg"
+              variant="ghost"
+              onClick={handlePrev}
+              disabled={!nowPlaying}
+            >
               <SkipBack className="fill-secondary-foreground" />
             </Button>
 
@@ -372,14 +471,28 @@ export function PlayerControls() {
               )}
             </Button>
 
-            <Button size="lg" variant="ghost" onClick={handleNext} disabled={!nowPlaying}>
+            <Button
+              size="lg"
+              variant="ghost"
+              onClick={handleNext}
+              disabled={!nowPlaying}
+            >
               <SkipForward className="fill-secondary-foreground" />
             </Button>
 
-            <Button size="lg" variant="ghost" onClick={handleRepeatToggle} title={repeat}>
+            <Button
+              size="lg"
+              variant="ghost"
+              onClick={handleRepeatToggle}
+              title={repeat}
+            >
               {repeat === repeatState.Off && <RepeatOff />}
-              {repeat === repeatState.One && <Repeat1 className="stroke-accent" />}
-              {repeat === repeatState.All && <Repeat2 className="stroke-accent" />}
+              {repeat === repeatState.One && (
+                <Repeat1 className="stroke-accent" />
+              )}
+              {repeat === repeatState.All && (
+                <Repeat2 className="stroke-accent" />
+              )}
             </Button>
           </div>
 
@@ -426,7 +539,11 @@ export function PlayerControls() {
             {queuePanel}
           </Popover>
 
-          <Button variant="ghost" onClick={handleMuteToggle} title={muted ? "Unmute" : "Mute"}>
+          <Button
+            variant="ghost"
+            onClick={handleMuteToggle}
+            title={muted ? "Unmute" : "Mute"}
+          >
             {muted ? (
               <VolumeX className="fill-secondary-foreground w-6" />
             ) : (
