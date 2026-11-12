@@ -20,8 +20,4 @@ export interface SyncDevice extends SyncDeviceRecord {
 }
 
 export type SyncDeviceType =
-  | "iPod"
-  | "zune"
-  | "mtp"
-  | "mass-storage"
-  | "unknown";
+  "iPod" | "zune" | "mtp" | "mass-storage" | "unknown";

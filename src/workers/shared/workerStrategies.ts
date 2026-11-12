@@ -1,9 +1,5 @@
 import type { WorkerJobType, WorkerProgress } from "@/workers/WorkerJob";
-import {
-  runArtworkProcess,
-  runBulkEdit,
-  runBulkImport,
-} from ".";
+import { runArtworkProcess, runBulkEdit, runBulkImport } from ".";
 
 export const workerStrategies: Record<
   WorkerJobType,

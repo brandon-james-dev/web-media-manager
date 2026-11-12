@@ -241,6 +241,19 @@ export class SubsonicClient {
     }>;
   }
 
+  /** Songs the authenticated user has starred (favorited) on the server. */
+  async getStarredSongs(creds: SubsonicCredentials): Promise<unknown[]> {
+    const body = await this.request<{ starred2: { song?: unknown } }>(
+      "getStarred2",
+      creds,
+      this.config.musicFolderId
+        ? { musicFolderId: this.config.musicFolderId }
+        : {}
+    );
+    const song = body["subsonic-response"].starred2?.song;
+    return Array.isArray(song) ? song : [];
+  }
+
   /** One playlist with its ordered entries (songs). */
   async getPlaylist(
     creds: SubsonicCredentials,

@@ -1,5 +1,5 @@
 import { FAVORITES_PLAYLIST_ID, type Playlist } from "@/models";
-import { getMetadataDb, type MetadataDb } from "./MetadataDb";
+import { getWmmMusicDb, type WmmMusicDb } from "./WmmMusicDb";
 import type { DataChangedCallback, IRepository, QueryOptions } from "..";
 import type { DataSourceResult } from "../DataSourceResult";
 
@@ -16,7 +16,7 @@ interface PlaylistChange {
  * table; `songs` (ordered entries with addedAt) is the payload.
  */
 export class DexiePlaylistStore implements IRepository<Playlist> {
-  private readonly db = getMetadataDb();
+  private readonly db = getWmmMusicDb();
 
   async get(id: string): Promise<Playlist | null> {
     return (await this.db.playlists.get(id)) ?? null;
@@ -84,6 +84,10 @@ export class DexiePlaylistStore implements IRepository<Playlist> {
 
   async clearStore(): Promise<void> {
     await this.db.playlists.clear();
+    await this.ensureFavorites();
+    for (const listener of DexiePlaylistStore.clearedListeners) {
+      listener();
+    }
   }
 
   onAdded(cb: DataChangedCallback<Playlist>): () => void {
@@ -101,12 +105,10 @@ export class DexiePlaylistStore implements IRepository<Playlist> {
   }
 
   onStoreCleared(cb: () => void): () => void {
-    // Core Dexie has no clear notification (the 'changes' event belongs to
-    // the Observable addon, which this app doesn't ship), and a clear is
-    // not distinguishable from a delete burst in the hooks. Callers get
-    // per-row onDeleted instead.
-    void cb;
-    return () => {};
+    DexiePlaylistStore.clearedListeners.add(cb);
+    return () => {
+      DexiePlaylistStore.clearedListeners.delete(cb);
+    };
   }
 
   /**
@@ -131,13 +133,14 @@ export class DexiePlaylistStore implements IRepository<Playlist> {
     };
   }
 
+  private static readonly clearedListeners = new Set<() => void>();
   private static readonly hooksBound = new WeakSet<object>();
   private static readonly changeListeners = new Set<
     (change: PlaylistChange) => void
   >();
 
   /** Register the table hooks once per database instance. */
-  private static bindHooks(db: MetadataDb): void {
+  private static bindHooks(db: WmmMusicDb): void {
     if (DexiePlaylistStore.hooksBound.has(db)) return;
     DexiePlaylistStore.hooksBound.add(db);
 

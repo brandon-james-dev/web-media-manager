@@ -1,6 +1,7 @@
 import { addSubsonicSource } from "@/lib/sources/subsonic/subsonicSourceFactory";
 import { fetchSubsonicSongBytes } from "@/lib/sources/subsonic/subsonicImport";
 import {
+  collectSubsonicFavoriteIds,
   collectSubsonicPlaylists,
   collectSubsonicSongs,
   removeSubsonicPlaylists,
@@ -269,6 +270,25 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
       );
     } catch (error) {
       console.warn("Subsonic playlist fetch failed:", error);
+      return null;
+    }
+  }
+
+  /** Songs starred on the server, as app song ids. */
+  async collectFavorites(options: {
+    source: MusicSource;
+    songs: Song[];
+    musicSourceConfig?: MusicSourceImportConfig;
+  }): Promise<string[] | null> {
+    if (options.source.kind !== "subsonic") return null;
+    const credentials = await sourceConfigToCredentials(
+      options.source,
+      options.musicSourceConfig
+    );
+    try {
+      return await collectSubsonicFavoriteIds(options.source, credentials);
+    } catch (error) {
+      console.warn("Subsonic favorites fetch failed:", error);
       return null;
     }
   }

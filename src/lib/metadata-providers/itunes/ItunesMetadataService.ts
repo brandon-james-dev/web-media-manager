@@ -4,6 +4,12 @@ import type { IOnlineMetadataService } from "../online/IOnlineMetadataService";
 import { MetadataProvider } from "../online/MetadataProvider";
 import type { IItunesSongResult } from "./IItunesSongResult";
 
+const ADVISORY: Record<string, IOnlineMetadata["advisory"]> = {
+  explicit: "explicit",
+  cleaned: "clean",
+  notExplicit: "unspecified",
+};
+
 export class ItunesMetadataService implements IOnlineMetadataService {
   async lookup(query: string): Promise<IOnlineMetadata[] | null> {
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song`;
@@ -16,7 +22,10 @@ export class ItunesMetadataService implements IOnlineMetadataService {
     const results: IOnlineMetadata[] = [];
 
     for (const song of resultsRaw) {
-      let pictures: IPicture[] = [];
+      const pictures: IPicture[] = [];
+      const releaseDate = song.releaseDate
+        ? new Date(song.releaseDate)
+        : undefined;
 
       if (song.artworkUrl100) {
         // Search returns only the thumbnail URL (100x100). The full-size
@@ -29,26 +38,36 @@ export class ItunesMetadataService implements IOnlineMetadataService {
         });
       }
 
+      const advisory = ADVISORY[song.trackExplicitness ?? ""];
+
       results.push({
         source: MetadataProvider.iTunes,
 
         title: song.trackName,
         artist: song.artistName,
         album: song.collectionName,
-        albumArtist: song.collectionArtistName,
+        albumArtist: song.collectionArtistName ?? song.artistName,
         genre: song.primaryGenreName,
 
-        year: song.releaseDate
-          ? new Date(song.releaseDate).getFullYear()
-          : undefined,
+        year: releaseDate ? releaseDate.getUTCFullYear() : undefined,
+        date: song.releaseDate?.slice(0, 10),
         track: song.trackNumber,
-        totalTracks: song?.trackCount,
+        totalTracks: song.trackCount,
         discNumber: song.discNumber,
-        totalDiscs: song?.discCount,
+        totalDiscs: song.discCount,
         bpm: song.bpm,
+        duration: song.trackTimeMillis
+          ? song.trackTimeMillis / 1000
+          : undefined,
 
         composer: song.composer,
         isrc: song.isrc,
+        advisory,
+        itunesAdvisory: song.contentAdvisoryRating,
+        compilation:
+          song.collectionArtistName?.toLowerCase() === "various artists"
+            ? true
+            : undefined,
 
         pictures,
       });

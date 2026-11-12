@@ -1,4 +1,4 @@
-import { getMetadataDb } from "@/lib/persistence/dexie";
+import { getSongArtworkStore } from "@/lib/persistence/songArtworkStore";
 import type { WorkerProgress } from "../WorkerJob";
 import { resizeBitmap, ThumbnailSize } from "@/lib";
 import { getSourcesStore } from "@/core/ports";
@@ -38,7 +38,7 @@ export async function runArtworkProcess(
   reportProgress: (progress: WorkerProgress) => void,
   parentJobId?: string
 ): Promise<{ ok: true; songId: string } | { cancelled: true }> {
-  const db = getMetadataDb();
+  const artworkStore = getSongArtworkStore();
   const { song } = payload;
   const songId = song.id;
   const pictures = song.pictures ?? [];
@@ -48,17 +48,18 @@ export async function runArtworkProcess(
   const total = pictures.length;
 
   if (!total) {
-    await db.songArtwork.put({
+    const now = Date.now();
+    await artworkStore.save({
       songId,
       hasEmbedded: false,
+      addedAt: now,
+      updatedAt: now,
     });
 
     return { ok: true, songId };
   }
 
-  const existingPictures = await db.songArtwork
-    .filter((a) => a.songId == songId)
-    .toArray();
+  const existingPictures = await artworkStore.getBySong(songId);
 
   for (let i = 0; i < pictures.length; i++) {
     const pic = pictures[i];
@@ -74,7 +75,11 @@ export async function runArtworkProcess(
     // Resolve raw bytes (embedded data, or the largest available remote
     // image for subsonic cover art), then resample locally into the
     // thumbnail sizes.
-    const picBytes = await resolvePictureBytes(pic, song, payload.musicSourceConfig);
+    const picBytes = await resolvePictureBytes(
+      pic,
+      song,
+      payload.musicSourceConfig
+    );
     if (!picBytes) continue;
 
     const bitmap = await createImageBitmap(new Blob([picBytes.slice().buffer]));
@@ -127,23 +132,21 @@ export async function runArtworkProcess(
 
     if (isCancelled()) return { cancelled: true };
 
+    const existing = existingPictures.find((p) => p.artworkType == pic.type);
+
+    const now = Date.now();
     let picture = {
       songId,
+      addedAt: existing?.addedAt ?? now,
+      updatedAt: now,
       hasEmbedded: true,
       artworkType: pic.type,
       full: fullBlob,
       ...thumbnails,
     } as SongArtwork;
 
-    const existing = existingPictures.find((p) => p.artworkType == pic.type);
-
-    // Save into Dexie — one row per picture
-    if (existing && existing.id) {
-      picture.id = existing.id;
-      await db.songArtwork.update(existing.id, picture);
-    } else {
-      await db.songArtwork.put(picture);
-    }
+    if (existing?.id) picture.id = existing.id;
+    picture = await artworkStore.save(picture);
 
     reportProgress({
       index: i,

@@ -1,20 +1,20 @@
 import type { Song } from "@/models/Song";
 import { type IMetadataStore } from "../../contracts";
-import type { MetadataDb } from "./MetadataDb";
+import type { WmmMusicDb } from "./WmmMusicDb";
 import type { DataChangedCallback } from "..";
 import type { UpdateSpec } from "dexie";
 import type { QueryOptions } from "../QueryOptions";
 import type { DataSourceResult } from "../DataSourceResult";
 
 export class DexieMetadataStore implements IMetadataStore {
-  private db: MetadataDb;
+  private db: WmmMusicDb;
 
   private songAddedListeners = new Set<DataChangedCallback<Song>>();
   private songUpdatedListeners = new Set<DataChangedCallback<Song>>();
   private songDeletedListeners = new Set<DataChangedCallback<Song>>();
   private storeClearedListeners = new Set<() => void>();
 
-  constructor(db: MetadataDb) {
+  constructor(db: WmmMusicDb) {
     this.db = db;
   }
 

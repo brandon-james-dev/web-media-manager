@@ -12,12 +12,12 @@ export async function resizeBitmap(
   try {
     return await canvas.convertToBlob({
       type,
-      quality
+      quality,
     });
   } catch {
     return await canvas.convertToBlob({
       type: "image/jpeg",
-      quality
+      quality,
     });
   }
 }

@@ -102,7 +102,8 @@ describe("MemoryStore (IRepository contract)", () => {
 
   it("paginates with skip/take", async () => {
     const store = new MemoryStore<Item>();
-    for (let n = 1; n <= 5; n++) await store.save(`id${n}`, makeItem(`id${n}`, n));
+    for (let n = 1; n <= 5; n++)
+      await store.save(`id${n}`, makeItem(`id${n}`, n));
 
     const page1 = await store.filter({ skip: 0, take: 2 });
     expect(page1.data.map((i) => i.id)).toEqual(["id1", "id2"]);
@@ -123,7 +124,9 @@ describe("MemoryStore (IRepository contract)", () => {
     await store.save("a", makeItem("a", 2, "zeta"));
     await store.save("b", makeItem("b", 1, "alpha"));
 
-    const res = await store.filter({ sort: { selector: "name" as never, desc: false } });
+    const res = await store.filter({
+      sort: { selector: "name" as never, desc: false },
+    });
     expect(res.data.map((i) => i.id)).toEqual(["b", "a"]);
   });
 
@@ -134,7 +137,8 @@ describe("MemoryStore (IRepository contract)", () => {
     store.onAdded(onAdded);
     store.onDeleted(onDeleted);
 
-    for (let n = 1; n <= 3; n++) await store.save(`id${n}`, makeItem(`id${n}`, n));
+    for (let n = 1; n <= 3; n++)
+      await store.save(`id${n}`, makeItem(`id${n}`, n));
     onAdded.mockClear();
 
     await store.batchUpdate([

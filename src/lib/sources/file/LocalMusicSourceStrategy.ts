@@ -25,6 +25,7 @@ import {
 import type { WorkerProgress } from "@/core/jobs";
 import type { MusicSourceImportConfig } from "../config";
 import { uuidv7 } from "uuidv7";
+import { isFiveStarRated } from "@/lib/metadata/rating";
 import type { IMusicSourceStrategy, IJobHandle } from "../IMusicSourceStrategy";
 import type { MusicSourceConfigField } from "../MusicSourceConfigField";
 
@@ -167,6 +168,17 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
     }
 
     return songs;
+  }
+
+  /**
+   * Songs whose embedded rating is five stars count as favorites.
+   */
+  async collectFavorites(options: {
+    source: MusicSource;
+    songs: Song[];
+  }): Promise<string[] | null> {
+    if (options.source.kind !== "local") return null;
+    return options.songs.filter(isFiveStarRated).map((song) => song.id);
   }
 
   /**

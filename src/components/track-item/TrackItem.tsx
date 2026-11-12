@@ -20,6 +20,7 @@ import { MoreHorizontal, Pause, Play } from "lucide-react";
 import { cn } from "cn";
 import { formatLength } from "@/lib/formatLength";
 import type { TrackItemProps } from "./TrackItemProps";
+import { ExplicitBadge } from "@/components/explicit-badge";
 import { FavoriteButton } from "@/components/favorite-button";
 
 /**
@@ -131,11 +132,14 @@ export function TrackItem(props: TrackItemProps) {
         <ItemContent className="min-w-0 overflow-hidden gap-0">
           <ItemTitle
             className={cn(
-              "block! w-full min-w-0 truncate",
+              "flex! w-full min-w-0 items-center gap-1.5",
               isPlaying && "text-accent"
             )}
           >
-            {song.title ?? song.filename}
+            <span className="min-w-0 truncate">
+              {song.title ?? song.filename}
+            </span>
+            <ExplicitBadge song={song} />
           </ItemTitle>
           {showMeta && meta && (
             <ItemDescription className="block! w-full min-w-0 truncate">
@@ -145,7 +149,7 @@ export function TrackItem(props: TrackItemProps) {
         </ItemContent>
 
         <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
-          {formatLength(song.length)}
+          {formatLength(song.duration)}
         </span>
 
         <ItemActions className="shrink-0">

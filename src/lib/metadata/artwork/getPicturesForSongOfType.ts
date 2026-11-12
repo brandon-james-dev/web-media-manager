@@ -1,4 +1,4 @@
-import { getMetadataDb } from "@/lib/persistence/dexie";
+import { getSongArtworkStore } from "@/lib/persistence/songArtworkStore";
 import { ArtworkType, type IPicture } from "../../contracts";
 import { ThumbnailSize } from "./resizeBitmap";
 
@@ -7,13 +7,7 @@ export async function getPicturesForSongOfType(
   type: ArtworkType = ArtworkType.FrontCover,
   thumbSize: ThumbnailSize = ThumbnailSize.thumb256
 ): Promise<IPicture | undefined> {
-  const db = getMetadataDb();
-
-  const artwork = await db.songArtwork
-    .where("songId")
-    .equals(songId)
-    .filter((row) => row.artworkType === type)
-    .first();
+  const artwork = await getSongArtworkStore().getBySongAndType(songId, type);
 
   if (!artwork) return undefined;
 

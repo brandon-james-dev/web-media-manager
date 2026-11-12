@@ -9,18 +9,18 @@ import type {
   SyncDeviceRecord,
 } from "@/models";
 
-let db: MetadataDb | null = null;
+let db: WmmMusicDb | null = null;
 
 /**
- * The app's on-device metadata store (Dexie): one table per repository.
+ * The app's on-device music database (Dexie): one table per repository.
  * The `sources` table holds music sources ("on device" today; subsonic /
  * server kinds are added as discriminated `kind` members later).
  *
- * Dev note: this app has no persisted data to preserve in dev, so a schema
- * change simply drops and rebuilds the store rather than adding migration
- * hot-fills.
+ * Dev note: the app is unreleased, so the schema stays at version 1 and is
+ * edited in place; delete the `wmmMusic` database to pick up a change. Start
+ * adding versions and upgrades once the app ships.
  */
-export class MetadataDb extends Dexie {
+export class WmmMusicDb extends Dexie {
   sources!: Table<MusicSource, string>;
   songs!: Table<Song, string>;
   songArtwork!: Table<SongArtwork, number>;
@@ -29,7 +29,7 @@ export class MetadataDb extends Dexie {
   jobs!: Table<PersistedJob, string>;
 
   constructor() {
-    super("metadata");
+    super("wmmMusic");
 
     this.version(1).stores({
       sources: `
@@ -80,12 +80,12 @@ export class MetadataDb extends Dexie {
   }
 }
 
-export function getMetadataDb(): MetadataDb {
+export function getWmmMusicDb(): WmmMusicDb {
   if (db) {
     return db;
   }
 
-  db = new MetadataDb();
+  db = new WmmMusicDb();
 
   return db;
 }

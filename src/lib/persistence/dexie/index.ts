@@ -1,6 +1,6 @@
-import { getMetadataDb } from "@/lib/persistence/dexie/MetadataDb";
+import { getWmmMusicDb } from "@/lib/persistence/dexie/WmmMusicDb";
 import { DexieWriteStrategy } from "./DexieWriteStrategy";
-import { MetadataDb } from "./MetadataDb";
+import { WmmMusicDb } from "./WmmMusicDb";
 import { DexieMetadataStore } from "./DexieMetadataStore";
 import { createDexieWriteStrategy } from "./createDexieWriteStrategy";
 import { getPersistedRootDirectories } from "./getPersistedRootDirectories";
@@ -10,6 +10,6 @@ export {
   DexieWriteStrategy,
   createDexieWriteStrategy,
   getPersistedRootDirectories,
-  getMetadataDb,
-  MetadataDb,
+  getWmmMusicDb,
+  WmmMusicDb,
 };

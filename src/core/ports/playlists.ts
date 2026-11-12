@@ -44,7 +44,9 @@ export interface PlaylistWriteAdapter {
   write(
     source: MusicSource,
     playlists: Playlist,
-    resolvePath: (songId: string) => string | undefined | Promise<string | undefined>
+    resolvePath: (
+      songId: string
+    ) => string | undefined | Promise<string | undefined>
   ): Promise<void>;
   /** Delete a playlist's on-source artifact (e.g. its `.m3u` file). */
   delete(source: MusicSource, playlistId: string): Promise<void>;

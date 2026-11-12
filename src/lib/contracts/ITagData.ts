@@ -1,28 +1,4 @@
-import type { IPicture } from "./IPicture";
+import type { Metadata } from "@/lib/metadata/Metadata";
+import type { AUDIO_PROPERTY_KEYS } from "@/lib/metadata/Metadata";
 
-export interface ITagData {
-  title?: string;
-  artist?: string;
-  album?: string;
-  albumArtist?: string;
-  genre?: string;
-  comment?: string;
-  composer?: string;
-  year?: number;
-  track?: number;
-  totalTracks?: number;
-  discNumber?: number;
-  totalDiscs?: number;
-
-  lyrics?: string;
-  copyright?: string;
-  encodedBy?: string;
-  bpm?: number;
-  isrc?: string;
-
-  pictures?: IPicture[];
-
-  mbTrackId?: string;
-  mbArtistId?: string;
-  mbReleaseGroupId?: string;
-}
+export type ITagData = Omit<Metadata, (typeof AUDIO_PROPERTY_KEYS)[number]>;

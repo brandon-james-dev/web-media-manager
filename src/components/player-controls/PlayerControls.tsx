@@ -1,3 +1,4 @@
+import { ExplicitBadge } from "@/components/explicit-badge";
 import {
   Play,
   Pause,
@@ -113,7 +114,7 @@ export function PlayerControls() {
     // pausing.
     if (isPlaying) {
       wasPlayingRef.current = true;
-      const tickMs = Math.max(250, (nowPlaying?.length ?? 0) * 10);
+      const tickMs = Math.max(250, (nowPlaying?.duration ?? 0) * 10);
       const id = setInterval(() => {
         setTrackPosition(getCurrentTime());
       }, tickMs);
@@ -240,6 +241,7 @@ export function PlayerControls() {
                   <ItemContent className="overflow-hidden">
                     <ItemTitle className="w-full min-w-0">
                       <span className="truncate">{s.title}</span>
+                      <ExplicitBadge song={s} />
                     </ItemTitle>
 
                     <ItemDescription className="w-full min-w-0">
@@ -284,8 +286,8 @@ export function PlayerControls() {
     .filter(Boolean)
     .join(" — ");
   const progress =
-    nowPlaying?.length && nowPlaying.length > 0
-      ? Math.min(100, (trackPosition / nowPlaying.length) * 100)
+    nowPlaying?.duration && nowPlaying.duration > 0
+      ? Math.min(100, (trackPosition / nowPlaying.duration) * 100)
       : 0;
 
   function pctFromPointer(e: React.PointerEvent<HTMLDivElement>) {
@@ -297,8 +299,8 @@ export function PlayerControls() {
   }
 
   const scrubSeconds =
-    scrubPct !== null && nowPlaying?.length
-      ? (scrubPct / 100) * nowPlaying.length
+    scrubPct !== null && nowPlaying?.duration
+      ? (scrubPct / 100) * nowPlaying.duration
       : null;
 
   if (isCompact) {
@@ -312,7 +314,7 @@ export function PlayerControls() {
           />
         </div>
 
-        {nowPlaying?.length ? (
+        {nowPlaying?.duration ? (
           <div
             role="slider"
             aria-label="Seek"
@@ -378,8 +380,11 @@ export function PlayerControls() {
               }
             />
             <div className="min-w-0 flex-1 overflow-hidden">
-              <div className="min-w-0 truncate text-sm font-medium">
-                {nowPlaying?.title ?? "Nothing is playing"}
+              <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+                <span className="min-w-0 truncate">
+                  {nowPlaying?.title ?? "Nothing is playing"}
+                </span>
+                <ExplicitBadge song={nowPlaying} />
               </div>
               <div className="min-w-0 truncate text-xs text-muted-foreground">
                 {meta || " "}
@@ -431,8 +436,11 @@ export function PlayerControls() {
           />
 
           <div className="flex flex-col overflow-hidden">
-            <span className="font-medium truncate">
-              {nowPlaying?.title ?? "Nothing is playing"}
+            <span className="flex items-center gap-1.5 font-medium">
+              <span className="truncate">
+                {nowPlaying?.title ?? "Nothing is playing"}
+              </span>
+              <ExplicitBadge song={nowPlaying} />
             </span>
             <span className="text-sm text-muted-foreground truncate">
               {nowPlaying?.artist ?? ""}
@@ -518,8 +526,10 @@ export function PlayerControls() {
               max={100}
               step={1}
               value={
-                nowPlaying && nowPlaying.length != null && nowPlaying.length > 0
-                  ? (trackPosition / nowPlaying.length) * 100
+                nowPlaying &&
+                nowPlaying.duration != null &&
+                nowPlaying.duration > 0
+                  ? (trackPosition / nowPlaying.duration) * 100
                   : 0
               }
               onValueChange={handleSeek}
@@ -527,7 +537,9 @@ export function PlayerControls() {
             />
 
             <span className="text-xs w-10">
-              {nowPlaying?.length ? formatLength(nowPlaying.length) : "--:--"}
+              {nowPlaying?.duration
+                ? formatLength(nowPlaying.duration)
+                : "--:--"}
             </span>
           </div>
         </div>

@@ -1,51 +1,12 @@
-import type { PersistedJob } from "@/core/jobs";
-import { getMetadataDb } from "@/lib/persistence/dexie";
+import type { IJobStateStore } from "@/lib/persistence/IJobStateStore";
+import { DexieJobStateStore } from "@/lib/persistence/dexie/DexieJobStateStore";
 
-export interface IJobStateStore {
-  put(job: PersistedJob): Promise<void>;
-  patch(id: string, changes: Partial<PersistedJob>): Promise<void>;
-  remove(id: string): Promise<void>;
-  list(): Promise<PersistedJob[]>;
-  /** Atomically take over a job still owned by `expectedOwner`. */
-  claim(id: string, expectedOwner: string, newOwner: string): Promise<boolean>;
-}
+export type { IJobStateStore };
 
-class DexieJobStateStore implements IJobStateStore {
-  private get table() {
-    return getMetadataDb().jobs;
-  }
-
-  async put(job: PersistedJob) {
-    await this.table.put(job);
-  }
-
-  async patch(id: string, changes: Partial<PersistedJob>) {
-    await this.table.update(id, changes);
-  }
-
-  async remove(id: string) {
-    await this.table.delete(id);
-  }
-
-  list() {
-    return this.table.toArray();
-  }
-
-  claim(id: string, expectedOwner: string, newOwner: string) {
-    const db = getMetadataDb();
-    return db.transaction("rw", db.jobs, async () => {
-      const job = await db.jobs.get(id);
-      if (!job || job.ownerId !== expectedOwner) return false;
-      await db.jobs.update(id, { ownerId: newOwner, updatedAt: Date.now() });
-      return true;
-    });
-  }
-}
-
-let store: IJobStateStore = new DexieJobStateStore();
+let store: IJobStateStore | null = null;
 
 export function getJobStateStore(): IJobStateStore {
-  return store;
+  return (store ??= new DexieJobStateStore());
 }
 
 export function setJobStateStore(next: IJobStateStore): void {

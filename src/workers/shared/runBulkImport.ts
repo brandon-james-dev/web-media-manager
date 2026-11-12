@@ -1,13 +1,22 @@
 import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
-import type { Playlist } from "@/models";
+import {
+  FAVORITES_PLAYLIST_ID,
+  type FavoriteOrigin,
+  type Playlist,
+  type PlaylistEntry,
+} from "@/models";
+import { mergeOrigin } from "@/core/playlists/favoriteOrigin";
 import { getPlaylistStore } from "@/core/ports";
+import { SOURCE_URI_PREFIX } from "@/core/contracts/sources";
 import type { WorkerProgress } from "../WorkerJob";
 import { initMetadataStore } from "@/lib";
 import type { BackgroundJob } from "@/events/background-job-events";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import type { MusicSource } from "@/models";
 import { getStrategy } from "@/lib/sources";
+import { getSongArtworkStore } from "@/lib/persistence/songArtworkStore";
+import { stampSong } from "./songChange";
 import type { MusicSourceImportConfig } from "@/lib/sources/config";
 
 /**
@@ -57,11 +66,14 @@ export async function runBulkImport(
     }
   }
   for (const song of songCollection) {
-    const existingId = song.relativePath
-      ? existingIdByPath.get(song.relativePath)
-      : undefined;
+    const existingId =
+      song.relativePath && !song.id.startsWith(SOURCE_URI_PREFIX)
+        ? existingIdByPath.get(song.relativePath)
+        : undefined;
     if (existingId) song.id = existingId;
   }
+  const existingById = new Map(allSongs.map((s) => [s.id, s]));
+  const songsWithArtwork = await getSongArtworkStore().listSongIdsWithArtwork();
   const collectedIds = new Set(songCollection.map((s) => s.id));
   const removedIds = allSongs
     .filter((s) => s.sourceId === source.id && !collectedIds.has(s.id))
@@ -89,9 +101,12 @@ export async function runBulkImport(
     if (isCancelled()) return { cancelled: true };
 
     const song = songCollection[index];
+    const changed = stampSong(song, existingById.get(song.id), Date.now());
 
-    // Enqueue thumbnail generation for any cover art.
-    if (song.pictures?.some((p) => p.data || p.url)) {
+    // Enqueue thumbnail generation for cover art, unless the song is
+    // unchanged since the last import and its artwork is already generated.
+    const needsArtwork = changed || !songsWithArtwork.has(song.id);
+    if (needsArtwork && song.pictures?.some((p) => p.data || p.url)) {
       self.postMessage({
         type: "enqueueJob",
         job: {
@@ -107,7 +122,7 @@ export async function runBulkImport(
     // Persist, then report progress AFTER the save so the UI's
     // progress-triggered refresh (SongProvider.onJobProgress) sees the
     // song already in the store — no missed refresh.
-    await store.save(song.id, song);
+    if (changed) await store.save(song.id, song);
 
     reportProgress({
       index,
@@ -128,11 +143,80 @@ export async function runBulkImport(
     collector,
     payload.musicSourceConfig,
     isCancelled,
-    reportProgress
+    reportProgress,
+    songCollection
   );
   if (!playlists) return { cancelled: true };
 
   return { ok: true, songs: songCollection, playlists };
+}
+
+/**
+ * Merge the songs the source marks as favorites into the app's Favorites
+ * playlist. Additive only: songs favorited in the app are never removed, and a
+ * failed or unsupported fetch leaves favorites untouched.
+ */
+async function importFavorites(
+  source: MusicSource,
+  collector: NonNullable<ReturnType<typeof getStrategy>>,
+  musicSourceConfig: MusicSourceImportConfig | undefined,
+  songs: Song[]
+): Promise<void> {
+  if (!collector.collectFavorites) return;
+  const importedSongIds = new Set(songs.map((s) => s.id));
+
+  let favoriteIds: string[] | null;
+  try {
+    favoriteIds = await collector.collectFavorites({
+      source,
+      songs,
+      musicSourceConfig,
+    });
+  } catch {
+    return;
+  }
+  if (!favoriteIds) return;
+
+  const store = getPlaylistStore();
+  await store.ensureFavorites?.();
+  const favorites = await store.get(FAVORITES_PLAYLIST_ID);
+  if (!favorites) return;
+
+  const found: "local" | "server" =
+    source.kind === "local" ? "local" : "server";
+  const incoming = new Set(favoriteIds.filter((id) => importedSongIds.has(id)));
+  const now = Date.now();
+  let changed = false;
+
+  const songsOut: PlaylistEntry[] = [];
+  for (const entry of favorites.songs) {
+    const current = entry.origin ?? "local";
+    let origin: FavoriteOrigin | null = current;
+    if (incoming.has(entry.songId)) {
+      origin = mergeOrigin(entry.origin, found);
+      incoming.delete(entry.songId);
+    } else if (found === "server" && importedSongIds.has(entry.songId)) {
+      origin =
+        current === "both" ? "local" : current === "server" ? null : current;
+    }
+    if (origin === null) {
+      changed = true;
+      continue;
+    }
+    if (origin !== current) changed = true;
+    songsOut.push(origin === current ? entry : { ...entry, origin });
+  }
+  for (const songId of incoming) {
+    songsOut.push({ songId, addedAt: now, origin: found });
+    changed = true;
+  }
+  if (!changed) return;
+
+  await store.save(FAVORITES_PLAYLIST_ID, {
+    ...favorites,
+    songs: songsOut,
+    updatedAt: now,
+  });
 }
 
 /**
@@ -151,8 +235,10 @@ async function importPlaylists(
   collector: NonNullable<ReturnType<typeof getStrategy>>,
   musicSourceConfig: MusicSourceImportConfig | undefined,
   isCancelled: () => boolean,
-  reportProgress: (progress: WorkerProgress) => void
+  reportProgress: (progress: WorkerProgress) => void,
+  songs: Song[]
 ): Promise<Playlist[] | null> {
+  await importFavorites(source, collector, musicSourceConfig, songs);
   if (!collector.collectPlaylists) return [];
 
   reportProgress({

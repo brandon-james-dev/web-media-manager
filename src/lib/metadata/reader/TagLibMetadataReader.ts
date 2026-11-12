@@ -13,6 +13,7 @@ import type {
   IAudioProperties,
   IMetadata,
 } from "@/lib/contracts";
+import { mapProperties, mapTags } from "./mapTaglib";
 
 export class TagLibMetadataReader implements IMetadataReader {
   async validate(file: File): Promise<boolean> {
@@ -27,29 +28,7 @@ export class TagLibMetadataReader implements IMetadataReader {
     try {
       const tags: ExtendedTag = await taglibReadTags(file);
 
-      return {
-        title: tags?.title?.at(0) ?? file.name,
-        artist: tags?.artist?.at(0),
-        album: tags?.album?.at(0),
-        albumArtist: tags?.albumArtist?.at(0),
-        genre: tags?.genre?.at(0),
-        comment: tags?.comment?.at(0),
-        composer: tags?.composer?.at(0),
-        year: tags?.year,
-        track: tags?.track,
-        totalTracks: tags?.totalTracks,
-        discNumber: tags?.discNumber,
-        totalDiscs: tags?.totalDiscs,
-        copyright: tags?.copyright?.at(0),
-        encodedBy: tags?.encodedBy?.at(0),
-        bpm: tags?.bpm,
-        isrc: tags?.isrc?.at(0),
-        mbTrackId: tags?.musicbrainzTrackId?.at(0),
-        mbArtistId: tags?.musicbrainzArtistId?.at(0),
-        mbReleaseGroupId: tags?.musicbrainzReleaseGroupId?.at(0),
-        lyrics: tags?.lyrics?.at(0)?.text,
-        pictures: tags?.pictures,
-      } as ITagData;
+      return mapTags(tags, file.name);
     } catch {
       return null;
     }
@@ -59,12 +38,7 @@ export class TagLibMetadataReader implements IMetadataReader {
     try {
       const props: AudioProperties = await taglibReadProps(file);
 
-      return {
-        length: props.duration,
-        bitrate: props.bitrate,
-        sampleRate: props.sampleRate,
-        channels: props.channels,
-      };
+      return mapProperties(props);
     } catch {
       return null;
     }
@@ -75,29 +49,8 @@ export class TagLibMetadataReader implements IMetadataReader {
       const { tags, properties } = await taglibReadMetadata(file);
 
       return {
-        title: tags?.title?.at(0) ?? file.name,
-        artist: tags?.artist?.at(0),
-        album: tags?.album?.at(0),
-        albumArtist: tags?.albumArtist?.at(0),
-        genre: tags?.genre?.at(0),
-        comment: tags?.comment?.at(0),
-        composer: tags?.composer?.at(0),
-        year: tags?.year,
-        track: tags?.track,
-        discNumber: tags?.discNumber,
-        lyrics: tags?.lyrics?.at(0)?.text,
-        copyright: tags?.copyright?.at(0),
-        encodedBy: tags?.encodedBy?.at(0),
-        bpm: tags?.bpm,
-        isrc: tags?.isrc?.at(0),
-        mbTrackId: tags?.musicbrainzTrackId?.at(0),
-        mbArtistId: tags?.musicbrainzArtistId?.at(0),
-        mbReleaseGroupId: tags?.musicbrainzReleaseGroupId?.at(0),
-        length: properties?.duration,
-        bitrate: properties?.bitrate,
-        sampleRate: properties?.sampleRate,
-        channels: properties?.channels,
-        pictures: tags?.pictures,
+        ...mapTags(tags, file.name),
+        ...(properties ? mapProperties(properties) : {}),
       };
     } catch {
       return null;

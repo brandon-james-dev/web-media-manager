@@ -274,7 +274,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                       />
 
                       <span className="w-full px-1 text-right">
-                        {formatLength(s.length)}
+                        {formatLength(s.duration)}
                       </span>
                     </div>
                   ))}

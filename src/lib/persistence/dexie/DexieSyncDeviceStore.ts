@@ -1,10 +1,10 @@
 import type { SyncDeviceRecord } from "@/models";
-import { getMetadataDb } from "./MetadataDb";
+import { getWmmMusicDb } from "./WmmMusicDb";
 import type { DataChangedCallback, IRepository, QueryOptions } from "..";
 import type { DataSourceResult } from "../DataSourceResult";
 
 export class DexieSyncDeviceStore implements IRepository<SyncDeviceRecord> {
-  private readonly db = getMetadataDb();
+  private readonly db = getWmmMusicDb();
 
   async get(id: string): Promise<SyncDeviceRecord | null> {
     return (await this.db.syncDevices.get(id)) ?? null;

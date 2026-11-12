@@ -20,7 +20,7 @@ export const selectors = {
   track: (s: Song) => s.track,
   genre: (s: Song) => s.genre,
   year: (s: Song) => s.year,
-  length: (s: Song) => s.length,
+  duration: (s: Song) => s.duration,
   bitrate: (s: Song) => s.bitrate,
 } as const;
 

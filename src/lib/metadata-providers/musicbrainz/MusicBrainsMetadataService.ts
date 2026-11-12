@@ -3,6 +3,7 @@ import type { IOnlineMetadata } from "../online/IOnlineMetadata";
 import type { IOnlineMetadataService } from "../online/IOnlineMetadataService";
 import { MetadataProvider } from "../online/MetadataProvider";
 import type {
+  IMusicBrainzArtistCredit,
   IMusicBrainzRecording,
   IMusicBrainzRelease,
 } from "./IMusicBrainzRecording";
@@ -48,6 +49,21 @@ async function resolveCoverArtThumb(
   return null;
 }
 
+function joinCredits(
+  credits: IMusicBrainzArtistCredit[] | undefined,
+  field: "name" | "sort-name" = "name"
+): string | undefined {
+  if (!credits?.length) return undefined;
+  return credits
+    .map((c) => {
+      const value =
+        field === "sort-name" ? (c.artist?.["sort-name"] ?? c.name) : c.name;
+      return value + (c.joinphrase ?? "");
+    })
+    .join("")
+    .trim();
+}
+
 export class MusicBrainzMetadataService implements IOnlineMetadataService {
   async lookup(
     query: string,
@@ -56,7 +72,9 @@ export class MusicBrainzMetadataService implements IOnlineMetadataService {
   ): Promise<IOnlineMetadata[] | null> {
     // The panel passes "title|artist|album" (structured). Build a precise
     // scoped Lucene query — no split heuristic, exact fields per term.
-    const [title, artist, album] = query.split("|").map((s) => s.trim().replace(/"/g, ""));
+    const [title, artist, album] = query
+      .split("|")
+      .map((s) => s.trim().replace(/"/g, ""));
     const terms: string[] = [];
     if (title) terms.push(`recording:"${title}"`);
     if (artist) terms.push(`artist:"${artist}"`);
@@ -86,7 +104,7 @@ export class MusicBrainzMetadataService implements IOnlineMetadataService {
       }
       throw new Error(
         `MusicBrainz request failed (${res.status})` +
-        (apiError ? `: ${apiError}` : "")
+          (apiError ? `: ${apiError}` : "")
       );
     }
 
@@ -100,7 +118,8 @@ export class MusicBrainzMetadataService implements IOnlineMetadataService {
     for (const rec of recordings) {
       const release: IMusicBrainzRelease | undefined = rec.releases?.[0];
 
-      let pictures: IPicture[] = [];
+      const pictures: IPicture[] = [];
+      const bestDate = release?.date || rec["first-release-date"];
 
       if (release?.id) {
         // Search returns only the thumbnail URL — never download the image
@@ -128,34 +147,57 @@ export class MusicBrainzMetadataService implements IOnlineMetadataService {
         totalTracks = media["track-count"] ?? undefined;
         totalDiscs = release?.media?.length ?? undefined;
 
-        const trackEntry = media.tracks?.[0];
+        const trackEntry = (media.track ?? media.tracks)?.[0];
         if (trackEntry?.number) {
           const parsed = Number(trackEntry.number);
           track = isNaN(parsed) ? undefined : parsed;
         }
       }
 
+      const credits = rec["artist-credit"];
+      const releaseCredits = release?.["artist-credit"];
+      const group = release?.["release-group"];
+      const tags = rec.genres?.length ? rec.genres : rec.tags;
+      const genre = tags?.map((t) => t.name).join("; ") || undefined;
+      const isVariousArtists =
+        group?.["secondary-types"]?.includes("Compilation");
+      const releaseType = [
+        group?.["primary-type"],
+        ...(group?.["secondary-types"] ?? []),
+      ]
+        .filter(Boolean)
+        .join("; ");
+
       results.push({
         source: MetadataProvider.MusicBrainz,
 
         title: rec.title,
-        artist: rec["artist-credit"]?.[0]?.name,
-        albumArtist: release?.["artist-credit"]?.[0]?.name,
+        artist: joinCredits(credits),
+        artistSort: joinCredits(credits, "sort-name"),
+        albumArtist: joinCredits(releaseCredits),
+        albumArtistSort: joinCredits(releaseCredits, "sort-name"),
         album: release?.title,
 
-        genre: rec.genres?.[0]?.name ?? rec.tags?.[0]?.name,
+        genre,
 
-        year: release?.date ? Number(release.date.slice(0, 4)) : undefined,
+        year: bestDate ? Number(bestDate.slice(0, 4)) : undefined,
+        date: bestDate,
+        originalDate: rec["first-release-date"],
         track,
         totalTracks,
         discNumber: disc,
         totalDiscs,
+        duration: rec.length ? rec.length / 1000 : undefined,
 
         isrc: rec.isrcs?.[0] ?? undefined,
+        label: release?.["label-info"]?.find((l) => l.label?.name)?.label?.name,
+        releaseType: releaseType || undefined,
+        compilation: isVariousArtists ? true : undefined,
 
-        mbTrackId: rec.id ?? undefined,
-        mbArtistId: rec["artist-credit"]?.[0]?.artist?.id ?? undefined,
-        mbReleaseGroupId: release?.["release-group"]?.id ?? undefined,
+        musicbrainzTrackId: rec.id ?? undefined,
+        musicbrainzReleaseId: release?.id,
+        musicbrainzArtistId: credits?.[0]?.artist?.id ?? undefined,
+        musicbrainzReleaseGroupId: group?.id ?? undefined,
 
         pictures,
       });

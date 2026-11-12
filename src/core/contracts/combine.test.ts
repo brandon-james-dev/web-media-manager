@@ -52,7 +52,10 @@ describe("enabledSources", () => {
     const on1 = makeSource({ id: "a", name: "A", priority: 2 });
     const off = makeSource({ id: "b", name: "B", priority: 1, enabled: false });
     const on2 = makeSource({ id: "c", name: "C", priority: 0 });
-    expect(enabledSources([on1, off, on2]).map((s) => s.id)).toEqual(["c", "a"]);
+    expect(enabledSources([on1, off, on2]).map((s) => s.id)).toEqual([
+      "c",
+      "a",
+    ]);
   });
 });
 

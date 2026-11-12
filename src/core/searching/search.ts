@@ -18,8 +18,8 @@ export async function search(params: SearchParams): Promise<SearchResult> {
     filter: (s: Song) =>
       Boolean(
         s.title?.toLowerCase().includes(query) ||
-          s.artist?.toLowerCase().includes(query) ||
-          s.album?.toLowerCase().includes(query)
+        s.artist?.toLowerCase().includes(query) ||
+        s.album?.toLowerCase().includes(query)
       ),
     sort: { selector: selectors.title, desc: false },
   });

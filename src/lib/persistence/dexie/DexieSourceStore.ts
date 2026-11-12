@@ -1,19 +1,19 @@
 import type { MusicSource } from "@/models";
-import type { MetadataDb } from "./MetadataDb";
+import type { WmmMusicDb } from "./WmmMusicDb";
 import type { IRepository, DataChangedCallback } from "..";
 import type { Collection, UpdateSpec } from "dexie";
 import type { QueryOptions } from "../QueryOptions";
 import type { DataSourceResult } from "../DataSourceResult";
 
 export class DexieSourceStore implements IRepository<MusicSource> {
-  private db: MetadataDb;
+  private db: WmmMusicDb;
 
   private addedListeners = new Set<DataChangedCallback<MusicSource>>();
   private updatedListeners = new Set<DataChangedCallback<MusicSource>>();
   private deletedListeners = new Set<DataChangedCallback<MusicSource>>();
   private clearedListeners = new Set<() => void>();
 
-  constructor(db: MetadataDb) {
+  constructor(db: WmmMusicDb) {
     this.db = db;
 
     this.db.sources.hook("creating", (_, obj) => {

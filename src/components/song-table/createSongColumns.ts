@@ -48,8 +48,8 @@ export function createSongColumns(features: any) {
       cell: (info) => info.getValue(),
     }),
 
-    columnHelper.accessor("length", {
-      id: "length",
+    columnHelper.accessor("duration", {
+      id: "duration",
       header: "Duration",
       minSize: 90,
       maxSize: 90,

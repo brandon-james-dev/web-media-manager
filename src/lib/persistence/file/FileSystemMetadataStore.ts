@@ -1,5 +1,6 @@
 import type { Song, MusicSource } from "@/models";
 import type { IMetadataStore } from "../../contracts";
+import type { MetadataRating } from "../../metadata/Metadata";
 import { TagLibMetadataWriter } from "../../metadata/writer";
 import type { DataChangedCallback, IRepository } from "..";
 import type { QueryOptions } from "../QueryOptions";
@@ -187,6 +188,23 @@ export class FileSystemMetadataStore implements IMetadataStore {
     }
 
     return song;
+  }
+
+  /**
+   * Replace the ratings embedded in a song's file. Returns false when the song
+   * has no local file (remote source, or the file cannot be found).
+   */
+  async writeRatings(id: string, ratings: MetadataRating[]): Promise<boolean> {
+    const handle = await this.getFileHandle(id);
+    if (!handle) return false;
+
+    const file = await handle.getFile();
+    const bytes = await new TagLibMetadataWriter().writeRatings(file, ratings);
+
+    const writable = await handle.createWritable();
+    await writable.write(bytes.slice().buffer);
+    await writable.close();
+    return true;
   }
 
   async batchUpdate(items: { id: string; updated: Song }[]): Promise<void> {

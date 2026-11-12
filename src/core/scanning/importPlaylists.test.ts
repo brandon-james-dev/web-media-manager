@@ -35,7 +35,9 @@ describe("importPlaylists (M3U discovery in the scan)", () => {
       name: "Road Trip.m3u",
       getFile: async () =>
         new File(
-          ["#EXTM3U\n#EXTINF:230,Artist - Title\nrelative/a.mp3\nrelative/b.mp3"],
+          [
+            "#EXTM3U\n#EXTINF:230,Artist - Title\nrelative/a.mp3\nrelative/b.mp3",
+          ],
           "Road Trip.m3u",
           { type: "audio/x-mpegurl" }
         ),
@@ -59,11 +61,9 @@ describe("importPlaylists (M3U discovery in the scan)", () => {
     const handle = {
       name: "partial.m3u",
       getFile: async () =>
-        new File(
-          ["#EXTM3U\nknown.mp3\nunknown.mp3"],
-          "partial.m3u",
-          { type: "audio/x-mpegurl" }
-        ),
+        new File(["#EXTM3U\nknown.mp3\nunknown.mp3"], "partial.m3u", {
+          type: "audio/x-mpegurl",
+        }),
     } as unknown as FileSystemFileHandle;
 
     await importPlaylists([handle], [makeSong("s1", "known.mp3")]);

@@ -1,5 +1,5 @@
 import { CombinedMetadataStore } from "./browser/CombinedMetadataStore";
-import { DexieMetadataStore, getMetadataDb } from "./dexie";
+import { DexieMetadataStore, getWmmMusicDb } from "./dexie";
 import {
   FileSystemSourceStore,
   FileSystemMetadataStore,
@@ -12,7 +12,7 @@ let metadataStore: CombinedMetadataStore | null = null;
 export function initMetadataStore(): IMetadataStore {
   if (metadataStore) return metadataStore;
 
-  const db = getMetadataDb();
+  const db = getWmmMusicDb();
   const dexieStore = new DexieMetadataStore(db);
   const directoryBackingStore = new DexieSourceStore(db);
   const directoryStore = new FileSystemSourceStore(directoryBackingStore);

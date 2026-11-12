@@ -23,7 +23,9 @@ export interface MusicSourceRepository {
 let sourcesProvider: (() => MusicSourceRepository) | null = null;
 
 /** Register the platform's source repository before first use. */
-export function setSourcesProvider(provider: () => MusicSourceRepository): void {
+export function setSourcesProvider(
+  provider: () => MusicSourceRepository
+): void {
   sourcesProvider = provider;
 }
 

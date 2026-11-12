@@ -151,6 +151,19 @@ export interface IMusicSourceStrategy {
   }): Promise<Playlist[] | null>;
 
   /**
+   * Collect the ids of songs the source marks as favorites (e.g. starred on a
+   * Subsonic server). Optional. Return null when they could not be read; the
+   * import then leaves the app's favorites untouched. Runs inside the web
+   * worker (UI-free).
+   */
+  collectFavorites?(options: {
+    source: MusicSource;
+    /** The songs just collected for this source. */
+    songs: Song[];
+    musicSourceConfig?: MusicSourceImportConfig;
+  }): Promise<string[] | null>;
+
+  /**
    * Resolve the raw image bytes of a song picture for artwork processing.
    * `data` is used directly when present (embedded tag art); otherwise the
    * source's cover art is resolved at the largest available size (e.g. a

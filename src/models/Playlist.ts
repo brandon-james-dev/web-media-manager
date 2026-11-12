@@ -1,6 +1,8 @@
 /** Reserved id for the pinned, non-deletable favorites playlist. */
 export const FAVORITES_PLAYLIST_ID = "favorites";
 
+export type FavoriteOrigin = "local" | "server" | "both";
+
 /**
  * A single ordered playlist entry. The array order IS the play order within
  * the playlist. `addedAt` captures when the song was added to the playlist
@@ -8,6 +10,12 @@ export const FAVORITES_PLAYLIST_ID = "favorites";
  */
 export interface PlaylistEntry {
   songId: string;
+  /**
+   * Favorites only: where the favorite lives. "local" is saved in the app
+   * (and the file rating), "server" is starred on a remote source, "both"
+   * is each. Absent means "local".
+   */
+  origin?: FavoriteOrigin;
   /** Epoch ms when the song was added to the playlist. */
   addedAt: number;
 }

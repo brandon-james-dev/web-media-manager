@@ -18,10 +18,7 @@ export interface JobProgressEvent {
  * via `setJobServiceProvider`, mirroring the store/source/reader ports.
  */
 export interface IJobService {
-  enqueue(
-    job: Omit<BackgroundJob, "id" | "state">,
-    jobId?: string
-  ): void;
+  enqueue(job: Omit<BackgroundJob, "id" | "state">, jobId?: string): void;
   cancelJob(jobId: string): void;
   onJobCompleted(cb: (job: BackgroundJob) => void): () => void;
   onJobProgress(cb: (event: JobProgressEvent) => void): () => void;

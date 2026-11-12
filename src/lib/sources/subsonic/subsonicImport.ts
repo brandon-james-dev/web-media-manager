@@ -82,7 +82,7 @@ export function childToSong(
     year: child.year,
     track: child.track,
     discNumber: child.discNumber,
-    length: child.duration,
+    duration: child.duration,
     bitrate: child.bitRate,
     pictures,
   };
@@ -350,6 +350,26 @@ export async function collectSubsonicPlaylists(
       onProgress?.(++resolved, remote.length);
     }
   });
+}
+
+/**
+ * Fetch the songs the user has starred on the server as app song ids (same
+ * source-qualified scheme as imported songs). Worker-safe like
+ * collectSubsonicPlaylists. Returns null when no credentials are available.
+ */
+export async function collectSubsonicFavoriteIds(
+  source: SubsonicMusicSource,
+  credentials?: SubsonicCredentials
+): Promise<string[] | null> {
+  const client = new SubsonicClient(source.config);
+  const creds =
+    credentials ?? (await credentialsFor(source).catch(() => undefined));
+  if (!creds) return null;
+
+  const starred = await client.getStarredSongs(creds);
+  return (starred as SubsonicChild[])
+    .filter((song) => song.id)
+    .map((song) => sourceUri(source, song.id as string));
 }
 
 /** Drop every playlist imported from a source (used when it is removed). */

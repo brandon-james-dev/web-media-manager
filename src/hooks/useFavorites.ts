@@ -2,14 +2,21 @@ import { useCallback, useSyncExternalStore } from "react";
 import { toggleFavorite } from "@/core/playlists";
 import { getPlaylistStore } from "@/core/ports";
 import { wmmBus } from "@/events";
-import { FAVORITES_PLAYLIST_ID, type Playlist } from "@/models";
+import {
+  FAVORITES_PLAYLIST_ID,
+  type FavoriteOrigin,
+  type Playlist,
+} from "@/models";
+import { hasLocalFavorite } from "@/core/playlists/favoriteOrigin";
 
-let favoriteIds: ReadonlySet<string> = new Set();
+let favoriteOrigins: ReadonlyMap<string, FavoriteOrigin> = new Map();
 let started = false;
 const listeners = new Set<() => void>();
 
 function publish(playlist: Playlist | undefined) {
-  favoriteIds = new Set(playlist?.songs.map((e) => e.songId));
+  favoriteOrigins = new Map(
+    playlist?.songs.map((e) => [e.songId, e.origin ?? "local"])
+  );
   for (const listener of listeners) listener();
 }
 
@@ -45,14 +52,27 @@ function subscribe(listener: () => void) {
 }
 
 function getSnapshot() {
-  return favoriteIds;
+  return favoriteOrigins;
 }
 
-/** Live set of favorited song ids, shared by every consumer. */
+/**
+ * Live favorites shared by every consumer. `isFavorite` is true for a local
+ * favorite (what toggling removes); `originOf` also reports server-only ones.
+ */
 export function useFavorites() {
-  const ids = useSyncExternalStore(subscribe, getSnapshot);
+  const origins = useSyncExternalStore(subscribe, getSnapshot);
 
-  const isFavorite = useCallback((songId: string) => ids.has(songId), [ids]);
+  const isFavorite = useCallback(
+    (songId: string) => {
+      const origin = origins.get(songId);
+      return origin !== undefined && hasLocalFavorite(origin);
+    },
+    [origins]
+  );
+  const originOf = useCallback(
+    (songId: string) => origins.get(songId),
+    [origins]
+  );
 
-  return { favoriteIds: ids, isFavorite, toggleFavorite };
+  return { isFavorite, originOf, toggleFavorite };
 }

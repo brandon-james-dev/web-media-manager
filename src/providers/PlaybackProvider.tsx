@@ -387,13 +387,13 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   });
 
   const seek = useRef((v: number) => {
-    if (!nowPlayingRef.current?.length) return;
+    if (!nowPlayingRef.current?.duration) return;
 
     const pct = Number(v);
-    let newTime = (pct / 100) * nowPlayingRef.current.length;
+    let newTime = (pct / 100) * nowPlayingRef.current.duration;
 
-    if (newTime >= nowPlayingRef.current.length) {
-      newTime = nowPlayingRef.current.length - 0.001;
+    if (newTime >= nowPlayingRef.current.duration) {
+      newTime = nowPlayingRef.current.duration - 0.001;
     }
 
     if (isPlayingRef.current) {
@@ -407,7 +407,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       isPlayingRef.current = false;
     }
     navigator.mediaSession.setPositionState?.({
-      duration: nowPlayingRef.current.length,
+      duration: nowPlayingRef.current.duration,
       playbackRate: 1,
       position: newTime,
     });

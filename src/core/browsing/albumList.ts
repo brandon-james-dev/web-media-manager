@@ -7,7 +7,9 @@ import type { AlbumListParams } from "./types";
  * Domain: Browsing.
  * Open Subsonic equivalent: getAlbumList2().
  */
-export async function getAlbumList(params: AlbumListParams): Promise<AlbumID3[]> {
+export async function getAlbumList(
+  params: AlbumListParams
+): Promise<AlbumID3[]> {
   const store = getStore();
   const songs = await store.getAll();
 

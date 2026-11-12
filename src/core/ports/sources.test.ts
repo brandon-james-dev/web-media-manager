@@ -128,7 +128,9 @@ describe("MusicSourceRepository (port contract)", () => {
 
   it("supports source instances of different kinds with distinct ids", async () => {
     const repo = new FakeSourceRepository();
-    const local = await repo.addSource(makeSource({ id: "local", kind: "local" }));
+    const local = await repo.addSource(
+      makeSource({ id: "local", kind: "local" })
+    );
     const sub1 = await repo.addSource(
       makeSource({ id: "sub-1", kind: "subsonic", name: "Navidrome" })
     );

@@ -1,3 +1,4 @@
+import { ratingsForFavorite } from "../../metadata/rating";
 import type { Song } from "@/models/Song";
 import type { IMetadataStore } from "../../contracts";
 import type { DexieMetadataStore } from "../dexie";
@@ -140,6 +141,19 @@ export class CombinedMetadataStore implements IMetadataStore {
     const updatedSong = await this.dexieStore.save(id, updated);
     this.emitUpdated(updated);
     return updatedSong;
+  }
+
+  async setFavoriteRating(songId: string, favorite: boolean): Promise<void> {
+    const song = await this.dexieStore.get(songId);
+    if (!song) return;
+
+    const ratings = ratingsForFavorite(song.ratings, favorite);
+    const written = await this.fsStore.writeRatings(songId, ratings);
+    if (!written) return;
+
+    const updated = { ...song, ratings, updatedAt: Date.now() };
+    await this.dexieStore.save(songId, updated);
+    this.emitUpdated(updated);
   }
 
   async batchUpdate(items: { id: string; updated: Song }[]): Promise<void> {

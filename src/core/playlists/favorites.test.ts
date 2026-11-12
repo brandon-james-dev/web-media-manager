@@ -62,3 +62,26 @@ describe("toggleFavorite", () => {
     expect(await store.get(FAVORITES_PLAYLIST_ID)).not.toBeNull();
   });
 });
+
+describe("favorite origin", () => {
+  it("turns a server favorite into both, and back to server on removal", async () => {
+    const store = makeStore();
+    setPlaylistStoreProvider(() => store);
+    await store.ensureFavorites?.();
+    const base = await store.get(FAVORITES_PLAYLIST_ID);
+    await store.save(FAVORITES_PLAYLIST_ID, {
+      ...(base as Playlist),
+      songs: [{ songId: "s", addedAt: 1, origin: "server" }],
+    });
+
+    expect(await toggleFavorite("s")).toBe(true);
+    expect((await store.get(FAVORITES_PLAYLIST_ID))?.songs[0].origin).toBe(
+      "both"
+    );
+
+    expect(await toggleFavorite("s")).toBe(false);
+    expect((await store.get(FAVORITES_PLAYLIST_ID))?.songs[0].origin).toBe(
+      "server"
+    );
+  });
+});

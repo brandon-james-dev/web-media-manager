@@ -1,3 +1,4 @@
+import { ExplicitBadge } from "@/components/explicit-badge";
 import { memo } from "react";
 import type { TanstackSongRowProps } from "./TanstackSongRowProps";
 import { SongContextMenu } from "../song-context-menu/SongContextMenu";
@@ -135,6 +136,7 @@ export const SongRow = memo(function SongRow({
               <div className="flex-1 min-w-0 truncate">
                 <table.FlexRender cell={cell} />
               </div>
+              {cell.column.id === "title" && <ExplicitBadge song={song} />}
               {cell.column.id === "title" && (
                 <FavoriteButton
                   songId={song.id}

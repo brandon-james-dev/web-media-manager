@@ -33,7 +33,7 @@ export function songToChild(song: Song): Child {
     year: song.year,
     track: song.track,
     discNumber: song.discNumber,
-    duration: song.length,
+    duration: song.duration,
     bitRate: song.bitrate,
     size: song.filesize,
     path: song.relativePath,
@@ -64,13 +64,20 @@ export function musicSourceToMusicFolder(source: MusicSource): MusicFolder {
  * (once) so the UI no longer has to recompute it in each caller.
  */
 export function songsToAlbums(songs: Song[]): AlbumID3[] {
-  const byKey = new Map<string, { name: string; artist: string; songs: Song[] }>();
+  const byKey = new Map<
+    string,
+    { name: string; artist: string; songs: Song[] }
+  >();
 
   for (const song of songs) {
     const key = albumId(song.album ?? "");
     let entry = byKey.get(key);
     if (!entry) {
-      entry = { name: song.album ?? "Unknown", artist: song.artist ?? "", songs: [] };
+      entry = {
+        name: song.album ?? "Unknown",
+        artist: song.artist ?? "",
+        songs: [],
+      };
       byKey.set(key, entry);
     }
     entry.songs.push(song);
@@ -83,7 +90,7 @@ export function songsToAlbums(songs: Song[]): AlbumID3[] {
     artistId: artist ? artistId(artist) : undefined,
     coverArt: songs[0]?.id, // artwork is resolved by song id
     songCount: songs.length,
-    duration: songs.reduce((sum, s) => sum + (s.length ?? 0), 0),
+    duration: songs.reduce((sum, s) => sum + (s.duration ?? 0), 0),
     year: songs.reduce((max, s) => Math.max(max, s.year ?? 0), 0),
     genre: songs[0]?.genre,
   }));

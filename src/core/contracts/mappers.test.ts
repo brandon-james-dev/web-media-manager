@@ -25,7 +25,7 @@ function makeSong(overrides: Partial<Song> = {}): Song {
     year: 2021,
     track: 2,
     discNumber: 1,
-    length: 180,
+    duration: 180,
     ...overrides,
   };
 }
@@ -42,7 +42,7 @@ const tags: ITagData = {
 const audioProps: Partial<IAudioProperties> = {
   sampleRate: 44100,
   channels: 2,
-  length: 240,
+  duration: 240,
   bitrate: 320,
 };
 
@@ -56,7 +56,7 @@ describe("applyTagDataToSong", () => {
     expect(out.track).toBe(1);
     expect(out.sampleRate).toBe(44100);
     expect(out.channels).toBe(2);
-    expect(out.length).toBe(240);
+    expect(out.duration).toBe(240);
     expect(out.bitrate).toBe(320);
     // structural / identity fields survive untouched
     expect(out.id).toBe("song-1");
@@ -137,9 +137,9 @@ describe("musicSourceToMusicFolder", () => {
 describe("songsToAlbums", () => {
   it("groups songs by album with aggregates", () => {
     const albums = songsToAlbums([
-      makeSong({ album: "A", year: 2001, length: 100 }),
-      makeSong({ album: "A", year: 2002, length: 200 }),
-      makeSong({ album: "B", year: 2010, length: 50 }),
+      makeSong({ album: "A", year: 2001, duration: 100 }),
+      makeSong({ album: "A", year: 2002, duration: 200 }),
+      makeSong({ album: "B", year: 2010, duration: 50 }),
     ]);
     expect(albums).toHaveLength(2);
     const a = albums.find((x) => x.name === "A")!;
@@ -175,4 +175,3 @@ function makeSource(): MusicSource {
     config: { baseUrl: "http://example.test" },
   };
 }
-

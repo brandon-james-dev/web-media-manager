@@ -12,6 +12,7 @@ const fresh = {
 } as unknown as Playlist;
 
 let collectPlaylists: (() => Promise<Playlist[] | null>) | undefined;
+let collectFavorites: (() => Promise<string[] | null>) | undefined;
 
 vi.mock("@/lib", () => ({
   initMetadataStore: () => ({
@@ -20,11 +21,19 @@ vi.mock("@/lib", () => ({
     save: () => {},
   }),
 }));
+vi.mock("@/lib/persistence/songArtworkStore", () => ({
+  getSongArtworkStore: () => ({
+    listSongIdsWithArtwork: async () => new Set<string>(),
+  }),
+}));
 vi.mock("@/lib/sources", () => ({
   getStrategy: () => ({
     collectSongs: async () => [song],
     get collectPlaylists() {
       return collectPlaylists;
+    },
+    get collectFavorites() {
+      return collectFavorites;
     },
   }),
 }));
@@ -39,6 +48,15 @@ function memoryPlaylists(seed: Playlist[]) {
         save: async (id: string, p: Playlist) => void rows.set(id, p),
         delete: async (id: string) => void rows.delete(id),
         getAll: async () => [...rows.values()],
+        get: async (id: string) => rows.get(id),
+        ensureFavorites: async () => {
+          if (!rows.has("favorites"))
+            rows.set("favorites", {
+              id: "favorites",
+              name: "Favorites",
+              songs: [],
+            } as unknown as Playlist);
+        },
       }) as never
   );
   return rows;
@@ -119,5 +137,30 @@ describe("runBulkImport playlist phase", () => {
     expect(result).toMatchObject({ ok: true, playlists: [] });
     expect(reports.some((r) => r.data?.phase === "playlists")).toBe(false);
     expect(rows.size).toBe(0);
+  });
+
+  it("merges source favorites into Favorites without dropping app favorites", async () => {
+    const rows = memoryPlaylists([
+      {
+        id: "favorites",
+        name: "Favorites",
+        songs: [{ songId: "local-fav", addedAt: 1 }],
+      } as unknown as Playlist,
+    ]);
+    collectPlaylists = undefined;
+    collectFavorites = async () => ["s1", "not-imported"];
+
+    await runBulkImport(
+      { musicSource: source },
+      () => false,
+      () => {},
+      "job1"
+    );
+    collectFavorites = undefined;
+
+    const songs = (rows.get("favorites") as Playlist).songs.map(
+      (e) => e.songId
+    );
+    expect(songs).toEqual(["local-fav", "s1"]);
   });
 });
