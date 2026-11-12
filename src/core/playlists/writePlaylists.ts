@@ -78,6 +78,8 @@ export async function savePlaylist(
  * artifact (local `.m3u` / remote OS API) so it stays in sync with the app.
  */
 async function writeThroughSource(playlist: Playlist): Promise<void> {
+  if (playlist.isFavorites) return;
+
   const song =
     playlist.songs.length > 0
       ? await resolveSong(playlist.songs[0].songId)
@@ -238,7 +240,7 @@ export async function removeSongFromPlaylist(
 export async function deletePlaylist(playlistId: string): Promise<void> {
   const store = getPlaylistStore();
   const existing = await store.get(playlistId);
-  if (!existing) return;
+  if (!existing || existing.isFavorites) return;
   await assertEditable(existing);
 
   // Delete the on-source artifact (e.g. its `.m3u`) when the source can

@@ -23,6 +23,7 @@ import { registerBrowserMetadataReader } from "./lib/metadata/reader/browserMeta
 import { registerBrowserSourceProvider } from "./lib/persistence/browser/sourcesProvider";
 import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvider";
 import { resumeInterruptedJobs } from "./lib/background-jobs";
+import { ensureFavorites } from "./core/playlists";
 import { resyncAllSources } from "./lib/sources";
 import { connectCommandDispatch, wmmBus } from "./events";
 import "./events/job-notifications";
@@ -38,6 +39,8 @@ registerBrowserJobService();
 // Restore jobs a previous session left unfinished, then re-import every
 // configured source on startup so the library stays in sync
 // with what's on the sources (local folders + remote servers).
+void ensureFavorites().catch(() => {});
+
 void resumeInterruptedJobs()
   .catch(() => new Set<string>())
   .then((restored) => resyncAllSources(restored));

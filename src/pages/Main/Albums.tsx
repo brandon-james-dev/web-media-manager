@@ -279,6 +279,7 @@ export function Albums() {
             availableLetters={availableLetters}
             className={isCompact ? "right-0" : "right-3"}
             autoHide={isCompact}
+            reversed={sortDesc}
             scrollRef={gridRef}
             onSelect={(letter) =>
               scrollListToIndex(
@@ -293,13 +294,6 @@ export function Albums() {
       {viewMode === "coverflow" && (
         <>
           <div className="relative h-80 shrink-0">
-            <AlphabetScrubber
-              availableLetters={availableLetters}
-              className="right-1"
-              onSelect={(letter) =>
-                setSelectedAlbumIndex(letterIndex.get(letter) ?? 0)
-              }
-            />
             <CoverFlow
               items={coverFlowItems}
               itemWidth={220}

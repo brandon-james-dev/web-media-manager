@@ -37,6 +37,7 @@ import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import { wmmBus } from "@/events";
+import { FavoriteButton } from "@/components/favorite-button";
 import { useIsCompact } from "@/lib/hooks/useIsMobile";
 import { formatLength } from "@/lib/formatLength";
 
@@ -386,7 +387,14 @@ export function PlayerControls() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center">
+          <div className="flex shrink-0 items-center gap-1">
+            {nowPlaying && (
+              <FavoriteButton
+                songId={nowPlaying.id}
+                className="h-10 w-10"
+                iconSize={20}
+              />
+            )}
             <Button
               size="icon"
               variant="ghost"
@@ -430,6 +438,9 @@ export function PlayerControls() {
               {nowPlaying?.artist ?? ""}
             </span>
           </div>
+          {nowPlaying && (
+            <FavoriteButton songId={nowPlaying.id} iconSize={16} />
+          )}
         </div>
 
         <div className="flex flex-col items-center flex-1">

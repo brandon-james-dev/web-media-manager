@@ -40,8 +40,8 @@ export function Songs() {
       selectedSourceIds.length === 0
         ? filteredSongs
         : filteredSongs.filter((song) =>
-            selectedSourceIds.includes(song.sourceId)
-          ),
+          selectedSourceIds.includes(song.sourceId)
+        ),
     [filteredSongs, selectedSourceIds]
   );
 
@@ -228,7 +228,7 @@ export function Songs() {
           >
             <ScrollArea ref={listRef} className="h-full min-w-0 overflow-auto">
               {isCompact ? (
-                <ItemGroup className="mx-auto w-full max-w-3xl gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0!">
+                <ItemGroup className="mx-auto w-full max-w-3xl pr-3 gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0!">
                   {visibleSongs.map((song, i) => (
                     <TrackItem
                       key={song.id}
@@ -244,9 +244,9 @@ export function Songs() {
                         activeMode === "edit"
                           ? handleSongDoubleClicked
                           : () =>
-                              wmmBus.invoke("wmm.playback.playSong", {
-                                songId: song.id,
-                              })
+                            wmmBus.invoke("wmm.playback.playSong", {
+                              songId: song.id,
+                            })
                       }
                       onDoubleClick={handleSongDoubleClicked}
                     />
@@ -272,6 +272,7 @@ export function Songs() {
                 availableLetters={new Set(letterIndex.keys())}
                 className={isCompact ? "right-0" : "right-3"}
                 autoHide={isCompact}
+                reversed={sort?.desc}
                 scrollRef={listRef}
                 onSelect={(letter) =>
                   scrollListToIndex(

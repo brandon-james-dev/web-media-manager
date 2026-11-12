@@ -11,8 +11,10 @@ export function AlphabetScrubber({
   side = "right",
   className,
   autoHide = false,
+  reversed = false,
   scrollRef,
 }: AlphabetScrubberProps) {
+  const letters = reversed ? [...ALPHABET_LETTERS].reverse() : ALPHABET_LETTERS;
   const trackRef = useRef<HTMLDivElement>(null);
   const lastSelectedRef = useRef<string | null>(null);
   const [scrub, setScrub] = useState<{ letter: string; y: number } | null>(
@@ -48,10 +50,10 @@ export function AlphabetScrubber({
     const rect = track.getBoundingClientRect();
     const y = Math.min(Math.max(e.clientY - rect.top, 0), rect.height);
     const i = Math.min(
-      ALPHABET_LETTERS.length - 1,
-      Math.floor((y / rect.height) * ALPHABET_LETTERS.length)
+      letters.length - 1,
+      Math.floor((y / rect.height) * letters.length)
     );
-    const letter = ALPHABET_LETTERS[i];
+    const letter = letters[i];
     setScrub({ letter, y });
     if (availableLetters.has(letter) && lastSelectedRef.current !== letter) {
       lastSelectedRef.current = letter;
@@ -90,7 +92,7 @@ export function AlphabetScrubber({
         onPointerUp={end}
         onPointerCancel={end}
       >
-        {ALPHABET_LETTERS.map((letter) => (
+        {letters.map((letter) => (
           <div
             key={letter}
             className={cn(

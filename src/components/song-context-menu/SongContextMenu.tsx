@@ -20,10 +20,11 @@ import {
   Pause,
   Pen,
   PencilRuler,
+  Heart,
   Play,
   PlusCircle,
 } from "lucide-react";
-import { usePlayback, useSync } from "@/hooks";
+import { useFavorites, usePlayback, useSync } from "@/hooks";
 import { useLocation, useParams } from "react-router";
 import { getStore } from "@/core/system";
 import { getPlaylistStore, getSourcesStore } from "@/core/ports";
@@ -46,6 +47,7 @@ export function SongContextMenu({
   const { pathname } = useLocation();
   const { queuedSongs, devices } = useSync();
   const { nowPlaying, isPlaying } = usePlayback();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [newPlaylistOpen, setNewPlaylistOpen] = useState(false);
@@ -194,6 +196,14 @@ export function SongContextMenu({
     );
   }
 
+  /** Favorite every selected song, or unfavorite them when all already are. */
+  async function toggleFavorites() {
+    const allFavorite = target.every((s) => isFavorite(s.id));
+    for (const s of target) {
+      if (isFavorite(s.id) === allFavorite) await toggleFavorite(s.id);
+    }
+  }
+
   /**
    * Create a playlist from the selection. Playlists live in the app's own
    * store; a source that can persist playlists also gets a written copy
@@ -264,6 +274,12 @@ export function SongContextMenu({
               build a list of songs, so they share a heading. */}
           <ContextMenuGroup hidden={isPlaybackHidden}>
             <ContextMenuLabel>Playlist</ContextMenuLabel>
+            <ContextMenuItem onClick={() => void toggleFavorites()}>
+              <Heart />
+              {target.every((s) => isFavorite(s.id))
+                ? "Remove From Favorites"
+                : "Add To Favorites"}
+            </ContextMenuItem>
             <ContextMenuSub>
               <ContextMenuSubTrigger>
                 <ListPlus />

@@ -5,6 +5,7 @@ import type { Cell, RowSelectionState } from "@tanstack/react-table";
 import { usePlayback } from "@/hooks";
 import type { Song } from "@/models";
 import { Play } from "lucide-react";
+import { FavoriteButton } from "../favorite-button";
 
 export const SongRow = memo(function SongRow({
   song,
@@ -113,8 +114,8 @@ export const SongRow = memo(function SongRow({
         onClick={handleClick}
         className={
           isSelected
-            ? "flex h-7 bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
-            : "flex h-7 odd:bg-muted/15 hover:bg-accent/45"
+            ? "group/track flex h-7 bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
+            : "group/track flex h-7 odd:bg-muted/15 hover:bg-accent/45"
         }
       >
         {row.getVisibleCells().map((cell: Cell<any, Song>) => (
@@ -126,12 +127,22 @@ export const SongRow = memo(function SongRow({
             className="px-4 py-1 whitespace-nowrap overflow-hidden text-ellipsis"
           >
             <div className="flex items-center gap-1 min-w-0">
-              {cell.column.id === "title" && nowPlaying?.id === song.id && (
-                isPlaying && <Play className="h-[0.65lh] w-[0.65lh] shrink-0 fill-current" />
-              )}
+              {cell.column.id === "title" &&
+                nowPlaying?.id === song.id &&
+                isPlaying && (
+                  <Play className="h-[0.65lh] w-[0.65lh] shrink-0 fill-current" />
+                )}
               <div className="flex-1 min-w-0 truncate">
                 <table.FlexRender cell={cell} />
               </div>
+              {cell.column.id === "title" && (
+                <FavoriteButton
+                  songId={song.id}
+                  alwaysVisible={false}
+                  className="h-5 w-5"
+                  iconSize={12}
+                />
+              )}
             </div>
           </div>
         ))}

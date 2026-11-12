@@ -1,10 +1,7 @@
-import type { Playlist } from "@/models";
+import { FAVORITES_PLAYLIST_ID, type Playlist } from "@/models";
 import { getMetadataDb, type MetadataDb } from "./MetadataDb";
 import type { DataChangedCallback, IRepository, QueryOptions } from "..";
 import type { DataSourceResult } from "../DataSourceResult";
-
-/** Reserved id for the pinned, non-deletable favorites playlist. */
-export const FAVORITES_PLAYLIST_ID = "favorites";
 
 /** One observed playlists-table write (Dexie hook payload). */
 interface PlaylistChange {
@@ -168,8 +165,6 @@ export class DexiePlaylistStore implements IRepository<Playlist> {
       });
     });
   }
-
-  /** Seed the reserved favorites playlist the first time it is used. */
 
   /** Seed the reserved favorites playlist the first time it is used. */
   async ensureFavorites(): Promise<void> {

@@ -1,3 +1,6 @@
+/** Reserved id for the pinned, non-deletable favorites playlist. */
+export const FAVORITES_PLAYLIST_ID = "favorites";
+
 /**
  * A single ordered playlist entry. The array order IS the play order within
  * the playlist. `addedAt` captures when the song was added to the playlist

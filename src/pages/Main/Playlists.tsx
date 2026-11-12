@@ -173,7 +173,11 @@ export function Playlists() {
     if (!store) return;
 
     const sortByName = (list: Playlist[]) =>
-      [...list].sort((a, b) => a.name.localeCompare(b.name));
+      [...list].sort(
+        (a, b) =>
+          Number(Boolean(b.isFavorites)) - Number(Boolean(a.isFavorites)) ||
+          a.name.localeCompare(b.name)
+      );
 
     store.getAll().then((next) => {
       if (!cancelled) setPlaylists(sortByName(next));
@@ -444,7 +448,11 @@ export function Playlists() {
                   variant="ghost"
                   className="shrink-0 dark:hover:bg-destructive hover:bg-destructive"
                   title={`Delete ${playlist.name}`}
-                  hidden={!editMode || isPlaylistReadOnly(playlist, sources)}
+                  hidden={
+                    !editMode ||
+                    playlist.isFavorites ||
+                    isPlaylistReadOnly(playlist, sources)
+                  }
                   onClick={() => {
                     setPendingDeleteId(playlist.id);
                     setDeleteDialogOpen(true);
@@ -489,7 +497,7 @@ export function Playlists() {
                   <ChevronLeft />
                 </Button>
               )}
-              {canEdit ? (
+              {canEdit && !selected.isFavorites ? (
                 // Edit mode: the title is an inline form — name box with a
                 // save button beside it, no modal step.
                 <form

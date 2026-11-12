@@ -393,6 +393,7 @@ export function Artists() {
           {artistLetterIndex.size > 0 && (
             <AlphabetScrubber
               availableLetters={artistLetters}
+              reversed={sortDesc}
               autoHide={isCompact}
               scrollRef={artistListRef}
               onSelect={(letter) =>
@@ -515,6 +516,7 @@ export function Artists() {
           {isAllArtists && groupLetterIndex.size > 0 && (
             <AlphabetScrubber
               availableLetters={groupLetters}
+              reversed={sortDesc}
               className={isCompact ? "right-0" : "right-3"}
               autoHide={isCompact}
               scrollRef={detailListRef}
@@ -666,7 +668,7 @@ function AlbumSection({
         </div>
       </SongContextMenu>
 
-      <ItemGroup className="mt-1 gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0! divide-y divide-border">
+      <ItemGroup className="mt-1 pr-7 gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0! divide-y divide-border">
         {songs.map((song, i) => (
           <div key={song.id}>
             <TrackItem

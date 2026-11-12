@@ -4,5 +4,7 @@ export interface AlphabetScrubberProps {
   side?: "left" | "right";
   className?: string;
   autoHide?: boolean;
+  /** Letters run Z to A, matching a descending list. */
+  reversed?: boolean;
   scrollRef?: React.RefObject<HTMLElement | null>;
 }

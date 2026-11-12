@@ -20,6 +20,7 @@ import { MoreHorizontal, Pause, Play } from "lucide-react";
 import { cn } from "cn";
 import { formatLength } from "@/lib/formatLength";
 import type { TrackItemProps } from "./TrackItemProps";
+import { FavoriteButton } from "@/components/favorite-button";
 
 /**
  * TrackItem — one song as a compact row, built on the shadcn Item
@@ -148,6 +149,8 @@ export function TrackItem(props: TrackItemProps) {
         </span>
 
         <ItemActions className="shrink-0">
+          <FavoriteButton songId={song.id} alwaysVisible={false} />
+
           {/* Play/pause affordance: always visible for the active row and on
             touch (no hover to reveal it), hover-revealed otherwise. The row
             itself isn't clickable, so single-tap play on mobile uses this. */}
