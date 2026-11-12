@@ -23,7 +23,8 @@ export function useSourceEditable(songs: Song[]): boolean {
         if (cancelled) return;
         const allEditable = songs.every((song) =>
           sources.some(
-            (source) => source.id === song.sourceId && source.capabilities.metadataWrite
+            (source) =>
+              source.id === song.sourceId && source.capabilities.metadataWrite
           )
         );
         setEditable(allEditable);

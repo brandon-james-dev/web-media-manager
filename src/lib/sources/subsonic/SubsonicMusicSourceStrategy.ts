@@ -3,6 +3,7 @@ import { fetchSubsonicSongBytes } from "@/lib/sources/subsonic/subsonicImport";
 import {
   collectSubsonicFavoriteIds,
   collectSubsonicPlaylists,
+  collectSubsonicSongChanges,
   collectSubsonicSongs,
   removeSubsonicPlaylists,
 } from "@/lib/sources/subsonic/subsonicImport";
@@ -22,7 +23,11 @@ import { getSourcesStore } from "@/core/ports";
 import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
 import type { MusicSource, Playlist, SubsonicMusicSource } from "@/models";
-import type { IMusicSourceStrategy, IJobHandle } from "../IMusicSourceStrategy";
+import type {
+  IMusicSourceStrategy,
+  IJobHandle,
+  SongChanges,
+} from "../IMusicSourceStrategy";
 import type { MusicSourceConfigField } from "../MusicSourceConfigField";
 
 /** Config the Subsonic strategy's standardized form collects before add(). */
@@ -239,6 +244,36 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
       result.push(songs[index]);
     }
     return result;
+  }
+
+  /**
+   * Collect a subsonic source's changes since the last import. The server
+   * answers an unchanged library without listing it; a changed one is read in
+   * full.
+   */
+  async collectSongChanges(options: {
+    source: MusicSource;
+    since: number;
+    reportProgress?: (progress: WorkerProgress) => void;
+    musicSourceConfig?: MusicSourceImportConfig;
+  }): Promise<SongChanges | null> {
+    if (options.source.kind !== "subsonic") return null;
+    const credentials = await sourceConfigToCredentials(
+      options.source,
+      options.musicSourceConfig
+    );
+    return collectSubsonicSongChanges(
+      options.source,
+      options.since,
+      credentials,
+      (resolved, total) =>
+        options.reportProgress?.({
+          index: resolved,
+          total,
+          percent: total ? resolved / total : 0,
+          label: `Fetched ${resolved}/${total} albums`,
+        })
+    );
   }
 
   /**

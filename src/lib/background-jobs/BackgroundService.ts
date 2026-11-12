@@ -8,7 +8,14 @@ import {
   type WorkerProgress,
 } from "@/core/jobs";
 import { browserJobRunner } from "./BrowserJobRunner";
-import { checkpointJob, forgetJob, persistJob } from "./jobPersistence";
+import { sourceFingerprint } from "@/lib/sources/sourceFingerprint";
+import {
+  checkpointJob,
+  forgetJob,
+  lastCompletedAt,
+  persistJob,
+  recordCompletion,
+} from "./jobPersistence";
 import type {
   JobCompletedCallback,
   JobProgressCallback,
@@ -121,6 +128,7 @@ export class BackgroundService {
     });
 
     try {
+      await this.addImportSince(job);
       const result = await this.execute(job);
       this.handleCompletion(job, undefined, result);
     } catch (err) {
@@ -132,8 +140,30 @@ export class BackgroundService {
     }
   }
 
+  private async addImportSince(job: BackgroundJob) {
+    const source = job.payload?.musicSource;
+    if (job.type !== "Bulk Import" || job.parentJobId || !source) return;
+    const since = await lastCompletedAt(
+      job.type,
+      source.id,
+      sourceFingerprint(source)
+    );
+    if (since !== undefined) job.payload = { ...job.payload, since };
+  }
+
   private handleCompletion(job: BackgroundJob, error?: any, result?: any) {
     job.state = error ? "failed" : "completed";
+
+    const source = job.payload?.musicSource;
+    if (
+      !error &&
+      !result?.cancelled &&
+      job.type === "Bulk Import" &&
+      !job.parentJobId &&
+      source
+    ) {
+      recordCompletion(job.type, source.id, sourceFingerprint(source));
+    }
 
     // Child job: aggregate progress under its parent.
     if (job.parentJobId) {

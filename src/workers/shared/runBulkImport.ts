@@ -32,6 +32,8 @@ export async function runBulkImport(
     /** Generic source config (incl. any main-thread-resolved secret);
      *  resolved by the enqueueing strategy via getMusicSourceImportConfig. */
     musicSourceConfig?: MusicSourceImportConfig;
+    /** Epoch ms of this source's last successful import, when there was one. */
+    since?: number;
   },
   isCancelled: () => boolean,
   reportProgress: (progress: WorkerProgress) => void,
@@ -45,20 +47,46 @@ export async function runBulkImport(
   const collector = getStrategy(source.kind);
   if (!collector) return { cancelled: true };
 
-  const songCollection = await collector.collectSongs({
-    source,
-    isCancelled,
-    musicSourceConfig: payload.musicSourceConfig,
-    reportProgress,
-  });
-
   const store = initMetadataStore() as CombinedMetadataStore;
+  const allSongs = await store.getAll();
+
+  const changes =
+    payload.since !== undefined && collector.collectSongChanges
+      ? await collector.collectSongChanges({
+          source,
+          since: payload.since,
+          knownPaths: new Set(
+            allSongs
+              .filter((s) => s.sourceId === source.id && s.relativePath)
+              .map((s) => s.relativePath as string)
+          ),
+          isCancelled,
+          musicSourceConfig: payload.musicSourceConfig,
+          reportProgress,
+        })
+      : null;
+
+  const note =
+    changes?.note ??
+    (payload.since === undefined
+      ? "Reading full library: no earlier successful import recorded"
+      : "Reading full library: source cannot report changes");
+  reportProgress({ index: 0, total: 0, percent: 0, label: note });
+
+  const songCollection =
+    changes?.songs ??
+    (await collector.collectSongs({
+      source,
+      isCancelled,
+      musicSourceConfig: payload.musicSourceConfig,
+      reportProgress,
+    }));
+  if (isCancelled()) return { cancelled: true };
 
   // Set logic: diff this source's currently-stored songs against what the
   // collector just found. Songs that exist in the store for this source but
   // are NOT in the freshly-collected set have been removed from the source
   // (deleted from the folder / removed from the server) — drop them.
-  const allSongs = await store.getAll();
   const existingIdByPath = new Map<string, string>();
   for (const s of allSongs) {
     if (s.sourceId === source.id && s.relativePath) {
@@ -75,8 +103,17 @@ export async function runBulkImport(
   const existingById = new Map(allSongs.map((s) => [s.id, s]));
   const songsWithArtwork = await getSongArtworkStore().listSongIdsWithArtwork();
   const collectedIds = new Set(songCollection.map((s) => s.id));
+  const presentPaths = changes?.presentPaths
+    ? new Set(changes.presentPaths)
+    : null;
   const removedIds = allSongs
-    .filter((s) => s.sourceId === source.id && !collectedIds.has(s.id))
+    .filter((s) => {
+      if (s.sourceId !== source.id) return false;
+      if (presentPaths)
+        return !(s.relativePath && presentPaths.has(s.relativePath));
+      if (changes?.unchanged) return false;
+      return !collectedIds.has(s.id);
+    })
     .map((s) => s.id);
   if (removedIds.length > 0) {
     await store.batchDelete(removedIds);
@@ -144,7 +181,17 @@ export async function runBulkImport(
     payload.musicSourceConfig,
     isCancelled,
     reportProgress,
-    songCollection
+    changes
+      ? [
+          ...allSongs.filter(
+            (s) =>
+              s.sourceId === source.id &&
+              !collectedIds.has(s.id) &&
+              !removedIds.includes(s.id)
+          ),
+          ...songCollection,
+        ]
+      : songCollection
   );
   if (!playlists) return { cancelled: true };
 

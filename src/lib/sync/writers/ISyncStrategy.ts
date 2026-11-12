@@ -11,11 +11,7 @@ export interface ISyncStrategy {
    * Devices that cannot store playlists (e.g. MTP) simply ignore the
    * playlists argument.
    */
-  sync(
-    device: SyncDevice,
-    songs: Song[],
-    playlists: Playlist[]
-  ): Promise<void>;
+  sync(device: SyncDevice, songs: Song[], playlists: Playlist[]): Promise<void>;
   /**
    * Remove tracks from the device by their on-device track ids
    * (`SyncTrack.id`). Optional: devices whose tracks cannot be addressed

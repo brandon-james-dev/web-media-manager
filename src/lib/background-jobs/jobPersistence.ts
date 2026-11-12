@@ -66,6 +66,53 @@ export function checkpointJob(jobId: string, checkpoint: unknown): void {
   pendingCheckpoints.set(jobId, entry);
 }
 
+const completionId = (type: string, scope: string) => `${type}:${scope}`;
+
+/**
+ * Keep a record that a job of this type and scope just finished, under a
+ * stable id so there is one row per scope. `fingerprint` identifies the
+ * settings the run used.
+ */
+export function recordCompletion(
+  type: string,
+  scope: string,
+  fingerprint: string
+): void {
+  const now = Date.now();
+  getJobStateStore()
+    .put({
+      id: completionId(type, scope),
+      type,
+      payload: {},
+      ownerId: tabId,
+      completedAt: now,
+      fingerprint,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .catch((error) => warn("write", error));
+}
+
+/**
+ * When a job of this type and scope last finished successfully with the same
+ * fingerprint, or undefined when it never did or its setup has changed.
+ */
+export async function lastCompletedAt(
+  type: string,
+  scope: string,
+  fingerprint: string
+): Promise<number | undefined> {
+  try {
+    const record = (await getJobStateStore().list()).find(
+      (job) => job.id === completionId(type, scope)
+    );
+    return record?.fingerprint === fingerprint ? record.completedAt : undefined;
+  } catch (error) {
+    warn("read", error);
+    return undefined;
+  }
+}
+
 export function forgetJob(jobId: string): void {
   const pending = pendingCheckpoints.get(jobId);
   if (pending) {
@@ -86,6 +133,7 @@ export async function takeInterruptedJobs(): Promise<PersistedJob[]> {
   const taken: PersistedJob[] = [];
   try {
     for (const job of await store.list()) {
+      if (job.completedAt !== undefined) continue;
       if (await isTabAlive(job.ownerId)) continue;
       if (await store.claim(job.id, job.ownerId, tabId)) taken.push(job);
     }

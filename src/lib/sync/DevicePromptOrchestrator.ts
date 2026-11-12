@@ -41,7 +41,9 @@ export class DevicePromptOrchestrator {
    *
    * @returns the selected USB info, or `undefined` when the user cancelled.
    */
-  async requestUsb(priorUsb?: UsbDeviceInfo): Promise<UsbDeviceInfo | undefined> {
+  async requestUsb(
+    priorUsb?: UsbDeviceInfo
+  ): Promise<UsbDeviceInfo | undefined> {
     let usbInfo = priorUsb;
     if (!usbInfo) {
       try {

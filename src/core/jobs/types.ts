@@ -78,6 +78,10 @@ export interface PersistedJob {
   checkpoint?: any;
   /** Tab session that owns the job; a job is restorable once its owner is gone. */
   ownerId: string;
+  /** Set on the record kept after a successful run; such a job is not restored. */
+  completedAt?: number;
+  /** Settings the successful run used (e.g. which folders or server). */
+  fingerprint?: string;
   createdAt: number;
   updatedAt: number;
 }

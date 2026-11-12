@@ -137,6 +137,22 @@ export interface IMusicSourceStrategy {
   }): Promise<Song[]>;
 
   /**
+   * Collect only what changed since the last successful import. Optional:
+   * kinds that cannot tell omit it, or return null, and the import reads the
+   * full library. Runs inside the web worker (UI-free).
+   */
+  collectSongChanges?(options: {
+    source: MusicSource;
+    /** Epoch ms of the last successful import of this source. */
+    since: number;
+    /** Relative paths of this source's songs already in the catalog. */
+    knownPaths: Set<string>;
+    isCancelled?: () => boolean;
+    reportProgress?: (progress: WorkerProgress) => void;
+    musicSourceConfig?: MusicSourceImportConfig;
+  }): Promise<SongChanges | null>;
+
+  /**
    * Collect this source kind's playlists as app playlists (stamped with the
    * source's `sourceId`). Optional: kinds without source-held playlists omit
    * it. Return null when playlists could not be read, so the import leaves
@@ -178,6 +194,19 @@ export interface IMusicSourceStrategy {
     song: Song,
     musicSourceConfig?: MusicSourceImportConfig
   ): Promise<Uint8Array | null>;
+}
+
+/**
+ * Result of a changes-only collect. `songs` are the ones to (re)import. With
+ * `presentPaths` (every path currently on the source) stored songs missing
+ * from it are removed; with `unchanged` nothing is removed; otherwise `songs`
+ * is the full library.
+ */
+export interface SongChanges {
+  songs: Song[];
+  unchanged?: boolean;
+  note?: string;
+  presentPaths?: string[];
 }
 
 /** Handle to a cancellable background job (sync, add import). */

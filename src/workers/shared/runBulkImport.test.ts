@@ -12,6 +12,8 @@ const fresh = {
 } as unknown as Playlist;
 
 let collectPlaylists: (() => Promise<Playlist[] | null>) | undefined;
+let collectSongChanges:
+  ((o: { since: number }) => Promise<unknown>) | undefined;
 let collectFavorites: (() => Promise<string[] | null>) | undefined;
 
 vi.mock("@/lib", () => ({
@@ -29,6 +31,9 @@ vi.mock("@/lib/persistence/songArtworkStore", () => ({
 vi.mock("@/lib/sources", () => ({
   getStrategy: () => ({
     collectSongs: async () => [song],
+    get collectSongChanges() {
+      return collectSongChanges;
+    },
     get collectPlaylists() {
       return collectPlaylists;
     },
@@ -162,5 +167,46 @@ describe("runBulkImport playlist phase", () => {
       (e) => e.songId
     );
     expect(songs).toEqual(["local-fav", "s1"]);
+  });
+});
+
+describe("runBulkImport changes-only", () => {
+  it("uses collectSongChanges, not the full walk, when since is set", async () => {
+    memoryPlaylists([]);
+    collectSongChanges = vi.fn(async () => ({
+      songs: [],
+      unchanged: true,
+      note: "unchanged",
+    }));
+    collectPlaylists = undefined;
+    collectFavorites = undefined;
+
+    const result = await runBulkImport(
+      { musicSource: source, since: 123 },
+      () => false,
+      () => {},
+      "job"
+    );
+
+    expect(collectSongChanges).toHaveBeenCalledWith(
+      expect.objectContaining({ since: 123 })
+    );
+    expect(result).toMatchObject({ ok: true, songs: [] });
+    collectSongChanges = undefined;
+  });
+
+  it("falls back to the full walk without since", async () => {
+    memoryPlaylists([]);
+    collectSongChanges = vi.fn();
+    const result = await runBulkImport(
+      { musicSource: source },
+      () => false,
+      () => {},
+      "job"
+    );
+
+    expect(collectSongChanges).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: true, songs: [song] });
+    collectSongChanges = undefined;
   });
 });

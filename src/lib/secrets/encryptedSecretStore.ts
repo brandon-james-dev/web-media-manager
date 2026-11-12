@@ -23,9 +23,7 @@ const KEY_DB_NAME = "master";
 const IV_BYTES = 12;
 
 /** A stored secret: encrypted envelope (v1) or legacy plaintext (v0). */
-type StoredSecret =
-  | { v: 1; iv: string; ct: string }
-  | { v: 0; plain: string };
+type StoredSecret = { v: 1; iv: string; ct: string } | { v: 0; plain: string };
 
 type Secrets = Record<string, StoredSecret>;
 
@@ -207,7 +205,11 @@ export function createEncryptedSecretStore(
       if (!entry) return null;
       try {
         const key = await getMasterKey(keyDb);
-        return key ? await decryptSecret(key, entry) : entry.v === 0 ? entry.plain : null;
+        return key
+          ? await decryptSecret(key, entry)
+          : entry.v === 0
+            ? entry.plain
+            : null;
       } catch {
         return null;
       }

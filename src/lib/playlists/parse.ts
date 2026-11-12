@@ -36,7 +36,9 @@ export function parseM3u(text: string): ParseM3uResult {
         if (comma > 0) {
           const durationRaw = rest.slice(0, comma).trim();
           const duration =
-            durationRaw && durationRaw !== "-1" ? Number(durationRaw) : undefined;
+            durationRaw && durationRaw !== "-1"
+              ? Number(durationRaw)
+              : undefined;
           pendingExtinf = {
             duration: isNaN(duration as number) ? undefined : duration,
             title: rest.slice(comma + 1).trim() || undefined,

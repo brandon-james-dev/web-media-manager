@@ -26,7 +26,11 @@ import type { WorkerProgress } from "@/core/jobs";
 import type { MusicSourceImportConfig } from "../config";
 import { uuidv7 } from "uuidv7";
 import { isFiveStarRated } from "@/lib/metadata/rating";
-import type { IMusicSourceStrategy, IJobHandle } from "../IMusicSourceStrategy";
+import type {
+  IMusicSourceStrategy,
+  IJobHandle,
+  SongChanges,
+} from "../IMusicSourceStrategy";
 import type { MusicSourceConfigField } from "../MusicSourceConfigField";
 
 /**
@@ -127,8 +131,49 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
     reportProgress?: (progress: WorkerProgress) => void;
     musicSourceConfig?: MusicSourceImportConfig;
   }): Promise<Song[]> {
-    const reader = getMetadataReader();
-    const folders = localSourceFolders(options.source as LocalMusicSource);
+    return this.readEntries(
+      options.source,
+      await this.listEntries(options.source),
+      options.isCancelled
+    );
+  }
+
+  /**
+   * Collect only the files modified since the last import (or not yet in the
+   * catalog). Every path is still listed so removed files are noticed, but
+   * unchanged files are not read.
+   */
+  async collectSongChanges(options: {
+    source: MusicSource;
+    since: number;
+    knownPaths: Set<string>;
+    isCancelled?: () => boolean;
+  }): Promise<SongChanges | null> {
+    if (options.source.kind !== "local") return null;
+    const entries = await this.listEntries(options.source);
+    const changed: typeof entries = [];
+    for (const entry of entries) {
+      if (options.isCancelled?.()) break;
+      const file = await entry.handle.getFile();
+      if (
+        file.lastModified > options.since ||
+        !options.knownPaths.has(entry.relativePath)
+      ) {
+        changed.push(entry);
+      }
+    }
+    return {
+      songs: await this.readEntries(
+        options.source,
+        changed,
+        options.isCancelled
+      ),
+      presentPaths: entries.map((entry) => entry.relativePath),
+    };
+  }
+
+  private async listEntries(source: MusicSource) {
+    const folders = localSourceFolders(source as LocalMusicSource);
     const entries: Array<{
       handle: FileSystemFileHandle;
       relativePath: string;
@@ -150,9 +195,18 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
       }
     }
 
+    return entries;
+  }
+
+  private async readEntries(
+    source: MusicSource,
+    entries: Array<{ handle: FileSystemFileHandle; relativePath: string }>,
+    isCancelled?: () => boolean
+  ): Promise<Song[]> {
+    const reader = getMetadataReader();
     const songs: Song[] = [];
     for (let index = 0; index < entries.length; index++) {
-      if (options.isCancelled?.()) return songs;
+      if (isCancelled?.()) return songs;
 
       const { handle: fileHandle, relativePath } = entries[index];
       const metadata = await readTags(fileHandle, reader);
@@ -162,7 +216,7 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
         filename: fileHandle.name,
         filesize: metadata?.filesize ?? 0,
         relativePath,
-        sourceId: options.source.id,
+        sourceId: source.id,
       };
       songs.push(song);
     }

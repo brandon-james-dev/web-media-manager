@@ -266,6 +266,38 @@ export async function collectSubsonicSongs(
 }
 
 /**
+ * Ask the server whether its library changed since `since`. Unchanged yields
+ * no songs; otherwise the full library is read. Returns null when no
+ * credentials are available.
+ */
+export async function collectSubsonicSongChanges(
+  source: SubsonicMusicSource,
+  since: number,
+  credentials?: SubsonicCredentials,
+  onProgress?: (resolved: number, total: number) => void
+): Promise<{ songs: Song[]; unchanged: boolean; note: string } | null> {
+  const creds =
+    credentials ?? (await credentialsFor(source).catch(() => undefined));
+  if (!creds) return null;
+
+  const { unchanged, lastModified, index } = await new SubsonicClient(
+    source.config
+  ).getIndexes(creds, since);
+  if (unchanged) {
+    return {
+      songs: [],
+      unchanged,
+      note: "Library unchanged since the last import",
+    };
+  }
+  return {
+    songs: await collectSubsonicSongs(source, creds, onProgress),
+    unchanged,
+    note: `Reading full library: server lastModified ${lastModified ?? "missing"}, last import ${since}, ${index.length} index groups returned`,
+  };
+}
+
+/**
  * Query the server's library and persist every song into the catalog.
  * New songs appear in the UI live (store `added` events); re-running is an
  * idempotent upsert. Returns the number of songs persisted.

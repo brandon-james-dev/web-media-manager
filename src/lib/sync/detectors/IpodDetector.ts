@@ -41,7 +41,8 @@ export class IpodDetector implements DeviceDetector {
     const itdb = await Itdb.open(createBrowserFs(root), {
       device,
     });
-    let resolved: Awaited<ReturnType<typeof Itdb.open>>["resolvedDevice"] | undefined;
+    let resolved:
+      Awaited<ReturnType<typeof Itdb.open>>["resolvedDevice"] | undefined;
     try {
       // Carry the on-device GUID/serial onto the resolved device so the
       // hash58 checksum works on devices that need it (nano 3/4G, classic).
@@ -86,10 +87,7 @@ export class IpodDetector implements DeviceDetector {
             setupItdb[Symbol.dispose]();
           }
         } catch (err) {
-          console.warn(
-            "[IpodDetector] One-time SysInfo setup failed:",
-            err
-          );
+          console.warn("[IpodDetector] One-time SysInfo setup failed:", err);
         }
       }
     } finally {

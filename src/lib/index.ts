@@ -1,9 +1,11 @@
-export {
-  getMetadataStore,
-} from "./persistence/file";
+export { getMetadataStore } from "./persistence/file";
 export { getShortcuts, type Shortcut } from "./keyboard-shortcuts";
 export { handleKey } from "./keyboard-shortcuts";
-export { addPersistedStoreDirectory, clearDb, initMetadataStore } from "./persistence";
+export {
+  addPersistedStoreDirectory,
+  clearDb,
+  initMetadataStore,
+} from "./persistence";
 export {
   applySongEdits,
   createCombinedWriteStrategy,

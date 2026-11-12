@@ -57,10 +57,7 @@ export class SyncService {
         try {
           return await restoreSyncDevice(record);
         } catch (error) {
-          console.warn(
-            `[SyncService] Unable to read "${record.name}":`,
-            error
-          );
+          console.warn(`[SyncService] Unable to read "${record.name}":`, error);
           return null;
         }
       })
@@ -120,10 +117,7 @@ export class SyncService {
    * Delete tracks from a device by their on-device ids (`SyncTrack.id`).
    * Throws when the device type cannot delete individual tracks.
    */
-  async removeTracks(
-    device: SyncDevice,
-    trackIds: number[]
-  ): Promise<void> {
+  async removeTracks(device: SyncDevice, trackIds: number[]): Promise<void> {
     const strategy = await this.getStrategy(device);
 
     if (!strategy) {

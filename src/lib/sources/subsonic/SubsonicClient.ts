@@ -145,19 +145,25 @@ export class SubsonicClient {
   /** Root-level artist index plus any unindexed root songs. Exhaustive walk
    *  of a library starts here: each index entry feeds getArtist(); each root
    *  child is a song without an artist bucket. */
-  async getIndexes(creds: SubsonicCredentials): Promise<{
+  async getIndexes(
+    creds: SubsonicCredentials,
+    ifModifiedSince?: number
+  ): Promise<{
     index: Array<{ id?: string; name?: string; artist?: unknown[] }>;
     child: unknown[];
+    unchanged: boolean;
+    lastModified?: number;
   }> {
     const body = await this.request<{
-      indexes: { index?: unknown; child?: unknown };
-    }>(
-      "getIndexes",
-      creds,
-      this.config.musicFolderId
+      indexes: { index?: unknown; child?: unknown; lastModified?: unknown };
+    }>("getIndexes", creds, {
+      ...(this.config.musicFolderId
         ? { musicFolderId: this.config.musicFolderId }
-        : {}
-    );
+        : {}),
+      ...(ifModifiedSince !== undefined
+        ? { ifModifiedSince: String(ifModifiedSince) }
+        : {}),
+    });
     const indexes = body["subsonic-response"].indexes;
     const index = Array.isArray(indexes?.index) ? indexes.index : [];
     const child = Array.isArray(indexes?.child) ? indexes.child : [];
@@ -168,6 +174,15 @@ export class SubsonicClient {
         artist?: unknown[];
       }>,
       child,
+      lastModified:
+        typeof indexes?.lastModified === "number"
+          ? indexes.lastModified
+          : undefined,
+      unchanged:
+        ifModifiedSince !== undefined &&
+        ((index.length === 0 && child.length === 0) ||
+          (typeof indexes?.lastModified === "number" &&
+            indexes.lastModified <= ifModifiedSince)),
     };
   }
 

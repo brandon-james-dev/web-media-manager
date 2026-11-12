@@ -305,9 +305,9 @@ export function PlayerControls() {
 
   if (isCompact) {
     return (
-      <div className="relative flex shrink-0 flex-col border bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg select-none">
+      <div className="relative flex shrink-0 flex-col rounded-xl border bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg select-none">
         {/* Slim progress rule along the top edge, like the mini-player. */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-muted overflow-hidden">
+        <div className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-muted overflow-hidden">
           <div
             className="h-full bg-accent transition-[width] duration-200"
             style={{ width: `${progress}%` }}

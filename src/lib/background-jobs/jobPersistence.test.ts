@@ -11,6 +11,8 @@ vi.mock("./tabSession", () => ({
 const { setJobStateStore } = await import("./jobStateStore");
 const {
   persistJob,
+  recordCompletion,
+  lastCompletedAt,
   checkpointJob,
   forgetJob,
   sanitizePayload,
@@ -99,6 +101,25 @@ describe("job persistence", () => {
     expect(taken.map((j) => j.id)).toEqual(["orphan"]);
     expect(rows.get("orphan")?.ownerId).toBe("me");
     expect(rows.get("busy")?.ownerId).toBe("open-tab");
+    expect(await takeInterruptedJobs()).toEqual([]);
+  });
+
+  it("reports the last completion only for the same fingerprint", async () => {
+    memoryStore();
+    expect(await lastCompletedAt("Bulk Import", "s", "a")).toBeUndefined();
+
+    recordCompletion("Bulk Import", "s", "a");
+    await flush();
+
+    expect(await lastCompletedAt("Bulk Import", "s", "a")).toBeTypeOf("number");
+    expect(await lastCompletedAt("Bulk Import", "s", "b")).toBeUndefined();
+  });
+
+  it("never restores a completion record", async () => {
+    memoryStore();
+    recordCompletion("Bulk Import", "s", "a");
+    await flush();
+
     expect(await takeInterruptedJobs()).toEqual([]);
   });
 });

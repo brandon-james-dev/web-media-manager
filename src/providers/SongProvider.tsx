@@ -10,6 +10,7 @@ import { getPersistedRootDirectories } from "@/lib/persistence/dexie";
 import type { QueryOptions } from "@/lib/persistence";
 import type { Song, LocalMusicSource } from "@/models";
 import { SongContext } from "@/hooks";
+import { wmmBus } from "@/events";
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
   //#region State
@@ -195,6 +196,20 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
       unsubUpdate();
       unsubDelete();
       unsubStoreCleared();
+    };
+  }, []);
+
+  useEffect(() => {
+    const reloadSongs = () => {
+      void getStore().getAll().then(setSongs);
+    };
+    const offImported = wmmBus.on("wmm.playlists.imported", reloadSongs);
+    const offCompleted = getJobService().onJobCompleted((job) => {
+      if (job.type === "Bulk Import") reloadSongs();
+    });
+    return () => {
+      offImported();
+      offCompleted();
     };
   }, []);
 

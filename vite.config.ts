@@ -28,7 +28,7 @@ function PWA() {
       theme_color: "#7c3aed",
       background_color: "#09090b",
       display: "standalone",
-      orientation: "portrait",
+      orientation: "any",
       start_url: "/",
       scope: "/",
       icons: [
