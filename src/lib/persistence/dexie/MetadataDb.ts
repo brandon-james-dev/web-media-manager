@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
+import type { PersistedJob } from "@/core/jobs";
 import type {
   MusicSource,
   Playlist,
@@ -25,6 +26,7 @@ export class MetadataDb extends Dexie {
   songArtwork!: Table<SongArtwork, number>;
   syncDevices!: Table<SyncDeviceRecord, string>;
   playlists!: Table<Playlist, string>;
+  jobs!: Table<PersistedJob, string>;
 
   constructor() {
     super("metadata");
@@ -65,6 +67,13 @@ export class MetadataDb extends Dexie {
         id,
         name,
         createdAt,
+        updatedAt
+      `,
+
+      jobs: `
+        id,
+        type,
+        ownerId,
         updatedAt
       `,
     });

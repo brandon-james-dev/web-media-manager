@@ -2,8 +2,13 @@ import { uuidv7 } from "uuidv7";
 import { Subject } from "rxjs";
 import { type BackgroundJob } from "@/events/background-job-events";
 import { wmmBus } from "@/events";
-import { type IJobRunner, JobProgressAggregator, type WorkerProgress } from "@/core/jobs";
+import {
+  type IJobRunner,
+  JobProgressAggregator,
+  type WorkerProgress,
+} from "@/core/jobs";
 import { browserJobRunner } from "./BrowserJobRunner";
+import { checkpointJob, forgetJob, persistJob } from "./jobPersistence";
 import type {
   JobCompletedCallback,
   JobProgressCallback,
@@ -13,6 +18,7 @@ import type {
 export class BackgroundService {
   private queue: BackgroundJob[] = [];
   private running = false;
+  private current?: BackgroundJob;
   private runner: IJobRunner;
 
   private jobCompletedListeners = new Set<JobCompletedCallback>();
@@ -36,6 +42,9 @@ export class BackgroundService {
       if (evt.parentJobId) return;
 
       if (evt.state === "progress") {
+        const checkpoint = (evt.payload as { checkpoint?: unknown } | undefined)
+          ?.checkpoint;
+        if (checkpoint !== undefined) checkpointJob(evt.jobId, checkpoint);
         this.emitJobProgress({
           jobId: evt.jobId,
           jobType: evt.jobType ?? "",
@@ -62,6 +71,18 @@ export class BackgroundService {
   }
 
   enqueue(job: Omit<BackgroundJob, "id" | "state">, jobId: string = uuidv7()) {
+    if (job.type === "Bulk Import" && !job.parentJobId) {
+      const sourceId = job.payload?.musicSource?.id;
+      const duplicate = [...this.queue, this.current].find(
+        (j) =>
+          j?.type === "Bulk Import" &&
+          sourceId !== undefined &&
+          j.payload?.musicSource?.id === sourceId &&
+          j.state !== "canceled"
+      );
+      if (duplicate) return duplicate.id;
+    }
+
     const fullJob: BackgroundJob = {
       state: "pending",
       ...job,
@@ -73,8 +94,11 @@ export class BackgroundService {
       this.aggregator.registerChild(fullJob.parentJobId, fullJob.id);
     }
 
+    if (!fullJob.parentJobId) persistJob(fullJob);
+
     this.queue.push(fullJob);
     this.runNext();
+    return fullJob.id;
   }
 
   private async runNext() {
@@ -85,6 +109,7 @@ export class BackgroundService {
 
     job.state = "running";
     this.running = true;
+    this.current = job;
 
     wmmBus.publish("wmm.jobs.state", {
       state: "started",
@@ -102,6 +127,7 @@ export class BackgroundService {
       this.handleCompletion(job, err);
     } finally {
       this.running = false;
+      this.current = undefined;
       this.runNext();
     }
   }
@@ -167,6 +193,7 @@ export class BackgroundService {
   }
 
   cancelJob(jobId: string) {
+    forgetJob(jobId);
     const job = this.queue.find((j) => j.id === jobId);
     if (!job) return;
 
@@ -192,6 +219,7 @@ export class BackgroundService {
   }
 
   private emitJobCompleted(job: BackgroundJob) {
+    if (!job.parentJobId) forgetJob(job.id);
     for (const cb of this.jobCompletedListeners) cb(job);
   }
 

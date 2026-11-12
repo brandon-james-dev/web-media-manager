@@ -62,10 +62,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
       if (!(await isValidAudioFile(await handle.getFile()))) return;
 
-      const processedSong = await readTags(
-        handle,
-        getMetadataReader()
-      );
+      const processedSong = await readTags(handle, getMetadataReader());
 
       if (!processedSong) return;
 
@@ -171,7 +168,9 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const store = getStore();
     const unsubAdd = store.onAdded((song) => {
-      setSongs((prev) => [...prev, song]);
+      setSongs((prev) =>
+        prev.some((s) => s.id === song.id) ? prev : [...prev, song]
+      );
       scheduleRefresh.current();
     });
 

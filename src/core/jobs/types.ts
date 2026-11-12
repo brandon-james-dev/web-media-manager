@@ -11,21 +11,14 @@
  */
 
 export type WorkerJobState =
-  | "pending"
-  | "running"
-  | "completed"
-  | "failed"
-  | "canceled";
+  "pending" | "running" | "completed" | "failed" | "canceled";
 
 /**
  * Open string union: the closed values cover today's jobs, but the type is
  * left open so server/Tauri-defined job kinds don't force a core change.
  */
 export type WorkerJobType =
-  | "Thumbnail Generation"
-  | "Bulk Import"
-  | "Bulk Edit"
-  | (string & {});
+  "Thumbnail Generation" | "Bulk Import" | "Bulk Edit" | (string & {});
 
 export interface WorkerProgress {
   /** A freeform object */
@@ -40,6 +33,8 @@ export interface WorkerProgress {
   overall?: number;
   /** Human-readable description */
   label?: string;
+  /** Resume point saved so the job can continue after a restart */
+  checkpoint?: unknown;
 }
 
 export interface Job {
@@ -53,11 +48,7 @@ export interface Job {
 }
 
 export type JobState =
-  | "started"
-  | "progress"
-  | "completed"
-  | "error"
-  | "canceled";
+  "started" | "progress" | "completed" | "error" | "canceled";
 
 export interface JobEvent {
   state: JobState;
@@ -71,4 +62,22 @@ export interface JobEvent {
 export interface JobCancellationToken {
   readonly isCancelled: () => boolean;
   onCancel(callback: () => void): () => void;
+}
+
+/**
+ * A job as saved for crash/close recovery. Holds enough to re-run the job
+ * after a restart: its payload (minus transient secrets) and the latest
+ * checkpoint the running handler reported.
+ */
+export interface PersistedJob {
+  id: string;
+  type: WorkerJobType;
+  payload: any;
+  silent?: boolean;
+  /** Latest handler-reported resume point; handlers read it as `payload.resume`. */
+  checkpoint?: any;
+  /** Tab session that owns the job; a job is restorable once its owner is gone. */
+  ownerId: string;
+  createdAt: number;
+  updatedAt: number;
 }

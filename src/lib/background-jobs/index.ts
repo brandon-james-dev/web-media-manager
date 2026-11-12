@@ -7,3 +7,4 @@ export type {
   ProgressPayload,
   ChildAggregatePayload,
 } from "./callbacks";
+export { resumeInterruptedJobs } from "./resumeJobs";

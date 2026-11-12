@@ -49,8 +49,20 @@ export async function runBulkImport(
   // collector just found. Songs that exist in the store for this source but
   // are NOT in the freshly-collected set have been removed from the source
   // (deleted from the folder / removed from the server) — drop them.
-  const collectedIds = new Set(songCollection.map((s) => s.id));
   const allSongs = await store.getAll();
+  const existingIdByPath = new Map<string, string>();
+  for (const s of allSongs) {
+    if (s.sourceId === source.id && s.relativePath) {
+      existingIdByPath.set(s.relativePath, s.id);
+    }
+  }
+  for (const song of songCollection) {
+    const existingId = song.relativePath
+      ? existingIdByPath.get(song.relativePath)
+      : undefined;
+    if (existingId) song.id = existingId;
+  }
+  const collectedIds = new Set(songCollection.map((s) => s.id));
   const removedIds = allSongs
     .filter((s) => s.sourceId === source.id && !collectedIds.has(s.id))
     .map((s) => s.id);
@@ -95,13 +107,14 @@ export async function runBulkImport(
     // Persist, then report progress AFTER the save so the UI's
     // progress-triggered refresh (SongProvider.onJobProgress) sees the
     // song already in the store — no missed refresh.
-    store.save(song.id, song);
+    await store.save(song.id, song);
 
     reportProgress({
       index,
       total,
       percent: (index + 1) / total,
       label: `Imported ${song.filename || song.title}`,
+      checkpoint: { phase: "songs", index: index + 1, total },
       data: {
         phase: "songs",
         song,
