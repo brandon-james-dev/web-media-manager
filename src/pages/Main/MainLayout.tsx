@@ -50,6 +50,16 @@ type MainContext = {
   >;
 };
 
+const PATH_TABS = ["playlists", "albums", "artists"] as const;
+
+function tabFromPathname(pathname: string) {
+  return PATH_TABS.find((tab) => pathname.includes(tab)) ?? "songs";
+}
+
+function modeFromParam(mode: string | undefined) {
+  return mode === "edit" ? "edit" : "playback";
+}
+
 function MainLayout() {
   //#region State
   const { pathname } = useLocation();
@@ -65,21 +75,8 @@ function MainLayout() {
   // Queue length shown as a badge on the Sync nav pill until it is synced.
   const { queuedSongs } = useSync();
 
-  const activeTab = isSyncPage
-    ? "sync"
-    : pathname.includes("playlists")
-      ? "playlists"
-      : pathname.includes("albums")
-        ? "albums"
-        : pathname.includes("artists")
-          ? "artists"
-          : "songs";
-
-  const activeMode = isSyncPage
-    ? undefined
-    : mode === "edit"
-      ? "edit"
-      : "playback";
+  const activeTab = isSyncPage ? "sync" : tabFromPathname(pathname);
+  const activeMode = isSyncPage ? undefined : modeFromParam(mode);
 
   const routeMode = activeMode ?? "playback";
 
