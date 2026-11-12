@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSongs } from "@/hooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlbumCard } from "@/components/album-card";
@@ -20,12 +21,17 @@ import {
   ArrowUpAZ,
   GalleryHorizontal,
   Grid2x2,
+  Volume2,
+  X,
 } from "lucide-react";
-import { useIsCompact } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsPhoneLandscape } from "@/lib/hooks/useIsMobile";
+import { formatLength } from "@/lib/formatLength";
 import { AlphabetScrubber } from "@/components/alphabet-scrubber";
 import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
 import { wmmBus } from "@/events";
 import { TanstackSongTable } from "@/components/song-table";
+import { TrackItem } from "@/components/track-item";
+import { ItemGroup } from "@/components/ui/item";
 import { CoverFlow, type CoverFlowItem } from "@/components/ui/CoverFlow";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { ThumbnailSize } from "@/lib";
@@ -34,6 +40,8 @@ import { AlbumDetailModal } from "@/components/album-modal";
 export function Albums() {
   //#region State
   const isCompact = useIsCompact();
+  const isPhoneLandscape = useIsPhoneLandscape();
+  const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
   const { setSort, activeMode, selectedSourceIds } =
@@ -203,6 +211,95 @@ export function Albums() {
   }, []);
   //#endregion
 
+  const coverFlow = (
+    <CoverFlow
+      items={coverFlowItems}
+      itemWidth={220}
+      itemHeight={220}
+      centerGap={160}
+      stackSpacing={50}
+      initialIndex={selectedAlbumIndex}
+      onIndexChange={(index) => {
+        setSelectedAlbumIndex(index);
+        setFlippedIndex(null);
+      }}
+      enableReflection={!isPhoneLandscape}
+      flippedIndex={isPhoneLandscape ? flippedIndex : null}
+      renderBack={
+        isPhoneLandscape
+          ? (_, index) => (
+              <ol
+                className="h-full touch-pan-y overflow-y-auto overscroll-contain py-1 text-left"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {(albums[index]?.songs ?? []).map((song) => (
+                  <li key={song.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs active:bg-white/10"
+                      onClick={() => {
+                        const songIds = (albums[index]?.songs ?? []).map(
+                          (s) => s.id
+                        );
+                        wmmBus.invoke("wmm.playback.playQueue", {
+                          songIds,
+                        });
+                        wmmBus.invoke("wmm.playback.playSong", {
+                          songId: song.id,
+                        });
+                      }}
+                    >
+                      <span className="flex w-5 shrink-0 justify-end tabular-nums text-white/50">
+                        {song.id === nowPlayingSongId ? (
+                          <Volume2 className="size-3.5 text-accent" />
+                        ) : (
+                          (song.track ?? "")
+                        )}
+                      </span>
+                      <span
+                        className={
+                          song.id === nowPlayingSongId
+                            ? "min-w-0 flex-1 truncate font-semibold text-accent"
+                            : "min-w-0 flex-1 truncate text-white"
+                        }
+                      >
+                        {song.title}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-white/50">
+                        {formatLength(song.duration)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+                <li
+                  aria-label="Flip back"
+                  className="h-16"
+                  onClick={() => setFlippedIndex(null)}
+                />
+              </ol>
+            )
+          : undefined
+      }
+      onItemClick={(_, index) => {
+        if (isPhoneLandscape) {
+          setFlippedIndex((current) => (current === index ? null : index));
+          return;
+        }
+        const opensPanel = isCompact || activeMode === "edit";
+        if (opensPanel && index === selectedAlbumIndex && albums[index]) {
+          handleAlbumCardClick(albums[index]);
+        }
+      }}
+      renderImage={({ src, className }) => (
+        <AlbumArtImage
+          songId={src || undefined}
+          thumbSize={ThumbnailSize.thumb512}
+          className={className}
+        />
+      )}
+    />
+  );
+
   return (
     <div className="h-full w-full flex flex-col">
       <div className="flex items-center justify-between py-2 border-b mb-2 px-3">
@@ -293,36 +390,28 @@ export function Albums() {
       )}
       {viewMode === "coverflow" && (
         <>
-          <div className="relative h-80 shrink-0">
-            <CoverFlow
-              items={coverFlowItems}
-              itemWidth={220}
-              itemHeight={220}
-              centerGap={160}
-              stackSpacing={50}
-              initialIndex={selectedAlbumIndex}
-              onIndexChange={setSelectedAlbumIndex}
-              enableReflection
-              onItemClick={(_, index) => {
-                const opensPanel = isCompact || activeMode === "edit";
-                if (
-                  opensPanel &&
-                  index === selectedAlbumIndex &&
-                  albums[index]
-                ) {
-                  handleAlbumCardClick(albums[index]);
-                }
-              }}
-              renderImage={({ src, className }) => (
-                <AlbumArtImage
-                  songId={src || undefined}
-                  thumbSize={ThumbnailSize.thumb512}
-                  className={className}
-                />
-              )}
-            />
-          </div>
-          {albums.length > 1 && (
+          {isPhoneLandscape ? (
+            createPortal(
+              <div className="fixed inset-0 z-100 bg-background pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
+                <button
+                  type="button"
+                  aria-label="Exit full screen"
+                  className="absolute right-2 bottom-2 z-110 flex size-9 items-center justify-center rounded-full bg-secondary/80 text-foreground"
+                  onClick={() => {
+                    setFlippedIndex(null);
+                    setViewMode("grid");
+                  }}
+                >
+                  <X className="size-5" />
+                </button>
+                {coverFlow}
+              </div>,
+              document.body
+            )
+          ) : (
+            <div className="relative h-80 shrink-0">{coverFlow}</div>
+          )}
+          {albums.length > 1 && !isPhoneLandscape && (
             <div className="scrollbar-slider mt-2">
               <Slider
                 aria-label="Scroll albums"
@@ -336,14 +425,33 @@ export function Albums() {
               />
             </div>
           )}
-          <ScrollArea className="flex-1 min-h-0">
-            <TanstackSongTable
-              songs={albums[selectedAlbumIndex]?.songs ?? []}
-              selectedSongIds={nowPlayingSongId ? [nowPlayingSongId] : []}
-              onSongDoubleClicked={handleSongDoubleClicked}
-              isEditMultiple={false}
-            />
-          </ScrollArea>
+          {!isPhoneLandscape && (
+            <ScrollArea className="flex-1 min-h-0">
+              {isCompact ? (
+                <ItemGroup className="mx-auto w-full max-w-3xl gap-0! pr-3 has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0!">
+                  {(albums[selectedAlbumIndex]?.songs ?? []).map((song, i) => (
+                    <TrackItem
+                      key={song.id}
+                      song={song}
+                      index={i}
+                      size="sm"
+                      showArtwork
+                      isPlaying={nowPlayingSongId === song.id}
+                      onClick={handleSongDoubleClicked}
+                      onDoubleClick={handleSongDoubleClicked}
+                    />
+                  ))}
+                </ItemGroup>
+              ) : (
+                <TanstackSongTable
+                  songs={albums[selectedAlbumIndex]?.songs ?? []}
+                  selectedSongIds={nowPlayingSongId ? [nowPlayingSongId] : []}
+                  onSongDoubleClicked={handleSongDoubleClicked}
+                  isEditMultiple={false}
+                />
+              )}
+            </ScrollArea>
+          )}
         </>
       )}
 

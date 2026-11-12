@@ -108,6 +108,8 @@ export interface CoverFlowProps {
   onItemClick?: (item: CoverFlowItem, index: number) => void;
   onIndexChange?: (index: number) => void;
   renderImage?: (props: RenderImageProps) => ReactNode;
+  flippedIndex?: number | null;
+  renderBack?: (item: CoverFlowItem, index: number) => ReactNode;
 }
 
 const defaultRenderImage = (props: RenderImageProps) => (
@@ -127,7 +129,7 @@ function clampIndex(index: number, length: number) {
   return Math.min(Math.max(index, 0), Math.max(length - 1, 0));
 }
 
-const subscribeNever = () => () => { };
+const subscribeNever = () => () => {};
 
 const SPRING_SCROLL = { stiffness: 150, damping: 24, mass: 1 };
 const DRAG_DIVISOR_RATIO = 0.8;
@@ -459,6 +461,8 @@ export function CoverFlow({
   onItemClick,
   onIndexChange,
   renderImage,
+  flippedIndex = null,
+  renderBack,
 }: CoverFlowProps) {
   const {
     activeIndex,
@@ -592,6 +596,8 @@ export function CoverFlow({
                 enableClickToSnap={enableClickToSnap}
                 reduceMotion={prefersReducedMotion}
                 renderImage={renderImage}
+                flipped={index === flippedIndex}
+                renderBack={renderBack}
                 onCardClick={handleCardClick}
               />
             )
@@ -644,6 +650,8 @@ interface CardProps {
   enableClickToSnap: boolean;
   reduceMotion: boolean;
   renderImage?: (props: RenderImageProps) => ReactNode;
+  flipped: boolean;
+  renderBack?: (item: CoverFlowItem, index: number) => ReactNode;
   onCardClick: (item: CoverFlowItem, index: number) => void;
 }
 
@@ -662,6 +670,8 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
   enableClickToSnap,
   reduceMotion,
   renderImage,
+  flipped,
+  renderBack,
   onCardClick,
 }: CardProps) {
   const rotateY = useTransform(scrollX, (value) => {
@@ -722,9 +732,35 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
       }}
       onClick={() => onCardClick(item, index)}
     >
-      <div className="relative h-full w-full rounded-xl bg-black shadow-2xl">
-        <div className="absolute inset-0 z-20 rounded-xl border border-white/10 pointer-events-none" />
-        <div className="relative h-full w-full overflow-hidden rounded-xl">
+      <motion.div
+        className="relative h-full w-full rounded-xl bg-black shadow-2xl"
+        style={{ transformStyle: "preserve-3d" }}
+        animate={{ rotateY: flipped ? 180 : 0 }}
+        transition={{
+          duration: reduceMotion ? 0 : 0.5,
+          ease: [0.23, 1, 0.32, 1],
+        }}
+      >
+        <div
+          className="absolute inset-0 z-20 rounded-xl border border-white/10 pointer-events-none"
+          style={{ backfaceVisibility: "hidden" }}
+        />
+        {renderBack && (
+          <div
+            className="absolute inset-0 z-30 overflow-hidden rounded-xl border border-white/10 bg-zinc-900"
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+              pointerEvents: flipped ? "auto" : "none",
+            }}
+          >
+            {renderBack(item, index)}
+          </div>
+        )}
+        <div
+          className="relative h-full w-full overflow-hidden rounded-xl"
+          style={{ backfaceVisibility: "hidden" }}
+        >
           {imageRenderer({
             src: item.image,
             alt: item.title,
@@ -741,9 +777,9 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
         </div>
         <motion.div
           className="absolute inset-0 z-10 rounded-xl bg-black pointer-events-none"
-          style={{ opacity: dimOpacity }}
+          style={{ opacity: dimOpacity, backfaceVisibility: "hidden" }}
         />
-      </div>
+      </motion.div>
 
       {showReflection && (
         <div

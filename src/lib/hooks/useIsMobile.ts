@@ -15,6 +15,11 @@ const TABLET_QUERY =
   "(min-width: 640px) and (max-width: 1023px), " +
   "(pointer: coarse) and (min-width: 640px) and (max-width: 1366px)";
 
+/** A phone turned sideways: landscape, short, touch. Tablets in landscape are
+ *  taller than this and keep their normal layouts. */
+const PHONE_LANDSCAPE_QUERY =
+  "(orientation: landscape) and (max-height: 500px) and (pointer: coarse)";
+
 function makeMediaHook(query: string) {
   function subscribe(callback: () => void): () => void {
     const mql = window.matchMedia(query);
@@ -37,6 +42,12 @@ function makeMediaHook(query: string) {
 
 const useMobileQuery = makeMediaHook(MOBILE_QUERY);
 const useTabletQuery = makeMediaHook(TABLET_QUERY);
+const usePhoneLandscapeQuery = makeMediaHook(PHONE_LANDSCAPE_QUERY);
+
+/** Reactive "phone held in landscape" — shorter than any tablet. */
+export function useIsPhoneLandscape(): boolean {
+  return usePhoneLandscapeQuery();
+}
 
 /** Reactive "is a narrow (phone) viewport" — true below the `sm`
  *  breakpoint, updating live as the window resizes. */
