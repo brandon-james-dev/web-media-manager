@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Maximize,
   Minimize,
+  Moon,
   ListMusic,
   Disc3,
   MicVocal,
@@ -139,6 +140,7 @@ export function NowPlayingView({
   } = usePlayback();
 
   const [panel, setPanel] = useState<PanelTab | null>(null);
+  const [darkRoom, setDarkRoom] = useState<boolean>(false);
   const palette = useArtworkPalette(nowPlaying?.id, open);
   const [upNext, setUpNext] = useState<Song | undefined>();
 
@@ -236,7 +238,10 @@ export function NowPlayingView({
       {open && (
         <motion.div
           key="now-playing"
-          className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[calc(env(safe-area-inset-bottom)+9rem)] md:pb-28 pl-[env(safe-area-inset-left)]"
+          className={cn(
+            "fixed inset-0 z-100 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[calc(env(safe-area-inset-bottom)+9rem)] md:pb-28 pl-[env(safe-area-inset-left)] transition-colors duration-300",
+            darkRoom ? "bg-black" : "bg-background"
+          )}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
@@ -252,10 +257,12 @@ export function NowPlayingView({
             onBackgroundClick?.();
           }}
         >
-          <NowPlayingBackdrop
-            palette={palette}
-            seed={`${nowPlaying?.album ?? ""}|${nowPlaying?.artist ?? ""}`}
-          />
+          {!darkRoom && (
+            <NowPlayingBackdrop
+              palette={palette}
+              seed={`${nowPlaying?.album ?? ""}|${nowPlaying?.artist ?? ""}`}
+            />
+          )}
           <div className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3 select-none">
             <div className="flex items-center gap-1">
               {tabs.map(({ id, label, icon: Icon }) => (
@@ -273,6 +280,16 @@ export function NowPlayingView({
               ))}
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant={darkRoom ? "secondary" : "ghost"}
+                title={darkRoom ? "Turn on the lights" : "Dark room"}
+                aria-label="Dark room"
+                aria-pressed={darkRoom}
+                onClick={() => setDarkRoom(!darkRoom)}
+              >
+                <Moon />
+              </Button>
               {canFullscreen && (
                 <Button
                   size="icon"
@@ -322,7 +339,8 @@ export function NowPlayingView({
                 >
                   <div
                     className={cn(
-                      "relative aspect-square md:size-(--art)",
+                      "relative aspect-square transition-opacity duration-300 md:size-(--art)",
+                      darkRoom && "invisible opacity-0",
                       lyricsOpen
                         ? "size-24 shrink-0"
                         : "w-[min(100%,28rem,calc(100dvh-24rem))]"
@@ -333,7 +351,8 @@ export function NowPlayingView({
 
                   <div
                     className={cn(
-                      "flex shrink-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl py-2 text-center backdrop-blur-md md:h-26 md:w-full md:max-w-none md:px-4",
+                      "flex shrink-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl py-2 text-center backdrop-blur-md transition-opacity duration-300 md:h-26 md:w-full md:max-w-none md:px-4",
+                      darkRoom && "opacity-30",
                       lyricsOpen
                         ? "min-w-0 flex-1 px-2"
                         : "w-full max-w-md px-4"
@@ -466,10 +485,18 @@ export function NowPlayingView({
                 )}
 
                 {panel === "lyrics" && (
-                  <div className="flex min-h-48 w-full flex-1 items-center justify-center rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none">
-                    <p className="text-sm text-white/75">
-                      Lyrics are not available yet.
-                    </p>
+                  <div className="flex min-h-48 w-full min-w-0 flex-1 flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none">
+                    {nowPlaying?.lyrics?.trim() ? (
+                      <ScrollArea className="min-h-0 flex-1">
+                        <p className="whitespace-pre-wrap pr-3 text-base leading-relaxed text-white/90">
+                          {nowPlaying.lyrics}
+                        </p>
+                      </ScrollArea>
+                    ) : (
+                      <p className="m-auto text-sm text-white/75">
+                        No lyrics for this song.
+                      </p>
+                    )}
                   </div>
                 )}
 

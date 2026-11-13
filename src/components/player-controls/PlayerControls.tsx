@@ -110,6 +110,7 @@ export function PlayerControls() {
   if (elapsedSongId !== nowPlaying?.id) {
     setElapsedSongId(nowPlaying?.id);
     setElapsedSeconds(0);
+    setTrackPosition(0);
   }
   //#endregion
 

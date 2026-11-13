@@ -206,6 +206,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     async function load() {
       if (!nowPlaying) return;
 
+      stopPlayback();
+      currentTimeRef.current = 0;
+
       if (!audioCtxRef.current) {
         // Older Safari exposes the AudioContext under the webkit prefix.
         const AudioCtx =
