@@ -1,4 +1,11 @@
-import { useMemo, useLayoutEffect, useRef, useState, useEffect } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   columnOrderingFeature,
@@ -40,6 +47,10 @@ import type { SongTableProps } from "./SongTableProps";
 import { SongRow } from "./TanstackSongRow";
 import { DraggableHeader } from "./DraggableHeader";
 import { createSongColumns } from "./createSongColumns";
+import {
+  loadSongTableColumns,
+  saveSongTableColumns,
+} from "@/lib/songTableColumnState";
 
 const features = tableFeatures({
   rowSelectionFeature,
@@ -85,13 +96,36 @@ export function TanstackSongTable(props: SongTableProps) {
 
   const columns = useMemo(() => createSongColumns(features), []);
 
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
-    columns.map((c) => c.id) as ColumnOrderState
-  );
+  const savedColumns = useMemo(() => loadSongTableColumns(), []);
+
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() => {
+    const defaults = columns.map((c) => c.id!) as string[];
+    const saved = (savedColumns.order ?? []).filter((id) =>
+      defaults.includes(id)
+    );
+    return [...saved, ...defaults.filter((id) => !saved.includes(id))];
+  });
 
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
-  >(() => Object.fromEntries(columns.map((c) => [c.id!, true])));
+  >(() => ({
+    ...Object.fromEntries(columns.map((c) => [c.id!, true])),
+    ...savedColumns.visibility,
+  }));
+
+  const columnLayout = useRef({
+    order: columnOrder,
+    visibility: columnVisibility,
+  });
+  columnLayout.current = { order: columnOrder, visibility: columnVisibility };
+
+  useEffect(() => {
+    saveSongTableColumns({ order: columnOrder, visibility: columnVisibility });
+  }, [columnOrder, columnVisibility]);
+
+  const handleResizeEnd = useCallback((sizing: Record<string, number>) => {
+    saveSongTableColumns({ ...columnLayout.current, sizing });
+  }, []);
 
   function scrollRowIntoView(rowId: string) {
     const el = rowRefs.current[rowId];
@@ -119,6 +153,7 @@ export function TanstackSongTable(props: SongTableProps) {
         minSize: 50,
         maxSize: 800,
       },
+      initialState: { columnSizing: savedColumns.sizing ?? {} },
       columnResizeMode: "onChange",
       getRowId: (row) => row.id,
       enableRowSelection: true,
@@ -260,6 +295,8 @@ export function TanstackSongTable(props: SongTableProps) {
                           key={header.id}
                           header={header}
                           selectors={selectors}
+                          tableRef={tableRef}
+                          onResizeEnd={handleResizeEnd}
                         />
                       ))}
                     </SortableContext>

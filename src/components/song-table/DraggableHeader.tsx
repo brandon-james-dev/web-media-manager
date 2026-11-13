@@ -11,6 +11,8 @@ export function DraggableHeader({
   header,
   sort,
   selectors,
+  tableRef,
+  onResizeEnd,
 }: DraggableHeaderProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
@@ -22,6 +24,48 @@ export function DraggableHeader({
     opacity: isDragging ? 0.8 : 1,
     width: `calc(var(--header-${header.id}-size) * 1px)`,
     transition: "transform 0.15s ease",
+  };
+
+  // Live resize without React renders: the drag writes the column's width
+  // variables straight into the table element, then commits the final width
+  // to table state once, on release.
+  const startResize = (event: React.PointerEvent) => {
+    event.preventDefault();
+    const el = tableRef?.current;
+    const column = header.column;
+    const startX = event.clientX;
+    const startWidth = header.getSize();
+    const minSize = column.columnDef.minSize ?? 50;
+    const maxSize = column.columnDef.maxSize ?? 800;
+    const totalWidth = header.getContext().table.getTotalSize();
+    let width = startWidth;
+
+    const move = (e: PointerEvent) => {
+      width = Math.min(
+        maxSize,
+        Math.max(minSize, startWidth + e.clientX - startX)
+      );
+      if (!el) return;
+      el.style.setProperty(`--header-${header.id}-size`, String(width));
+      el.style.setProperty(`--col-${column.id}-size`, String(width));
+      el.style.width = `${totalWidth - startWidth + width}px`;
+    };
+
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+      const table = header.getContext().table;
+      table.setColumnSizing((prev: Record<string, number>) => ({
+        ...prev,
+        [column.id]: width,
+      }));
+      onResizeEnd?.(table.atoms.columnSizing.get());
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
   };
 
   const key = header.id as SortableColumn;
@@ -62,8 +106,7 @@ export function DraggableHeader({
       </button>
 
       <div
-        onMouseDown={header.getResizeHandler()}
-        onTouchStart={header.getResizeHandler()}
+        onPointerDown={startResize}
         className="absolute right-0 top-0 h-full w-1 cursor-col-resize group-hover:bg-accent/70"
       />
     </div>

@@ -1,4 +1,7 @@
-import type { QueryOptions, SortableColumn } from "@/lib/persistence/QueryOptions";
+import type {
+  QueryOptions,
+  SortableColumn,
+} from "@/lib/persistence/QueryOptions";
 import type { Song } from "@/models";
 
 export interface SongTableProps {
