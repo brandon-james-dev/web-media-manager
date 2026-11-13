@@ -5,6 +5,8 @@ import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { BrowserHistorySync } from "./lib/router/BrowserHistorySync.tsx";
 import App from "./App.tsx";
+import { registerSW } from "virtual:pwa-register";
+import { toast } from "@/components/ui/toast";
 
 function formatError(error: unknown): string {
   if (error instanceof Error) return error.stack ?? error.message;
@@ -16,7 +18,7 @@ function renderBootFailure(label: string, error: unknown): void {
   const root = document.getElementById("root");
   if (root && !root.hasChildNodes()) {
     root.innerHTML =
-      "<pre style=\"padding:1rem;color:#b91c1c;font:12px/1.4 monospace;white-space:pre-wrap\">" +
+      '<pre style="padding:1rem;color:#b91c1c;font:12px/1.4 monospace;white-space:pre-wrap">' +
       label +
       "\n" +
       formatError(error)
@@ -34,7 +36,10 @@ window.addEventListener("unhandledrejection", (event) => {
   renderBootFailure("[boot] unhandled rejection:", event.reason);
 });
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: unknown }> {
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: unknown }
+> {
   state = { error: null as unknown };
   static getDerivedStateFromError(error: unknown) {
     return { error };
@@ -77,14 +82,34 @@ try {
   renderBootFailure("[boot] mount error:", error);
 }
 
-// --- Offline PWA: register the workbox service worker (only in production).
-// `registerSW` is a tiny no-op import in dev; in the built app it registers
-// `sw.js` (precache + navigation fallback) and wires the "installed" signal
-// that mobile browsers use to launch the app addresses-bar-free.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((error) => {
+  const updateServiceWorker = registerSW({
+    onNeedRefresh() {
+      toast.add({
+        id: "app-update",
+        type: "info",
+        title: "A new version is available",
+        description: "Update to get the latest changes.",
+        timeout: 0,
+        actionProps: {
+          children: "Update",
+          onClick: () => void updateServiceWorker(true),
+        },
+      });
+    },
+    onRegisteredSW(_url, registration) {
+      if (!registration) return;
+      if (registration.waiting) {
+        void updateServiceWorker(true);
+        return;
+      }
+      setInterval(() => void registration.update(), 60 * 60 * 1000);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") void registration.update();
+      });
+    },
+    onRegisterError(error) {
       console.warn("[pwa] service worker registration failed:", error);
-    });
+    },
   });
 }

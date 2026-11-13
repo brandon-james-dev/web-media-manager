@@ -19,7 +19,7 @@ const APP_SHORT_NAME = "Media Manager";
  *  bar when launched from the home screen. */
 function PWA() {
   return VitePWA({
-    registerType: "autoUpdate",
+    registerType: "prompt",
     includeAssets: ["pwa/icon.svg", "pwa/icon-192.png", "pwa/icon-512.png"],
     manifest: {
       name: APP_NAME,
