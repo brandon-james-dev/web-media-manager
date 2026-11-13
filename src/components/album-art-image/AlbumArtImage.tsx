@@ -68,7 +68,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
 
       loadingRef.current = true;
 
-      const picture = await getPictureOfType(songId, artworkType, thumbSize);
+      const picture = await getPictureOfType(songId);
 
       if (!cancelled) {
         if (picture) {

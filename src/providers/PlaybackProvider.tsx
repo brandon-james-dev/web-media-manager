@@ -54,6 +54,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
    * async load() knows to auto-start once the buffer is decoded — even before
    * isPlayingRef has flipped. Cleared by load() after it starts. */
   const pendingPlayIntentRef = useRef(false);
+  const endedNaturallyRef = useRef(false);
   const nowPlayingRef = useRef<Song | undefined>(undefined);
   const nowPlayingIndexRef = useRef<number>(0);
   const currentTimeRef = useRef(0);
@@ -166,7 +167,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         sourceRef.current = null;
         setIsPlaying(false);
         navigator.mediaSession.playbackState = "paused";
+        endedNaturallyRef.current = true;
         nextTrack.current();
+        endedNaturallyRef.current = false;
       }
     };
 
@@ -543,6 +546,13 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     // Read once at the top so TS doesn't narrow the ref across the function.
     const repeatMode = repeatRef.current;
 
+    const autoplay = endedNaturallyRef.current;
+    endedNaturallyRef.current = false;
+    const advanceTo = (song: Song) => {
+      if (autoplay) pendingPlayIntentRef.current = true;
+      setNowPlaying(song);
+    };
+
     if (repeatMode === repeatState.One) {
       startPlaybackAt.current(0);
 
@@ -591,7 +601,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
           getStore()
             .get(coll[0])
             .then((song) => {
-              if (song) setNowPlaying(song);
+              if (song) advanceTo(song);
             });
         }
         return;
@@ -599,20 +609,20 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       getStore()
         .get(coll[nextIdx])
         .then((song) => {
-          if (song) setNowPlaying(song);
+          if (song) advanceTo(song);
         });
       return;
     }
 
     if (repeatMode === repeatState.Off) {
       if (nextIndex >= pl.length) return;
-      setNowPlaying(playlistRef.current[nextIndex]);
+      advanceTo(playlistRef.current[nextIndex]);
       return;
     }
 
     if (repeatMode === repeatState.All) {
       const wrappedIndex = nextIndex % pl.length;
-      setNowPlaying(pl[wrappedIndex]);
+      advanceTo(pl[wrappedIndex]);
       return;
     }
   });
@@ -837,6 +847,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         repeat,
         volume,
         getCurrentTime,
+        getCollectionIds: () => collectionIdsRef.current,
         isPlaying,
       }}
     >

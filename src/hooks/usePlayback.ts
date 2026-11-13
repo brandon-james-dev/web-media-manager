@@ -26,6 +26,7 @@ interface PlaybackContextValue {
   isPlaying: boolean;
   /** Query only — actions are issued as events/commands on the WmmBus. */
   getCurrentTime: () => number;
+  getCollectionIds: () => string[];
 }
 
 const PlaybackContext = createContext<PlaybackContextValue | null>(null);
