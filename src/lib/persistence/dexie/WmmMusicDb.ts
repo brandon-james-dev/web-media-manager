@@ -3,6 +3,7 @@ import Dexie, { type Table } from "dexie";
 import type { PersistedJob } from "@/core/jobs";
 import type {
   MusicSource,
+  PlayHistoryEntry,
   Playlist,
   Song,
   SongArtwork,
@@ -27,6 +28,7 @@ export class WmmMusicDb extends Dexie {
   syncDevices!: Table<SyncDeviceRecord, string>;
   playlists!: Table<Playlist, string>;
   jobs!: Table<PersistedJob, string>;
+  playHistory!: Table<PlayHistoryEntry, string>;
 
   constructor() {
     super("wmmMusic");
@@ -75,6 +77,12 @@ export class WmmMusicDb extends Dexie {
         type,
         ownerId,
         updatedAt
+      `,
+
+      playHistory: `
+        id,
+        songId,
+        playedAt
       `,
     });
   }

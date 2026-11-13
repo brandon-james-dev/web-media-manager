@@ -1,4 +1,5 @@
 import {
+  setPlayHistoryStoreProvider,
   setPlaylistStoreProvider,
   setPlaylistWriteProvider,
   setStoreProvider,
@@ -6,6 +7,7 @@ import {
 } from "@/core/ports";
 import { getMetadataStore } from "../initMetadataStore";
 import { DexiePlaylistStore } from "../dexie/DexiePlaylistStore";
+import { DexiePlayHistoryStore } from "../dexie/DexiePlayHistoryStore";
 import { LocalPlaylistWriteAdapter } from "../playlists/LocalPlaylistWriteAdapter";
 
 /**
@@ -25,4 +27,5 @@ export function registerBrowserStoreProvider(): void {
   setStoreProvider(() => getMetadataStore() as CatalogStore);
   setPlaylistStoreProvider(() => new DexiePlaylistStore());
   setPlaylistWriteProvider(() => new LocalPlaylistWriteAdapter());
+  setPlayHistoryStoreProvider(() => new DexiePlayHistoryStore());
 }

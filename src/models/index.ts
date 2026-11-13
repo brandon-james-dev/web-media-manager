@@ -1,6 +1,7 @@
 export * from "./Album";
 export * from "./Artist";
 export * from "./MusicSource";
+export * from "./PlayHistory";
 export * from "./Playlist";
 export * from "./Song";
 export * from "./SongArtwork";

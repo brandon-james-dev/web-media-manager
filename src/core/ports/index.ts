@@ -15,3 +15,8 @@ export { getPlaylistStore, setPlaylistStoreProvider } from "./playlists";
 export type { PlaylistStore } from "./playlists";
 export { getPlaylistWriteAdapter, setPlaylistWriteProvider } from "./playlists";
 export type { PlaylistWriteAdapter } from "./playlists";
+export {
+  getPlayHistoryStore,
+  setPlayHistoryStoreProvider,
+} from "./playHistory";
+export type { PlayHistoryStore } from "./playHistory";

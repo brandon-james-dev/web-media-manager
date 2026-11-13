@@ -10,7 +10,8 @@ import { ThumbnailSize } from "@/lib";
 import { getPictureOfType } from "@/core/media";
 import { commandDispatcher, wmmBus } from "@/events";
 import { getStore } from "@/core/system";
-import { getSourcesStore } from "@/core/ports";
+import { getPlayHistoryStore, getSourcesStore } from "@/core/ports";
+import { ScrobbleTracker } from "@/core/playback/scrobble";
 import { musicSourceStrategies } from "@/lib/sources";
 import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
@@ -56,6 +57,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const nowPlayingRef = useRef<Song | undefined>(undefined);
   const nowPlayingIndexRef = useRef<number>(0);
   const currentTimeRef = useRef(0);
+  const scrobbleRef = useRef(new ScrobbleTracker());
   const volumeRef = useRef(0.75);
   //#endregion
 
@@ -177,6 +179,13 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
       currentTimeRef.current = offset + elapsed;
 
+      const play = scrobbleRef.current.advance(currentTimeRef.current);
+      if (play) {
+        void getPlayHistoryStore()
+          .record({ ...play, sourceId: nowPlayingRef.current?.sourceId })
+          .catch((error) => console.error("Failed to record play:", error));
+      }
+
       if (currentTimeRef.current < buffer.duration) {
         requestAnimationFrame(update);
       }
@@ -264,6 +273,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
       bufferRef.current = decoded;
       currentTimeRef.current = 0;
+      scrobbleRef.current.start(nowPlaying.id, decoded.duration, Date.now());
 
       // Only start playback here if the user actually asked to play (either
       // isPlayingRef is true, or a playSong intent is pending). This avoids
