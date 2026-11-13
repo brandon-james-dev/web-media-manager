@@ -17,7 +17,7 @@ const APP_SHORT_NAME = "Media Manager";
  *  the subsonic API. `display: standalone` + a registered SW are what let
  *  mobile browsers (incl. Edge on Android) install it and hide the address
  *  bar when launched from the home screen. */
-function PWA() {
+function PWA(base: string) {
   return VitePWA({
     registerType: "prompt",
     includeAssets: ["pwa/icon.svg", "pwa/icon-192.png", "pwa/icon-512.png"],
@@ -29,23 +29,39 @@ function PWA() {
       background_color: "#09090b",
       display: "standalone",
       orientation: "any",
-      start_url: "/",
-      scope: "/",
+      start_url: base,
+      scope: base,
       icons: [
-        { src: "/pwa/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-        { src: "/pwa/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-        { src: "/pwa/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+        {
+          src: `${base}pwa/icon-192.png`,
+          sizes: "192x192",
+          type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: `${base}pwa/icon-512.png`,
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any",
+        },
+        {
+          src: `${base}pwa/icon.svg`,
+          sizes: "any",
+          type: "image/svg+xml",
+          purpose: "any",
+        },
       ],
     },
     workbox: {
       globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
-      navigateFallback: "/index.html",
+      navigateFallback: `${base}index.html`,
       runtimeCaching: [
         // Album art / thumbnails / subsonic API streams — network-first so
         // fresh data wins online, fall back to cache offline.
         {
           urlPattern: ({ url }) =>
-            url.pathname.startsWith("/subsonic") || url.pathname.includes("/art/"),
+            url.pathname.startsWith("/subsonic") ||
+            url.pathname.includes("/art/"),
           handler: "NetworkFirst",
           options: {
             cacheName: "media-art",
@@ -59,42 +75,46 @@ function PWA() {
   });
 }
 
-export default defineConfig(({ mode }) => ({
-  base: mode === "github-pages" ? "/web-media-manager/" : "/",
+export default defineConfig(({ mode }) => {
+  const base = mode === "github-pages" ? "/web-media-manager/" : "/";
 
-  define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
-  },
+  return {
+    base,
 
-  build: {
-    chunkSizeWarningLimit: 1600,
-    rollupOptions: {
-      onwarn(warning, warn) {
-        // Node builtins (node:fs, node:path, node:crypto, module...) pulled
-        // by itunesdb-ts's Node-only fs/checksum paths and taglib-wasm get
-        // externalized for browser compatibility. Those are never called
-        // in-browser (the browser uses createBrowserFs / the wasm wrapper),
-        // so the per-module externalization notice is expected noise.
-        const msg =
-          typeof warning.message === "string" ? warning.message : "";
-        if (
-          msg.includes("externalized for browser compatibility") &&
-          /node:|itunesdb-ts|taglib-wasm|sharp|detect-libc/.test(
-            warning.id ?? msg
-          )
-        ) {
-          return;
-        }
-        warn(warning);
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    },
+
+    build: {
+      chunkSizeWarningLimit: 1600,
+      rollupOptions: {
+        onwarn(warning, warn) {
+          // Node builtins (node:fs, node:path, node:crypto, module...) pulled
+          // by itunesdb-ts's Node-only fs/checksum paths and taglib-wasm get
+          // externalized for browser compatibility. Those are never called
+          // in-browser (the browser uses createBrowserFs / the wasm wrapper),
+          // so the per-module externalization notice is expected noise.
+          const msg =
+            typeof warning.message === "string" ? warning.message : "";
+          if (
+            msg.includes("externalized for browser compatibility") &&
+            /node:|itunesdb-ts|taglib-wasm|sharp|detect-libc/.test(
+              warning.id ?? msg
+            )
+          ) {
+            return;
+          }
+          warn(warning);
+        },
       },
     },
-  },
 
-  plugins: [react({ compiler: true }), tailwindcss(), PWA()],
+    plugins: [react({ compiler: true }), tailwindcss(), PWA(base)],
 
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "./src"),
+    resolve: {
+      alias: {
+        "@": path.resolve(import.meta.dirname, "./src"),
+      },
     },
-  },
-}));
+  };
+});
