@@ -272,6 +272,7 @@ export function Songs() {
                 availableLetters={new Set(letterIndex.keys())}
                 className={isCompact ? "right-0" : "right-3"}
                 autoHide={isCompact}
+                hoverOnly={!isCompact}
                 reversed={sort?.desc}
                 scrollRef={listRef}
                 onSelect={(letter) =>

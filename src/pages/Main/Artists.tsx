@@ -87,8 +87,8 @@ export function Artists() {
       selectedSourceIds.length === 0
         ? filteredSongs
         : filteredSongs.filter((song) =>
-            selectedSourceIds.includes(song.sourceId)
-          ),
+          selectedSourceIds.includes(song.sourceId)
+        ),
     [filteredSongs, selectedSourceIds]
   );
 
@@ -204,8 +204,8 @@ export function Artists() {
     () =>
       isAllArtists
         ? orderedArtists
-            .filter((a) => a.albums.length > 0)
-            .map((a) => ({ key: a.id, artistName: a.name, albums: a.albums }))
+          .filter((a) => a.albums.length > 0)
+          .map((a) => ({ key: a.id, artistName: a.name, albums: a.albums }))
         : [{ key: "single", artistName: undefined, albums: detailAlbums }],
     [isAllArtists, orderedArtists, detailAlbums]
   );
@@ -395,6 +395,7 @@ export function Artists() {
               availableLetters={artistLetters}
               reversed={sortDesc}
               autoHide={isCompact}
+              hoverOnly={!isCompact}
               scrollRef={artistListRef}
               onSelect={(letter) =>
                 scrollListToIndex(
@@ -519,6 +520,7 @@ export function Artists() {
               reversed={sortDesc}
               className={isCompact ? "right-0" : "right-3"}
               autoHide={isCompact}
+              hoverOnly={!isCompact}
               scrollRef={detailListRef}
               onSelect={(letter) => {
                 const name =
@@ -529,7 +531,7 @@ export function Artists() {
                 );
                 const group = Array.from(
                   root?.querySelectorAll<HTMLElement>("[data-artist-group]") ??
-                    []
+                  []
                 ).find((el) => el.dataset.artistGroup === name);
                 if (!viewport || !group) return;
                 viewport.scrollTop +=
@@ -658,9 +660,9 @@ function AlbumSection({
                   activeMode === "edit"
                     ? [{ label: "Edit album", onClick: onEdit }]
                     : [
-                        { label: "Play album", onClick: onPlay },
-                        { label: "Shuffle album", onClick: onShuffle },
-                      ]
+                      { label: "Play album", onClick: onPlay },
+                      { label: "Shuffle album", onClick: onShuffle },
+                    ]
                 }
               />
             </div>
@@ -683,13 +685,13 @@ function AlbumSection({
                 activeMode === "edit"
                   ? undefined
                   : () => {
-                      wmmBus.invoke("wmm.playback.playQueue", {
-                        songIds: songs.map((s) => s.id),
-                      });
-                      wmmBus.invoke("wmm.playback.playSong", {
-                        songId: song.id,
-                      });
-                    }
+                    wmmBus.invoke("wmm.playback.playQueue", {
+                      songIds: songs.map((s) => s.id),
+                    });
+                    wmmBus.invoke("wmm.playback.playSong", {
+                      songId: song.id,
+                    });
+                  }
               }
               onClick={
                 activeMode === "edit" ? () => onQuickEditSong(song) : undefined

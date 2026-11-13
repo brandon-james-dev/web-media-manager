@@ -11,6 +11,7 @@ export function AlphabetScrubber({
   side = "right",
   className,
   autoHide = false,
+  hoverOnly = false,
   reversed = false,
   scrollRef,
 }: AlphabetScrubberProps) {
@@ -22,6 +23,7 @@ export function AlphabetScrubber({
   );
   const [showBubble, setShowBubble] = useState(false);
   const [recentlyScrolled, setRecentlyScrolled] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (!autoHide) return;
@@ -43,6 +45,7 @@ export function AlphabetScrubber({
   }, [autoHide, scrollRef]);
 
   const visible = !autoHide || recentlyScrolled || scrub !== null;
+  const shown = visible && (!hoverOnly || hovered || scrub !== null);
 
   function update(e: React.PointerEvent<HTMLDivElement>) {
     const track = trackRef.current;
@@ -71,7 +74,8 @@ export function AlphabetScrubber({
     <div
       className={cn(
         "absolute inset-y-0 z-20 flex items-center py-2 transition-opacity duration-300",
-        !visible && "pointer-events-none opacity-0",
+        !shown && "opacity-0",
+        !visible && "pointer-events-none",
         side === "right" ? "right-0" : "left-0",
         className
       )}
@@ -79,6 +83,8 @@ export function AlphabetScrubber({
       <div
         ref={trackRef}
         role="group"
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
         aria-label="Alphabet index"
         className="relative flex h-full max-h-136 w-6 touch-none flex-col rounded-full bg-background/40 select-none"
         onPointerDown={(e) => {

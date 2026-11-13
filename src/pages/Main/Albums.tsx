@@ -376,6 +376,7 @@ export function Albums() {
             availableLetters={availableLetters}
             className={isCompact ? "right-0" : "right-3"}
             autoHide={isCompact}
+            hoverOnly={!isCompact}
             reversed={sortDesc}
             scrollRef={gridRef}
             onSelect={(letter) =>
