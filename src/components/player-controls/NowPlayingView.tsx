@@ -11,6 +11,7 @@ import {
   MicVocal,
   Pause,
   Play,
+  SlidersHorizontal,
   Volume2,
 } from "lucide-react";
 import { useLayoutEffect, useEffect, useRef, useState } from "react";
@@ -26,6 +27,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatLength } from "@/lib/formatLength";
 import { usePlayback } from "@/hooks/usePlayback";
+import {
+  VisualizationHost,
+  VisualizerSelector,
+  VisualizerSettings,
+} from "@/components/visualizer";
+import { useVisualizer } from "@/hooks";
+import { setVisualizerPalette } from "@/lib/visualizers";
 import { NowPlayingBackdrop } from "./NowPlayingBackdrop";
 import { useArtworkPalette } from "./useArtworkPalette";
 import { wmmBus } from "@/events";
@@ -118,6 +126,8 @@ interface NowPlayingViewProps {
   open: boolean;
   onClose: () => void;
   onBackgroundClick?: () => void;
+  /** Fade out the top toolbar together with the player bar. */
+  controlsHidden?: boolean;
 }
 
 /**
@@ -128,6 +138,7 @@ export function NowPlayingView({
   open,
   onClose,
   onBackgroundClick,
+  controlsHidden = false,
 }: NowPlayingViewProps) {
   const {
     playlist,
@@ -141,8 +152,16 @@ export function NowPlayingView({
 
   const [panel, setPanel] = useState<PanelTab | null>(null);
   const [darkRoom, setDarkRoom] = useState<boolean>(false);
+  const { setSettingsOpen } = useVisualizer();
   const palette = useArtworkPalette(nowPlaying?.id, open);
   const [upNext, setUpNext] = useState<Song | undefined>();
+
+  // Share the backdrop's palette with visualizer plugins so they paint in the
+  // same colors as the rest of the screen.
+  useEffect(() => {
+    setVisualizerPalette(palette);
+    return () => setVisualizerPalette(null);
+  }, [palette]);
 
   const hasUpcoming =
     playlist.length > 0 &&
@@ -240,7 +259,8 @@ export function NowPlayingView({
           key="now-playing"
           className={cn(
             "fixed inset-0 z-100 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[calc(env(safe-area-inset-bottom)+9rem)] md:pb-28 pl-[env(safe-area-inset-left)] transition-colors duration-300",
-            darkRoom ? "bg-black" : "bg-background"
+            darkRoom ? "bg-black" : "bg-background",
+            controlsHidden && "cursor-none"
           )}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -263,13 +283,30 @@ export function NowPlayingView({
               seed={`${nowPlaying?.album ?? ""}|${nowPlaying?.artist ?? ""}`}
             />
           )}
-          <div className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3 select-none">
+          {panel === "visualizer" && (
+            <VisualizationHost
+              className="absolute inset-0 z-0 rounded-none"
+              showFullscreenControl={false}
+            />
+          )}
+          {panel === "visualizer" && <VisualizerSettings />}
+
+          <div
+            className={cn(
+              "relative z-10 flex shrink-0 items-center justify-between px-4 py-3 select-none transition-opacity duration-300",
+              controlsHidden && "pointer-events-none opacity-0"
+            )}
+          >
             <div className="flex items-center gap-1">
               {tabs.map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}
                   size="icon"
-                  variant={panel === id ? "secondary" : "ghost"}
+                  variant="ghost"
+                  className={cn(
+                    panel === id &&
+                      "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
+                  )}
                   title={panel === id ? `Hide ${label}` : label}
                   aria-label={label}
                   aria-pressed={panel === id}
@@ -278,18 +315,41 @@ export function NowPlayingView({
                   <Icon />
                 </Button>
               ))}
+              {panel === "visualizer" && (
+                <>
+                  <VisualizerSelector
+                    variant="compact"
+                    className="ml-1 w-44"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title="Visualizer settings"
+                    aria-label="Visualizer settings"
+                    onClick={() => setSettingsOpen(true)}
+                  >
+                    <SlidersHorizontal />
+                  </Button>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-1">
-              <Button
-                size="icon"
-                variant={darkRoom ? "secondary" : "ghost"}
-                title={darkRoom ? "Turn on the lights" : "Dark room"}
-                aria-label="Dark room"
-                aria-pressed={darkRoom}
-                onClick={() => setDarkRoom(!darkRoom)}
-              >
-                <Moon />
-              </Button>
+              {panel !== "visualizer" && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    darkRoom &&
+                      "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
+                  )}
+                  title={darkRoom ? "Turn on the lights" : "Dark room"}
+                  aria-label="Dark room"
+                  aria-pressed={darkRoom}
+                  onClick={() => setDarkRoom(!darkRoom)}
+                >
+                  <Moon />
+                </Button>
+              )}
               {canFullscreen && (
                 <Button
                   size="icon"
@@ -312,13 +372,22 @@ export function NowPlayingView({
             </div>
           </div>
 
-          {panel === "visualizer" ? (
-            <div className="relative flex min-h-0 flex-1 items-center justify-center px-4">
-              <p className="text-sm text-white/75">
-                The visualizer is not available yet.
-              </p>
+          {panel === "visualizer" && nowPlaying && (
+            <div className="pointer-events-none relative z-10 mt-auto px-6 pb-4 select-none">
+              <div className="max-w-md min-w-0 drop-shadow-md">
+                <p className="truncate text-sm font-semibold text-white">
+                  {nowPlaying.title}
+                </p>
+                <p className="truncate text-xs text-white/70">
+                  {[nowPlaying.artist, nowPlaying.album]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
             </div>
-          ) : (
+          )}
+
+          {panel !== "visualizer" && (
             <div className="relative min-h-0 flex-1 overflow-y-auto md:overflow-hidden md:px-8 md:pb-4 md:@container-size">
               <div
                 className={cn(

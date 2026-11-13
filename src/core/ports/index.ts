@@ -20,3 +20,8 @@ export {
   setPlayHistoryStoreProvider,
 } from "./playHistory";
 export type { PlayHistoryStore } from "./playHistory";
+export {
+  getVisualizerPluginStore,
+  setVisualizerPluginStoreProvider,
+} from "./visualizers";
+export type { VisualizerPluginStore } from "./visualizers";

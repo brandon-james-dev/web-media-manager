@@ -100,6 +100,10 @@ export const WMM_COMMANDS = {
   "wmm.ui.openSettings": undefined,
   "wmm.ui.openShortcuts": undefined,
   "wmm.ui.close": undefined,
+  // visualizer
+  "wmm.visualizer.select": {} as { pluginId: string },
+  "wmm.visualizer.openManager": undefined,
+  "wmm.visualizer.openSettings": undefined,
 } as const;
 
 /** Command names (derived). */
@@ -180,6 +184,9 @@ export const WMM_EVENTS = {
   "wmm.ui.selectionChanged": {} as { songIds: string[] },
   "wmm.ui.viewChanged": {} as { view: string },
   "wmm.ui.editorModeChanged": {} as { mode: "song" | "edit" },
+  // visualizer
+  "wmm.visualizer.changed": {} as { pluginId: string },
+  "wmm.visualizer.pluginsChanged": undefined,
 } as const;
 
 /** Event names (derived). */

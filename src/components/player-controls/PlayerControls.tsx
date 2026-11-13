@@ -323,7 +323,11 @@ export function PlayerControls() {
       setControlsHidden(false);
       return;
     }
-    if (isCompact) return;
+    // Controls only fade out while a song plays; when paused they stay up.
+    if (isCompact || !isPlaying) {
+      setIsIdle(false);
+      return;
+    }
     let timer: ReturnType<typeof setTimeout>;
     const wake = () => {
       setIsIdle(false);
@@ -337,7 +341,7 @@ export function PlayerControls() {
       clearTimeout(timer);
       events.forEach((e) => window.removeEventListener(e, wake));
     };
-  }, [isNowPlayingOpen, isCompact]);
+  }, [isNowPlayingOpen, isCompact, isPlaying]);
 
   useEffect(() => {
     if (!isNowPlayingOpen && compactBarRef.current) {
@@ -667,6 +671,7 @@ export function PlayerControls() {
           open={isNowPlayingOpen}
           onClose={() => setIsNowPlayingOpen(false)}
           onBackgroundClick={() => setControlsHidden((hidden) => !hidden)}
+          controlsHidden={controlsHidden}
         />
       </>
     );
@@ -882,6 +887,7 @@ export function PlayerControls() {
       <NowPlayingView
         open={isNowPlayingOpen}
         onClose={() => setIsNowPlayingOpen(false)}
+        controlsHidden={isIdle}
       />
     </>
   );

@@ -27,6 +27,10 @@ interface PlaybackContextValue {
   /** Query only — actions are issued as events/commands on the WmmBus. */
   getCurrentTime: () => number;
   getCollectionIds: () => string[];
+  /** Live analyser for visualizers; null until the audio graph exists. */
+  getAnalyser: () => AnalyserNode | null;
+  /** Duration of the loaded track in seconds (0 when nothing is loaded). */
+  getDuration: () => number;
 }
 
 const PlaybackContext = createContext<PlaybackContextValue | null>(null);

@@ -5,3 +5,6 @@ export * from "./useSync";
 export * from "./useTheme";
 export * from "./useShufflePlay";
 export * from "./useFavorites";
+export * from "./useVisualizer";
+export * from "./useVisualizerPlugins";
+export * from "./useAnalysisFrame";

@@ -2,6 +2,11 @@ import Dexie, { type Table } from "dexie";
 
 import type { PersistedJob } from "@/core/jobs";
 import type {
+  InstalledVisualizerPlugin,
+  PluginFileRecord,
+  PluginSettingsRecord,
+} from "@/core/visualizers/contracts";
+import type {
   MusicSource,
   PlayHistoryEntry,
   Playlist,
@@ -29,6 +34,9 @@ export class WmmMusicDb extends Dexie {
   playlists!: Table<Playlist, string>;
   jobs!: Table<PersistedJob, string>;
   playHistory!: Table<PlayHistoryEntry, string>;
+  plugins!: Table<InstalledVisualizerPlugin, string>;
+  pluginFiles!: Table<PluginFileRecord, number>;
+  pluginSettings!: Table<PluginSettingsRecord, string>;
 
   constructor() {
     super("wmmMusic");
@@ -83,6 +91,31 @@ export class WmmMusicDb extends Dexie {
         id,
         songId,
         playedAt
+      `,
+    });
+
+    // Version 2 adds the visualizer plugin tables. Version 1 is left untouched
+    // so existing databases upgrade in place instead of being recreated; only
+    // the new tables are declared here, the rest are inherited.
+    this.version(2).stores({
+      plugins: `
+        id,
+        name,
+        runtime,
+        kind,
+        installedAt
+      `,
+
+      pluginFiles: `
+        ++id,
+        pluginId,
+        [pluginId+path],
+        path
+      `,
+
+      pluginSettings: `
+        pluginId,
+        updatedAt
       `,
     });
   }

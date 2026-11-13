@@ -4,12 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenu,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogTrigger,
   DialogContent,
@@ -21,8 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Item } from "@/components/ui/item";
-import { Sun, Moon, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil } from "lucide-react";
-import { useTheme } from "@/hooks";
+import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus, SlidersHorizontal } from "lucide-react";
+import { useTheme, useVisualizer } from "@/hooks";
 import { clearLibrary } from "@/core/scanning";
 import { clearSubsonicSecrets } from "@/lib/sources/subsonic/subsonicSecrets";
 import { getSourcesStore } from "@/core/ports";
@@ -35,11 +29,23 @@ import { sourceKindBadge } from "@/lib/sources/source-ui";
 import type { MusicSource } from "@/models";
 import { toast } from "@/components/ui/toast";
 import { AccentColorSelector } from "@/components/theme-provider";
+import {
+  PluginManagerDialog,
+  VisualizerSelector,
+  VisualizerSettings,
+} from "@/components/visualizer";
+
+const THEME_OPTIONS = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+] as const;
 
 export function Settings() {
   //#region State
   const isCompact = useIsCompact();
   const { setTheme, theme, accentColor, setAccentColor } = useTheme();
+  const { setManagerOpen, setSettingsOpen } = useVisualizer();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -108,20 +114,6 @@ export function Settings() {
   //#endregion
 
   //#region Getters
-  const getUserThemePreference = (): "dark" | "light" => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      return "light";
-    }
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  };
-
-  const showSun = () =>
-    settings.theme === "light" ||
-    (settings.theme === "system" && getUserThemePreference() === "light");
-
-  const showMoon = () =>
-    settings.theme === "dark" ||
-    (settings.theme === "system" && getUserThemePreference() === "dark");
   //#endregion
 
   //#region Interactivity handlers
@@ -181,7 +173,8 @@ export function Settings() {
   //#endregion
 
   return (
-    <div className="max-w-2xl mx-auto p-2 md:p-8 space-y-2 md:space-y-8 select-none">
+    <div className="h-full overflow-y-auto select-none">
+      <div className="max-w-2xl mx-auto p-2 md:p-8 space-y-2 md:space-y-8">
       <div className="flex gap-3 items-center">
         <Link to="/">
           <Button variant="outline">
@@ -198,51 +191,69 @@ export function Settings() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="theme">Theme</Label>
+          <div className="space-y-3">
+            <Label>Theme</Label>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                id="theme"
-                render={
-                  <Button variant="outline" size="icon">
-                    <Sun
-                      className={`h-[1.2rem] w-[1.2rem] transition-all ${showSun() ? "scale-100 rotate-0" : "scale-0 -rotate-90"}`}
-                    />
-                    <Moon
-                      className={`absolute h-[1.2rem] w-[1.2rem] transition-all ${showMoon() ? "scale-100 rotate-0" : "scale-0 rotate-90"}`}
-                    />
-                  </Button>
-                }
-              ></DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleChange("theme", "light")}>
-                  Light
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleChange("theme", "dark")}>
-                  Dark
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleChange("theme", "system")}>
-                  System
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex flex-wrap gap-2">
+              {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                <Button
+                  key={value}
+                  variant="outline"
+                  aria-pressed={settings.theme === value}
+                  className={cn(
+                    settings.theme === value &&
+                      "border-primary bg-primary/15 text-foreground hover:bg-primary/20 dark:border-primary dark:bg-primary/25 dark:hover:bg-primary/30"
+                  )}
+                  onClick={() => handleChange("theme", value)}
+                >
+                  <Icon />
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center justify-between">
+
+          <div className="space-y-3">
             <Label>Accent Color</Label>
-          </div>
 
-          <AccentColorSelector
-            value={settings.accentColor}
-            onChange={(color) => handleChange("accentColor", color)}
-          />
+            <AccentColorSelector
+              value={settings.accentColor}
+              onChange={(color) => handleChange("accentColor", color)}
+            />
+          </div>
 
           <div>
             <Button onClick={handleSave} className="w-full">
               Save Settings
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Visualizers</CardTitle>
+          <CardDescription>
+            Install visualizer plugins and configure the active one
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          <VisualizerSelector variant="list" className="max-h-80" />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={() => setManagerOpen(true)}>
+              <PackagePlus />
+              Install or manage plugins
+            </Button>
+            <Button variant="outline" onClick={() => setSettingsOpen(true)}>
+              <SlidersHorizontal />
+              Visualizer settings
+            </Button>
+          </div>
+
+          <PluginManagerDialog />
+          <VisualizerSettings />
         </CardContent>
       </Card>
 
@@ -395,6 +406,7 @@ export function Settings() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

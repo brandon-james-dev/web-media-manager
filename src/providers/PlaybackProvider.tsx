@@ -67,6 +67,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const bufferRef = useRef<AudioBuffer | null>(null);
   const gainRef = useRef<GainNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   //#endregion
   //#endregion
 
@@ -112,6 +113,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#region Helpers
   function getCurrentTime(): number {
     return currentTimeRef.current;
+  }
+
+  function getAnalyser(): AnalyserNode | null {
+    return analyserRef.current;
+  }
+
+  function getDuration(): number {
+    return bufferRef.current?.duration ?? nowPlayingRef.current?.duration ?? 0;
   }
 
   function stopPlayback() {
@@ -224,7 +233,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         gainRef.current = audioCtxRef.current.createGain();
         gainRef.current.gain.value = volumeRef.current;
 
-        gainRef.current.connect(audioCtxRef.current.destination);
+        // Visualizers read this analyser. It sits between the gain node and
+        // the destination, so analysis follows the volume the user hears.
+        analyserRef.current = audioCtxRef.current.createAnalyser();
+        analyserRef.current.fftSize = 512;
+        analyserRef.current.smoothingTimeConstant = 0.8;
+
+        gainRef.current.connect(analyserRef.current);
+        analyserRef.current.connect(audioCtxRef.current.destination);
       }
 
       let artworkUrl256: string | undefined = "";
@@ -385,6 +401,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         // load() build a fresh one (nulling audioCtxRef forces the recreate).
         audioCtxRef.current = null;
         bufferRef.current = null;
+        analyserRef.current = null;
         setNowPlaying(nowPlayingRef.current);
         return;
       }
@@ -851,6 +868,8 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         volume,
         getCurrentTime,
         getCollectionIds: () => collectionIdsRef.current,
+        getAnalyser,
+        getDuration,
         isPlaying,
       }}
     >
