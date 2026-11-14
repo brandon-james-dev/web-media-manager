@@ -37,6 +37,7 @@ import { setVisualizerPalette } from "@/lib/visualizers";
 import { NowPlayingBackdrop } from "./NowPlayingBackdrop";
 import { useArtworkPalette } from "./useArtworkPalette";
 import { wmmBus } from "@/events";
+import { keyShortcut$ } from "@/events/keyboard-events";
 import type { Song } from "@/models";
 import { getStore } from "@/core/system";
 import { repeatState } from "@/hooks/usePlayback";
@@ -152,7 +153,7 @@ export function NowPlayingView({
 
   const [panel, setPanel] = useState<PanelTab | null>(null);
   const [darkRoom, setDarkRoom] = useState<boolean>(false);
-  const { setSettingsOpen } = useVisualizer();
+  const { setSettingsOpen, settingsOpen } = useVisualizer();
   const palette = useArtworkPalette(nowPlaying?.id, open);
   const [upNext, setUpNext] = useState<Song | undefined>();
 
@@ -222,6 +223,23 @@ export function NowPlayingView({
       void document.exitFullscreen();
     }
   }, [open]);
+
+  // "f" toggles fullscreen while the playback view is open. The global key
+  // handler already skips text fields, so this only needs to ignore the view
+  // being closed, compact layouts and the settings dialog.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const sub = keyShortcut$.subscribe((shortcut) => {
+      if (shortcut === "fullscreen" && canFullscreen && !settingsOpen) {
+        toggleFullscreen();
+      }
+    });
+
+    return () => sub.unsubscribe();
+  }, [open, canFullscreen, settingsOpen]);
 
   function toggleFullscreen() {
     if (document.fullscreenElement) {

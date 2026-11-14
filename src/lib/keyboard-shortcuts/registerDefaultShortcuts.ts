@@ -45,6 +45,13 @@ export function registerDefaultShortcuts() {
   });
 
   registerShortcut({
+    id: "fullscreen",
+    description: "Toggle fullscreen (now playing)",
+    combo: { key: "f", ctrl: false },
+    action: () => keyShortcut$.next("fullscreen"),
+  });
+
+  registerShortcut({
     id: "close",
     description: "Close editor",
     combo: { key: "Escape" },
