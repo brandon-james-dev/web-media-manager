@@ -42,8 +42,43 @@ const MIN_TRAVEL = 4;
 /** Sideways drift costs more than forward travel, so the list stays in a row. */
 const DRIFT_WEIGHT = 2.2;
 
+/** How far off the travel axis a candidate may sit, as a fraction of its span. */
+const CROSS_AXIS_TOLERANCE = 0.5;
+
 /** Seconds moved by a remote's rewind / fast-forward key. */
 const SEEK_STEP = 10;
+
+/**
+ * Older television browsers report the D-pad with the pre-standard key names,
+ * and some report `key: "Unidentified"` with only a legacy `keyCode`. Both are
+ * normalised here so one switch handles every remote.
+ */
+const LEGACY_KEY_NAMES: Record<string, string> = {
+  Up: "ArrowUp",
+  Down: "ArrowDown",
+  Left: "ArrowLeft",
+  Right: "ArrowRight",
+  Select: "Enter",
+};
+
+const KEY_CODES: Record<number, string> = {
+  8: "Backspace",
+  13: "Enter",
+  37: "ArrowLeft",
+  38: "ArrowUp",
+  39: "ArrowRight",
+  40: "ArrowDown",
+  461: "BrowserBack",
+  10009: "BrowserBack",
+};
+
+function keyName(event: KeyboardEvent): string {
+  const key = event.key;
+  if (key && key !== "Unidentified") {
+    return LEGACY_KEY_NAMES[key] ?? key;
+  }
+  return KEY_CODES[event.keyCode] ?? key;
+}
 
 function isEditable(element: Element | null): boolean {
   if (!(element instanceof HTMLElement)) {
@@ -137,6 +172,18 @@ export function pickNearest<T>(
         ? rect.bottom > from.top && rect.top < from.bottom
         : rect.right > from.left && rect.left < from.right;
 
+    // A candidate far off the travel axis is in another band of the layout —
+    // right from a card must not land on the player bar below it. The
+    // tolerance follows the larger of the two cross-axis sizes, so a small
+    // icon can still reach a wide row.
+    const crossSpan =
+      direction === "left" || direction === "right"
+        ? Math.max(from.bottom - from.top, rect.bottom - rect.top)
+        : Math.max(from.right - from.left, rect.right - rect.left);
+    if (!overlaps && Math.abs(drift) > crossSpan * CROSS_AXIS_TOLERANCE) {
+      continue;
+    }
+
     const score =
       forward + Math.abs(drift) * DRIFT_WEIGHT - (overlaps ? forward * 0.25 : 0);
 
@@ -196,6 +243,21 @@ function moveFocus(direction: Direction): boolean {
   return true;
 }
 
+/** Move focus from an arbitrary rectangle, e.g. a text field that is about to
+ *  be blurred and so has no focusable element to start from. */
+function moveFocusFrom(from: Rect, direction: Direction): boolean {
+  const candidates = focusables().map((item) => ({
+    item,
+    rect: item.getBoundingClientRect(),
+  }));
+  const next = pickNearest(from, candidates, direction);
+  if (!next) {
+    return false;
+  }
+  focusElement(next);
+  return true;
+}
+
 /** Back: close the open dialog, then the now-playing overlay, then leave the
  *  screen. */
 function goBack(): void {
@@ -222,13 +284,37 @@ function onKeyDown(event: KeyboardEvent): void {
   }
 
   const target = event.target instanceof Element ? event.target : null;
+  const key = keyName(event);
 
-  // A focused text field owns the arrow keys (caret movement) and Backspace.
+  if (handleKey(key, target)) {
+    // Stop here: the browser would otherwise scroll the page, and a focused
+    // listbox or tab strip would move focus a second time.
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}
+
+/** Returns true when the key was consumed. */
+function handleKey(key: string, target: Element | null): boolean {
+  // A focused text field owns the caret keys and Backspace. Up and down still
+  // leave the field, because a remote has no Tab key and focus must never be
+  // trapped in a search box.
   if (isEditable(target)) {
-    return;
+    if (key === "ArrowUp" || key === "ArrowDown") {
+      const rect = (target as HTMLElement).getBoundingClientRect();
+      const moved = moveFocusFrom(
+        rect,
+        key === "ArrowUp" ? "up" : "down"
+      );
+      if (moved) {
+        (target as HTMLElement).blur();
+      }
+      return moved;
+    }
+    return false;
   }
 
-  switch (event.key) {
+  switch (key) {
     case "ArrowUp":
     case "ArrowDown":
     case "ArrowLeft":
@@ -236,15 +322,12 @@ function onKeyDown(event: KeyboardEvent): void {
       // Left/right on a slider adjust its value; up/down still navigate away.
       const onRange =
         target instanceof HTMLInputElement && target.type === "range";
-      if (onRange && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
-        return;
+      if (onRange && (key === "ArrowLeft" || key === "ArrowRight")) {
+        return false;
       }
 
-      const direction = event.key.slice(5).toLowerCase() as Direction;
-      if (moveFocus(direction)) {
-        event.preventDefault();
-      }
-      return;
+      const direction = key.slice(5).toLowerCase() as Direction;
+      return moveFocus(direction);
     }
 
     case "Enter": {
@@ -257,49 +340,42 @@ function onKeyDown(event: KeyboardEvent): void {
         active instanceof HTMLTextAreaElement;
       if (!native && active instanceof HTMLElement) {
         active.click();
-        event.preventDefault();
+        return true;
       }
-      return;
+      return false;
     }
 
     case "Backspace":
-    case "BrowserBack": {
-      event.preventDefault();
+    case "BrowserBack":
       goBack();
-      return;
-    }
+      return true;
 
     case "MediaPlayPause":
-      event.preventDefault();
       wmmBus.invoke("wmm.playback.playpause");
-      return;
+      return true;
 
     case "MediaTrackNext":
-      event.preventDefault();
       wmmBus.invoke("wmm.playback.next");
-      return;
+      return true;
 
     case "MediaTrackPrevious":
-      event.preventDefault();
       wmmBus.invoke("wmm.playback.prev");
-      return;
+      return true;
 
     // Remotes label these rewind and fast forward; both seek within the track
     // rather than changing it.
     case "MediaRewind":
     case "MediaSkipBackward":
-      event.preventDefault();
       wmmBus.invoke("wmm.playback.seekBy", { deltaSeconds: -SEEK_STEP });
-      return;
+      return true;
 
     case "MediaFastForward":
     case "MediaSkipForward":
-      event.preventDefault();
       wmmBus.invoke("wmm.playback.seekBy", { deltaSeconds: SEEK_STEP });
-      return;
+      return true;
 
     default:
-      return;
+      return false;
   }
 }
 

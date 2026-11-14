@@ -18,11 +18,16 @@ import {
   type VisualizerRuntimeHost,
 } from "@/lib/visualizers";
 import { Button } from "@/components/ui/button";
+import { useIsTv } from "@/lib/hooks/useIsMobile";
 import type { VisualizationHostProps } from "./VisualizationHostProps";
 import {
   adaptRenderScale,
   FRAME_SAMPLE_SIZE,
   INITIAL_RENDER_SCALE,
+  MIN_RENDER_SCALE,
+  TV_FRAME_INTERVAL_MS,
+  TV_INITIAL_RENDER_SCALE,
+  TV_MIN_RENDER_SCALE,
   type RenderScaleState,
 } from "@/lib/visualizers/renderScale";
 
@@ -58,6 +63,7 @@ export function VisualizationHost({
   );
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const isTv = useIsTv();
 
   useEffect(() => {
     readFrameRef.current = readFrame;
@@ -90,7 +96,11 @@ export function VisualizationHost({
     // full-resolution canvas at 60fps, so the backing store is scaled down and
     // the browser stretches it. The CSS size never changes, so layout and the
     // plugin's coordinate space stay the same.
-    let renderScale: RenderScaleState = INITIAL_RENDER_SCALE;
+    let renderScale: RenderScaleState = isTv
+      ? TV_INITIAL_RENDER_SCALE
+      : INITIAL_RENDER_SCALE;
+    const minRenderScale = isTv ? TV_MIN_RENDER_SCALE : MIN_RENDER_SCALE;
+    const frameInterval = isTv ? TV_FRAME_INTERVAL_MS : 0;
     const effectiveRatio = () =>
       (window.devicePixelRatio || 1) * renderScale.scale;
 
@@ -160,6 +170,7 @@ export function VisualizationHost({
 
     let frameCount = 0;
     let lastFrameTime = 0;
+    let lastRenderTime = 0;
     let sampleTotal = 0;
     let sampleCount = 0;
 
@@ -182,7 +193,7 @@ export function VisualizationHost({
         sampleTotal = 0;
         sampleCount = 0;
 
-        const next = adaptRenderScale(renderScale, average);
+        const next = adaptRenderScale(renderScale, average, minRenderScale);
         if (next.scale !== renderScale.scale) {
           renderScale = next;
           resize();
@@ -207,6 +218,13 @@ export function VisualizationHost({
           host.resize(width, height, ratio);
         }
       }
+      // A TV renders at 30fps: the panel cannot show more, and skipping every
+      // other frame halves the GPU work the plugin asks for.
+      if (frameInterval > 0 && now - lastRenderTime < frameInterval) {
+        return;
+      }
+      lastRenderTime = now;
+
       host.render(readFrameRef.current());
     };
 
@@ -242,7 +260,7 @@ export function VisualizationHost({
         hostRef.current = null;
       }
     };
-  }, [loaded]);
+  }, [loaded, isTv]);
 
   useEffect(() => {
     const sync = () => {

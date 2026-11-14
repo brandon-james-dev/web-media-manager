@@ -19,6 +19,13 @@ export const FRAME_SAMPLE_SIZE = 30;
 export const FRAME_RECOVERY_STABLE = 150;
 /** Never render below this fraction of the display resolution. */
 export const MIN_RENDER_SCALE = 0.35;
+/**
+ * A television GPU is far weaker than a desktop one, so a TV starts at half
+ * resolution and may fall further before the picture is stretched.
+ */
+export const TV_MIN_RENDER_SCALE = 0.25;
+/** Frame interval on a TV: 30fps is smooth enough and halves the GPU work. */
+export const TV_FRAME_INTERVAL_MS = 1000 / 30;
 
 export interface RenderScaleState {
   /** Fraction of the display resolution currently rendered. */
@@ -32,6 +39,12 @@ export const INITIAL_RENDER_SCALE: RenderScaleState = {
   stableFrames: 0,
 };
 
+/** A TV starts below full resolution instead of discovering it is too slow. */
+export const TV_INITIAL_RENDER_SCALE: RenderScaleState = {
+  scale: 0.5,
+  stableFrames: 0,
+};
+
 /**
  * Next state after a sample of `FRAME_SAMPLE_SIZE` frames averaged
  * `averageFrameMs`. Steps down immediately when over budget, and back up only
@@ -39,11 +52,12 @@ export const INITIAL_RENDER_SCALE: RenderScaleState = {
  */
 export function adaptRenderScale(
   state: RenderScaleState,
-  averageFrameMs: number
+  averageFrameMs: number,
+  minScale: number = MIN_RENDER_SCALE
 ): RenderScaleState {
-  if (averageFrameMs > FRAME_BUDGET_MS && state.scale > MIN_RENDER_SCALE) {
+  if (averageFrameMs > FRAME_BUDGET_MS && state.scale > minScale) {
     return {
-      scale: Math.max(MIN_RENDER_SCALE, state.scale * 0.75),
+      scale: Math.max(minScale, state.scale * 0.75),
       stableFrames: 0,
     };
   }

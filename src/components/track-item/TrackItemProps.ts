@@ -52,5 +52,12 @@ export interface TrackItemProps {
   actions?: TrackItemAction[];
   /** Density; `xs` is the tight mobile list look. */
   size?: "default" | "sm" | "xs";
+  /**
+   * Make the row itself a focus stop. Television remotes move focus with the
+   * arrow keys and activate with Enter, so the row must be reachable without a
+   * pointer; the row is not a native button (it contains its own), so Enter is
+   * handled by the TV navigation layer clicking the focused element.
+   */
+  focusable?: boolean;
   className?: string;
 }

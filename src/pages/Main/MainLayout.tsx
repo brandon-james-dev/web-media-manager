@@ -30,7 +30,7 @@ import {
   useNavigate,
 } from "react-router";
 import { Editor } from "@/components/editor";
-import { useIsMobile, useIsTablet } from "@/lib/hooks/useIsMobile";
+import { useIsMobile, useIsTablet, useIsTv } from "@/lib/hooks/useIsMobile";
 import { cn } from "cn";
 
 type MainContext = {
@@ -66,6 +66,7 @@ function MainLayout() {
   const { mode } = useParams();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+  const isTv = useIsTv();
   // Phones and tablets share the compact chrome (bottom bars, no header tabs).
   const isCompact = isMobile || isTablet;
   const navigate = useNavigate();
@@ -190,11 +191,12 @@ function MainLayout() {
 
   return (
     <div className="flex flex-col h-full select-none">
+      {!isTv && (
       <div
         className="border-b px-4 py-2 flex gap-2 items-center justify-between"
         hidden={isCompact || !hasSources || (total ?? 0) == 0}
       >
-        <div className="flex shrink-0 items-center gap-2" hidden={isCompact}>
+        <div className="flex shrink-0 items-center gap-2" hidden={isCompact || isTv}>
           <Tabs value={activeTab}>
             <TabsList>
               <TabsTrigger
@@ -334,6 +336,7 @@ function MainLayout() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="flex-1 overflow-hidden">
         <Outlet

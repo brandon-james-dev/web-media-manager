@@ -8,6 +8,8 @@ import {
   Settings,
   Sync,
 } from "./pages";
+import { TvDetail, TvHome } from "./pages/Tv";
+import { useIsTv } from "./lib/hooks/useIsMobile";
 import { NavBar } from "./layout";
 import { SongProvider, SyncProvider, VisualizerProvider } from "./providers";
 import { ThemeProvider } from "./components/theme-provider";
@@ -43,7 +45,7 @@ registerBrowserVisualizerStoreProvider();
 // Restore jobs a previous session left unfinished, then re-import every
 // configured source on startup so the library stays in sync
 // with what's on the sources (local folders + remote servers).
-void ensureFavorites().catch(() => {});
+void ensureFavorites().catch(() => { });
 
 void resumeInterruptedJobs()
   .catch(() => new Set<string>())
@@ -51,7 +53,7 @@ void resumeInterruptedJobs()
 
 // Seed the bundled particle visualizer on first run, after the plugin store
 // provider is registered.
-void ensureExampleVisualizers().catch(() => {});
+void ensureExampleVisualizers().catch(() => { });
 
 // Connect the bus to the command dispatcher: bus.invoke() -> registered
 // handlers (providers/UI register commands; this makes them reachable).
@@ -59,6 +61,15 @@ const disconnectCommandDispatch = connectCommandDispatch();
 // A hot reload re-runs this module; drop the old link so each command is
 // dispatched once (two links would run play/pause twice and cancel out).
 import.meta.hot?.dispose(disconnectCommandDispatch);
+
+/**
+ * The root route: a television gets the tile grid, everything else the song
+ * list. A TV has no persistent navigation, so its home screen is the map.
+ */
+function HomeRoute() {
+  const isTv = useIsTv();
+  return isTv ? <TvHome /> : <Songs />;
+}
 
 function App() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
@@ -125,7 +136,7 @@ function App() {
                 <SyncProvider>
                   <Routes>
                     <Route path="/" element={<MainLayout />}>
-                      <Route path="/" element={<Songs />} />
+                      <Route path="/" element={<HomeRoute />} />
                       <Route path="songs" element={<Songs />} />
                       <Route path="songs/:mode" element={<Songs />} />
                       <Route path="albums" element={<Albums />} />
@@ -134,6 +145,16 @@ function App() {
                       <Route path="artists/:mode" element={<Artists />} />
                       <Route path="playlists" element={<Playlists />} />
                       <Route path="playlists/:mode" element={<Playlists />} />
+                      <Route path="tv/songs" element={<TvDetail />} />
+                      <Route path="tv/album/:albumId" element={<TvDetail />} />
+                      <Route
+                        path="tv/artist/:artistId"
+                        element={<TvDetail />}
+                      />
+                      <Route
+                        path="tv/playlist/:playlistId"
+                        element={<TvDetail />}
+                      />
                       <Route path="sync" element={<Sync />} />
                     </Route>
 

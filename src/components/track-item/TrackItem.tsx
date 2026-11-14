@@ -50,6 +50,7 @@ export function TrackItem(props: TrackItemProps) {
     onClick,
     actions,
     size = "default",
+    focusable = false,
     className,
   } = props;
 
@@ -83,6 +84,7 @@ export function TrackItem(props: TrackItemProps) {
     <SongContextMenu songs={[song]}>
       <Item
         size={size}
+        tabIndex={focusable ? 0 : undefined}
         className={cn(
           // Item is flex-wrap by default; a track row stays on one line and
           // lets ItemContent truncate instead.
@@ -94,6 +96,8 @@ export function TrackItem(props: TrackItemProps) {
           // mode the row activates via click/double-click, so it gets the
           // same hover affordance as in playback mode.
           (onPlay || onClick || onDoubleClick) && "hover:bg-accent/10",
+          focusable &&
+            "rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           isPlaying && "bg-accent/10",
           className
         )}
