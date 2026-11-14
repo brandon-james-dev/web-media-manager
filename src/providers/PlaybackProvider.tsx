@@ -156,7 +156,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
     const source = ctx.createBufferSource();
     source.buffer = buffer;
-    source.connect(gain);
+    // The analyser sits ahead of the gain node so visualizers see the track at
+    // full level whatever the volume slider says.
+    const analyser = analyserRef.current;
+    source.connect(analyser ?? gain);
 
     const offset = Math.max(0, Math.min(time, buffer.duration - 0.001));
     const startCtxTime = ctx.currentTime;
@@ -233,14 +236,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         gainRef.current = audioCtxRef.current.createGain();
         gainRef.current.gain.value = volumeRef.current;
 
-        // Visualizers read this analyser. It sits between the gain node and
-        // the destination, so analysis follows the volume the user hears.
+        // Visualizers read this analyser. It sits ahead of the gain node, so
+        // analysis is independent of the volume the user hears.
         analyserRef.current = audioCtxRef.current.createAnalyser();
         analyserRef.current.fftSize = 512;
         analyserRef.current.smoothingTimeConstant = 0.8;
 
-        gainRef.current.connect(analyserRef.current);
-        analyserRef.current.connect(audioCtxRef.current.destination);
+        analyserRef.current.connect(gainRef.current);
+        gainRef.current.connect(audioCtxRef.current.destination);
       }
 
       let artworkUrl256: string | undefined = "";
