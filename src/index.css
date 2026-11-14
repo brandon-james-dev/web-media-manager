@@ -133,6 +133,22 @@
 }
 
 @layer base {
+  /* The app shell is a fixed-height flex column whose content area scrolls.
+     `100vh` is the base declaration and `dvh` is applied only where it is
+     understood: a minifier collapses two declarations of the same property
+     into the last one, which would leave older Silk builds with no height at
+     all — the column collapses, the scroll container has nothing to scroll,
+     and the clipped content is unreachable. */
+  .app-viewport {
+    height: 100vh;
+  }
+
+  @supports (height: 100dvh) {
+    .app-viewport {
+      height: 100dvh;
+    }
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -140,8 +156,7 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
-    /* Stop the browser's pull-to-refresh at the page level: when the app's
+    @apply font-sans;    /* Stop the browser's pull-to-refresh at the page level: when the app's
        own scroll containers overscroll instead of the page, the gesture that
        would refresh the page just rubber-bands the container. Edge Android's
        refresh gesture is a page-root overscroll, so containing it here
@@ -151,10 +166,52 @@
 
   /* Television: the remote moves focus, so the focused control has to be
      obvious from across the room. */
-  [data-tv="true"] :focus-visible {
-    outline: 3px solid var(--ring);
-    outline-offset: 3px;
-  }
+}
+
+/* Unlayered on purpose: `outline-none` and the ring utilities live in the
+   utilities layer, which outranks `@layer base`, and they would otherwise
+   cancel the ring on exactly the controls that need it most. */
+[data-tv="true"] :focus-visible {
+  outline: 4px solid var(--ring);
+  outline-offset: 3px;
+}
+
+/* A television is watched from across the room, so the interface is scaled up
+   slightly. Every rem-based size follows the root font size, so one
+   declaration lifts the type, the tiles and the controls together. */
+[data-tv="true"] {
+  font-size: 20px;
+}
+
+/* Coloured tiles carry their hue in `--tile-hue`, so the focused state can be
+   a lighter version of the tile's own colour instead of a translucent wash.
+   The wash failed: 18% white over a dark gradient stays dark, which left the
+   dark subtitle unreadable. These stops are opaque, so the text colour is
+   predictable. The ring is inset because an outline sits outside the tile,
+   where the section container clips it. */
+.tv-tile {
+  background-image: linear-gradient(
+    135deg,
+    hsl(var(--tile-hue) 65% 45% / 0.45),
+    hsl(calc(var(--tile-hue) + 40) 60% 30% / 0.25)
+  );
+}
+
+[data-tv="true"] .tv-tile:focus-visible {
+  outline: none;
+  background-image: linear-gradient(
+    135deg,
+    hsl(var(--tile-hue) 80% 62%),
+    hsl(calc(var(--tile-hue) + 40) 75% 52%)
+  );
+  box-shadow: inset 0 0 0 4px var(--ring);
+}
+
+/* Tiles without a hue of their own still need a ring that survives a clipping
+   ancestor, so the ring is drawn inside the element's own box. */
+[data-tv="true"] .tv-focus-inset:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 4px var(--ring);
 }
 
 /* Now-playing indicator: the bars scale rather than fade, so movement is

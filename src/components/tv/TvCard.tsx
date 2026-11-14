@@ -2,7 +2,7 @@ import { AlbumArtImage } from "@/components/album-art-image";
 import { ThumbnailSize } from "@/lib";
 import { cn } from "cn";
 import { Heart, ListMusic } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export interface TvCardProps {
   title: string;
@@ -67,17 +67,18 @@ export function TvCard({
     ));
 
   if (wide) {
-    const hue = hueFor(title);
+    // Favorites is a fixed concept, not an arbitrary name, so it gets a fixed
+    // red instead of whatever the name hashes to — "Favorites" hashed to 47,
+    // which is yellow and read as a warning rather than a heart.
+    const hue = icon === "favorites" ? 0 : hueFor(title);
     return (
       <button
         type="button"
         onClick={onSelect}
-        style={{
-          backgroundImage: `linear-gradient(135deg, hsl(${hue} 65% 45% / 0.45), hsl(${(hue + 40) % 360} 60% 30% / 0.25))`,
-        }}
+        style={{ "--tile-hue": hue } as CSSProperties}
         className={cn(
-          "col-span-2 flex w-full cursor-default items-center gap-3 rounded-xl border border-white/10 p-2 text-left outline-none transition-colors",
-          "hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring"
+          "tv-tile group col-span-2 flex w-full cursor-default items-center gap-3 rounded-xl border border-white/10 p-2 text-left outline-none transition-colors",
+          "hover:brightness-110 focus-visible:text-black"
         )}
       >
         <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-muted shadow-lg">
@@ -86,7 +87,9 @@ export function TvCard({
         <div className="min-w-0 flex-1 pr-1">
           <p className="line-clamp-2 text-sm font-semibold">{title}</p>
           {subtitle && (
-            <p className="truncate text-xs text-white/70">{subtitle}</p>
+            <p className="truncate text-xs text-white/70 group-focus-visible:text-black">
+              {subtitle}
+            </p>
           )}
         </div>
       </button>
@@ -98,8 +101,8 @@ export function TvCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex w-full cursor-default flex-col gap-2 rounded-xl p-2 text-left outline-none transition-colors",
-        "hover:bg-accent/10 focus-visible:bg-accent/15 focus-visible:ring-2 focus-visible:ring-ring"
+        "tv-focus-inset group flex w-full cursor-default flex-col gap-2 rounded-xl p-2 text-left outline-none transition-colors",
+        "hover:bg-accent/10 focus-visible:bg-accent/15"
       )}
     >
       <div className="relative aspect-square overflow-hidden rounded-lg bg-muted shadow-lg">
@@ -108,7 +111,9 @@ export function TvCard({
       <div className="min-w-0 px-1">
         <p className="truncate text-sm font-semibold">{title}</p>
         {subtitle && (
-          <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+          <p className="truncate text-xs text-muted-foreground group-focus-visible:text-foreground">
+            {subtitle}
+          </p>
         )}
       </div>
     </button>

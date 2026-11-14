@@ -35,7 +35,7 @@ export function TvBrowse() {
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="cursor-default rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="cursor-default rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground outline-none"
         >
           Back to home
         </button>

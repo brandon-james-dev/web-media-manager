@@ -189,7 +189,7 @@ export function AddMusicSource({
               <div className="font-medium">
                 {strategy.name}
                 {strategy.isAvailable === false && (
-                  <span className="text-xs font-normal text-muted-foreground">
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
                     Not supported in this browser
                   </span>
                 )}

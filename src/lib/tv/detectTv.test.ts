@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isTvOverride, isTvUserAgent } from "./detectTv";
+import { isHostedShell, isTvOverride, isTvUserAgent } from "./detectTv";
 
 const FIRE_TV =
   "Mozilla/5.0 (Linux; Android 9; AFTMM Build/PS7326.3160N; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.0.0 Mobile Safari/537.36 Silk/120.0.0.0 like Chrome/120.0.0.0";
@@ -86,5 +86,34 @@ describe("isTvOverride", () => {
   it("is false with nothing stored", () => {
     stubWindow({ stored: null, finePointer: false });
     expect(isTvOverride()).toBe(false);
+  });
+});
+
+describe("isHostedShell", () => {
+  it("detects the Amazon Web App Tester user agent", () => {
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("navigator", {
+      userAgent:
+        "Mozilla/5.0 (Linux; Android 9; AFTMM) AppleWebKit/537.36 AmazonWebAppTester/1.0",
+    });
+    expect(isHostedShell()).toBe(true);
+  });
+
+  it("detects a Cordova container", () => {
+    vi.stubGlobal("window", { cordova: {} });
+    vi.stubGlobal("navigator", { userAgent: DESKTOP });
+    expect(isHostedShell()).toBe(true);
+  });
+
+  it("detects the legacy PhoneGap globals", () => {
+    vi.stubGlobal("window", { PhoneGap: {} });
+    vi.stubGlobal("navigator", { userAgent: DESKTOP });
+    expect(isHostedShell()).toBe(true);
+  });
+
+  it("is false in a plain browser", () => {
+    vi.stubGlobal("window", {});
+    vi.stubGlobal("navigator", { userAgent: FIRE_TV_SILK });
+    expect(isHostedShell()).toBe(false);
   });
 });

@@ -19,7 +19,7 @@ import { useEffect, useState } from "react";
 import { keyShortcut$ } from "@/events";
 import { registerDefaultShortcuts } from "./lib/keyboard-shortcuts/registerDefaultShortcuts";
 import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
-import { TvKeyDebug } from "./components/tv";
+import { TvFullscreenPrompt } from "./components/tv";
 import { handleKey } from "./lib";
 import { registerBrowserStoreProvider } from "./lib/persistence/browser/storeProvider";
 import { registerBrowserMetadataReader } from "./lib/metadata/reader/browserMetadataReader";
@@ -137,12 +137,12 @@ function App() {
         <PlaybackProvider>
           <VisualizerProvider>
             <SyncProvider>
-              <div className="flex flex-col h-dvh">
+              <div className="flex flex-col app-viewport">
                 <header className="shrink-0 border-b pt-[env(safe-area-inset-top)]">
                   <NavBar />
                 </header>
 
-                <main className="flex-1 overflow-hidden">
+                <main className="flex-1 min-h-0 overflow-hidden">
                   <Routes>
                     <Route path="/" element={<MainLayout />}>
                       <Route path="/" element={<HomeRoute />} />
@@ -175,7 +175,7 @@ function App() {
                     open={isShortcutsOpen}
                     onOpenChange={setIsShortcutsOpen}
                   />
-                  <TvKeyDebug />
+                  <TvFullscreenPrompt />
                 </main>
               </div>
             </SyncProvider>

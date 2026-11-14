@@ -97,7 +97,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
             value={pct}
             aria-label="Seek"
             onChange={(event) => handleScrub(Number(event.target.value))}
-            className="h-1 flex-1 cursor-default appearance-none rounded-full bg-white/25 accent-white outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-1 flex-1 cursor-default appearance-none rounded-full bg-white/25 accent-white outline-none"
             style={{
               backgroundImage: `linear-gradient(to right, white ${pct}%, transparent ${pct}%)`,
             }}
@@ -112,7 +112,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
             type="button"
             aria-label="Previous track"
             onClick={() => wmmBus.invoke("wmm.playback.prev")}
-            className="flex size-12 cursor-default items-center justify-center rounded-full text-white outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex size-12 cursor-default items-center justify-center rounded-full text-white outline-none hover:bg-white/15"
           >
             <SkipBack className="size-6 fill-current" />
           </button>
@@ -120,7 +120,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
             type="button"
             aria-label={isPlaying ? "Pause" : "Play"}
             onClick={() => wmmBus.invoke("wmm.playback.playpause")}
-            className="flex size-16 cursor-default items-center justify-center rounded-full bg-white text-black outline-none hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex size-16 cursor-default items-center justify-center rounded-full bg-white text-black outline-none hover:bg-white/90"
           >
             {isPlaying ? (
               <Pause className="size-7 fill-current" />
@@ -132,7 +132,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
             type="button"
             aria-label="Next track"
             onClick={() => wmmBus.invoke("wmm.playback.next")}
-            className="flex size-12 cursor-default items-center justify-center rounded-full text-white outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex size-12 cursor-default items-center justify-center rounded-full text-white outline-none hover:bg-white/15"
           >
             <SkipForward className="size-6 fill-current" />
           </button>

@@ -96,4 +96,28 @@ export function detectTv(): boolean {
   return isTvOverride() || isTvUserAgent() || isTvViewport();
 }
 
+/**
+ * Amazon's Web App Tester, and any Cordova container, hosts the page inside a
+ * native shell that already owns the whole screen. The browser chrome the
+ * fullscreen prompt exists to hide is not there, and `requestFullscreen` is
+ * either a no-op or refused, so the prompt would only be an obstacle.
+ */
+const WEB_APP_TESTER_UA = /(?:Amazon)?WebAppTester/i;
+
+export function isHostedShell(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const shell = window as unknown as {
+    cordova?: unknown;
+    PhoneGap?: unknown;
+    _cordovaNative?: unknown;
+  };
+  if (shell.cordova || shell.PhoneGap || shell._cordovaNative) {
+    return true;
+  }
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  return WEB_APP_TESTER_UA.test(ua);
+}
+
 export { TV_QUERY };

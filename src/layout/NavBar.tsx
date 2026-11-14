@@ -2,11 +2,12 @@ import { Button } from "@/components/ui/button";
 import { TvNowPlayingIndicator } from "@/components/tv";
 import { useIsTv } from "@/lib/hooks/useIsMobile";
 import { Settings } from "lucide-react";
-import { NavLink } from "react-router";
+import { useNavigate } from "react-router";
 import NotificationPopover from "./NotificationPopover";
 
 export default function NavBar() {
   const isTv = useIsTv();
+  const navigate = useNavigate();
 
   return (
     <div className="relative flex h-14 items-center justify-between px-4 border-b">
@@ -24,11 +25,14 @@ export default function NavBar() {
 
       <div className="flex items-center gap-2">
         <NotificationPopover />
-        <NavLink to={"/settings"}>
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5" />
-          </Button>
-        </NavLink>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Settings"
+          onClick={() => void navigate("/settings")}
+        >
+          <Settings className="h-5 w-5" />
+        </Button>
       </div>
     </div>
   );

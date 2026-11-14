@@ -71,6 +71,41 @@ describe("pickNearest", () => {
     const two = candidates([["almost", rect(3, 0)]]);
     expect(pickNearest(rect(0, 0), two, "right")).toBeNull();
   });
+
+  it("falls back to the nearest candidate when nothing is aligned vertically", () => {
+    // A header icon far to the right of centred page content: nothing
+    // overlaps it horizontally, so the strict rule would find nothing.
+    const page = candidates([
+      ["back", rect(300, 90)],
+      ["theme", rect(348, 261)],
+    ]);
+    expect(pickNearest(rect(1200, 12, 34, 34), page, "down")).toBe("back");
+  });
+
+  it("still refuses a horizontal jump into another band", () => {
+    // Right from the last card in a row must not land on the player bar.
+    const bar = candidates([["volume", rect(600, 500, 40, 40)]]);
+    expect(pickNearest(rect(0, 0, 100, 40), bar, "right")).toBeNull();
+  });
+
+  it("prefers the next row over a nearer control further down", () => {
+    // Settings page: from the header icon the Theme buttons sit in the first
+    // card far to the left, while a runtime filter sits lower but closer
+    // horizontally. The next row must win.
+    const page = candidates([
+      ["theme", rect(30, 200, 120, 40)],
+      ["runtimes", rect(816, 596, 200, 40)],
+    ]);
+    expect(pickNearest(rect(1212, 15, 40, 40), page, "down")).toBe("theme");
+  });
+
+  it("keeps the column when the next row has several controls", () => {
+    const page = candidates([
+      ["left", rect(0, 200, 120, 40)],
+      ["right", rect(600, 200, 120, 40)],
+    ]);
+    expect(pickNearest(rect(600, 100, 40, 40), page, "down")).toBe("right");
+  });
 });
 
 describe("normalizeKey", () => {
@@ -119,5 +154,30 @@ describe("normalizeKey", () => {
 
   it("returns an empty string when nothing is known", () => {
     expect(normalizeKey({ key: "Unidentified", keyCode: 999 })).toBe("");
+  });
+
+  it("falls back to `which` when keyCode is 0", () => {
+    expect(normalizeKey({ key: "Unidentified", keyCode: 0, which: 40 })).toBe(
+      "ArrowDown"
+    );
+    expect(normalizeKey({ key: "Unidentified", keyCode: 0, which: 13 })).toBe(
+      "Enter"
+    );
+  });
+
+  it("falls back to `code` when the key name is missing", () => {
+    expect(normalizeKey({ key: "Unidentified", code: "ArrowLeft" })).toBe(
+      "ArrowLeft"
+    );
+    expect(normalizeKey({ key: "Unidentified", code: "NumpadEnter" })).toBe(
+      "Enter"
+    );
+    expect(normalizeKey({ key: "Unidentified", code: "MediaPlayPause" })).toBe(
+      "MediaPlayPause"
+    );
+  });
+
+  it("ignores an unknown `code`", () => {
+    expect(normalizeKey({ key: "Unidentified", code: "KeyF" })).toBe("");
   });
 });

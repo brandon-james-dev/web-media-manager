@@ -55,7 +55,7 @@ export function TvSection({
         </h2>
       </div>
       <div
-        className="grid gap-4 overflow-hidden"
+        className="grid gap-4"
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {shown}
@@ -66,7 +66,7 @@ export function TvSection({
             style={{ gridColumn: `span ${tileSpan}` }}
             className={cn(
               "flex cursor-default items-center justify-center gap-2 rounded-xl bg-accent/10 text-sm font-semibold outline-none transition-colors",
-              "hover:bg-accent/20 focus-visible:bg-accent/20 focus-visible:ring-2 focus-visible:ring-ring",
+              "hover:bg-accent/20 focus-visible:bg-accent/20",
               // A double-width tile matches the height of the cards beside it
               // instead of stretching to a 2:1 box.
               tileSpan > 1

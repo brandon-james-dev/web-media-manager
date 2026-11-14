@@ -1,5 +1,5 @@
 export { TvCard, type TvCardProps } from "./TvCard";
-export { TvKeyDebug } from "./TvKeyDebug";
+export { TvFullscreenPrompt } from "./TvFullscreenPrompt";
 export { TvMosaicCard, type TvMosaicCardProps } from "./TvMosaicCard";
 export { TvNowPlayingIndicator } from "./TvNowPlayingIndicator";
 export { TvSection, type TvSectionProps } from "./TvSection";

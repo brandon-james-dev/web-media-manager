@@ -23,7 +23,7 @@ import { getSourcesStore } from "@/core/ports";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { Badge } from "@/components/ui/badge";
 import { musicSourceStrategies } from "@/lib/sources";
-import { useIsCompact } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
 import { cn } from "cn"
 import { sourceKindBadge } from "@/lib/sources/source-ui";
 import type { MusicSource } from "@/models";
@@ -44,6 +44,7 @@ const THEME_OPTIONS = [
 export function Settings() {
   //#region State
   const isCompact = useIsCompact();
+  const isTv = useIsTv();
   const { setTheme, theme, accentColor, setAccentColor } = useTheme();
   const { setManagerOpen, setSettingsOpen } = useVisualizer();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
@@ -176,8 +177,13 @@ export function Settings() {
     <div className="h-full overflow-y-auto select-none">
       <div className="max-w-2xl mx-auto p-2 md:p-8 space-y-2 md:space-y-8">
       <div className="flex gap-3 items-center">
-        <Link to="/">
-          <Button variant="outline">
+        {/* The anchor is not a stop: the button inside it is, so the focus ring
+            follows the button's rounded corners instead of the link's square
+            box. On a television the remote's Back key already goes back, so
+            the on-screen arrow is skipped and the first stop is the settings
+            card below. */}
+        <Link to="/" tabIndex={-1}>
+          <Button variant="outline" tabIndex={isTv ? -1 : 0}>
             <ArrowLeft />
           </Button>
         </Link>

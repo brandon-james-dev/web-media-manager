@@ -57,7 +57,7 @@ export function TvPlaylistView({
                 songIds: songs.map((song) => song.id),
               })
             }
-            className="mt-3 inline-flex cursor-default items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mt-3 inline-flex cursor-default items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground outline-none"
           >
             <Play className="size-4 fill-current" />
             Play

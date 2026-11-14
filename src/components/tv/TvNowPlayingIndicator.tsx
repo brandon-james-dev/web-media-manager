@@ -24,7 +24,7 @@ export function TvNowPlayingIndicator() {
       type="button"
       aria-label="Open now playing"
       onClick={() => wmmBus.invoke("wmm.ui.openNowPlaying")}
-      className="flex w-md shrink-0 cursor-default items-center gap-3 rounded-full px-3 py-1 text-left outline-none hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex w-md shrink-0 cursor-default items-center gap-3 rounded-full px-3 py-1 text-left outline-none hover:bg-accent/10"
     >
       <span className="size-8 shrink-0 overflow-hidden rounded-md bg-muted">
         <AlbumArtImage

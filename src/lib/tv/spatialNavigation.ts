@@ -39,6 +39,10 @@ const DIALOG_SELECTOR = "[data-slot='dialog-content'], [role='dialog']";
 
 /** Movement smaller than this is treated as "not in that direction". */
 const MIN_TRAVEL = 4;
+
+/** Candidates whose forward travel is within this many pixels of the nearest
+ *  one count as the same row. */
+const ROW_TOLERANCE = 24;
 /** Sideways drift costs more than forward travel, so the list stays in a row. */
 const DRIFT_WEIGHT = 2.2;
 
@@ -84,22 +88,49 @@ const KEY_CODES: Record<number, string> = {
   10009: "BrowserBack",
 };
 
+/** `KeyboardEvent.code` values a remote may report instead of `key`. */
+const KNOWN_CODES = new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  "Enter",
+  "NumpadEnter",
+  "Escape",
+  "Backspace",
+  "BrowserBack",
+  "MediaPlayPause",
+  "MediaRewind",
+  "MediaFastForward",
+]);
+
 /**
  * Normalise a key event to the name the switch handles.
  *
  * Older television browsers report the D-pad with pre-standard key names, and
  * some report `key: "Unidentified"` with only a legacy `keyCode`; both are
- * folded into one vocabulary here.
+ * folded into one vocabulary here. Silk on Fire TV is inconsistent about which
+ * field it fills: some builds leave `keyCode` at 0 and put the code in `which`,
+ * others only set `code`. All four are consulted so one switch handles every
+ * remote.
  */
 export function normalizeKey(event: {
   key?: string;
+  code?: string;
   keyCode?: number;
+  which?: number;
 }): string {
   const key = event.key;
   if (key && key !== "Unidentified") {
     return LEGACY_KEY_NAMES[key] ?? key;
   }
-  return KEY_CODES[event.keyCode ?? 0] ?? "";
+
+  const code = event.code;
+  if (code && KNOWN_CODES.has(code)) {
+    return code === "NumpadEnter" ? "Enter" : code;
+  }
+
+  return KEY_CODES[event.keyCode || event.which || 0] ?? "";
 }
 
 function keyName(event: KeyboardEvent): string {
@@ -149,7 +180,11 @@ function activeScope(): ParentNode {
 function focusables(): HTMLElement[] {
   return Array.from(
     activeScope().querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-  ).filter(isVisible);
+  )
+    .filter(isVisible)
+    // An element removed from the tab order is not a stop for the remote
+    // either: a link wrapping a button would otherwise be visited twice.
+    .filter((element) => element.tabIndex >= 0);
 }
 
 function center(rect: Rect): { x: number; y: number } {
@@ -172,7 +207,14 @@ export function pickNearest<T>(
   direction: Direction
 ): T | null {
   const origin = center(from);
-  let best: { item: T; score: number } | null = null;
+  const vertical = direction === "up" || direction === "down";
+  let bestOverlap: { item: T; score: number } | null = null;
+  let bestAny: { item: T; score: number } | null = null;
+  // Vertically the next row wins outright, whatever its horizontal offset:
+  // from a header icon the row directly below is the next thing on screen,
+  // even when a control further down happens to sit closer horizontally.
+  let nearestRow: Array<{ item: T; drift: number }> = [];
+  let nearestRowTravel = Number.POSITIVE_INFINITY;
 
   for (const { item, rect } of candidates) {
     const point = center(rect);
@@ -192,6 +234,15 @@ export function pickNearest<T>(
       continue;
     }
 
+    if (vertical) {
+      if (forward < nearestRowTravel - ROW_TOLERANCE) {
+        nearestRowTravel = forward;
+        nearestRow = [{ item, drift: dx }];
+      } else if (forward <= nearestRowTravel + ROW_TOLERANCE) {
+        nearestRow.push({ item, drift: dx });
+      }
+    }
+
     const drift = direction === "left" || direction === "right" ? dy : dx;
     const overlaps =
       direction === "left" || direction === "right"
@@ -205,20 +256,49 @@ export function pickNearest<T>(
     const crossSpan =
       direction === "left" || direction === "right"
         ? Math.max(from.bottom - from.top, rect.bottom - rect.top)
-        : Math.max(from.right - from.left, rect.right - rect.left);
-    if (!overlaps && Math.abs(drift) > crossSpan * CROSS_AXIS_TOLERANCE) {
-      continue;
-    }
+        : Math.max(from.right - from.left, rect.right - from.left);
+    const withinTolerance =
+      overlaps || Math.abs(drift) <= crossSpan * CROSS_AXIS_TOLERANCE;
 
+    // Overlapping means the same band of the layout, so a sideways offset
+    // inside that band must not count against the candidate: a wide card
+    // whose centre sits far from a narrow control is still the right target,
+    // and without this a distant but aligned button wins instead.
     const score =
-      forward + Math.abs(drift) * DRIFT_WEIGHT - (overlaps ? forward * 0.25 : 0);
+      forward +
+      (overlaps ? 0 : Math.abs(drift) * DRIFT_WEIGHT) -
+      (overlaps ? forward * 0.25 : 0);
 
-    if (!best || score < best.score) {
-      best = { item, score };
+    if (withinTolerance && (!bestOverlap || score < bestOverlap.score)) {
+      bestOverlap = { item, score };
+    }
+    if (!bestAny || score < bestAny.score) {
+      bestAny = { item, score };
     }
   }
 
-  return best?.item ?? null;
+  if (vertical && nearestRow.length > 0) {
+    // Same row: the closest horizontally wins, so a grid column is kept.
+    let best = nearestRow[0];
+    for (const candidate of nearestRow) {
+      if (Math.abs(candidate.drift) < Math.abs(best.drift)) {
+        best = candidate;
+      }
+    }
+    return best.item;
+  }
+
+  if (bestOverlap) {
+    return bestOverlap.item;
+  }
+
+  // Vertically, a band with nothing aligned above or below it would otherwise
+  // be a dead end: the header icons sit far to the right of the centred page
+  // content, so no candidate overlaps them and the arrow key did nothing.
+  // Falling back to the nearest candidate by travel and drift keeps the page
+  // reachable. Horizontal travel keeps the strict rule, which is what stops a
+  // row from jumping into the player bar.
+  return vertical ? (bestAny?.item ?? null) : null;
 }
 
 function findNext(
@@ -284,6 +364,62 @@ function moveFocusFrom(from: Rect, direction: Direction): boolean {
   return true;
 }
 
+/** Scroll an element, falling back to assigning the offset when the
+ *  options form of `scrollBy` is unavailable (older Silk builds). */
+function scrollElement(
+  node: HTMLElement,
+  top: number,
+  left: number
+): void {
+  if (typeof node.scrollBy === "function") {
+    node.scrollBy({ top, left, behavior: "smooth" });
+    return;
+  }
+  node.scrollTop += top;
+  node.scrollLeft += left;
+}
+
+/** Whether an element can still move in `direction`. */
+function canScrollToward(node: HTMLElement, direction: Direction): boolean {
+  const vertical = direction === "up" || direction === "down";
+  if (vertical) {
+    const max = node.scrollHeight - node.clientHeight;
+    if (max <= 1) return false;
+    return direction === "down"
+      ? node.scrollTop < max - 1
+      : node.scrollTop > 1;
+  }
+  const max = node.scrollWidth - node.clientWidth;
+  if (max <= 1) return false;
+  return direction === "right" ? node.scrollLeft < max - 1 : node.scrollLeft > 1;
+}
+
+/**
+ * The app's main scroll container, found without walking up from the focused
+ * element.
+ *
+ * Focus can sit in the header, which is a sibling of the content area rather
+ * than an ancestor, so the ancestor walk finds nothing to scroll. The content
+ * area is still the thing the user means, so it is located directly.
+ */
+function fallbackScroller(): HTMLElement | null {
+  const nodes = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      'main, main [class*="overflow-y-auto"], main [class*="overflow-auto"], [data-scroll-container]'
+    )
+  ).filter((node) => {
+    const style = window.getComputedStyle(node);
+    return (
+      /(auto|scroll)/.test(style.overflowY) &&
+      node.scrollHeight > node.clientHeight + 1
+    );
+  });
+
+  const area = (node: HTMLElement) => node.clientWidth * node.clientHeight;
+  nodes.sort((a, b) => area(b) - area(a));
+  return nodes[0] ?? null;
+}
+
 /** Scroll the nearest scrollable ancestor when there is nothing to focus in
  *  that direction, so a long page still reaches its lower rows. */
 function scrollByDirection(direction: Direction): void {
@@ -298,20 +434,35 @@ function scrollByDirection(direction: Direction): void {
     const scrollable =
       /(auto|scroll)/.test(style.overflowY) ||
       /(auto|scroll)/.test(style.overflowX);
-    if (scrollable) {
+    if (scrollable && canScrollToward(node, direction)) {
       const vertical = direction === "up" || direction === "down";
       const amount = vertical
         ? node.clientHeight * step
         : node.clientWidth * step;
       const sign = direction === "up" || direction === "left" ? -1 : 1;
-      node.scrollBy({
-        top: vertical ? amount * sign : 0,
-        left: vertical ? 0 : amount * sign,
-        behavior: "smooth",
-      });
+      scrollElement(
+        node,
+        vertical ? amount * sign : 0,
+        vertical ? 0 : amount * sign
+      );
       return;
     }
     node = node.parentElement;
+  }
+
+  const fallback = fallbackScroller();
+  if (fallback) {
+    const vertical = direction === "up" || direction === "down";
+    const amount = vertical
+      ? fallback.clientHeight * step
+      : fallback.clientWidth * step;
+    const sign = direction === "up" || direction === "left" ? -1 : 1;
+    scrollElement(
+      fallback,
+      vertical ? amount * sign : 0,
+      vertical ? 0 : amount * sign
+    );
+    return;
   }
 
   const root = document.scrollingElement;
@@ -330,6 +481,15 @@ function scrollByDirection(direction: Direction): void {
  *  screen. */
 function goBack(): void {
   if (activeScope() !== document.body) {
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+    );
+    return;
+  }
+
+  // An open popover (notifications) is a layer of its own: Back dismisses it
+  // before it closes the now-playing view or leaves the page.
+  if (document.querySelector("[data-slot='popover-content']")) {
     document.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
     );
