@@ -76,9 +76,12 @@
   },
   "allowScripts": {
     "fsevents@2.3.3": true,
-    "@parcel/watcher@2.5.1": true
+    "@parcel/watcher@2.6.0": true
   },
   "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
+    "glob": "^14.0.6",
+    "minimatch": "^11.0.8",
+    "deepmerge": "file:./vendor/deepmerge"
   }
 }
