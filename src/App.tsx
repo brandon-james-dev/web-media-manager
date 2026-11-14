@@ -8,7 +8,7 @@ import {
   Settings,
   Sync,
 } from "./pages";
-import { TvDetail, TvHome } from "./pages/Tv";
+import { TvBrowse, TvDetail, TvHome } from "./pages/Tv";
 import { useIsTv } from "./lib/hooks/useIsMobile";
 import { NavBar } from "./layout";
 import { SongProvider, SyncProvider, VisualizerProvider } from "./providers";
@@ -99,8 +99,14 @@ function App() {
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  // Remote-control navigation, installed only on a television browser.
-  useEffect(() => installTvNavigation(), []);
+  // Remote-control navigation. Installed whenever the television layout is in
+  // use, so a TV browser that reports a desktop user agent and a fine pointer
+  // still gets arrow-key navigation.
+  const isTv = useIsTv();
+  useEffect(
+    () => installTvNavigation({ force: isTv }),
+    [isTv]
+  );
 
   useEffect(() => {
     const sub = keyShortcut$.subscribe((shortcut) => {
@@ -146,6 +152,7 @@ function App() {
                       <Route path="playlists" element={<Playlists />} />
                       <Route path="playlists/:mode" element={<Playlists />} />
                       <Route path="tv/songs" element={<TvDetail />} />
+                      <Route path="tv/browse/:kind" element={<TvBrowse />} />
                       <Route path="tv/album/:albumId" element={<TvDetail />} />
                       <Route
                         path="tv/artist/:artistId"

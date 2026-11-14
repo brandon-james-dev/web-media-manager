@@ -351,14 +351,15 @@ function MainLayout() {
         />
       </div>
 
-      <div
-        ref={chromeRef}
-        className={cn(
-          "relative w-full shrink-0 px-2 pb-2",
-          isCompact && "mx-auto max-w-3xl",
-          isTablet && showBottomNav && "flex items-stretch gap-2"
-        )}
-      >
+      {!isTv && (
+        <div
+          ref={chromeRef}
+          className={cn(
+            "relative w-full shrink-0 px-2 pb-2",
+            isCompact && "mx-auto max-w-3xl",
+            isTablet && showBottomNav && "flex items-stretch gap-2"
+          )}
+        >
         {isMobileSearchOpen && (
           <div className="absolute bottom-full left-0 right-0 z-70 mb-2 overflow-hidden rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg">
             <InputGroup className="h-14 border-0">
@@ -473,7 +474,9 @@ function MainLayout() {
             </div>
           </nav>
         )}
-      </div>
+        </div>
+      )}
+      {isTv && <PlayerControls hideBar />}
     </div>
   );
 }

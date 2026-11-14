@@ -41,7 +41,7 @@ export function TvTrackList({
           isPlaying={nowPlayingSongId === song.id}
           onClick={onPlay}
           onPlay={onPlay}
-          className="py-1.5 [&_[data-slot=item-media]]:size-12 [&_[data-slot=item-title]]:text-base"
+          className="py-1.5 **:data-[slot=item-media]:size-12 **:data-[slot=item-title]:text-base"
         />
       ))}
     </ItemGroup>

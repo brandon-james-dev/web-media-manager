@@ -784,6 +784,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
         setNowPlaying(songs[actualIndex]);
         currentTimeRef.current = 0;
+        // Starting a collection is an explicit play request: load() autoplays
+        // once the buffer is ready (isPlayingRef is still false here).
+        pendingPlayIntentRef.current = true;
 
         wmmBus.publish("wmm.playback.queueChanged", {
           songIds: songs.map((s) => s.id),

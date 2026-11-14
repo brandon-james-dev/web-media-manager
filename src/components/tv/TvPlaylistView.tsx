@@ -31,7 +31,7 @@ export function TvPlaylistView({
   const total = songs.reduce((sum, song) => sum + (song.duration ?? 0), 0);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col">
       <header className="flex shrink-0 items-end gap-6 px-6 pt-6 pb-4">
         <div className="size-40 shrink-0 overflow-hidden rounded-xl bg-muted shadow-xl">
           <AlbumArtImage

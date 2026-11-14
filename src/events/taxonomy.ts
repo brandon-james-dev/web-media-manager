@@ -102,6 +102,7 @@ export const WMM_COMMANDS = {
   "wmm.ui.openShortcuts": undefined,
   "wmm.ui.close": undefined,
   "wmm.ui.closeNowPlaying": undefined,
+  "wmm.ui.openNowPlaying": undefined,
   // visualizer
   "wmm.visualizer.select": {} as { pluginId: string },
   "wmm.visualizer.openManager": undefined,

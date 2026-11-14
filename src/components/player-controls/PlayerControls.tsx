@@ -42,7 +42,7 @@ import { AlbumArtImage } from "@/components/album-art-image";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import { wmmBus } from "@/events";
 import { FavoriteButton } from "@/components/favorite-button";
-import { useIsCompact } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
 import { formatLength } from "@/lib/formatLength";
 import { cn } from "cn";
 import { NowPlayingView } from "./NowPlayingView";
@@ -71,12 +71,14 @@ function PlayPauseCutout({ isPlaying }: { isPlaying: boolean }) {
   );
 }
 
-export function PlayerControls() {
+export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   //#region State
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState<boolean>(false);
-  const [isIdle, setIsIdle] = useState<boolean>(false);
-  const [controlsHidden, setControlsHidden] = useState<boolean>(false);
+  // Idle and hidden are flags; the values the UI reads are derived from them
+  // plus the overlay state, so nothing has to be reset from an effect.
+  const [idleFlag, setIdleFlag] = useState<boolean>(false);
+  const [controlsHiddenFlag, setControlsHiddenFlag] = useState<boolean>(false);
   const compactBarRef = useRef<HTMLDivElement | null>(null);
   const [compactBarHeight, setCompactBarHeight] = useState<number>(0);
   const [trackPosition, setTrackPosition] = useState<number>(0);
@@ -317,44 +319,74 @@ export function PlayerControls() {
     </PopoverContent>
   );
 
+  // Controls only fade out while the overlay is open, a song plays, and the
+  // layout is not compact; when paused they stay up.
+  const idleEligible = isNowPlayingOpen && !isCompact && isPlaying;
+  const isIdle = idleFlag && idleEligible;
+  const controlsHidden = controlsHiddenFlag && isNowPlayingOpen;
+
+  // Clear the flags when eligibility changes. Adjusted during render rather
+  // than in an effect, so a resumed track starts with its controls visible.
+  const [wasIdleEligible, setWasIdleEligible] = useState(idleEligible);
+  if (wasIdleEligible !== idleEligible) {
+    setWasIdleEligible(idleEligible);
+    setIdleFlag(false);
+    setControlsHiddenFlag(false);
+  }
+
   useEffect(() => {
-    if (!isNowPlayingOpen) {
-      setIsIdle(false);
-      setControlsHidden(false);
-      return;
-    }
-    // Controls only fade out while a song plays; when paused they stay up.
-    if (isCompact || !isPlaying) {
-      setIsIdle(false);
-      return;
-    }
+    if (!idleEligible) return;
     let timer: ReturnType<typeof setTimeout>;
     const wake = () => {
-      setIsIdle(false);
+      setIdleFlag(false);
       clearTimeout(timer);
-      timer = setTimeout(() => setIsIdle(true), 3000);
+      timer = setTimeout(() => setIdleFlag(true), 3000);
     };
-    wake();
+    timer = setTimeout(() => setIdleFlag(true), 3000);
     const events = ["mousemove", "pointerdown", "keydown", "touchstart"];
     events.forEach((e) => window.addEventListener(e, wake));
     return () => {
       clearTimeout(timer);
       events.forEach((e) => window.removeEventListener(e, wake));
     };
-  }, [isNowPlayingOpen, isCompact, isPlaying]);
+  }, [idleEligible]);
 
+  // The compact bar's height is published as a spacer while the overlay is
+  // open. ResizeObserver reports the current size on observe and on every
+  // change, so no synchronous measure is needed.
   useEffect(() => {
-    if (!isNowPlayingOpen && compactBarRef.current) {
-      setCompactBarHeight(compactBarRef.current.offsetHeight);
-    }
-  });
+    const el = compactBarRef.current;
+    if (!el || isNowPlayingOpen) return;
+    const observer = new ResizeObserver(() => {
+      setCompactBarHeight(el.offsetHeight);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isNowPlayingOpen]);
 
-  // A TV remote's Back button closes the overlay instead of leaving the page.
+  // On a television the now-playing view is the only place the full controls
+  // live, so starting a track opens it.
+  const isTv = useIsTv();
   useEffect(() => {
-    const off = wmmBus.onCommand("wmm.ui.closeNowPlaying", () => {
+    if (!isTv) return;
+    return wmmBus.on("wmm.playback.started", () => {
+      setIsNowPlayingOpen(true);
+    });
+  }, [isTv]);
+
+  // A TV remote's Back button closes the overlay instead of leaving the page,
+  // and the now-playing rectangle on the TV pages opens it.
+  useEffect(() => {
+    const offClose = wmmBus.onCommand("wmm.ui.closeNowPlaying", () => {
       setIsNowPlayingOpen(false);
     });
-    return off;
+    const offOpen = wmmBus.onCommand("wmm.ui.openNowPlaying", () => {
+      setIsNowPlayingOpen(true);
+    });
+    return () => {
+      offClose();
+      offOpen();
+    };
   }, []);
 
   const overlayClass = isNowPlayingOpen
@@ -678,7 +710,9 @@ export function PlayerControls() {
         <NowPlayingView
           open={isNowPlayingOpen}
           onClose={() => setIsNowPlayingOpen(false)}
-          onBackgroundClick={() => setControlsHidden((hidden) => !hidden)}
+          onBackgroundClick={() =>
+            setControlsHiddenFlag((hidden) => !hidden)
+          }
           controlsHidden={controlsHidden}
         />
       </>
@@ -687,6 +721,7 @@ export function PlayerControls() {
 
   return (
     <>
+      {!hideBar && (
       <div
         className={cn(
           "flex shrink-0 border-t p-4 select-none",
@@ -891,6 +926,7 @@ export function PlayerControls() {
           </div>
         </div>
       </div>
+      )}
 
       <NowPlayingView
         open={isNowPlayingOpen}

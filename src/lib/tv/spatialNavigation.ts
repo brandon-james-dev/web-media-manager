@@ -258,6 +258,48 @@ function moveFocusFrom(from: Rect, direction: Direction): boolean {
   return true;
 }
 
+/** Scroll the nearest scrollable ancestor when there is nothing to focus in
+ *  that direction, so a long page still reaches its lower rows. */
+function scrollByDirection(direction: Direction): void {
+  const step = 0.6;
+  let node: HTMLElement | null =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+  while (node && node !== document.body) {
+    const style = window.getComputedStyle(node);
+    const scrollable =
+      /(auto|scroll)/.test(style.overflowY) ||
+      /(auto|scroll)/.test(style.overflowX);
+    if (scrollable) {
+      const vertical = direction === "up" || direction === "down";
+      const amount = vertical
+        ? node.clientHeight * step
+        : node.clientWidth * step;
+      const sign = direction === "up" || direction === "left" ? -1 : 1;
+      node.scrollBy({
+        top: vertical ? amount * sign : 0,
+        left: vertical ? 0 : amount * sign,
+        behavior: "smooth",
+      });
+      return;
+    }
+    node = node.parentElement;
+  }
+
+  const root = document.scrollingElement;
+  if (!root) return;
+  const vertical = direction === "up" || direction === "down";
+  const amount = (vertical ? root.clientHeight : root.clientWidth) * step;
+  const sign = direction === "up" || direction === "left" ? -1 : 1;
+  root.scrollBy({
+    top: vertical ? amount * sign : 0,
+    left: vertical ? 0 : amount * sign,
+    behavior: "smooth",
+  });
+}
+
 /** Back: close the open dialog, then the now-playing overlay, then leave the
  *  screen. */
 function goBack(): void {
@@ -327,7 +369,13 @@ function handleKey(key: string, target: Element | null): boolean {
       }
 
       const direction = key.slice(5).toLowerCase() as Direction;
-      return moveFocus(direction);
+      // Consume the press either way: a TV browser's default is to move the
+      // on-screen cursor or scroll, which fights focus movement. With nowhere
+      // to focus, scroll the page instead.
+      if (!moveFocus(direction)) {
+        scrollByDirection(direction);
+      }
+      return true;
     }
 
     case "Enter": {
@@ -390,8 +438,8 @@ function focusInitial(): void {
   }
 }
 
-export function installTvNavigation(): () => void {
-  if (!detectTv()) {
+export function installTvNavigation(options?: { force?: boolean }): () => void {
+  if (!options?.force && !detectTv()) {
     return () => {};
   }
 

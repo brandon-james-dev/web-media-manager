@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { TV_QUERY, isTvUserAgent } from "@/lib/tv/detectTv";
+import { TV_QUERY, isTvOverride, isTvUserAgent } from "@/lib/tv/detectTv";
 
 /** Tailwind's `sm` breakpoint (640 px) — the point where the compact
  *  mobile layouts switch to the tablet/desktop ones. */
@@ -57,11 +57,12 @@ export function useIsMobile(): boolean {
   return useMobileQuery();
 }
 
-/** Reactive "is a television browser" — a TV platform user agent, or a wide
- *  viewport with no pointer at all (a remote-only device). */
+/** Reactive "is a television browser" — a TV platform user agent, a wide
+ *  viewport with no pointer at all (a remote-only device), or the `?tv=1`
+ *  override for a TV browser that reports neither. */
 export function useIsTv(): boolean {
   const noPointer = useTvQuery();
-  return noPointer || isTvUserAgent();
+  return noPointer || isTvUserAgent() || isTvOverride();
 }
 
 /** Reactive "is a tablet-width viewport" — the `sm`..`lg` band. A TV reports

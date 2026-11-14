@@ -34,8 +34,20 @@ export function isTvViewport(): boolean {
   );
 }
 
+/**
+ * Manual override: `?tv=1` forces the television layout and remote
+ * navigation. Some TV browsers report a fine pointer and a desktop user
+ * agent, which leaves no automatic signal to detect.
+ */
+export function isTvOverride(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return new URLSearchParams(window.location.search).get("tv") === "1";
+}
+
 export function detectTv(): boolean {
-  return isTvUserAgent() || isTvViewport();
+  return isTvOverride() || isTvUserAgent() || isTvViewport();
 }
 
 export { TV_QUERY };
