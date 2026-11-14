@@ -38,12 +38,43 @@ export function isTvViewport(): boolean {
  * Manual override: `?tv=1` forces the television layout and remote
  * navigation. Some TV browsers report a fine pointer and a desktop user
  * agent, which leaves no automatic signal to detect.
+ *
+ * The flag is remembered, because a television has no address bar: the user
+ * cannot re-add `?tv=1` after the first navigation, and a reload would
+ * otherwise drop back to the desktop layout.
  */
+const TV_OVERRIDE_KEY = "wmm.tv-override";
+
+/** Read `?tv=` once at startup and persist it. Call before rendering. */
+export function syncTvOverrideFromUrl(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const value = new URLSearchParams(window.location.search).get("tv");
+  try {
+    if (value === "1") {
+      window.localStorage.setItem(TV_OVERRIDE_KEY, "1");
+    } else if (value === "0") {
+      window.localStorage.removeItem(TV_OVERRIDE_KEY);
+    }
+  } catch {
+    // Storage can be unavailable (private mode, blocked cookies); the query
+    // parameter still applies for this load.
+  }
+}
+
 export function isTvOverride(): boolean {
   if (typeof window === "undefined") {
     return false;
   }
-  return new URLSearchParams(window.location.search).get("tv") === "1";
+  if (new URLSearchParams(window.location.search).get("tv") === "1") {
+    return true;
+  }
+  try {
+    return window.localStorage.getItem(TV_OVERRIDE_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export function detectTv(): boolean {

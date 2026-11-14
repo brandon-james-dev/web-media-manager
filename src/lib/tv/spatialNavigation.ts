@@ -59,25 +59,51 @@ const LEGACY_KEY_NAMES: Record<string, string> = {
   Left: "ArrowLeft",
   Right: "ArrowRight",
   Select: "Enter",
+  GoBack: "BrowserBack",
+  XF86Back: "BrowserBack",
 };
 
+/**
+ * Fire TV key codes, from Amazon's "Supporting Controllers in Web Apps":
+ * Select 13, D-pad 37-40, Back 4, Play/Pause 179, Rewind 227, Fast Forward
+ * 228. The media keys are optional on some remotes, which is why the D-pad is
+ * the only input that can be relied on.
+ */
 const KEY_CODES: Record<number, string> = {
+  4: "BrowserBack",
   8: "Backspace",
   13: "Enter",
   37: "ArrowLeft",
   38: "ArrowUp",
   39: "ArrowRight",
   40: "ArrowDown",
+  179: "MediaPlayPause",
+  227: "MediaRewind",
+  228: "MediaFastForward",
   461: "BrowserBack",
   10009: "BrowserBack",
 };
 
-function keyName(event: KeyboardEvent): string {
+/**
+ * Normalise a key event to the name the switch handles.
+ *
+ * Older television browsers report the D-pad with pre-standard key names, and
+ * some report `key: "Unidentified"` with only a legacy `keyCode`; both are
+ * folded into one vocabulary here.
+ */
+export function normalizeKey(event: {
+  key?: string;
+  keyCode?: number;
+}): string {
   const key = event.key;
   if (key && key !== "Unidentified") {
     return LEGACY_KEY_NAMES[key] ?? key;
   }
-  return KEY_CODES[event.keyCode] ?? key;
+  return KEY_CODES[event.keyCode ?? 0] ?? "";
+}
+
+function keyName(event: KeyboardEvent): string {
+  return normalizeKey(event);
 }
 
 function isEditable(element: Element | null): boolean {

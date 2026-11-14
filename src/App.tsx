@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { keyShortcut$ } from "@/events";
 import { registerDefaultShortcuts } from "./lib/keyboard-shortcuts/registerDefaultShortcuts";
 import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
+import { TvKeyDebug } from "./components/tv";
 import { handleKey } from "./lib";
 import { registerBrowserStoreProvider } from "./lib/persistence/browser/storeProvider";
 import { registerBrowserMetadataReader } from "./lib/metadata/reader/browserMetadataReader";
@@ -176,6 +177,7 @@ function App() {
             open={isShortcutsOpen}
             onOpenChange={setIsShortcutsOpen}
           />
+          <TvKeyDebug />
         </main>
       </div>
       <Toaster />
