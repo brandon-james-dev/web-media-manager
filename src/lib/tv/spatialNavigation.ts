@@ -453,14 +453,20 @@ function handleKey(key: string, target: Element | null): boolean {
   }
 }
 
-/** Focus the first control so the first arrow press has somewhere to start. */
-function focusInitial(): void {
+/** Focus the first control so the first arrow press has somewhere to start.
+ *  Views that render their content late (a list that loads, a route that
+ *  mounts after the first paint) get a few retries before giving up. */
+function focusInitial(attempt = 0): void {
   if (document.activeElement && document.activeElement !== document.body) {
     return;
   }
   const [first] = focusables();
   if (first) {
     focusElement(first);
+    return;
+  }
+  if (attempt < 6) {
+    window.setTimeout(() => focusInitial(attempt + 1), 250);
   }
 }
 

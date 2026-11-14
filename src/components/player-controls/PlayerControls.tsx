@@ -72,12 +72,19 @@ function PlayPauseCutout({ isPlaying }: { isPlaying: boolean }) {
 }
 
 export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
+  // Layout flags come first: the idle flag's initial value depends on whether
+  // this is a television.
+  const isCompact = useIsCompact();
+  const isTv = useIsTv();
+
   //#region State
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState<boolean>(false);
   // Idle and hidden are flags; the values the UI reads are derived from them
-  // plus the overlay state, so nothing has to be reset from an effect.
-  const [idleFlag, setIdleFlag] = useState<boolean>(false);
+  // plus the overlay state, so nothing has to be reset from an effect. A
+  // television starts idle: its controls stay hidden until the remote wakes
+  // them.
+  const [idleFlag, setIdleFlag] = useState<boolean>(isTv);
   const [controlsHiddenFlag, setControlsHiddenFlag] = useState<boolean>(false);
   const compactBarRef = useRef<HTMLDivElement | null>(null);
   const [compactBarHeight, setCompactBarHeight] = useState<number>(0);
@@ -92,7 +99,6 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   // Mobile renders a compact mini-player (now-playing info + one large play
   // button) instead of the wide three-column bar, whose controls are too
   // small to reach with a thumb.
-  const isCompact = useIsCompact();
   const [scrubPct, setScrubPct] = useState<number | null>(null);
   const {
     playlist,
@@ -319,9 +325,12 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
     </PopoverContent>
   );
 
-  // Controls only fade out while the overlay is open, a song plays, and the
-  // layout is not compact; when paused they stay up.
-  const idleEligible = isNowPlayingOpen && !isCompact && isPlaying;
+  // Controls only fade out while the overlay is open. On a television they
+  // hide whether or not a track is playing, because the remote is the only
+  // input and an idle screen should stay clean; elsewhere they stay up while
+  // paused.
+  const idleEligible =
+    isNowPlayingOpen && (isTv || (!isCompact && isPlaying));
   const isIdle = idleFlag && idleEligible;
   const controlsHidden = controlsHiddenFlag && isNowPlayingOpen;
 
@@ -344,10 +353,12 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
     };
     timer = setTimeout(() => setIdleFlag(true), 3000);
     const events = ["mousemove", "pointerdown", "keydown", "touchstart"];
-    events.forEach((e) => window.addEventListener(e, wake));
+    // Capture phase: the remote handler stops propagation on the keys it
+    // consumes, so a bubble-phase listener would never see them.
+    events.forEach((e) => window.addEventListener(e, wake, true));
     return () => {
       clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, wake));
+      events.forEach((e) => window.removeEventListener(e, wake, true));
     };
   }, [idleEligible]);
 
@@ -366,7 +377,6 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
 
   // On a television the now-playing view is the only place the full controls
   // live, so starting a track opens it.
-  const isTv = useIsTv();
   useEffect(() => {
     if (!isTv) return;
     return wmmBus.on("wmm.playback.started", () => {

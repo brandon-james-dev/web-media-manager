@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { TvPlaylistView } from "@/components/tv/TvPlaylistView";
-import { TvNowPlaying } from "@/components/tv/TvNowPlaying";
 import { getPlaylistStore } from "@/core/ports";
 import { getStore } from "@/core/system";
 import { wmmBus } from "@/events";
@@ -99,9 +98,6 @@ export function TvDetail() {
           songs={view.songs}
           nowPlayingSongId={nowPlayingSongId}
         />
-      </div>
-      <div className="shrink-0 px-6 pb-4 empty:hidden">
-        <TvNowPlaying />
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router";
 import { TvCard } from "@/components/tv/TvCard";
 import { TvMosaicCard } from "@/components/tv/TvMosaicCard";
-import { TvNowPlaying } from "@/components/tv/TvNowPlaying";
 import { TvSection } from "@/components/tv/TvSection";
 import { useTvCollections } from "./useTvCollections";
 import { FAVORITES_PLAYLIST_ID } from "@/models";
@@ -104,9 +103,6 @@ export function TvHome() {
             ))}
           />
         )}
-      </div>
-      <div className="shrink-0 px-6 pb-4 empty:hidden">
-        <TvNowPlaying />
       </div>
     </div>
   );

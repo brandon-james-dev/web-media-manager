@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useLayoutEffect, useEffect, useRef, useState } from "react";
 import { cn } from "cn";
-import { useIsCompact } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { ThumbnailSize } from "@/lib";
 import { useArtwork } from "@/hooks/useArtwork";
@@ -35,6 +35,7 @@ import {
 import { useVisualizer } from "@/hooks";
 import { setVisualizerPalette } from "@/lib/visualizers";
 import { NowPlayingBackdrop } from "./NowPlayingBackdrop";
+import { TvPlaybackControls } from "./TvPlaybackControls";
 import { useArtworkPalette } from "./useArtworkPalette";
 import { wmmBus } from "@/events";
 import { keyShortcut$ } from "@/events/keyboard-events";
@@ -207,6 +208,7 @@ export function NowPlayingView({
           (playlist[0].albumArtist ?? playlist[0].artist)
     );
   const isCompact = useIsCompact();
+  const isTv = useIsTv();
   const canFullscreen =
     !isCompact && typeof document !== "undefined" && document.fullscreenEnabled;
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -277,7 +279,12 @@ export function NowPlayingView({
           key="now-playing"
           data-now-playing="true"
           className={cn(
-            "fixed inset-0 z-100 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[calc(env(safe-area-inset-bottom)+9rem)] md:pb-28 pl-[env(safe-area-inset-left)] transition-colors duration-300",
+            "fixed inset-0 z-100 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] transition-colors duration-300",
+            // The player bar is not rendered on a television, so the space it
+            // would occupy is not reserved there.
+            isTv
+              ? "pb-0"
+              : "pb-[calc(env(safe-area-inset-bottom)+9rem)] md:pb-28",
             darkRoom ? "bg-black" : "bg-background",
             controlsHidden && "cursor-none"
           )}
@@ -624,6 +631,8 @@ export function NowPlayingView({
               </div>
             </div>
           )}
+
+          {isTv && <TvPlaybackControls hidden={controlsHidden} />}
         </motion.div>
       )}
     </AnimatePresence>,

@@ -63,18 +63,33 @@ export function syncTvOverrideFromUrl(): void {
   }
 }
 
+/** A device that reports a precise pointer is a computer, not a television. */
+function hasFinePointer(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: fine)").matches
+  );
+}
+
 export function isTvOverride(): boolean {
   if (typeof window === "undefined") {
     return false;
   }
+  // An explicit `?tv=1` always applies to this load.
   if (new URLSearchParams(window.location.search).get("tv") === "1") {
     return true;
   }
+  let stored = false;
   try {
-    return window.localStorage.getItem(TV_OVERRIDE_KEY) === "1";
+    stored = window.localStorage.getItem(TV_OVERRIDE_KEY) === "1";
   } catch {
     return false;
   }
+  // The remembered flag must not follow the user to a computer: a laptop with
+  // a mouse and a TV user agent absent is never a television, whatever was
+  // stored earlier.
+  return stored && (!hasFinePointer() || isTvUserAgent());
 }
 
 export function detectTv(): boolean {

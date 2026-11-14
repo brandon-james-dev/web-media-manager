@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { isTvUserAgent } from "./detectTv";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { isTvOverride, isTvUserAgent } from "./detectTv";
 
 const FIRE_TV =
   "Mozilla/5.0 (Linux; Android 9; AFTMM Build/PS7326.3160N; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.0.0 Mobile Safari/537.36 Silk/120.0.0.0 like Chrome/120.0.0.0";
@@ -39,5 +39,52 @@ describe("isTvUserAgent", () => {
     ["empty", ""],
   ])("leaves %s alone", (_label, ua) => {
     expect(isTvUserAgent(ua)).toBe(false);
+  });
+});
+
+function stubWindow(options: {
+  search?: string;
+  stored?: string | null;
+  finePointer?: boolean;
+}): void {
+  vi.stubGlobal("window", {
+    location: { search: options.search ?? "" },
+    localStorage: { getItem: () => options.stored ?? null },
+    matchMedia: (query: string) => ({
+      matches: query === "(pointer: fine)" ? !!options.finePointer : false,
+    }),
+  });
+  vi.stubGlobal("navigator", { userAgent: DESKTOP });
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("isTvOverride", () => {
+  it("honours ?tv=1 for the current load", () => {
+    stubWindow({ search: "?tv=1" });
+    expect(isTvOverride()).toBe(true);
+  });
+
+  it("honours a stored flag on a device without a fine pointer", () => {
+    stubWindow({ stored: "1", finePointer: false });
+    expect(isTvOverride()).toBe(true);
+  });
+
+  it("ignores a stored flag on a computer with a mouse", () => {
+    stubWindow({ stored: "1", finePointer: true });
+    expect(isTvOverride()).toBe(false);
+  });
+
+  it("honours a stored flag on a TV user agent even with a fine pointer", () => {
+    stubWindow({ stored: "1", finePointer: true });
+    vi.stubGlobal("navigator", { userAgent: FIRE_TV_SILK });
+    expect(isTvOverride()).toBe(true);
+  });
+
+  it("is false with nothing stored", () => {
+    stubWindow({ stored: null, finePointer: false });
+    expect(isTvOverride()).toBe(false);
   });
 });

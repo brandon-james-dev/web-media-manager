@@ -156,3 +156,27 @@
     outline-offset: 3px;
   }
 }
+
+/* Now-playing indicator: the bars scale rather than fade, so movement is
+   visible from across a room instead of reading as a static block. */
+@keyframes tv-bar-bounce {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.tv-bar {
+  transform-origin: bottom;
+  animation: tv-bar-bounce 900ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-bar {
+    animation: none;
+    transform: scaleY(0.7);
+  }
+}
