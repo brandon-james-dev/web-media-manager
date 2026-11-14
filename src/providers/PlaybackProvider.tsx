@@ -676,6 +676,20 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         }
       }
     );
+    const unregisterSeekBy = commandDispatcher.register(
+      "wmm.playback.seekBy",
+      (payload?: { deltaSeconds?: number }) => {
+        const delta = payload?.deltaSeconds;
+        const duration = nowPlayingRef.current?.duration ?? 0;
+        if (!delta || duration <= 0) return;
+        // `seek` takes a percentage, so convert the absolute target back.
+        const target = Math.max(
+          0,
+          Math.min(duration - 0.001, currentTimeRef.current + delta)
+        );
+        seek.current((target / duration) * 100);
+      }
+    );
     const unregisterVolume = commandDispatcher.register(
       "wmm.playback.setVolume",
       (payload?: { volume?: number }) => {
@@ -844,6 +858,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       unregisterNext();
       unregisterPrev();
       unregisterSeek();
+      unregisterSeekBy();
       unregisterVolume();
       unregisterShuffle();
       unregisterRepeat();

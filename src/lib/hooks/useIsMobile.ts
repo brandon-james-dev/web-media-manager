@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { TV_QUERY, isTvUserAgent } from "@/lib/tv/detectTv";
 
 /** Tailwind's `sm` breakpoint (640 px) — the point where the compact
  *  mobile layouts switch to the tablet/desktop ones. */
@@ -43,6 +44,7 @@ function makeMediaHook(query: string) {
 const useMobileQuery = makeMediaHook(MOBILE_QUERY);
 const useTabletQuery = makeMediaHook(TABLET_QUERY);
 const usePhoneLandscapeQuery = makeMediaHook(PHONE_LANDSCAPE_QUERY);
+const useTvQuery = makeMediaHook(TV_QUERY);
 
 /** Reactive "phone held in landscape" — shorter than any tablet. */
 export function useIsPhoneLandscape(): boolean {
@@ -55,9 +57,20 @@ export function useIsMobile(): boolean {
   return useMobileQuery();
 }
 
-/** Reactive "is a tablet-width viewport" — the `sm`..`lg` band. */
+/** Reactive "is a television browser" — a TV platform user agent, or a wide
+ *  viewport with no pointer at all (a remote-only device). */
+export function useIsTv(): boolean {
+  const noPointer = useTvQuery();
+  return noPointer || isTvUserAgent();
+}
+
+/** Reactive "is a tablet-width viewport" — the `sm`..`lg` band. A TV reports
+ *  a coarse pointer at tablet widths, so it is excluded here and keeps the
+ *  desktop layout. */
 export function useIsTablet(): boolean {
-  return useTabletQuery();
+  const isTabletWidth = useTabletQuery();
+  const isTv = useIsTv();
+  return isTabletWidth && !isTv;
 }
 
 /** Reactive "uses the compact chrome" — phones and tablets, i.e. anything
@@ -65,6 +78,6 @@ export function useIsTablet(): boolean {
  *  `useIsMobile`/`useIsTablet` to decide how to arrange the bottom bars. */
 export function useIsCompact(): boolean {
   const isMobile = useMobileQuery();
-  const isTablet = useTabletQuery();
+  const isTablet = useIsTablet();
   return isMobile || isTablet;
 }

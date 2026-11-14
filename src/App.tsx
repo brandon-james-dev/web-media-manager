@@ -28,6 +28,7 @@ import { ensureFavorites } from "./core/playlists";
 import { resyncAllSources } from "./lib/sources";
 import { ensureExampleVisualizers } from "./lib/visualizers";
 import { connectCommandDispatch, wmmBus } from "./events";
+import { installTvNavigation } from "./lib/tv";
 import "./events/job-notifications";
 import "./events/playlist-import-events";
 
@@ -86,6 +87,9 @@ function App() {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
+
+  // Remote-control navigation, installed only on a television browser.
+  useEffect(() => installTvNavigation(), []);
 
   useEffect(() => {
     const sub = keyShortcut$.subscribe((shortcut) => {

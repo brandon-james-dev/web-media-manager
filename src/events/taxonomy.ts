@@ -51,6 +51,7 @@ export const WMM_COMMANDS = {
   "wmm.playback.next": undefined,
   "wmm.playback.prev": undefined,
   "wmm.playback.seek": { positionSeconds: 0 } as { positionSeconds: number },
+  "wmm.playback.seekBy": { deltaSeconds: 0 } as { deltaSeconds: number },
   "wmm.playback.stop": undefined,
   "wmm.playback.setVolume": { volume: 0 } as { volume: number },
   "wmm.playback.toggleShuffle": undefined,
@@ -100,6 +101,7 @@ export const WMM_COMMANDS = {
   "wmm.ui.openSettings": undefined,
   "wmm.ui.openShortcuts": undefined,
   "wmm.ui.close": undefined,
+  "wmm.ui.closeNowPlaying": undefined,
   // visualizer
   "wmm.visualizer.select": {} as { pluginId: string },
   "wmm.visualizer.openManager": undefined,

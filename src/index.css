@@ -148,4 +148,11 @@
        prevents the destructive reload. */
     overscroll-behavior-y: none;
   }
+
+  /* Television: the remote moves focus, so the focused control has to be
+     obvious from across the room. */
+  [data-tv="true"] :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 3px;
+  }
 }

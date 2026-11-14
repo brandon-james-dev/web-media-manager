@@ -349,6 +349,14 @@ export function PlayerControls() {
     }
   });
 
+  // A TV remote's Back button closes the overlay instead of leaving the page.
+  useEffect(() => {
+    const off = wmmBus.onCommand("wmm.ui.closeNowPlaying", () => {
+      setIsNowPlayingOpen(false);
+    });
+    return off;
+  }, []);
+
   const overlayClass = isNowPlayingOpen
     ? cn(
         "relative z-110 transition-opacity duration-300",

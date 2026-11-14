@@ -19,6 +19,12 @@ import {
 } from "@/lib/visualizers";
 import { Button } from "@/components/ui/button";
 import type { VisualizationHostProps } from "./VisualizationHostProps";
+import {
+  adaptRenderScale,
+  FRAME_SAMPLE_SIZE,
+  INITIAL_RENDER_SCALE,
+  type RenderScaleState,
+} from "@/lib/visualizers/renderScale";
 
 /**
  * Owns the canvas and the plugin lifecycle.
@@ -80,13 +86,21 @@ export function VisualizationHost({
     let frameHandle = 0;
     const listeners = listenersRef.current;
 
+    // Adaptive resolution: a weak GPU (a TV, an old laptop) cannot fill a
+    // full-resolution canvas at 60fps, so the backing store is scaled down and
+    // the browser stretches it. The CSS size never changes, so layout and the
+    // plugin's coordinate space stay the same.
+    let renderScale: RenderScaleState = INITIAL_RENDER_SCALE;
+    const effectiveRatio = () =>
+      (window.devicePixelRatio || 1) * renderScale.scale;
+
     const api: VisualizationApi = {
       pluginId: loaded.plugin.id,
       canvas,
       getSize: () => ({
         width: canvas.clientWidth,
         height: canvas.clientHeight,
-        pixelRatio: window.devicePixelRatio || 1,
+        pixelRatio: effectiveRatio(),
       }),
       getSettings: () => settingsRef.current,
       getTheme: () =>
@@ -119,7 +133,8 @@ export function VisualizationHost({
       if (width === 0 || height === 0) {
         return;
       }
-      host.resize(width, height, window.devicePixelRatio || 1);
+      host.resize(width, height, effectiveRatio());
+      canvas.dataset.renderScale = renderScale.scale.toFixed(2);
     };
 
     const observer = new ResizeObserver(resize);
@@ -144,15 +159,45 @@ export function VisualizationHost({
     window.addEventListener("resize", resize);
 
     let frameCount = 0;
-    const loop = () => {
+    let lastFrameTime = 0;
+    let sampleTotal = 0;
+    let sampleCount = 0;
+
+    const loop = (now: number) => {
       frameHandle = requestAnimationFrame(loop);
+
+      // Frame pacing drives the resolution: a GPU that cannot keep up shows up
+      // as rAF deltas above the budget, not as a slow render call.
+      if (lastFrameTime > 0) {
+        const delta = now - lastFrameTime;
+        if (delta > 0 && delta < 250) {
+          sampleTotal += delta;
+          sampleCount += 1;
+        }
+      }
+      lastFrameTime = now;
+
+      if (sampleCount >= FRAME_SAMPLE_SIZE) {
+        const average = sampleTotal / sampleCount;
+        sampleTotal = 0;
+        sampleCount = 0;
+
+        const next = adaptRenderScale(renderScale, average);
+        if (next.scale !== renderScale.scale) {
+          renderScale = next;
+          resize();
+        } else {
+          renderScale = next;
+        }
+      }
+
       // Self-heal a stale backing store: a display change or zoom can alter
       // devicePixelRatio without changing the CSS size, which the observer
       // cannot see. Checked a few times a second, not every frame.
       if (++frameCount % 15 === 0) {
         const width = canvas.clientWidth;
         const height = canvas.clientHeight;
-        const ratio = window.devicePixelRatio || 1;
+        const ratio = effectiveRatio();
         if (
           width > 0 &&
           height > 0 &&

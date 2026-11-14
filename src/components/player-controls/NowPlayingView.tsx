@@ -275,6 +275,7 @@ export function NowPlayingView({
       {open && (
         <motion.div
           key="now-playing"
+          data-now-playing="true"
           className={cn(
             "fixed inset-0 z-100 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[calc(env(safe-area-inset-bottom)+9rem)] md:pb-28 pl-[env(safe-area-inset-left)] transition-colors duration-300",
             darkRoom ? "bg-black" : "bg-background",
