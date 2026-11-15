@@ -31,6 +31,7 @@ import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
 import { wmmBus } from "@/events";
 import { TanstackSongTable } from "@/components/song-table";
 import { TrackItem } from "@/components/track-item";
+import { DraggableSongs } from "@/components/library-sidebar";
 import { ItemGroup } from "@/components/ui/item";
 import { CoverFlow, type CoverFlowItem } from "@/components/ui/CoverFlow";
 import { AlbumArtImage } from "@/components/album-art-image";
@@ -363,12 +364,19 @@ export function Albums() {
               "
             >
               {albums.map((a) => (
-                <AlbumCard
+                <DraggableSongs
                   key={`${a.title}-${a.artist}`}
-                  album={a}
-                  onClick={handleAlbumCardClick}
-                  onDoubleClick={handleAlbumCardDoubleClick}
-                />
+                  dragId={`album:${a.title}:${a.artist}`}
+                  label={a.title}
+                  sublabel={a.artist}
+                  songIds={a.songs.map((song) => song.id)}
+                >
+                  <AlbumCard
+                    album={a}
+                    onClick={handleAlbumCardClick}
+                    onDoubleClick={handleAlbumCardDoubleClick}
+                  />
+                </DraggableSongs>
               ))}
             </div>
           </ScrollArea>

@@ -14,6 +14,7 @@ export const SongRow = memo(function SongRow({
   table,
   rowSelection,
   isEditMultiple,
+  striped = true,
   onSongDoubleClicked,
   registerRowRef,
   orderedSongIds,
@@ -116,7 +117,9 @@ export const SongRow = memo(function SongRow({
         className={
           isSelected
             ? "group/track flex h-7 bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"
-            : "group/track flex h-7 odd:bg-muted/15 hover:bg-accent/45"
+            : striped
+              ? "group/track flex h-7 odd:bg-muted/15 hover:bg-accent/45"
+              : "group/track flex h-7 hover:bg-accent/45"
         }
       >
         {row.getVisibleCells().map((cell: Cell<any, Song>) => (

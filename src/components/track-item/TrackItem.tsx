@@ -48,6 +48,8 @@ export function TrackItem(props: TrackItemProps) {
     onPlay,
     onDoubleClick,
     onClick,
+    menuSongs,
+    alwaysShowActions,
     actions,
     size = "default",
     focusable = false,
@@ -81,7 +83,7 @@ export function TrackItem(props: TrackItemProps) {
   }
 
   return (
-    <SongContextMenu songs={[song]}>
+    <SongContextMenu songs={menuSongs ?? [song]}>
       <Item
         size={size}
         tabIndex={focusable ? 0 : undefined}
@@ -157,7 +159,10 @@ export function TrackItem(props: TrackItemProps) {
         </span>
 
         <ItemActions className="shrink-0">
-          <FavoriteButton songId={song.id} alwaysVisible={false} />
+          <FavoriteButton
+            songId={song.id}
+            alwaysVisible={alwaysShowActions ?? false}
+          />
 
           {/* Play/pause affordance: always visible for the active row and on
             touch (no hover to reveal it), hover-revealed otherwise. The row
@@ -168,6 +173,7 @@ export function TrackItem(props: TrackItemProps) {
                 "inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity",
                 "hover:bg-accent/15 hover:text-foreground",
                 "opacity-0 group-hover/track:opacity-100 [@media(hover:none)]:opacity-100",
+                alwaysShowActions && "opacity-100",
                 isPlaying && "opacity-100"
               )}
               onClick={(e) => {

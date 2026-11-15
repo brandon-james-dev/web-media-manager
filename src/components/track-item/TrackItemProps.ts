@@ -44,6 +44,17 @@ export interface TrackItemProps {
    */
   onClick?: (song: Song) => void;
   /**
+   * Songs the right-click menu acts on. Defaults to this row's song; an album
+   * list passes the whole album so "Add to playlist" takes every track.
+   */
+  menuSongs?: Song[];
+  /**
+   * Keep the row's action icons visible instead of revealing them on hover.
+   * A narrow list (the sidebar) has no room to reserve for them, so hiding
+   * them leaves a gap that reads as padding.
+   */
+  alwaysShowActions?: boolean;
+  /**
    * ⋯ menu entries. Play/shuffle/edit are deliberately NOT mirrored into the
    * menu from the callbacks above — the row's inline play/pause button and the
    * shared right-click song context menu already surface those — so the ⋯

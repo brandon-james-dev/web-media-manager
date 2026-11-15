@@ -23,6 +23,11 @@ export interface TanstackSongRowProps {
   >;
   rowSelection: RowSelectionState;
   isEditMultiple: boolean;
+  /**
+   * Whether the row paints its own odd-row stripe. Off when a drag wrapper
+   * owns the striping, since the row is then always its wrapper's first child.
+   */
+  striped?: boolean;
   onSongDoubleClicked?(song: Song): void;
   registerRowRef(rowId: string, element: HTMLDivElement | null): void;
   /** Ordered row ids in the current table view (for shift-range selection). */

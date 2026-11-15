@@ -6,6 +6,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { TanstackSongTable } from "@/components/song-table";
 import { TrackItem } from "@/components/track-item";
+import { DraggableTrack } from "@/components/library-sidebar";
 import { ItemGroup } from "@/components/ui/item";
 import { AlphabetScrubber } from "@/components/alphabet-scrubber";
 import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
@@ -30,7 +31,7 @@ export function Songs() {
   const [nowPlayingSongId, setNowPlayingSongId] = useState<string>();
 
   const { filteredSongs, query, setQuery } = useSongs();
-  const { sort, setSort, activeMode, selectedSourceIds } =
+  const { sort, setSort, activeMode, selectedSourceIds, onTrackDrop } =
     useOutletContext<MainContext>();
 
   // Source chips narrow the already-filtered list; an empty selection keeps
@@ -230,26 +231,27 @@ export function Songs() {
               {isCompact ? (
                 <ItemGroup className="mx-auto w-full max-w-3xl pr-3 gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0!">
                   {visibleSongs.map((song, i) => (
-                    <TrackItem
-                      key={song.id}
-                      song={song}
-                      index={i}
-                      size="sm"
-                      showArtwork
-                      isPlaying={nowPlayingSongId === song.id}
-                      // Touch: single tap plays (the row becomes a finger-size
-                      // target). Double-click still works on desktop-modality
-                      // touchpads/mice. No inline play button here.
-                      onClick={
-                        activeMode === "edit"
-                          ? handleSongDoubleClicked
-                          : () =>
-                            wmmBus.invoke("wmm.playback.playSong", {
-                              songId: song.id,
-                            })
-                      }
-                      onDoubleClick={handleSongDoubleClicked}
-                    />
+                    <DraggableTrack key={song.id} songId={song.id}>
+                      <TrackItem
+                        song={song}
+                        index={i}
+                        size="sm"
+                        showArtwork
+                        isPlaying={nowPlayingSongId === song.id}
+                        // Touch: single tap plays (the row becomes a finger-size
+                        // target). Double-click still works on desktop-modality
+                        // touchpads/mice. No inline play button here.
+                        onClick={
+                          activeMode === "edit"
+                            ? handleSongDoubleClicked
+                            : () =>
+                              wmmBus.invoke("wmm.playback.playSong", {
+                                songId: song.id,
+                              })
+                        }
+                        onDoubleClick={handleSongDoubleClicked}
+                      />
+                    </DraggableTrack>
                   ))}
                 </ItemGroup>
               ) : (
@@ -262,6 +264,7 @@ export function Songs() {
                     onSort={handleSort}
                     sort={sort}
                     onSongDoubleClicked={handleSongDoubleClicked}
+                    onTrackDrop={onTrackDrop}
                   />
                   <ScrollBar orientation="horizontal" />
                 </>

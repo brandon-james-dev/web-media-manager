@@ -25,6 +25,7 @@ import {
   ArrowUpAZ,
   Users,
   ChevronLeft,
+  X,
 } from "lucide-react";
 import { cn } from "cn";
 import { useDetailPane } from "@/lib/router/useDetailPane";
@@ -32,6 +33,7 @@ import { useIsCompact, useIsMobile } from "@/lib/hooks/useIsMobile";
 import { ItemGroup } from "@/components/ui/item";
 import { SongContextMenu } from "@/components/song-context-menu";
 import { TrackItem } from "@/components/track-item";
+import { DraggableSongs } from "@/components/library-sidebar";
 import {
   albumGenre,
   albumPictureSong,
@@ -63,6 +65,8 @@ export function Artists() {
   );
   const [nowPlayingSongId, setNowPlayingSongId] = useState<string>();
   const [selectedArtistId, setSelectedArtistId] = useState<string>(ALL_ARTISTS);
+  // Songs picked in edit mode, so several can be deselected at once.
+  const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [sortDesc, setSortDesc] = useState(false);
   const shufflePlay = useShufflePlay();
   const isCompact = useIsCompact();
@@ -252,11 +256,18 @@ export function Artists() {
     wmmBus.invoke("wmm.library.song.edit", { songId: song.id });
   }
 
-  function quickEditSong(song: Song) {
-    // Edit mode single-click: publish the selection — the editor dock shows
-    // the quick edit panel for selected songs (same affordance as the
-    // context menu's Quick Edit flow).
-    wmmBus.publish("wmm.ui.selectionChanged", { songIds: [song.id] });
+  function toggleSongSelection(song: Song) {
+    // Edit mode single-click: add or remove the song from the selection. The
+    // selection is published by the effect below, not from inside the updater.
+    setSelectedSongIds((current) =>
+      current.includes(song.id)
+        ? current.filter((id) => id !== song.id)
+        : [...current, song.id]
+    );
+  }
+
+  function deselectSongs() {
+    setSelectedSongIds([]);
   }
 
   function playSongs(songs: Song[]) {
@@ -291,6 +302,12 @@ export function Artists() {
       playbackSub();
     };
   }, []);
+
+  // The editor dock follows the picks; publishing from an effect keeps the
+  // state updater pure.
+  useEffect(() => {
+    wmmBus.publish("wmm.ui.selectionChanged", { songIds: selectedSongIds });
+  }, [selectedSongIds]);
   //#endregion
 
   return (
@@ -357,8 +374,20 @@ export function Artists() {
               </SongContextMenu>
 
               {orderedArtists.map((a) => (
-                <SongContextMenu key={a.id} songs={a.songs}>
-                  <button
+                <DraggableSongs
+                  key={a.id}
+                  dragId={`artist:${a.id}`}
+                  label={a.name}
+                  sublabel={`${a.albums.length} ${
+                    a.albums.length === 1 ? "album" : "albums"
+                  }`}
+                  songIds={a.songs.map((song) => song.id)}
+                >
+                  {/* The menu wraps the button, not the drag wrapper: the
+                      trigger hands its handlers to its child, and a custom
+                      component would drop them. */}
+                  <SongContextMenu songs={a.songs}>
+                    <button
                     onClick={() => {
                       setSelectedArtistId(a.id);
                       setMobileShowingList(false);
@@ -386,7 +415,8 @@ export function Artists() {
                       </div>
                     </div>
                   </button>
-                </SongContextMenu>
+                  </SongContextMenu>
+                </DraggableSongs>
               ))}
             </div>
           </ScrollArea>
@@ -475,6 +505,19 @@ export function Artists() {
                 />
               </div>
             )}
+            {activeMode === "edit" && selectedSongIds.length > 1 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 shrink-0 gap-1 px-2 text-xs"
+                title="Deselect all"
+                aria-label="Deselect all songs"
+                onClick={deselectSongs}
+              >
+                <X />
+                Deselect {selectedSongIds.length}
+              </Button>
+            )}
           </div>
           <div className="text-sm text-muted-foreground mt-1">
             {detailAlbums.length}{" "}
@@ -506,7 +549,8 @@ export function Artists() {
                       onShuffle={() => shuffleAlbum(album)}
                       onEdit={() => editAlbum(album)}
                       onEditSong={editSong}
-                      onQuickEditSong={quickEditSong}
+                      onToggleSong={toggleSongSelection}
+                      selectedSongIds={selectedSongIds}
                       onArtDoubleClick={() => handleAlbumArtDoubleClick(album)}
                     />
                   ))}
@@ -557,7 +601,8 @@ function AlbumSection({
   onShuffle,
   onEdit,
   onEditSong,
-  onQuickEditSong,
+  onToggleSong,
+  selectedSongIds,
   onArtDoubleClick,
 }: {
   album: Album;
@@ -572,7 +617,10 @@ function AlbumSection({
   onEdit: () => void;
   /** Edit a single song (double-click / per-track action in edit mode). */
   onEditSong: (song: Song) => void;
-  onQuickEditSong: (song: Song) => void;
+  /** Edit mode single-click: add or remove this song from the selection. */
+  onToggleSong: (song: Song) => void;
+  /** Songs currently picked in edit mode. */
+  selectedSongIds: string[];
   /** Double-click the art: play the album (edit mode: open the album editor). */
   onArtDoubleClick: () => void;
 }) {
@@ -678,6 +726,7 @@ function AlbumSection({
               index={i}
               size="sm"
               showMeta={false}
+              menuSongs={album.songs}
               isPlaying={nowPlayingSongId === song.id}
               // Playback mode: tap/click plays. Edit mode: the row isn't a
               // play affordance — double-click opens that song's editor.
@@ -694,11 +743,15 @@ function AlbumSection({
                   }
               }
               onClick={
-                activeMode === "edit" ? () => onQuickEditSong(song) : undefined
+                activeMode === "edit" ? () => onToggleSong(song) : undefined
               }
               onDoubleClick={
                 activeMode === "edit" ? () => onEditSong(song) : undefined
               }
+              className={cn(
+                selectedSongIds.includes(song.id) &&
+                  "bg-primary/15 hover:bg-primary/20"
+              )}
             />
           </div>
         ))}

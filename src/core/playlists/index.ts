@@ -11,5 +11,6 @@ export {
   addSongsToPlaylist,
   moveSongInPlaylist,
   removeSongFromPlaylist,
+  removeSongsFromPlaylist,
   deletePlaylist,
 } from "./writePlaylists";

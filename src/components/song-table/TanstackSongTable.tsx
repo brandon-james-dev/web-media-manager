@@ -20,19 +20,15 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table";
 import {
-  DndContext,
-  closestCenter,
-  useSensor,
-  useSensors,
-  MouseSensor,
-  TouchSensor,
-  KeyboardSensor,
-} from "@dnd-kit/core";
-import {
   SortableContext,
   arrayMove,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import {
+  DraggableTrack,
+  useRegisterDragEnd,
+  useTrackDragEnabled,
+} from "@/components/library-sidebar";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -74,6 +70,7 @@ export function TanstackSongTable(props: SongTableProps) {
     onSort,
     onSelect,
     onSongDoubleClicked,
+    onTrackDrop,
   } = props;
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
@@ -137,6 +134,7 @@ export function TanstackSongTable(props: SongTableProps) {
     });
   }
 
+  const dragEnabled = useTrackDragEnabled();
   const table = useTable(
     {
       key: "song-table",
@@ -194,14 +192,14 @@ export function TanstackSongTable(props: SongTableProps) {
     })
   );
 
-  const sensors = useSensors(
-    useSensor(MouseSensor),
-    useSensor(TouchSensor),
-    useSensor(KeyboardSensor)
-  );
-
   function handleDragEnd(event: any) {
     const { active, over } = event;
+
+    // A track drag belongs to the page's sidebar context, not column order.
+    if (String(active.id).startsWith("track:")) {
+      onTrackDrop?.(event);
+      return;
+    }
 
     if (over && active.id !== over.id) {
       setColumnOrder((old) => {
@@ -273,13 +271,12 @@ export function TanstackSongTable(props: SongTableProps) {
     return () => unsubscribe();
   }, [table]);
 
+  // Column reordering runs through the layout's drag context: a context of
+  // its own here would hide the sidebar's drop targets from a track drag.
+  useRegisterDragEnd(handleDragEnd);
+
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <div ref={tableRef} className="text-sm select-none min-w-full">
+    <div ref={tableRef} className="text-sm select-none min-w-full">
         <ContextMenu>
           <ContextMenuTrigger
             render={
@@ -359,19 +356,30 @@ export function TanstackSongTable(props: SongTableProps) {
                   {virtualRowRenderer ? (
                     virtualRowRenderer(row.original)
                   ) : (
-                    <SongRow
+                    <DraggableTrack
                       key={row.id}
+                      songId={row.original.id}
+                      songIds={
+                        selectedSongIds.length > 1 &&
+                        selectedSongIds.includes(row.original.id)
+                          ? selectedSongIds
+                          : undefined
+                      }
+                    >
+                    <SongRow
                       song={row.original}
                       row={row}
                       table={table}
                       rowSelection={rowSelection}
                       isEditMultiple={isEditMultiple}
-                      onSongDoubleClicked={onSongDoubleClicked}
-                      registerRowRef={registerRowRef}
-                      orderedSongIds={orderedSongIds}
-                      selectionAnchor={selectionAnchor}
-                      setSelectionAnchor={setSelectionAnchor}
-                    />
+                      striped={!dragEnabled}
+                        onSongDoubleClicked={onSongDoubleClicked}
+                        registerRowRef={registerRowRef}
+                        orderedSongIds={orderedSongIds}
+                        selectionAnchor={selectionAnchor}
+                        setSelectionAnchor={setSelectionAnchor}
+                      />
+                    </DraggableTrack>
                   )}
                 </div>
               );
@@ -383,24 +391,34 @@ export function TanstackSongTable(props: SongTableProps) {
               virtualRowRenderer ? (
                 virtualRowRenderer(row.original)
               ) : (
-                <SongRow
+                <DraggableTrack
                   key={row.id}
-                  song={row.original}
-                  row={row}
-                  table={table}
-                  rowSelection={rowSelection}
-                  isEditMultiple={isEditMultiple}
-                  onSongDoubleClicked={onSongDoubleClicked}
-                  registerRowRef={registerRowRef}
-                  orderedSongIds={orderedSongIds}
-                  selectionAnchor={selectionAnchor}
-                  setSelectionAnchor={setSelectionAnchor}
-                />
+                  songId={row.original.id}
+                  songIds={
+                    selectedSongIds.length > 1 &&
+                    selectedSongIds.includes(row.original.id)
+                      ? selectedSongIds
+                      : undefined
+                  }
+                >
+                  <SongRow
+                    song={row.original}
+                    row={row}
+                    table={table}
+                    rowSelection={rowSelection}
+                    isEditMultiple={isEditMultiple}
+                    striped={!dragEnabled}
+                    onSongDoubleClicked={onSongDoubleClicked}
+                    registerRowRef={registerRowRef}
+                    orderedSongIds={orderedSongIds}
+                    selectionAnchor={selectionAnchor}
+                    setSelectionAnchor={setSelectionAnchor}
+                  />
+                </DraggableTrack>
               )
             )}
           </div>
         )}
       </div>
-    </DndContext>
   );
 }

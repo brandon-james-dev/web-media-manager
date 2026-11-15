@@ -2,6 +2,7 @@ import type {
   QueryOptions,
   SortableColumn,
 } from "@/lib/persistence/QueryOptions";
+import type { DragEndEvent } from "@dnd-kit/core";
 import type { Song } from "@/models";
 
 export interface SongTableProps {
@@ -12,6 +13,12 @@ export interface SongTableProps {
   onSort?: (column: SortableColumn) => void;
   sort?: QueryOptions<Song>["sort"];
   onSongDoubleClicked?: (song: Song) => void;
+  /**
+   * A track row was dropped on a target outside the table. The table owns its
+   * own `DndContext` for column reordering, so a track drag never reaches the
+   * page's context and has to be forwarded from here.
+   */
+  onTrackDrop?: (event: DragEndEvent) => void;
   /**
    * Substitute renderer for each virtual row. When provided, the table's
    * virtualization drives a custom row element instead of the default

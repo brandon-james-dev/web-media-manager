@@ -3,6 +3,7 @@ import {
   Check,
   ChevronLeft,
   GripVertical,
+  Lock,
   Pen,
   Play,
   Plus,
@@ -25,6 +26,10 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ItemGroup } from "@/components/ui/item";
 import { TrackItem } from "@/components/track-item";
+import {
+  SidebarDropRow,
+  sidebarPlaylistDropId,
+} from "@/components/library-sidebar";
 import { setCurrentNavSongs } from "@/components/editor";
 import { useIsCompact, useIsMobile } from "@/lib/hooks/useIsMobile";
 import { getPlaylistStore, getSourcesStore } from "@/core/ports";
@@ -38,9 +43,10 @@ import {
 import { isPlaylistReadOnly } from "@/core/playlists";
 import { wmmBus } from "@/events";
 import { useShufflePlay, useSongs } from "@/hooks";
-import { useOutletContext } from "react-router";
+import { useLocation, useOutletContext, useSearchParams } from "react-router";
 import type { MainContext } from "./MainLayout";
 import type { MusicSource, Playlist, Song } from "@/models";
+import { FAVORITES_PLAYLIST_ID } from "@/models";
 import { cn } from "cn";
 import { useDetailPane } from "@/lib/router/useDetailPane";
 import { NewPlaylistDialog } from "@/components/new-playlist-dialog";
@@ -125,11 +131,21 @@ function SortableRow({
  * tracks on the right. Phones show one column at a time, like the artist
  * view.
  */
-export function Playlists() {
+export function Playlists({
+  compact = false,
+  onOpenPlaylist,
+}: {
+  compact?: boolean;
+  /** Sidebar only: open this playlist in the full view. */
+  onOpenPlaylist?: (playlistId: string) => void;
+} = {}) {
   //#region State
   const { songs } = useSongs();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
+  const [searchParams] = useSearchParams();
+  // Set when the sidebar opened a playlist, so the full view lands on it.
+  const requestedPlaylistId = searchParams.get("playlist") ?? undefined;
   const [nowPlayingSongId, setNowPlayingSongId] = useState<string>();
   const [mobileShowingList, setMobileShowingList] = useDetailPane();
   // The inline title form tracks the open playlist's name (and picks up the
@@ -145,10 +161,26 @@ export function Playlists() {
   const shufflePlay = useShufflePlay();
   const isCompact = useIsCompact();
   const isMobile = useIsMobile();
-  const { activeMode } = useOutletContext<MainContext>();
+  // Absent when the sidebar renders this view directly instead of through an
+  // outlet, which is why it is read defensively rather than destructured.
+  const activeMode = useOutletContext<MainContext | null>()?.activeMode;
+  // The sidebar renders this view outside the outlet, where neither the outlet
+  // context nor the child route's params are reachable, so the pathname is the
+  // only edit-mode signal available there.
+  const { pathname } = useLocation();
   const [compactEditing, setCompactEditing] = useState(false);
-  const editMode = activeMode === "edit" || (isCompact && compactEditing);
+  const [compactFilter, setCompactFilter] = useState("");
+  const editMode =
+    activeMode === "edit" ||
+    pathname.endsWith("/edit") ||
+    (isCompact && compactEditing);
   //#endregion
+
+  useEffect(() => {
+    if (requestedPlaylistId) {
+      setSelectedId(requestedPlaylistId);
+    }
+  }, [requestedPlaylistId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -323,6 +355,33 @@ export function Playlists() {
   }
   //#endregion
 
+  // Rendered by both the full view and the sidebar's compact list, which
+  // returns before the full view's markup.
+  const deleteDialog = (
+    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <DialogContent className="select-none w-lg">
+        <DialogHeader>
+          <DialogTitle>Delete Playlist</DialogTitle>
+          <DialogDescription>
+            This will permanently delete{" "}
+            <span className="font-medium">
+              {playlists.find((p) => p.id === pendingDeleteId)?.name}
+            </span>
+            . The songs themselves stay in your library.
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline">Cancel</Button>} />
+
+          <Button variant="destructive" onClick={() => void deletePending()}>
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   //#region Global event handlers
   useEffect(() => {
     const sub = wmmBus.on("wmm.playback.started", (payload) => {
@@ -384,6 +443,118 @@ export function Playlists() {
     setMobileShowingList(false);
   }
   //#endregion
+
+  if (compact) {
+    // Sidebar: the playlist list alone, each row a drop target. The detail
+    // pane and the page header belong to the full view.
+    const filter = compactFilter.trim().toLowerCase();
+    const visiblePlaylists =
+      filter === ""
+        ? playlists
+        : playlists.filter((playlist) =>
+            playlist.name.toLowerCase().includes(filter)
+          );
+
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="flex items-center gap-1 border-b px-2 py-1.5">
+          <Input
+            value={compactFilter}
+            onChange={(event) => setCompactFilter(event.target.value)}
+            placeholder="Filter playlists"
+            aria-label="Filter playlists"
+            className="h-7 min-w-0 flex-1 text-xs"
+          />
+          <Button
+            size="icon"
+            variant="ghost"
+            className="shrink-0"
+            title="New playlist"
+            aria-label="New playlist"
+            onClick={() => setNewPlaylistOpen(true)}
+          >
+            <Plus />
+          </Button>
+        </div>
+
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="px-1 py-1">
+            {visiblePlaylists.map((playlist) => {
+              const readOnly = isPlaylistReadOnly(playlist, sources);
+              const sourceName = sources.find(
+                (source) => source.id === playlist.sourceId
+              )?.name;
+
+              return (
+                <SidebarDropRow
+                  key={playlist.id}
+                  id={sidebarPlaylistDropId(playlist.id)}
+                  disabled={readOnly}
+                >
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 truncate text-left"
+                    onClick={() => onOpenPlaylist?.(playlist.id)}
+                  >
+                    {playlist.name}
+                  </button>
+                  {readOnly && (
+                    <span
+                      className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+                      title={`Read-only — from ${
+                        sourceName ?? "an unknown source"
+                      }`}
+                    >
+                      <Lock className="size-3 shrink-0" aria-hidden="true" />
+                      <span className="max-w-20 truncate">
+                        {sourceName ?? "Read-only"}
+                      </span>
+                    </span>
+                  )}
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    {playlist.songs.length}
+                  </span>
+                  {!readOnly &&
+                    editMode &&
+                    playlist.id !== FAVORITES_PLAYLIST_ID && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-5 shrink-0"
+                      title="Delete playlist"
+                      aria-label={`Delete ${playlist.name}`}
+                      onClick={() => {
+                        setPendingDeleteId(playlist.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 />
+                    </Button>
+                  )}
+                </SidebarDropRow>
+              );
+            })}
+
+            {visiblePlaylists.length === 0 && (
+              <div className="px-2 py-2 text-xs text-muted-foreground">
+                {compactFilter.trim() === ""
+                  ? "No playlists yet"
+                  : "No matching playlists"}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        <NewPlaylistDialog
+          open={newPlaylistOpen}
+          onOpenChange={setNewPlaylistOpen}
+          onCreate={createPlaylist}
+        />
+
+        {deleteDialog}
+      </div>
+    );
+  }
 
   return (
     <div className="h-full w-full flex">
@@ -728,28 +899,7 @@ export function Playlists() {
         onCreate={createPlaylist}
       />
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="select-none w-lg">
-          <DialogHeader>
-            <DialogTitle>Delete Playlist</DialogTitle>
-            <DialogDescription>
-              This will permanently delete{" "}
-              <span className="font-medium">
-                {playlists.find((p) => p.id === pendingDeleteId)?.name}
-              </span>
-              . The songs themselves stay in your library.
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline">Cancel</Button>} />
-
-            <Button variant="destructive" onClick={() => void deletePending()}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {deleteDialog}
     </div>
   );
 }

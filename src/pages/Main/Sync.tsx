@@ -3,13 +3,18 @@ import { uuidv7 } from "uuidv7";
 import { MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "cn";
+import {
+  SidebarDropRow,
+  sidebarSyncDropId,
+} from "@/components/library-sidebar";
 import { notification$ } from "@/events/notification-events";
 import { AddDeviceDialog, SyncDeviceCard, SyncQueue } from "@/components/sync";
 import { useSync } from "@/hooks";
 import { DevicePromptOrchestrator } from "@/lib/sync";
 import { usbAvailable } from "@/lib/sync/usbAvailable";
 
-export function Sync() {
+export function Sync({ compact = false }: { compact?: boolean } = {}) {
   //#region State
   const { devices, addDevice, refreshDevices } = useSync();
   const usbSupported = usbAvailable();
@@ -93,8 +98,41 @@ export function Sync() {
   //#endregion
 
   return (
-    <div className="p-4 h-full overflow-auto">
-      <div className="max-w-4xl mx-auto space-y-4">
+    <div className={cn("h-full overflow-auto", compact ? "p-1" : "p-4")}>
+      <div className={cn("mx-auto space-y-4", !compact && "max-w-4xl")}>
+        {compact ? (
+          // Sidebar: the devices as droppable rows, nothing else. The page
+          // chrome (title, add/refresh) belongs to the full view.
+          <div className="space-y-1">
+            {devices.map((device) => (
+              <SidebarDropRow
+                key={device.id}
+                id={sidebarSyncDropId(device.id)}
+              >
+                <span
+                  className={cn(
+                    "size-1.5 shrink-0 rounded-full",
+                    device.connected ? "bg-primary" : "bg-muted-foreground/40"
+                  )}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1 truncate">{device.name}</span>
+                {!device.connected && (
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    offline
+                  </span>
+                )}
+              </SidebarDropRow>
+            ))}
+
+            {devices.length === 0 && (
+              <div className="px-2 py-2 text-xs text-muted-foreground">
+                No sync devices
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-semibold">Sync Devices</h1>
@@ -168,6 +206,8 @@ export function Sync() {
             <SyncQueue syncDevice={device} />
           </div>
         ))}
+          </>
+        )}
       </div>
     </div>
   );

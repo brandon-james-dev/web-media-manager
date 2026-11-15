@@ -5,6 +5,7 @@ import {
   getSourcesStore,
 } from "@/core/ports";
 import type { Playlist, PlaylistEntry } from "@/models";
+import { FAVORITES_PLAYLIST_ID } from "@/models";
 import { uuidv7 } from "uuidv7";
 import { wmmBus } from "@/events";
 import { isPlaylistReadOnly } from "./readOnly";
@@ -236,8 +237,42 @@ export async function removeSongFromPlaylist(
   return updated;
 }
 
+/** Remove several songs from a playlist in one write. Returns null if absent. */
+export async function removeSongsFromPlaylist(
+  playlistId: string,
+  songIds: string[]
+): Promise<Playlist | null> {
+  const store = getPlaylistStore();
+  const playlist = await store.get(playlistId);
+  if (!playlist) return null;
+  await assertEditable(playlist);
+
+  const removing = new Set(songIds);
+  const songs = playlist.songs.filter((e) => !removing.has(e.songId));
+  if (songs.length === playlist.songs.length) return playlist;
+
+  const updated: Playlist = {
+    ...playlist,
+    songs,
+    updatedAt: Date.now(),
+  };
+
+  await store.save(updated.id, updated);
+  for (const songId of removing) {
+    wmmBus.publish("wmm.playlists.songRemoved", {
+      playlistId: updated.id,
+      songId,
+    });
+  }
+  return updated;
+}
+
 /** Delete a playlist by id. No-op when it does not exist. */
 export async function deletePlaylist(playlistId: string): Promise<void> {
+  // The reserved favorites playlist is part of the app, not user data.
+  if (playlistId === FAVORITES_PLAYLIST_ID) {
+    return;
+  }
   const store = getPlaylistStore();
   const existing = await store.get(playlistId);
   if (!existing || existing.isFavorites) return;
