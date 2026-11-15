@@ -97,9 +97,16 @@ function DrawerSwipeHandle({
 
 function DrawerContent({
   className,
+  overlayClassName,
+  viewportClassName,
   children,
   ...props
-}: DrawerPrimitive.Popup.Props) {
+}: DrawerPrimitive.Popup.Props & {
+  /** Raise the backdrop above chrome that would otherwise cover it. */
+  overlayClassName?: string;
+  /** Raise the viewport, which caps the popup's own stacking context. */
+  viewportClassName?: string;
+}) {
   const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
   const swipeAxis =
     swipeDirection === "down" || swipeDirection === "up" ? "y" : "x"
@@ -107,12 +114,18 @@ function DrawerContent({
   return (
     <DrawerPortal data-slot="drawer-portal">
       {modal === true && (
-        <DrawerOverlay data-snap-points={hasSnapPoints ? "" : undefined} />
+        <DrawerOverlay
+          data-snap-points={hasSnapPoints ? "" : undefined}
+          className={overlayClassName}
+        />
       )}
       <DrawerPrimitive.Viewport
         data-slot="drawer-viewport"
         data-modal={modal}
-        className="pointer-events-none fixed inset-0 z-50 select-none data-[modal=true]:pointer-events-auto"
+        className={cn(
+          "pointer-events-none fixed inset-0 z-50 select-none data-[modal=true]:pointer-events-auto",
+          viewportClassName
+        )}
       >
         <DrawerPrimitive.Popup
           data-slot="drawer-popup"

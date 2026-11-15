@@ -316,8 +316,8 @@ export function SidebarPlaylistTracks({
         )}
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="px-1 py-1">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="py-1">
           {tracks.map((song, index) => {
             const selected = selectedIds.includes(song.id);
 

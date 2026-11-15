@@ -7,7 +7,6 @@ import {
   Pen,
   Play,
   Plus,
-  Save,
   Search,
   Shuffle,
   Trash2,
@@ -43,7 +42,7 @@ import {
 import { isPlaylistReadOnly } from "@/core/playlists";
 import { wmmBus } from "@/events";
 import { useShufflePlay, useSongs } from "@/hooks";
-import { useLocation, useOutletContext, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router";
 import type { MainContext } from "./MainLayout";
 import type { MusicSource, Playlist, Song } from "@/models";
 import { FAVORITES_PLAYLIST_ID } from "@/models";
@@ -167,7 +166,9 @@ export function Playlists({
   // The sidebar renders this view outside the outlet, where neither the outlet
   // context nor the child route's params are reachable, so the pathname is the
   // only edit-mode signal available there.
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
+  const navigate = useNavigate();
   const [compactEditing, setCompactEditing] = useState(false);
   const [compactFilter, setCompactFilter] = useState("");
   const editMode =
@@ -344,6 +345,17 @@ export function Playlists({
     await savePlaylist({ id: selected.id, name });
   }
 
+  /**
+   * Commit the inline title when it changed. Runs on Enter and on blur, so
+   * leaving the field or pressing Done both persist the name.
+   */
+  function commitRename(): void {
+    if (!selected) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === selected.name) return;
+    void renamePlaylist(trimmed);
+  }
+
   /** Delete the pending-picked playlist and clear the selection if it was open. */
   async function deletePending(): Promise<void> {
     if (!pendingDeleteId) return;
@@ -478,7 +490,7 @@ export function Playlists({
         </div>
 
         <ScrollArea className="min-h-0 flex-1">
-          <div className="px-1 py-1">
+          <div className="py-1">
             {visiblePlaylists.map((playlist) => {
               const readOnly = isPlaylistReadOnly(playlist, sources);
               const sourceName = sources.find(
@@ -669,21 +681,19 @@ export function Playlists({
                 </Button>
               )}
               {canEdit && !selected.isFavorites ? (
-                // Edit mode: the title is an inline form — name box with a
-                // save button beside it, no modal step.
+                // Edit mode: the title is an inline field that commits on
+                // Enter or blur, so "Done" is the only button in the header.
                 <form
                   className="flex min-w-0 flex-1 items-center gap-2"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    const trimmed = renameValue.trim();
-                    if (trimmed && trimmed !== selected.name) {
-                      void renamePlaylist(trimmed);
-                    }
+                    commitRename();
                   }}
                 >
                   <Input
                     value={renameValue}
                     onChange={(event) => setRenameValue(event.target.value)}
+                    onBlur={commitRename}
                     placeholder="Playlist name"
                     className={cn(
                       "h-auto font-bold py-0",
@@ -691,17 +701,6 @@ export function Playlists({
                     )}
                     aria-label="Playlist name"
                   />
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={
-                      !renameValue.trim() ||
-                      renameValue.trim() === selected.name
-                    }
-                  >
-                    <Save />
-                    Save
-                  </Button>
                 </form>
               ) : (
                 <div className="min-w-0 flex-1">
@@ -746,16 +745,45 @@ export function Playlists({
                   </>
                 )}
 
-                {isCompact && !selectedReadOnly && (
+                {!selectedReadOnly && (
                   <Button
                     size="sm"
-                    variant={compactEditing ? "default" : "outline"}
+                    variant={editMode ? "default" : "outline"}
                     className="shrink-0"
-                    aria-pressed={compactEditing}
-                    onClick={() => setCompactEditing((prev) => !prev)}
+                    aria-pressed={editMode}
+                    onClick={() => {
+                      // The button suppresses focus, so blur may not fire.
+                      commitRename();
+                      if (editMode) {
+                        setCompactEditing(false);
+                        // Route-level edit mode needs a route change to leave.
+                        if (
+                          activeMode === "edit" ||
+                          pathname.endsWith("/edit")
+                        ) {
+                          // Keep the open playlist: the detail pane lives in
+                          // the location state, which a plain push would drop.
+                          navigate(
+                            { pathname: "/playlists/playback", search: "" },
+                            {
+                              state: {
+                                ...(location.state as object),
+                                detailPane: true,
+                              },
+                            }
+                          );
+                        }
+                        return;
+                      }
+                      if (isCompact) {
+                        setCompactEditing(true);
+                        return;
+                      }
+                      navigate("/playlists/edit");
+                    }}
                   >
-                    {compactEditing ? <Check /> : <Pen />}
-                    {compactEditing ? "Done" : "Edit"}
+                    {editMode ? <Check /> : <Pen />}
+                    {editMode ? "Done" : "Edit"}
                   </Button>
                 )}
               </div>
