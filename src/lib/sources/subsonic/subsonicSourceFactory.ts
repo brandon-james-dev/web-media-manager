@@ -19,6 +19,7 @@ const SUBSONIC_CAPABILITIES: MusicSourceCapabilities = {
   searching: true,
   metadataWrite: false,
   libraryScanning: false,
+  offline: true,
   playlistWrite: false,
 };
 

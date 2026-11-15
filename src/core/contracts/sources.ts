@@ -31,6 +31,12 @@ export interface MusicSourceCapabilities {
   metadataWrite: boolean;
   /** The source's underlying storage can be (re)scanned by this app. */
   libraryScanning: boolean;
+  /**
+   * The source's songs are available without a network round trip, so they
+   * can be copied to a sync device. Local folders are offline by nature; a
+   * remote source is offline only once its songs are cached.
+   */
+  offline: boolean;
   /** The source can persist playlists (local: .m3u file; remote: its API). */
   playlistWrite: boolean;
 }

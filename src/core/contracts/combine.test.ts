@@ -23,6 +23,7 @@ function makeSource(
       searching: false,
       metadataWrite: true,
       libraryScanning: true,
+      offline: true,
       playlistWrite: true,
     },
     kind: "subsonic",
