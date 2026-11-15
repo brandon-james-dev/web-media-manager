@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ThumbnailSize } from "@/lib";
 import { Slider } from "@/components/ui/slider";
 import { repeatState, shuffleState, usePlayback } from "@/hooks/usePlayback";
+import { useOfflineSongs } from "@/hooks/useOfflineSongs";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -108,8 +109,15 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
     repeat,
     volume,
     isPlaying,
+    isBuffering,
     getCurrentTime,
   } = usePlayback();
+
+  // A cached song needs no network, so it never shows as buffering even while
+  // its bytes are being decoded.
+  const { offlineSongIds } = useOfflineSongs();
+  const showBuffering =
+    isBuffering && !!nowPlaying && !offlineSongIds.has(nowPlaying.id);
 
   // When playback rolls onto the next track the readout restarts at zero
   // immediately, instead of showing the previous track's time until the next
@@ -443,11 +451,20 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
         )}
       >
         {/* Slim progress rule along the top edge, like the mini-player. */}
-        <div className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-muted overflow-hidden"
+          role={showBuffering ? "progressbar" : undefined}
+          aria-label={showBuffering ? "Buffering" : undefined}
+        >
           <div
             className="h-full bg-accent transition-[width] duration-200"
             style={{ width: `${progress}%` }}
           />
+          {showBuffering && (
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="buffering-sweep h-full w-1/3 bg-accent/60" />
+            </div>
+          )}
         </div>
 
         {nowPlaying?.duration ? (
@@ -609,7 +626,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       >
                         <div
                           className={cn(
-                            "w-full overflow-hidden rounded-full bg-white/25 transition-[height] duration-300",
+                            "relative w-full overflow-hidden rounded-full bg-white/25 transition-[height] duration-300",
                             controlsHidden ? "h-0.5" : "h-1.5"
                           )}
                         >
@@ -617,10 +634,15 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                             className="h-full bg-white"
                             style={{ width: `${scrubPct ?? progress}%` }}
                           />
+                          {showBuffering && (
+                            <div className="absolute inset-0 overflow-hidden">
+                              <div className="buffering-sweep h-full w-1/3 bg-white/50" />
+                            </div>
+                          )}
                         </div>
                         <div
                           className={cn(
-                            "absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-opacity duration-300",
+                            "absolute top-1/2 z-10 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-opacity duration-300",
                             controlsHidden && scrubPct === null && "opacity-0"
                           )}
                           style={{ left: `${scrubPct ?? progress}%` }}
@@ -871,21 +893,32 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 {elapsedSeconds > 0 ? formatLength(elapsedSeconds) : "--:--"}
               </span>
 
-              <Slider
-                defaultValue={[0]}
-                min={0}
-                max={100}
-                step={1}
-                value={
-                  nowPlaying &&
-                  nowPlaying.duration != null &&
-                  nowPlaying.duration > 0
-                    ? (trackPosition / nowPlaying.duration) * 100
-                    : 0
-                }
-                onValueChange={handleSeek}
-                className="flex-1"
-              />
+              <div className="relative flex-1">
+                <Slider
+                  defaultValue={[0]}
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={
+                    nowPlaying &&
+                    nowPlaying.duration != null &&
+                    nowPlaying.duration > 0
+                      ? (trackPosition / nowPlaying.duration) * 100
+                      : 0
+                  }
+                  onValueChange={handleSeek}
+                  className="flex-1"
+                />
+                {showBuffering && (
+                  <div
+                    className="pointer-events-none absolute inset-x-0 top-1/2 z-0 h-1 -translate-y-1/2 overflow-hidden rounded-full"
+                    role="progressbar"
+                    aria-label="Buffering"
+                  >
+                    <div className="buffering-sweep h-full w-1/3 bg-accent/60" />
+                  </div>
+                )}
+              </div>
 
               <span className="w-10 text-xs">
                 {nowPlaying?.duration

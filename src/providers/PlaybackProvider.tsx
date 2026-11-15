@@ -13,6 +13,7 @@ import { getStore } from "@/core/system";
 import { getPlayHistoryStore, getSourcesStore } from "@/core/ports";
 import { ScrobbleTracker } from "@/core/playback/scrobble";
 import { allMusicSourceStrategies } from "@/lib/sources";
+import { resolveSongBytesWithCache } from "@/lib/offline";
 import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
 import { restoreVolume, VOLUME_STORAGE_KEY } from "./volume";
@@ -27,6 +28,8 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     restoreVolume(safeStorageGet(VOLUME_STORAGE_KEY))
   );
   const [isPlaying, setIsPlaying] = useState(false);
+  // True while the current track's bytes are being fetched and decoded.
+  const [isBuffering, setIsBuffering] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<Song | undefined>(undefined);
 
   const nowPlayingIndex = useMemo(() => {
@@ -220,6 +223,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
       stopPlayback();
       currentTimeRef.current = 0;
+      // A remote source has to fetch the whole file before it can decode, so
+      // the seek bar shows buffering until the bytes are in hand.
+      setIsBuffering(true);
 
       if (!audioCtxRef.current) {
         // Older Safari exposes the AudioContext under the webkit prefix.
@@ -282,7 +288,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
       if (strategy) {
         try {
-          arrayBuffer = await strategy.resolveSongBytes(nowPlaying);
+          // Cache first: a downloaded song plays without the network.
+          arrayBuffer = await resolveSongBytesWithCache(nowPlaying, (song) =>
+            strategy.resolveSongBytes(song)
+          );
         } catch (err) {
           console.error("Failed to resolve song bytes:", err);
           return;
@@ -334,7 +343,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    load();
+    load().finally(() => {
+      // A superseded load must not clear the flag the newer one just set.
+      if (!cancelled) setIsBuffering(false);
+    });
 
     return () => {
       cancelled = true;
@@ -892,6 +904,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         getAnalyser,
         getDuration,
         isPlaying,
+        isBuffering,
       }}
     >
       {children}

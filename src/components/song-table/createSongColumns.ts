@@ -1,7 +1,10 @@
+import { createElement } from "react";
 import { createColumnHelper } from "@tanstack/react-table";
 
 import type { Song } from "@/models";
 import { formatLength } from "@/lib/formatLength";
+import { isSongOffline } from "@/lib/offline";
+import { OfflineCell } from "./OfflineCell";
 
 export function createSongColumns(features: any) {
   const columnHelper = createColumnHelper<typeof features, Song>();
@@ -64,6 +67,18 @@ export function createSongColumns(features: any) {
       minSize: 80,
 
       cell: (info) => `${info.getValue()} kbps`,
+    }),
+
+    columnHelper.accessor((song) => isSongOffline(song.id), {
+      id: "offline",
+      header: "Offline",
+      size: 80,
+      minSize: 70,
+      maxSize: 90,
+      // Offline is `false`, online `true`, so ascending lists cached songs
+      // first — the same order the page-level selector produces.
+      sortFn: "basic",
+      cell: ({ row }) => createElement(OfflineCell, { song: row.original }),
     }),
   ]);
 }

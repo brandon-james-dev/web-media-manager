@@ -214,6 +214,29 @@
   box-shadow: inset 0 0 0 4px var(--ring);
 }
 
+/* Buffering: a highlight sweeps along the seek track, so a stalled stream
+   reads as movement in the direction of playback rather than a blinking
+   block. */
+@keyframes buffering-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.buffering-sweep {
+  animation: buffering-sweep 1400ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buffering-sweep {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 /* Now-playing indicator: the bars scale rather than fade, so movement is
    visible from across a room instead of reading as a static block. */
 @keyframes tv-bar-bounce {

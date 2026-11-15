@@ -17,6 +17,9 @@ wmmBus.on("wmm.jobs.state", (evt) => {
   if (evt.parentJobId) return;
   // Silent jobs (e.g. startup source resyncs) never surface notifications.
   if (evt.silent) return;
+  // An offline download reports its own toast with the cached and failed
+  // counts, so the generic "started / completed" pair would double it.
+  if (evt.jobType === "Offline Download") return;
 
   const jobType = evt.jobType ?? "Job";
   const state = evt.state as BackgroundJobState;

@@ -1,6 +1,7 @@
 import React from "react";
 import type { Song } from "@/models";
 import type { SortableColumn } from "@/lib/persistence";
+import { OfflineCell } from "./OfflineCell";
 
 export const SongRow = React.memo(function SongRow({
   song,
@@ -23,7 +24,9 @@ export const SongRow = React.memo(function SongRow({
           key={key}
           className="px-4 py-1 whitespace-nowrap overflow-clip text-ellipsis"
         >
-          {song[key]}
+          {/* Offline is not a Song field: it is the cache state, so it renders
+              the same cell the TanStack table uses. */}
+          {key === "offline" ? <OfflineCell song={song} /> : song[key]}
         </td>
       ))}
     </tr>

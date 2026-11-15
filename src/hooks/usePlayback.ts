@@ -24,6 +24,12 @@ interface PlaybackContextValue {
   repeat: RepeatState;
   volume: number;
   isPlaying: boolean;
+  /**
+   * True while the current track's audio is being fetched and decoded. A
+   * remote source has to download the whole file before it can play, so the
+   * seek bar shows this rather than appearing stuck at zero.
+   */
+  isBuffering: boolean;
   /** Query only — actions are issued as events/commands on the WmmBus. */
   getCurrentTime: () => number;
   getCollectionIds: () => string[];

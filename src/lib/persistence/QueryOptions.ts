@@ -1,4 +1,5 @@
 import type { Song } from "@/models";
+import { isSongOffline } from "@/lib/offline";
 
 export type QueryOptions<T> = {
   filter?: (item: T) => boolean;
@@ -22,6 +23,12 @@ export const selectors = {
   year: (s: Song) => s.year,
   duration: (s: Song) => s.duration,
   bitrate: (s: Song) => s.bitrate,
+  /**
+   * Offline sorts below online: a cached song yields `false`, an uncached one
+   * `true`, so ascending order lists the songs that are already available
+   * offline first.
+   */
+  offline: (s: Song) => !isSongOffline(s.id),
 } as const;
 
 export type SortableColumn = keyof typeof selectors;

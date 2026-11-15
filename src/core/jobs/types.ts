@@ -18,7 +18,11 @@ export type WorkerJobState =
  * left open so server/Tauri-defined job kinds don't force a core change.
  */
 export type WorkerJobType =
-  "Thumbnail Generation" | "Bulk Import" | "Bulk Edit" | (string & {});
+  | "Thumbnail Generation"
+  | "Bulk Import"
+  | "Bulk Edit"
+  | "Offline Download"
+  | (string & {});
 
 export interface WorkerProgress {
   /** A freeform object */
@@ -45,6 +49,8 @@ export interface Job {
   payload: any;
   /** Suppress UI notifications for this job (e.g. silent startup resyncs). */
   silent?: boolean;
+  /** What the job returned, set once it completes. */
+  result?: unknown;
 }
 
 export type JobState =

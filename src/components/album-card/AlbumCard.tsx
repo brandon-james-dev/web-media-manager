@@ -3,6 +3,8 @@ import type { Album } from "@/models";
 import { AlbumArtImage } from "../album-art-image";
 import { ThumbnailSize } from "@/lib";
 import { SongContextMenu } from "../song-context-menu";
+import { albumOfflineBatchId } from "@/lib/offline";
+import { AlbumOfflineRing } from "./AlbumOfflineRing";
 
 export function AlbumCard({
   album,
@@ -33,6 +35,7 @@ export function AlbumCard({
         onClick={handleClick}
       >
         <div className="absolute top-0 left-0 h-full w-full hover:bg-accent/15 transition duration-100"></div>
+        <AlbumOfflineRing batchId={albumOfflineBatchId(album)} />
         <CardContent className="flex flex-col items-center justify-center p-0 h-full">
           <AlbumArtImage
             songId={album.pictureSongId}

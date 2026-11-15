@@ -9,6 +9,8 @@ import {
 import { useLocation, useNavigate, useParams } from "react-router";
 import { wmmBus } from "@/events";
 import {
+  Download,
+  HardDriveDownload,
   Heart,
   ListMusic,
   ListPlus,
@@ -19,7 +21,17 @@ import {
   Play,
   PlusCircle,
 } from "lucide-react";
-import { useFavorites, usePlayback, useSync } from "@/hooks";
+import {
+  useFavorites,
+  useOfflineSongs,
+  usePlayback,
+  useSync,
+} from "@/hooks";
+import {
+  albumOfflineBatchId,
+  cacheSongsOffline,
+  removeSongOffline,
+} from "@/lib/offline";
 import { getStore } from "@/core/system";
 import { getPlaylistStore, getSourcesStore } from "@/core/ports";
 import {
@@ -82,6 +94,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
   const { queuedSongs, devices } = useSync();
   const { nowPlaying, isPlaying } = usePlayback();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { offlineSongIds } = useOfflineSongs();
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [newPlaylistOpen, setNewPlaylistOpen] = useState(false);
@@ -260,6 +273,56 @@ export function useSongMenu(songs: Song[]): SongMenu {
   }
 
   /**
+   * Cache the selection for offline use, or drop it when every song is
+   * already cached. Cached audio is what a sync job can read from a remote
+   * source, and what lets a song play without the network.
+   */
+  async function toggleOffline() {
+    const allCached = target.every((s) => offlineSongIds.has(s.id));
+
+    if (allCached) {
+      for (const s of target) await removeSongOffline(s.id);
+      notify("success", "Removed download", selectionLabel);
+      return;
+    }
+
+    let cached = 0;
+    const failed: string[] = [];
+
+    // Cache the selection as one worker batch. A selection drawn from a single
+    // album reports under that album's id, so its card fills in; a mixed
+    // selection gets its own batch id and leaves the album cards alone.
+    const albums = new Set(target.map((s) => `${s.album}\u0000${s.artist}`));
+    const batchId =
+      albums.size === 1
+        ? albumOfflineBatchId({
+            title: target[0]?.album ?? "",
+            artist: target[0]?.artist ?? "",
+          })
+        : `selection:${target.map((s) => s.id).join(",")}`;
+
+    const result = await cacheSongsOffline(target, batchId);
+    cached = result.cached;
+    failed.push(...result.failed);
+
+    if (cached > 0) {
+      notify(
+        "success",
+        `Available offline`,
+        `${cached} song${cached === 1 ? "" : "s"} cached.`
+      );
+    }
+
+    if (failed.length > 0) {
+      notify(
+        "error",
+        `Could not cache ${failed.length} song${failed.length === 1 ? "" : "s"}`,
+        failed.slice(0, 3).join(", ")
+      );
+    }
+  }
+
+  /**
    * Create a playlist from the selection. Playlists live in the app's own
    * store; a source that can persist playlists also gets a written copy
    * (savePlaylist decides that from the source's capabilities).
@@ -283,6 +346,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
 
   const groups = useMemo<SongMenuGroup[]>(() => {
     const allFavorite = target.every((s) => isFavorite(s.id));
+    const allOffline = target.every((s) => offlineSongIds.has(s.id));
 
     return [
       {
@@ -401,6 +465,18 @@ export function useSongMenu(songs: Song[]): SongMenu {
         ],
       },
       {
+        id: "offline",
+        label: "Offline",
+        actions: [
+          {
+            id: "cache-offline",
+            label: allOffline ? "Remove Download" : "Make Available Offline",
+            icon: allOffline ? <HardDriveDownload /> : <Download />,
+            onSelect: () => void toggleOffline(),
+          },
+        ],
+      },
+      {
         id: "sync",
         label: "Sync",
         hidden: !hasConnectedDevices || !isQueued,
@@ -428,6 +504,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
     isPlaybackHidden,
     isQueued,
     notify,
+    offlineSongIds,
     selectionLabel,
     song,
     target,

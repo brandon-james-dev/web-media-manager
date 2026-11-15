@@ -6,6 +6,7 @@ import type {
   PluginFileRecord,
   PluginSettingsRecord,
 } from "@/core/visualizers/contracts";
+import type { OfflineAudioRecord } from "@/lib/offline/offlineAudioStore";
 import type {
   MusicSource,
   PlayHistoryEntry,
@@ -36,6 +37,7 @@ export class WmmMusicDb extends Dexie {
   plugins!: Table<InstalledVisualizerPlugin, string>;
   pluginFiles!: Table<PluginFileRecord, number>;
   pluginSettings!: Table<PluginSettingsRecord, string>;
+  offlineAudio!: Table<OfflineAudioRecord, string>;
 
   constructor() {
     super("wmmMusic");
@@ -90,6 +92,12 @@ export class WmmMusicDb extends Dexie {
         id,
         songId,
         playedAt
+      `,
+
+      offlineAudio: `
+        songId,
+        sourceId,
+        cachedAt
       `,
     });
 

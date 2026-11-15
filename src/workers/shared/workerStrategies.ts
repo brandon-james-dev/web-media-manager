@@ -1,5 +1,10 @@
 import type { WorkerJobType, WorkerProgress } from "@/workers/WorkerJob";
-import { runArtworkProcess, runBulkEdit, runBulkImport } from ".";
+import {
+  runArtworkProcess,
+  runBulkEdit,
+  runBulkImport,
+  runOfflineDownload,
+} from ".";
 
 export const workerStrategies: Record<
   WorkerJobType,
@@ -14,4 +19,5 @@ export const workerStrategies: Record<
   "Thumbnail Generation": runArtworkProcess,
   "Bulk Edit": runBulkEdit,
   "Bulk Import": runBulkImport,
+  "Offline Download": runOfflineDownload,
 };
