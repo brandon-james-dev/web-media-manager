@@ -21,6 +21,9 @@ const SUBSONIC_CAPABILITIES: MusicSourceCapabilities = {
   libraryScanning: false,
   offline: true,
   playlistWrite: false,
+  // A sync target only when the server can take playlists back; the
+  // per-instance value is refined from the server's own capabilities.
+  syncWrite: false,
 };
 
 export interface AddSubsonicSourceInput {

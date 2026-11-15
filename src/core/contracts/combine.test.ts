@@ -25,6 +25,7 @@ function makeSource(
       libraryScanning: true,
       offline: true,
       playlistWrite: true,
+      syncWrite: true,
     },
     kind: "subsonic",
     config: overrides.config ?? { baseUrl: "http://example.test" },

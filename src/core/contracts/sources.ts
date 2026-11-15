@@ -12,7 +12,7 @@
  * lives in the platform's secret store, never on the source entity.
  */
 
-export type MusicSourceKind = "local" | "subsonic" | "server";
+export type MusicSourceKind = "local" | "subsonic" | "server" | "sync";
 
 /**
  * What a source can do. The UI uses these to gate operations (e.g. never
@@ -39,6 +39,13 @@ export interface MusicSourceCapabilities {
   offline: boolean;
   /** The source can persist playlists (local: .m3u file; remote: its API). */
   playlistWrite: boolean;
+  /**
+   * Songs and playlists can be written into this source as a sync target.
+   * Distinct from `playlistWrite`: a device accepts whole-library copies
+   * but holds no playlists of its own, and a read-only Subsonic instance
+   * accepts neither.
+   */
+  syncWrite: boolean;
 }
 
 /** Connection settings for a remote-attached instance. Credentials stay external. */
@@ -95,8 +102,52 @@ export interface WmmServerMusicSource extends MusicSourceBase {
   config: RemoteSourceConfig;
 }
 
+/** Portable device formats the app can write to. */
+export type SyncSourceType =
+  | "iPod"
+  | "zune"
+  | "mtp"
+  | "mass-storage"
+  | "unknown";
+
+/** USB descriptor fields kept for re-matching a device on reconnect. */
+export interface SyncSourceUsb {
+  vendorId: number;
+  productId: number;
+  firmwareVersion?: string;
+  manufacturerName: string | undefined;
+  productName: string | undefined;
+  serialNumber: string | undefined;
+}
+
+/**
+ * A portable music device treated as a sync target.
+ *
+ * It is a source so the Sync page can list it beside every other writable
+ * source, but it is deliberately excluded from the combined library: its
+ * tracks are not imported as songs, so it never appears in Songs, Albums,
+ * Artists or the source filter. `capabilities.syncWrite` is what marks it
+ * (and any other writable source) as a valid sync target.
+ */
+export interface SyncMusicSource extends MusicSourceBase {
+  kind: "sync";
+  type: SyncSourceType;
+  /** USB product id, kept for display and model matching. */
+  productId?: number;
+  serialNumber?: string;
+  /** FireWire GUID — used by the iTunesDB hash58 checksum (nano 3/4G, classic). */
+  firewireGuid?: string;
+  model?: string;
+  usb?: SyncSourceUsb;
+  /** Browser: the granted handle of the device's filesystem root. */
+  rootHandle?: FileSystemDirectoryHandle;
+}
+
 export type MusicSource =
-  LocalMusicSource | SubsonicMusicSource | WmmServerMusicSource;
+  | LocalMusicSource
+  | SubsonicMusicSource
+  | WmmServerMusicSource
+  | SyncMusicSource;
 
 /** Display name of a local source: its folder, or "first +N" for several. */
 export function localSourceName(
@@ -138,6 +189,11 @@ export function resolveLocalSongFolder(
 /** Type guard: is this source the device's own storage ("on device")? */
 export function isLocalSource(source: MusicSource): source is LocalMusicSource {
   return source.kind === "local";
+}
+
+/** Type guard: is this source a portable sync device? */
+export function isSyncSource(source: MusicSource): source is SyncMusicSource {
+  return source.kind === "sync";
 }
 
 /* ------------------------------------------------------------------ */

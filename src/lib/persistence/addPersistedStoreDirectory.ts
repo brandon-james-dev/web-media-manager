@@ -35,6 +35,7 @@ export function addPersistedStoreDirectory(
       libraryScanning: true,
       offline: true,
       playlistWrite: true,
+      syncWrite: true,
     },
   };
 

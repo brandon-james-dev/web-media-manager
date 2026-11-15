@@ -30,7 +30,6 @@ export class WmmMusicDb extends Dexie {
   sources!: Table<MusicSource, string>;
   songs!: Table<Song, string>;
   songArtwork!: Table<SongArtwork, number>;
-  syncDevices!: Table<SyncDeviceRecord, string>;
   playlists!: Table<Playlist, string>;
   jobs!: Table<PersistedJob, string>;
   playHistory!: Table<PlayHistoryEntry, string>;
@@ -118,6 +117,43 @@ export class WmmMusicDb extends Dexie {
         updatedAt
       `,
     });
+
+    // Version 3 folds sync devices into the sources table: a device is a
+    // source with kind "sync" (capabilities.syncWrite), so the Sync page can
+    // list it beside every other writable source. The old table is dropped
+    // after its rows are migrated, so there is one record per device.
+    this.version(3)
+      .stores({ syncDevices: null })
+      .upgrade(async (tx) => {
+        const records = await tx.table("syncDevices").toArray();
+
+        await tx.table("sources").bulkPut(
+          records.map((record: SyncDeviceRecord) => ({
+            id: record.id,
+            kind: "sync" as const,
+            uriDomain: "sync",
+            name: record.name,
+            enabled: true,
+            createdAt: new Date(record.createdAt),
+            priority: 50,
+            capabilities: {
+              streaming: false,
+              browsing: false,
+              searching: false,
+              metadataWrite: false,
+              libraryScanning: false,
+              playlistWrite: false,
+              syncWrite: true,
+            },
+            type: record.type,
+            productId: record.productId,
+            serialNumber: record.serialNumber,
+            firewireGuid: record.firewireGuid,
+            usb: record.usb,
+            rootHandle: record.rootHandle,
+          }))
+        );
+      });
   }
 }
 

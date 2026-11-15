@@ -171,6 +171,7 @@ function makeSource(): MusicSource {
       libraryScanning: true,
       offline: true,
       playlistWrite: true,
+      syncWrite: true,
     },
     kind: "subsonic",
     config: { baseUrl: "http://example.test" },

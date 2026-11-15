@@ -12,7 +12,7 @@ import { commandDispatcher, wmmBus } from "@/events";
 import { getStore } from "@/core/system";
 import { getPlayHistoryStore, getSourcesStore } from "@/core/ports";
 import { ScrobbleTracker } from "@/core/playback/scrobble";
-import { musicSourceStrategies } from "@/lib/sources";
+import { allMusicSourceStrategies } from "@/lib/sources";
 import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
 import { restoreVolume, VOLUME_STORAGE_KEY } from "./volume";
@@ -275,7 +275,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       const sources = await getSourcesStore().getSources();
       const source = sources.find((s) => s.id === nowPlaying.sourceId);
       const strategy = source
-        ? musicSourceStrategies.find((s) => s.kind === source.kind)
+        ? allMusicSourceStrategies.find((s) => s.kind === source.kind)
         : undefined;
 
       let arrayBuffer: ArrayBuffer | null = null;

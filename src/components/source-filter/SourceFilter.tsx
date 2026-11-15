@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Filter, Pen, X } from "lucide-react";
 import { getStore } from "@/core/system";
 import { getSourcesStore } from "@/core/ports";
-import { musicSourceStrategies } from "@/lib/sources";
+import { allMusicSourceStrategies } from "@/lib/sources";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import {
@@ -26,7 +26,7 @@ export type SourceFilterProps = {
 
 /** A source kind is editable when its strategy can persist settings. */
 function isEditable(source: MusicSource): boolean {
-  return musicSourceStrategies.some(
+  return allMusicSourceStrategies.some(
     (strategy) => strategy.kind === source.kind && strategy.updateSource
   );
 }

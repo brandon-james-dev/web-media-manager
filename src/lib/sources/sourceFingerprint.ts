@@ -11,6 +11,10 @@ export function sourceFingerprint(source: MusicSource): string {
       .map((folder) => folder.name)
       .join("|");
   }
+  // A sync device reads from its own filesystem root, identified by serial.
+  if (source.kind === "sync") {
+    return [source.serialNumber ?? source.id, source.type].join("|");
+  }
   const { baseUrl, username, musicFolderId } = source.config;
   return [baseUrl, username, musicFolderId].join("|");
 }

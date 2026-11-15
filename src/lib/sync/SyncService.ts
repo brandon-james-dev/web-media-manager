@@ -1,4 +1,5 @@
 import type { Playlist, Song, SyncDevice } from "@/models";
+import type { SyncMusicSource } from "@/core/contracts/sources";
 import { DexieSyncDeviceStore } from "../persistence/dexie/DexieSyncDeviceStore";
 import { DeviceScanner } from "./DeviceScanner";
 import { type UsbDeviceInfo } from "./usb";
@@ -92,9 +93,33 @@ export class SyncService {
     return device;
   }
 
+  /**
+   * Re-read a device that is already a source and persist what changed
+   * (name, model, type). Used by `SyncMusicSourceStrategy.sync()` so the
+   * source record reflects the device as it is now.
+   */
+  async refreshSource(source: SyncMusicSource): Promise<void> {
+    if (!source.rootHandle) return;
+
+    const permission = await source.rootHandle.requestPermission({
+      mode: "readwrite",
+    });
+    if (permission !== "granted") return;
+
+    const scanned = await this.scanner.scan(source.rootHandle, source.usb);
+    const { getSourcesStore } = await import("@/core/ports");
+
+    await getSourcesStore().saveSource({
+      ...source,
+      name: scanned.name || source.name,
+      model: scanned.model ?? source.model,
+      type: scanned.type,
+      productId: scanned.productId ?? source.productId,
+    });
+  }
+
   /** Detect mass-storage devices — those needing a directory prompt (e.g. iPod). */
-  requiresRootDirectory(usbInfo: UsbDeviceInfo): boolean {
-    // Apple iPods (vendor 0x05ac) expose a mass-storage filesystem and so
+  requiresRootDirectory(usbInfo: UsbDeviceInfo): boolean {    // Apple iPods (vendor 0x05ac) expose a mass-storage filesystem and so
     // require a directory picker. MTP/PTP devices (Zune, etc.) do not.
     return usbInfo.vendorId === 0x05ac;
   }

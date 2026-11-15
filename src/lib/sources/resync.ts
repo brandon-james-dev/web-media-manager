@@ -1,5 +1,5 @@
 import { getSourcesStore } from "@/core/ports";
-import { musicSourceStrategies } from "./index";
+import { allMusicSourceStrategies } from "./index";
 
 /**
  * Enqueue a resync (Bulk Import) run for every configured music source.
@@ -18,7 +18,7 @@ export async function resyncAllSources(
   const sources = await getSourcesStore().getSources();
   for (const source of sources) {
     if (skipSourceIds.has(source.id)) continue;
-    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
+    const strategy = allMusicSourceStrategies.find((s) => s.kind === source.kind);
     await strategy?.sync?.({ source, silent: true });
   }
 }

@@ -1,92 +1,93 @@
 import type { SyncDeviceRecord } from "@/models";
+import type { SyncMusicSource } from "@/core/contracts/sources";
 import { getWmmMusicDb } from "./WmmMusicDb";
-import type { DataChangedCallback, IRepository, QueryOptions } from "..";
-import type { DataSourceResult } from "../DataSourceResult";
 
-export class DexieSyncDeviceStore implements IRepository<SyncDeviceRecord> {
+/**
+ * Device records, stored as `sources` rows with kind "sync".
+ *
+ * Devices used to have their own table; they are sources now (see the Dexie
+ * v3 migration), so this reads and writes the sources table and keeps the
+ * `SyncDeviceRecord` shape the sync service already speaks.
+ */
+export class DexieSyncDeviceStore {
   private readonly db = getWmmMusicDb();
 
-  async get(id: string): Promise<SyncDeviceRecord | null> {
-    return (await this.db.syncDevices.get(id)) ?? null;
-  }
-
-  async save(id: string, updated: SyncDeviceRecord): Promise<SyncDeviceRecord> {
-    await this.db.syncDevices.put({
-      ...updated,
-      id,
-    });
-
-    return updated;
-  }
-
-  async delete(id: string): Promise<void> {
-    await this.db.syncDevices.delete(id);
-  }
-
-  async getAll(): Promise<SyncDeviceRecord[]> {
-    return this.db.syncDevices.toArray();
-  }
-
-  async filter(
-    options: QueryOptions<SyncDeviceRecord>
-  ): Promise<DataSourceResult<SyncDeviceRecord>> {
-    let items = await this.db.syncDevices.toArray();
-    const total = items.length;
-
-    if (options.filter) {
-      items = items.filter(options.filter);
-    }
-
-    const filteredCount = items.length;
-    const skip = options.skip ?? 0;
-    const take = options.take ?? filteredCount;
-
+  /** Map a sync source row back to the device record shape. */
+  private toRecord(source: SyncMusicSource): SyncDeviceRecord {
     return {
-      data: items.slice(skip, skip + take),
-      filteredCount,
-      total,
+      id: source.id,
+      name: source.name,
+      createdAt: source.createdAt.getTime(),
+      productId: source.productId,
+      usb: source.usb,
+      firewireGuid: source.firewireGuid,
+      serialNumber: source.serialNumber,
+      type: source.type,
+      rootHandle: source.rootHandle,
     };
   }
 
-  async batchDelete(ids: string[]): Promise<void> {
-    await this.db.transaction("rw", this.db.syncDevices, async () => {
-      await this.db.syncDevices.bulkDelete(ids);
-    });
+  async get(id: string): Promise<SyncDeviceRecord | null> {
+    const source = await this.db.sources.get(id);
+    if (!source || source.kind !== "sync") return null;
+    return this.toRecord(source);
   }
 
-  async batchUpdate(
-    items: {
-      id: string;
-      updated: SyncDeviceRecord;
-    }[]
-  ): Promise<void> {
-    await this.db.transaction("rw", this.db.syncDevices, async () => {
-      await this.db.syncDevices.bulkPut(
-        items.map(({ id, updated }) => ({
-          ...updated,
-          id,
-        }))
-      );
-    });
+  async getAll(): Promise<SyncDeviceRecord[]> {
+    const sources = await this.db.sources.toArray();
+    return sources
+      .filter((source): source is SyncMusicSource => source.kind === "sync")
+      .map((source) => this.toRecord(source));
   }
 
-  async clearStore(): Promise<void> {
-    await this.db.syncDevices.clear();
+  async save(id: string, record: SyncDeviceRecord): Promise<SyncDeviceRecord> {
+    const existing = await this.db.sources.get(id);
+
+    // Preserve the source fields a device record does not carry (priority,
+    // capabilities, uriDomain) when the row already exists.
+    const base: SyncMusicSource =
+      existing && existing.kind === "sync"
+        ? existing
+        : {
+            id,
+            kind: "sync",
+            uriDomain: "sync",
+            name: record.name,
+            enabled: true,
+            createdAt: new Date(record.createdAt),
+            priority: 50,
+            capabilities: {
+              streaming: false,
+              browsing: false,
+              searching: false,
+              metadataWrite: false,
+              libraryScanning: false,
+              playlistWrite: false,
+              syncWrite: true,
+              offline: false,
+            },
+            type: record.type,
+          };
+
+    await this.db.sources.put(
+      {
+        ...base,
+        id,
+        name: record.name,
+        type: record.type,
+        productId: record.productId,
+        serialNumber: record.serialNumber,
+        firewireGuid: record.firewireGuid,
+        usb: record.usb,
+        rootHandle: record.rootHandle,
+      },
+      id
+    );
+
+    return record;
   }
 
-  onAdded(_cb: DataChangedCallback<SyncDeviceRecord>): () => void {
-    return () => {};
-  }
-
-  onUpdated(_cb: DataChangedCallback<SyncDeviceRecord>): () => void {
-    return () => {};
-  }
-
-  onDeleted(_cb: DataChangedCallback<SyncDeviceRecord>): () => void {
-    return () => {};
-  }
-
-  onStoreCleared(_cb: () => void): () => void {
-    return () => {};
+  async delete(id: string): Promise<void> {
+    await this.db.sources.delete(id);
   }
 }
