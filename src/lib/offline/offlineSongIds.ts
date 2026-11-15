@@ -1,6 +1,8 @@
 /**
- * One shared snapshot of the cached song ids.
+ * One shared snapshot of the song ids whose audio is available on this device.
  *
+ * "Available" covers two cases: a song cached in the offline store, and a song
+ * whose source already holds its own audio (a local folder, or a sync device).
  * The song table renders a cell per row and the Offline column's sort selector
  * needs the same answer synchronously, so the ids are loaded once and shared
  * rather than queried per row or per comparison.
@@ -15,12 +17,20 @@ function emit(): void {
   }
 }
 
-/** The cached song ids as of the last load. Synchronous, for sort selectors. */
+/**
+ * Whether a source kind always holds its own audio, so its songs need no
+ * download and can be synced without one.
+ */
+export function isAlwaysOfflineKind(kind: string | undefined): boolean {
+  return kind === "local" || kind === "sync";
+}
+
+/** The available song ids as of the last load. Synchronous, for sort selectors. */
 export function getOfflineSongIdsSnapshot(): ReadonlySet<string> {
   return snapshot;
 }
 
-/** Whether a song's audio is cached, per the current snapshot. */
+/** Whether a song's audio is available on this device, per the snapshot. */
 export function isSongOffline(songId: string): boolean {
   return snapshot.has(songId);
 }
@@ -31,8 +41,30 @@ export async function reloadOfflineSongIds(): Promise<void> {
   // layer reads the snapshot from a sort selector, and it should not pull the
   // Dexie cache into its module graph.
   const { listOfflineSongIds } = await import("./offlineAudioStore");
-  const ids = await listOfflineSongIds();
-  snapshot = new Set(ids);
+  const ids = new Set(await listOfflineSongIds());
+
+  // A local folder and a sync device already hold their own audio, so their
+  // songs count as available without being cached. Without this a drag from a
+  // local source was refused as "not offline" and could never be queued.
+  try {
+    const { getStore, getSourcesStore } = await import("@/core/ports");
+    const [sources, songs] = await Promise.all([
+      getSourcesStore().getSources(),
+      getStore().getAll(),
+    ]);
+
+    const alwaysOffline = new Set(
+      sources.filter((s) => isAlwaysOfflineKind(s.kind)).map((s) => s.id)
+    );
+
+    for (const song of songs) {
+      if (alwaysOffline.has(song.sourceId)) ids.add(song.id);
+    }
+  } catch {
+    // A store that is not wired yet leaves the cached ids as the answer.
+  }
+
+  snapshot = ids;
   emit();
 }
 

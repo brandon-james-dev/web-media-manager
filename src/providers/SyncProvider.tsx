@@ -22,7 +22,10 @@ import {
 import { isOnDevice, type SyncSongOutcome } from "@/lib/sync/writers/ISyncStrategy";
 import type { DeviceSyncResult } from "@/workers/shared/runDeviceSync";
 import { notification$ } from "@/events/notification-events";
-import { listOfflineSongIds } from "@/lib/offline";
+import {
+  getOfflineSongIdsSnapshot,
+  reloadOfflineSongIds,
+} from "@/lib/offline";
 import { uuidv7 } from "uuidv7";
 
 export function SyncProvider({ children }: { children: ReactNode }) {
@@ -82,9 +85,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         queuedSongsRef.current.map((song) => song.id)
       );
 
-      // Only cached audio can be written to a device: a sync job runs in a
-      // worker, where a remote source's credentials are out of reach.
-      const offlineIds = new Set(await listOfflineSongIds());
+      // Only audio that is already on this device can be written to a device:
+      // a sync job runs in a worker, where a remote source's credentials are
+      // out of reach. A cached song qualifies, and so does a song whose source
+      // holds its own audio (a local folder, or another sync device).
+      await reloadOfflineSongIds();
+      const offlineIds = getOfflineSongIdsSnapshot();
 
       // Songs skipped because they are already queued are not "on device";
       // only the latter earns the notification below.

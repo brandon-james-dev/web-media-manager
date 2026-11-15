@@ -35,6 +35,7 @@ export {
 } from "./offlineDownloads";
 export {
   getOfflineSongIdsSnapshot,
+  isAlwaysOfflineKind,
   isSongOffline,
   onOfflineSongIdsChanged,
   reloadOfflineSongIds,

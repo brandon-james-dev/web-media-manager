@@ -25,11 +25,13 @@ import {
   useFavorites,
   useOfflineSongs,
   usePlayback,
+  useSourceKinds,
   useSync,
 } from "@/hooks";
 import {
   albumOfflineBatchId,
   cacheSongsOffline,
+  isAlwaysOfflineKind,
   removeSongOffline,
 } from "@/lib/offline";
 import { getStore } from "@/core/system";
@@ -99,6 +101,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
   const { nowPlaying, isPlaying } = usePlayback();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { offlineSongIds } = useOfflineSongs();
+  const sourceKinds = useSourceKinds();
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [newPlaylistOpen, setNewPlaylistOpen] = useState(false);
@@ -471,6 +474,11 @@ export function useSongMenu(songs: Song[]): SongMenu {
       {
         id: "offline",
         label: "Offline",
+        // A local folder and a sync device already hold their own audio, so
+        // there is nothing to download and nothing to remove.
+        hidden: target.every((s) =>
+          isAlwaysOfflineKind(sourceKinds.get(s.sourceId))
+        ),
         actions: [
           {
             id: "cache-offline",
@@ -527,6 +535,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
     isQueued,
     notify,
     offlineSongIds,
+    sourceKinds,
     selectionLabel,
     song,
     target,

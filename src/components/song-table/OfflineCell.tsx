@@ -5,7 +5,7 @@ import {
   useOfflineSongs,
   useSourceKinds,
 } from "@/hooks";
-import { cacheSongOffline, removeSongOffline } from "@/lib/offline";
+import { cacheSongOffline, isAlwaysOfflineKind, removeSongOffline } from "@/lib/offline";
 import { toast } from "@/components/ui/toast";
 import type { Song } from "@/models";
 
@@ -25,7 +25,7 @@ export function OfflineCell({ song }: { song: Song }) {
   const [busy, setBusy] = useState(false);
 
   const kind = sourceKinds.get(song.sourceId);
-  const alwaysOffline = kind === "local" || kind === "sync";
+  const alwaysOffline = isAlwaysOfflineKind(kind);
 
   const cached = offlineSongIds.has(song.id);
 

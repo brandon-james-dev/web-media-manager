@@ -16,6 +16,17 @@ import {
 import { trackIdentity } from "../helpers";
 import { resolveSongBytesWithCache, resolveThroughSource } from "@/lib/offline";
 
+/**
+ * Convert an iPod track location to a path the filesystem port understands.
+ *
+ * The database stores locations colon-separated and rooted
+ * (`:iPod_Control:Music:F03:Song.mp3`); the port takes `/`-separated paths
+ * relative to the device root.
+ */
+export function ipodLocationToPath(location: string): string {
+  return location.replace(/^:/, "").replace(/:/g, "/");
+}
+
 /** Reads a song's audio, whatever source it comes from. */
 export type SongBytesResolver = (song: Song) => Promise<ArrayBuffer | null>;
 
@@ -112,7 +123,14 @@ export class IpodSyncStrategy implements ISyncStrategy {
         // has to exist on the device. A write that silently did neither used
         // to be reported as synced.
         const recorded = itdb.tracks.some((t) => t.trackId === track.trackId);
-        const onDisk = track.path ? await fs.exists(track.path) : false;
+        // `track.path` is an iPod location (`:iPod_Control:Music:F03:x.mp3`),
+        // but the filesystem port takes `/`-separated paths. Passing the
+        // location straight through made `exists` look for one directory
+        // literally named ":iPod_Control:Music:F03:x.mp3", so every write was
+        // reported as unverified even though it had landed.
+        const onDisk = track.path
+          ? await fs.exists(ipodLocationToPath(track.path))
+          : false;
         const verified = recorded && onDisk;
 
         existing.add(key);

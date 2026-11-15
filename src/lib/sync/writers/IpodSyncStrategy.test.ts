@@ -22,14 +22,17 @@ const { fakeItdb, fakeStore, fakeFs } = vi.hoisted(() => {
     }[],
     playlists: [] as unknown[],
     // Mirrors the real addTrack: the track joins the database and gets a path
-    // on the device, which is what the post-write verification looks for.
+    // on the device, which is what the post-write verification looks for. The
+    // location is colon-separated and rooted, exactly as itunesdb-ts stores it
+    // — a slash-separated fake here hid the fact that the strategy was handing
+    // that location straight to a `/`-based filesystem port.
     addTrack: vi.fn(async (meta: { title: string; album?: string; artist?: string }) => {
       const track = {
         trackId: fakeItdb.tracks.length + 1,
         title: meta.title,
         album: meta.album ?? "",
         artist: meta.artist ?? "",
-        path: `iPod_Control/Music/${meta.title}.mp3`,
+        path: `:iPod_Control:Music:F00:${meta.title}.mp3`,
       };
       fakeItdb.tracks.push(track);
       return track;
@@ -206,6 +209,20 @@ describe("IpodSyncStrategy verification", () => {
     expect(outcomes).toEqual([{ songId: "a", status: "unverified" }]);
     expect(summary.unverified).toEqual(["a"]);
     expect(summary.added).toEqual([]);
+  });
+
+  it("checks the audio file at its slash-separated path", async () => {
+    fakeItdb.tracks = [];
+    fakeFs.exists.mockClear();
+
+    await new IpodSyncStrategy().sync(device, [song("a", "One")], []);
+
+    // The database stores `:iPod_Control:Music:F00:One.mp3`; the filesystem
+    // port takes `iPod_Control/Music/F00/One.mp3`. Passing the location
+    // through unchanged made every write look unverified.
+    expect(fakeFs.exists).toHaveBeenCalledWith(
+      "iPod_Control/Music/F00/One.mp3"
+    );
   });
 
   it("leaves a song with no audio out of both added and unverified", async () => {
