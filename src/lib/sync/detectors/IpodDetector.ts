@@ -15,7 +15,7 @@ import type {
 import type { DeviceDetector } from "./DeviceDetector";
 import { uuidv7 } from "uuidv7";
 import { mapUsbDevice, type UsbDeviceInfo } from "../usb";
-import { getDirectorySize } from "../helpers";
+import { getDirectorySize } from "../helpers/getDirectorySize";
 
 export class IpodDetector implements DeviceDetector {
   async detect(
@@ -43,6 +43,13 @@ export class IpodDetector implements DeviceDetector {
     });
     let resolved:
       Awaited<ReturnType<typeof Itdb.open>>["resolvedDevice"] | undefined;
+
+    // Filled inside the try, before the handle is released: `dispose()`
+    // empties the database's track, playlist and artwork arrays.
+    let playlists: SyncPlaylist[] = [];
+    let artworks: SyncArtwork[] = [];
+    let tracks: SyncTrack[] = [];
+
     try {
       // Carry the on-device GUID/serial onto the resolved device so the
       // hash58 checksum works on devices that need it (nano 3/4G, classic).
@@ -90,21 +97,16 @@ export class IpodDetector implements DeviceDetector {
           console.warn("[IpodDetector] One-time SysInfo setup failed:", err);
         }
       }
-    } finally {
-      itdb[Symbol.dispose]();
-    }
+      // #region Map to sync models
+      playlists = itdb.playlists.map((playlist) => {
+        return {
+          id: playlist.playlistId,
+          name: `${playlist.name}${playlist.isMaster ? " (Master)" : ""}`,
+          trackIds: playlist.items.map((t) => t.trackId),
+        };
+      });
 
-    // #region Map to sync models
-    const playlists: SyncPlaylist[] = itdb.playlists.map((playlist) => {
-      return {
-        id: playlist.playlistId,
-        name: `${playlist.name}${playlist.isMaster ? " (Master)" : ""}`,
-        trackIds: playlist.items.map((t) => t.trackId),
-      };
-    });
-
-    const artworks: SyncArtwork[] = (itdb.artwork?.getImages() ?? []).map(
-      (image) => {
+      artworks = (itdb.artwork?.getImages() ?? []).map((image) => {
         return {
           id: image.imageId,
           formats: image.thumbnails.map((t) => {
@@ -116,30 +118,39 @@ export class IpodDetector implements DeviceDetector {
             };
           }),
         };
-      }
-    );
+      });
 
-    const tracks: SyncTrack[] = itdb.tracks.map((track) => {
-      return {
-        id: track.trackId,
-        title: track.title,
-        album: track.album,
-        artist: track.artist,
-        durationMs: track.length,
-        // Link the track to its cover-art image in the device ArtworkDB.
-        // mhiiLink is the ArtworkDB imageId (mhii::song_id) this track's art
-        // lives under; 0/absent means the track has no embedded cover art.
-        artworkId: track.mhiiLink > 0 ? String(track.mhiiLink) : undefined,
-      };
-    });
+      tracks = itdb.tracks.map((track) => {
+        return {
+          id: track.trackId,
+          title: track.title,
+          album: track.album,
+          artist: track.artist,
+          durationMs: track.length,
+          genre: track.genre,
+          year: track.year,
+          trackNumber: track.trackNumber,
+          trackTotal: track.trackTotal,
+          discNumber: track.discNumber,
+          discTotal: track.discTotal,
+          bitrate: track.bitrate,
+          fileSize: track.size,
+          // Link the track to its cover-art image in the device ArtworkDB.
+          // mhiiLink is the ArtworkDB imageId (mhii::song_id) this track's art
+          // lives under; 0/absent means the track has no embedded cover art.
+          artworkId: track.mhiiLink > 0 ? String(track.mhiiLink) : undefined,
+        };
+      });
+      //#endregion
+    } finally {
+      itdb[Symbol.dispose]();
+    }
 
     const media: SyncLibrary = {
       artworks,
       playlists,
       tracks,
     };
-
-    //#endregion
 
     //#region Storage usage
     // Used space is the real byte total of the volume: a metadata-only walk

@@ -51,6 +51,9 @@ export class BrowserWorkerAdapter implements IWorkerAdapter {
   }
 
   cancel(jobId: string) {
-    this.worker.postMessage({ type: "cancel", jobId });
+    // The worker's message handler looks for `state === "canceled"`; a
+    // `{ type: "cancel" }` message falls through to the strategy lookup and
+    // is ignored, so cancellation never reached the running job.
+    this.worker.postMessage({ state: "canceled", id: jobId });
   }
 }

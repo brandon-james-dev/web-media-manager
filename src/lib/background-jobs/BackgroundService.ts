@@ -153,6 +153,9 @@ export class BackgroundService {
 
   private handleCompletion(job: BackgroundJob, error?: any, result?: any) {
     job.state = error ? "failed" : "completed";
+    // Completion listeners receive only the job, so carry the worker's
+    // result on it (a device sync reports what it actually wrote).
+    job.result = result;
 
     const source = job.payload?.musicSource;
     if (
@@ -224,7 +227,14 @@ export class BackgroundService {
 
   cancelJob(jobId: string) {
     forgetJob(jobId);
-    const job = this.queue.find((j) => j.id === jobId);
+
+    // A running job is not in the queue, so check the current one too —
+    // otherwise cancelling a job that has already started is a no-op.
+    const job =
+      this.current?.id === jobId
+        ? this.current
+        : this.queue.find((j) => j.id === jobId);
+
     if (!job) return;
 
     job.state = "canceled";

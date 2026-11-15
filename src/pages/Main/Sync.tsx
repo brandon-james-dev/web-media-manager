@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { uuidv7 } from "uuidv7";
-import { MonitorSmartphone, Plus, RefreshCw } from "lucide-react";
+import { MonitorSmartphone, Plus, ScanLine, Usb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "cn";
-import {
-  SidebarDropRow,
-  sidebarSyncDropId,
-} from "@/components/library-sidebar";
+import { SidebarSyncedTracks, SidebarSyncQueue } from "@/components/library-sidebar";
+import { formatBytes } from "@/lib/sync/helpers";
 import { notification$ } from "@/events/notification-events";
 import { AddDeviceDialog, SyncDeviceCard, SyncQueue } from "@/components/sync";
 import { useSync } from "@/hooks";
@@ -16,7 +15,7 @@ import { usbAvailable } from "@/lib/sync/usbAvailable";
 
 export function Sync({ compact = false }: { compact?: boolean } = {}) {
   //#region State
-  const { devices, addDevice, refreshDevices } = useSync();
+  const { devices, addDevice, refreshDevices, queuedSongs } = useSync();
   const usbSupported = usbAvailable();
   const [isAddDeviceDialogOpen, setIsAddDeviceDialogOpen] =
     useState<boolean>(false);
@@ -98,39 +97,141 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
   //#endregion
 
   return (
-    <div className={cn("h-full overflow-auto", compact ? "p-1" : "p-4")}>
-      <div className={cn("mx-auto space-y-4", !compact && "max-w-4xl")}>
+    <div
+      className={cn(
+        compact
+          ? "flex h-full min-h-0 flex-col p-1"
+          : "h-full overflow-auto p-4"
+      )}
+    >
+      <div
+        className={cn(
+          compact
+            ? "flex min-h-0 flex-1 flex-col gap-1"
+            : "mx-auto max-w-4xl space-y-4"
+        )}
+      >
         {compact ? (
-          // Sidebar: the devices as droppable rows, nothing else. The page
-          // chrome (title, add/refresh) belongs to the full view.
-          <div className="space-y-1">
-            {devices.map((device) => (
-              <SidebarDropRow
-                key={device.id}
-                id={sidebarSyncDropId(device.id)}
-              >
-                <span
-                  className={cn(
-                    "size-1.5 shrink-0 rounded-full",
-                    device.connected ? "bg-primary" : "bg-muted-foreground/40"
-                  )}
-                  aria-hidden="true"
-                />
-                <span className="min-w-0 flex-1 truncate">{device.name}</span>
-                {!device.connected && (
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    offline
+          // Sidebar: add/refresh, the droppable device rows, then the queue
+          // and the device's own tracks as two half-width tabs that fill the
+          // rest of the panel.
+          <>
+            {devices.length === 0 ? (
+              <div className="flex items-center gap-1 px-1 pb-1">
+                <Button
+                  variant="ghost"
+                  className="min-w-0 flex-1 justify-start"
+                  aria-label="Add sync device"
+                  onClick={() => setIsAddDeviceDialogOpen(true)}
+                  disabled={!usbSupported}
+                  title={
+                    usbSupported
+                      ? undefined
+                      : "WebUSB is not supported in this browser"
+                  }
+                >
+                  <Plus />
+                  Add Device
+                </Button>
+              </div>
+            ) : (
+              // A connected device replaces the add button. The row is the
+              // device's identity; the queue below is the drop target.
+              devices.map((device) => (
+                <div
+                  key={device.id}
+                  className="flex items-center gap-1 rounded-md py-1.5 pl-2 pr-0.5 text-sm"
+                >
+                  <Usb
+                    className={cn(
+                      "size-4 shrink-0",
+                      device.connected
+                        ? "text-foreground"
+                        : "text-muted-foreground/50"
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0 flex-1 truncate">
+                    {device.name}
                   </span>
-                )}
-              </SidebarDropRow>
-            ))}
+                  {device.storage?.usedBytes != null && (
+                    <span
+                      className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                      title={
+                        device.storage.capacityBytes != null
+                          ? `${formatBytes(device.storage.usedBytes)} of ${formatBytes(device.storage.capacityBytes)} used`
+                          : `${formatBytes(device.storage.usedBytes)} used`
+                      }
+                    >
+                      {formatBytes(device.storage.usedBytes)}
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "size-1.5 shrink-0 rounded-full",
+                      device.connected
+                        ? "bg-primary"
+                        : "bg-muted-foreground/40"
+                    )}
+                    aria-hidden="true"
+                  />
+                  {!device.connected && (
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      offline
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
 
             {devices.length === 0 && (
               <div className="px-2 py-2 text-xs text-muted-foreground">
                 No sync devices
               </div>
             )}
-          </div>
+
+            {devices.length > 0 && (
+              <Tabs
+                defaultValue="queue"
+                className="mt-1 min-h-0 flex-1 gap-1"
+              >
+                <TabsList className="w-full">
+                  <TabsTrigger value="queue" className="flex-1">
+                    Queue
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {queuedSongs.length}
+                    </span>
+                  </TabsTrigger>
+                  <TabsTrigger value="synced" className="flex-1">
+                    Synced
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {devices[0]?.media?.tracks.length ?? 0}
+                    </span>
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent
+                  value="queue"
+                  className="min-h-0 overflow-hidden"
+                >
+                  <SidebarSyncQueue
+                    deviceId={devices[0]!.id}
+                    songs={queuedSongs}
+                  />
+                </TabsContent>
+
+                <TabsContent
+                  value="synced"
+                  className="min-h-0 overflow-hidden"
+                >
+                  <SidebarSyncedTracks
+                    deviceId={devices[0]!.id}
+                    tracks={devices[0]?.media?.tracks ?? []}
+                  />
+                </TabsContent>
+              </Tabs>
+            )}
+          </>
         ) : (
           <>
         <div className="flex justify-between items-center">
@@ -165,26 +266,11 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
                   : "WebUSB is not supported in this browser"
               }
             >
-              <RefreshCw className="h-4 w-4" />
-              Refresh Device
+              <ScanLine className="h-4 w-4" />
+              Rescan Devices
             </Button>
           </div>
         </div>
-
-        <AddDeviceDialog
-          open={isAddDeviceDialogOpen}
-          onOpenChange={setIsAddDeviceDialogOpen}
-          onFolderSelected={() => handleFolderSelectedClick()}
-          onUsbSelected={() => handleUsbSelectedClick()}
-        />
-
-        {/* Second gesture for mass-storage devices: pick the iPod folder. */}
-        <AddDeviceDialog
-          folderOnly
-          open={isFolderPromptOpen}
-          onOpenChange={setIsFolderPromptOpen}
-          onFolderSelected={() => handleFolderSelectedClick()}
-        />
 
         {devices.length === 0 && (
           <Card>
@@ -208,6 +294,23 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
         ))}
           </>
         )}
+
+        {/* Both views open the same dialogs; the compact view has no room
+            for the page chrome but still needs the pickers. */}
+        <AddDeviceDialog
+          open={isAddDeviceDialogOpen}
+          onOpenChange={setIsAddDeviceDialogOpen}
+          onFolderSelected={() => handleFolderSelectedClick()}
+          onUsbSelected={() => handleUsbSelectedClick()}
+        />
+
+        {/* Second gesture for mass-storage devices: pick the iPod folder. */}
+        <AddDeviceDialog
+          folderOnly
+          open={isFolderPromptOpen}
+          onOpenChange={setIsFolderPromptOpen}
+          onFolderSelected={() => handleFolderSelectedClick()}
+        />
       </div>
     </div>
   );

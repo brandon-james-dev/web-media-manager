@@ -10,7 +10,9 @@ registerBrowserMetadataReader();
 registerBrowserStoreProvider();
 registerBrowserSourceProvider();
 
-let cancelled = false;
+// Cancellation is tracked per job. A single flag was never reset, so one
+// cancelled job left this worker cancelling every job it ran afterwards.
+const cancelledJobs = new Set<string>();
 
 self.onmessage = async (event: MessageEvent<any>) => {
   const msg = event.data;
@@ -21,7 +23,7 @@ self.onmessage = async (event: MessageEvent<any>) => {
 
     // cancellation message
     if (job.state === "canceled") {
-      cancelled = true;
+      cancelledJobs.add(job.id);
       return;
     }
 
@@ -30,7 +32,7 @@ self.onmessage = async (event: MessageEvent<any>) => {
     if (Object.hasOwn(workerStrategies, job.type)) {
       const result = await handler(
         job.payload,
-        () => cancelled,
+        () => cancelledJobs.has(job.id),
         (progress) => {
           self.postMessage({
             id: job.id,

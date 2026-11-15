@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { Filter, Pen, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Filter, Lock, Pen, X } from "lucide-react";
 import { getStore } from "@/core/system";
 import { getSourcesStore } from "@/core/ports";
-import { allMusicSourceStrategies } from "@/lib/sources";
+import { useSync } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import {
@@ -24,11 +24,13 @@ export type SourceFilterProps = {
   anchor?: HTMLElement | null;
 };
 
-/** A source kind is editable when its strategy can persist settings. */
+/**
+ * A source is editable when its library can be changed from this app: local
+ * folders can, while a Subsonic server and a sync device are read-only here
+ * (a device is written by syncing, not by editing its tracks).
+ */
 function isEditable(source: MusicSource): boolean {
-  return allMusicSourceStrategies.some(
-    (strategy) => strategy.kind === source.kind && strategy.updateSource
-  );
+  return source.capabilities.playlistWrite;
 }
 
 /**
@@ -43,6 +45,16 @@ export function SourceFilter({
 }: SourceFilterProps) {
   const [sources, setSources] = useState<MusicSource[]>([]);
   const [open, setOpen] = useState(false);
+  const { devices } = useSync();
+
+  // A sync device is only a filterable source while it is connected: its
+  // tracks are read from the device, so an absent one would filter to nothing.
+  const visibleSources = useMemo(() => {
+    const connected = new Set(devices.map((device) => device.id));
+    return sources.filter(
+      (source) => source.kind !== "sync" || connected.has(source.id)
+    );
+  }, [sources, devices]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,11 +94,11 @@ export function SourceFilter({
     };
   }, []);
 
-  if (sources.length === 0) return null;
+  if (visibleSources.length === 0) return null;
 
-  // Filtering by source is meaningless with a single source, and an editable
-  // source is excluded from the filter — both render as a static chip.
-  const singleSource = sources.length <= 1;
+  // Filtering by source is meaningless with a single source, so it renders as
+  // a static chip.
+  const singleSource = visibleSources.length <= 1;
 
   function toggle(id: string) {
     onSelectedChange(
@@ -152,7 +164,7 @@ export function SourceFilter({
           </div>
 
           <div className="flex flex-col gap-1">
-            {sources.map((source) => {
+            {visibleSources.map((source) => {
               const editable = isEditable(source);
               return (
                 <Toggle
@@ -161,18 +173,30 @@ export function SourceFilter({
                   size="sm"
                   className="w-full justify-start"
                   pressed={selected.includes(source.id)}
-                  disabled={singleSource || editable}
+                  // Only the single-source case is unfilterable: with one
+                  // source there is nothing to filter between. Editability is
+                  // shown, not enforced.
+                  disabled={singleSource}
                   onPressedChange={() => toggle(source.id)}
                   title={
-                    editable ? `${source.name} — editable source` : source.name
+                    editable ? `${source.name} — editable` : `${source.name} — read-only`
                   }
                 >
-                  <span className="min-w-0 flex-1 truncate text-left">
+                  <span className="min-w-0 truncate text-left">
                     {source.name}
                   </span>
-                  {editable && (
-                    <Pen className="shrink-0 opacity-60" aria-hidden="true" />
+                  {editable ? (
+                    <Pen
+                      className="shrink-0 opacity-60"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Lock
+                      className="shrink-0 opacity-60"
+                      aria-hidden="true"
+                    />
                   )}
+                  <span className="flex-1" />
                 </Toggle>
               );
             })}

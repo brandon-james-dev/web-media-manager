@@ -3,6 +3,7 @@ import {
   runArtworkProcess,
   runBulkEdit,
   runBulkImport,
+  runDeviceSync,
   runOfflineDownload,
 } from ".";
 
@@ -19,5 +20,6 @@ export const workerStrategies: Record<
   "Thumbnail Generation": runArtworkProcess,
   "Bulk Edit": runBulkEdit,
   "Bulk Import": runBulkImport,
+  "Device Sync": runDeviceSync,
   "Offline Download": runOfflineDownload,
 };

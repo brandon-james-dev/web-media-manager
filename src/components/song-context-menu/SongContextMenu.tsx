@@ -63,15 +63,19 @@ export function SongContextMenu({
                   <ContextMenuLabel>{group.label}</ContextMenuLabel>
                 )}
 
-                {group.actions.map((action) => (
-                  <ContextMenuItem
-                    key={action.id}
-                    onClick={() => run(action)}
-                  >
-                    {action.icon}
-                    {action.label}
-                  </ContextMenuItem>
-                ))}
+                {group.actions
+                  .filter((action) => !action.hidden)
+                  .map((action) => (
+                    <ContextMenuItem
+                      key={action.id}
+                      disabled={action.disabled}
+                      onClick={() => run(action)}
+                    >
+                      {action.icon}
+                      {action.label}
+                      {action.trailing}
+                    </ContextMenuItem>
+                  ))}
 
                 {group.submenu && (
                   <ContextMenuSub>
@@ -130,13 +134,15 @@ export function SongContextMenu({
                     </div>
                   )}
 
-                  {group.actions.map((action) => (
-                    <DrawerAction
-                      key={action.id}
-                      action={action}
-                      onSelect={() => run(action)}
-                    />
-                  ))}
+                  {group.actions
+                    .filter((action) => !action.hidden)
+                    .map((action) => (
+                      <DrawerAction
+                        key={action.id}
+                        action={action}
+                        onSelect={() => run(action)}
+                      />
+                    ))}
 
                   {group.submenu && (
                     <>
@@ -181,8 +187,9 @@ function DrawerAction({
   return (
     <button
       type="button"
+      disabled={action.disabled}
       onClick={onSelect}
-      className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent/40"
+      className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent/40 disabled:pointer-events-none disabled:opacity-40"
     >
       {action.icon}
       <span className="min-w-0 flex-1 truncate">{action.label}</span>

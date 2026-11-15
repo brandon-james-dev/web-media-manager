@@ -18,7 +18,7 @@ import {
   type QueryOptions,
   type SortableColumn,
 } from "@/lib/persistence";
-import { useSongs } from "@/hooks";
+import { useSourceSongs, useSongs } from "@/hooks";
 import type { MusicSource, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
 
@@ -35,16 +35,18 @@ export function Songs() {
     useOutletContext<MainContext>();
 
   // Source chips narrow the already-filtered list; an empty selection keeps
-  // every song.
-  const visibleSongs = useMemo(
-    () =>
+  // every song. A selected sync device contributes its on-device tracks,
+  // which are never imported into the library.
+  const deviceSongs = useSourceSongs(selectedSourceIds);
+  const visibleSongs = useMemo(() => {
+    const base =
       selectedSourceIds.length === 0
         ? filteredSongs
         : filteredSongs.filter((song) =>
           selectedSourceIds.includes(song.sourceId)
-        ),
-    [filteredSongs, selectedSourceIds]
-  );
+        );
+    return deviceSongs.length === 0 ? base : [...base, ...deviceSongs];
+  }, [filteredSongs, selectedSourceIds, deviceSongs]);
 
   const [songSort] = useState({
     selector: (song: Song) => song.title,

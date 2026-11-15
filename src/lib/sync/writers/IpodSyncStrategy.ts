@@ -1,16 +1,42 @@
 import type { Playlist, SyncDevice, Song } from "@/models";
-import type { ISyncStrategy } from "./ISyncStrategy";
+import type {
+  ISyncStrategy,
+  SyncProgressHandler,
+  SyncSummary,
+} from "./ISyncStrategy";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { getMetadataStore } from "@/lib/persistence/initMetadataStore";
 import {
   detectDevice,
   Itdb,
   createBrowserFs,
+  type ItdbFileSystem,
   type TrackMeta,
 } from "itunesdb-ts";
 import { trackIdentity } from "../helpers";
+import { resolveSongBytesWithCache, resolveThroughSource } from "@/lib/offline";
+
+/** Reads a song's audio, whatever source it comes from. */
+export type SongBytesResolver = (song: Song) => Promise<ArrayBuffer | null>;
+
+/**
+ * Resolve a song's bytes, preferring the offline cache.
+ *
+ * A sync job runs in a worker, where a remote source's credentials
+ * (localStorage-backed) are unreachable — so a Subsonic song that is not
+ * cached cannot be read there at all. The cache is checked first for every
+ * source, which also keeps a local song readable if its folder is gone.
+ */
+const resolveCachedFirst: SongBytesResolver = async (song) =>
+  await resolveSongBytesWithCache(song, resolveThroughSource);
 
 export class IpodSyncStrategy implements ISyncStrategy {
+  private readonly resolveBytes: SongBytesResolver;
+
+  constructor(resolveBytes: SongBytesResolver = resolveCachedFirst) {
+    this.resolveBytes = resolveBytes;
+  }
+
   canHandle(device: SyncDevice): boolean {
     return device.type === "iPod";
   }
@@ -27,11 +53,17 @@ export class IpodSyncStrategy implements ISyncStrategy {
   async sync(
     device: SyncDevice,
     songs: Song[],
-    playlists: Playlist[]
-  ): Promise<void> {
-    await this.withDatabase(device, async (itdb) => {
-      const metadataStore = getMetadataStore() as CombinedMetadataStore;
+    playlists: Playlist[],
+    onProgress?: SyncProgressHandler
+  ): Promise<SyncSummary> {
+    const summary: SyncSummary = {
+      added: [],
+      unverified: [],
+      alreadyPresent: [],
+      skipped: [],
+    };
 
+    await this.withDatabase(device, async (itdb, fs) => {
       let changed = false;
 
       // -- Songs -----------------------------------------------------------
@@ -40,34 +72,66 @@ export class IpodSyncStrategy implements ISyncStrategy {
         existing.add(trackIdentity(track.title, track.album, track.artist));
       }
 
+      let written = 0;
+
       for (const song of songs) {
         const key = trackIdentity(song.title, song.album, song.artist);
 
-        if (existing.has(key)) continue; // already on device — preserve it
-
-        this.lastSteps = `addTrack("${song.title ?? song.filename}")`;
-
-        const fileHandle = await metadataStore
-          .getFileSystem()
-          .getFileHandle(song.id);
-
-        if (!fileHandle) {
-          // Song is visible in the browser but its audio file isn't in the
-          // metadata store — skip it and keep syncing the remaining songs
-          // instead of aborting the whole batch.
-          console.warn(
-            `[IpodSyncStrategy] skipping "${song.filename ?? song.title}": audio file not available`
-          );
+        if (existing.has(key)) {
+          // Already on the device: it still counts as done for the run.
+          summary.alreadyPresent.push(song.id);
+          written += 1;
+          onProgress?.(written, songs.length, { songId: song.id, status: "present" });
           continue;
         }
 
-        const file = await fileHandle.getFile();
-        const trackBytes = new Uint8Array(await file.arrayBuffer());
+        this.lastSteps = `addTrack("${song.title ?? song.filename}")`;
 
-        await itdb.addTrack(this.mapSongToTrackStrings(song), trackBytes);
+        const bytes = await this.resolveBytes(song);
+
+        if (!bytes) {
+          // The audio could not be read (file moved, server unreachable).
+          // Skip it and keep syncing the rest, but record it: the caller
+          // reports skipped songs and keeps them queued for a retry.
+          console.warn(
+            `[IpodSyncStrategy] skipping "${song.title ?? song.filename}": audio not available`
+          );
+          summary.skipped.push(song.id);
+          written += 1;
+          onProgress?.(written, songs.length, { songId: song.id, status: "skipped" });
+          continue;
+        }
+
+        const track = await itdb.addTrack(
+          this.mapSongToTrackStrings(song),
+          new Uint8Array(bytes)
+        );
+
+        // Confirm the write landed on the device before calling it done: the
+        // record has to be in the database that gets saved, and its audio file
+        // has to exist on the device. A write that silently did neither used
+        // to be reported as synced.
+        const recorded = itdb.tracks.some((t) => t.trackId === track.trackId);
+        const onDisk = track.path ? await fs.exists(track.path) : false;
+        const verified = recorded && onDisk;
 
         existing.add(key);
         changed = true;
+        written += 1;
+
+        if (verified) {
+          summary.added.push(song.id);
+        } else {
+          summary.unverified.push(song.id);
+          console.warn(
+            `[IpodSyncStrategy] "${song.title ?? song.filename}" was written but not found on the device (record: ${recorded}, file: ${onDisk})`
+          );
+        }
+
+        onProgress?.(written, songs.length, {
+          songId: song.id,
+          status: verified ? "verified" : "unverified",
+        });
       }
 
       // -- Playlists -------------------------------------------------------
@@ -115,6 +179,8 @@ export class IpodSyncStrategy implements ISyncStrategy {
       // Nothing new: leave the databases untouched rather than rewriting them.
       return changed;
     });
+
+    return summary;
   }
 
   /** Load a song by id from the metadata store (title/album/artist for identity). */
@@ -168,7 +234,10 @@ export class IpodSyncStrategy implements ISyncStrategy {
    */
   private async withDatabase(
     device: SyncDevice,
-    work: (itdb: Itdb) => boolean | void | Promise<boolean | void>
+    work: (
+      itdb: Itdb,
+      fs: ItdbFileSystem
+    ) => boolean | void | Promise<boolean | void>
   ): Promise<void> {
     const root = device.rootHandle;
     if (!root) throw new Error("Device root missing.");
@@ -195,7 +264,7 @@ export class IpodSyncStrategy implements ISyncStrategy {
     const itdb = await Itdb.open(fs, { device: iPod });
 
     try {
-      const changed = await work(itdb);
+      const changed = await work(itdb, fs);
 
       if (changed === false) return;
 

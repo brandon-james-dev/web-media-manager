@@ -199,11 +199,19 @@ function SidebarDndArea({
       onDragStart={(event: DragStartEvent) => {
         const data = event.active.data.current ?? {};
         const songIds = songIdsFromDrag(data);
-        setGhost({
-          title: typeof data.title === "string" ? data.title : "Track",
-          artist: typeof data.artist === "string" ? data.artist : "",
-          count: songIds.length,
-        });
+
+        // Only a track drag gets the carried-card ghost. A column header is
+        // sortable too and carries no song data, so building a ghost for it
+        // showed a card reading "Track" while reordering columns.
+        setGhost(
+          songIds.length === 0
+            ? null
+            : {
+                title: typeof data.title === "string" ? data.title : "Track",
+                artist: typeof data.artist === "string" ? data.artist : "",
+                count: songIds.length,
+              }
+        );
         lastDeltaX.current = 0;
         setLean(0);
       }}

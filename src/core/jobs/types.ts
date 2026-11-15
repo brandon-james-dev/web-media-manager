@@ -21,6 +21,7 @@ export type WorkerJobType =
   | "Thumbnail Generation"
   | "Bulk Import"
   | "Bulk Edit"
+  | "Device Sync"
   | "Offline Download"
   | (string & {});
 

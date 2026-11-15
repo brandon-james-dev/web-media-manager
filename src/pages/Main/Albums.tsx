@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useSongs } from "@/hooks";
+import { useSourceSongs, useSongs } from "@/hooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlbumCard } from "@/components/album-card";
 import { useOutletContext } from "react-router";
@@ -87,16 +87,18 @@ export function Albums() {
   }, [sortField, sortDesc, setQuery, setSort]);
 
   // Source chips narrow the already-filtered list; an empty selection keeps
-  // every song.
-  const visibleSongs = useMemo(
-    () =>
+  // every song. A selected sync device contributes its on-device tracks,
+  // which are never imported into the library.
+  const deviceSongs = useSourceSongs(selectedSourceIds);
+  const visibleSongs = useMemo(() => {
+    const base =
       selectedSourceIds.length === 0
         ? filteredSongs
         : filteredSongs.filter((song) =>
             selectedSourceIds.includes(song.sourceId)
-          ),
-    [filteredSongs, selectedSourceIds]
-  );
+          );
+    return deviceSongs.length === 0 ? base : [...base, ...deviceSongs];
+  }, [filteredSongs, selectedSourceIds, deviceSongs]);
 
   const albums = useMemo(() => {
     const map = new Map<string, Album>();

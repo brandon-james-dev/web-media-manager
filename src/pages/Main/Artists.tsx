@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlphabetScrubber } from "@/components/alphabet-scrubber";
 import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
-import { useShufflePlay, useSongs } from "@/hooks";
+import { useShufflePlay, useSourceSongs, useSongs } from "@/hooks";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOutletContext } from "react-router";
 import type { Album, Artist, Song } from "@/models";
@@ -85,16 +85,18 @@ export function Artists() {
   }, [setQuery, setSort, artistSort]);
 
   // Source chips narrow the already-filtered list; an empty selection keeps
-  // every song.
-  const visibleSongs = useMemo(
-    () =>
+  // every song. A selected sync device contributes its on-device tracks,
+  // which are never imported into the library.
+  const deviceSongs = useSourceSongs(selectedSourceIds);
+  const visibleSongs = useMemo(() => {
+    const base =
       selectedSourceIds.length === 0
         ? filteredSongs
         : filteredSongs.filter((song) =>
           selectedSourceIds.includes(song.sourceId)
-        ),
-    [filteredSongs, selectedSourceIds]
-  );
+        );
+    return deviceSongs.length === 0 ? base : [...base, ...deviceSongs];
+  }, [filteredSongs, selectedSourceIds, deviceSongs]);
 
   const artists = useMemo(() => {
     const map = new Map<string, Artist>();

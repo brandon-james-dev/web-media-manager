@@ -52,6 +52,10 @@ export interface SongMenuAction {
   onSelect: () => void;
   /** Right-aligned detail, e.g. a playlist's track count. */
   trailing?: ReactNode;
+  /** Omitted from the menu and the drawer when true. */
+  hidden?: boolean;
+  /** Rendered but not actionable, e.g. an action whose precondition fails. */
+  disabled?: boolean;
 }
 
 /** A nested list: a submenu in the context menu, inline rows in the drawer. */
@@ -479,12 +483,30 @@ export function useSongMenu(songs: Song[]): SongMenu {
       {
         id: "sync",
         label: "Sync",
-        hidden: !hasConnectedDevices || !isQueued,
+        // Shown whenever a device is connected: queueing is the common case,
+        // and removing only appears once the songs are actually queued.
+        hidden: !hasConnectedDevices,
         actions: [
+          {
+            id: "queue-sync",
+            label: "Add To Sync Queue",
+            icon: <PlusCircle />,
+            // Only downloaded audio can be written to a device, so the action
+            // stays visible but disabled for songs that are not cached.
+            hidden: isQueued,
+            disabled: !allOffline,
+            onSelect: () =>
+              onItemClick(() =>
+                wmmBus.invoke("wmm.sync.queueSongs", {
+                  songIds: target.map((s) => s.id),
+                })
+              ),
+          },
           {
             id: "dequeue",
             label: "Remove From Queue",
             icon: <MinusCircle />,
+            hidden: !isQueued,
             onSelect: () =>
               onItemClick(() =>
                 wmmBus.invoke("wmm.sync.dequeueSongs", {

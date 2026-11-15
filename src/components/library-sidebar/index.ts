@@ -2,6 +2,9 @@ export { LibrarySidebar, type SidebarView } from "./LibrarySidebar";
 export { DraggableTrack } from "./DraggableTrack";
 export { DraggableSongs } from "./DraggableSongs";
 export { SidebarDropRow } from "./SidebarDropRow";
+export { SidebarDropZone } from "./SidebarDropZone";
+export { SidebarSyncQueue } from "./SidebarSyncQueue";
+export { SidebarSyncedTracks } from "./SidebarSyncedTracks";
 export { SidebarRemoveZone } from "./SidebarRemoveZone";
 export {
   SidebarDragProvider,

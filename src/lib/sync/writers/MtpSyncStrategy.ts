@@ -1,5 +1,5 @@
 import { getMetadataStore } from "@/lib/persistence/file";
-import type { ISyncStrategy } from "./ISyncStrategy";
+import type { ISyncStrategy, SyncSummary } from "./ISyncStrategy";
 import type { Song, SyncDevice } from "@/models";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 
@@ -8,12 +8,20 @@ export class MtpSyncStrategy implements ISyncStrategy {
     return device.type === "mtp";
   }
 
-  async sync(device: SyncDevice, songs: Song[]): Promise<void> {
+  async sync(device: SyncDevice, songs: Song[]): Promise<SyncSummary> {
     const musicFolder = await this.getMusicFolder(device);
 
     for (const song of songs) {
       await this.copySong(musicFolder, song);
     }
+
+    // MTP has no library to compare against, so every song is a write.
+    return {
+      added: songs.map((s) => s.id),
+      unverified: [],
+      alreadyPresent: [],
+      skipped: [],
+    };
   }
 
   private async getMusicFolder(

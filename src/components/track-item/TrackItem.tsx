@@ -50,6 +50,8 @@ export function TrackItem(props: TrackItemProps) {
     onClick,
     menuSongs,
     alwaysShowActions,
+    availableActions = ["favorite", "play"],
+    trailing,
     actions,
     size = "default",
     focusable = false,
@@ -77,6 +79,9 @@ export function TrackItem(props: TrackItemProps) {
     onSelect: (s: typeof song) => void;
     destructive?: boolean;
   }>;
+
+  const showFavorite = availableActions.includes("favorite");
+  const showPlay = availableActions.includes("play");
 
   function activate() {
     if (onPlay) onPlay(song);
@@ -155,19 +160,21 @@ export function TrackItem(props: TrackItemProps) {
         </ItemContent>
 
         <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
-          {formatLength(song.duration)}
+          {trailing ?? formatLength(song.duration)}
         </span>
 
         <ItemActions className="shrink-0">
-          <FavoriteButton
-            songId={song.id}
-            alwaysVisible={alwaysShowActions ?? false}
-          />
+          {showFavorite && (
+            <FavoriteButton
+              songId={song.id}
+              alwaysVisible={alwaysShowActions ?? false}
+            />
+          )}
 
           {/* Play/pause affordance: always visible for the active row and on
             touch (no hover to reveal it), hover-revealed otherwise. The row
             itself isn't clickable, so single-tap play on mobile uses this. */}
-          {onPlay ? (
+          {showPlay && onPlay ? (
             <button
               className={cn(
                 "inline-flex h-7 w-7 items-center justify-center rounded-md transition-opacity",
@@ -189,7 +196,7 @@ export function TrackItem(props: TrackItemProps) {
                 <Play size={14} className="fill-current" />
               )}
             </button>
-          ) : (
+          ) : showPlay ? (
             // Reserve the action slot so the row's width and text layout stay
             // identical in edit mode (where the play affordance is dropped).
             // No hover affordance to align on touch, so it is dropped there.
@@ -197,7 +204,7 @@ export function TrackItem(props: TrackItemProps) {
               className="h-7 w-7 shrink-0 pointer-coarse:hidden"
               aria-hidden="true"
             />
-          )}
+          ) : null}
 
           {overflow.length > 0 && (
             <DropdownMenu>

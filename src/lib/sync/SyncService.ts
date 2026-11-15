@@ -8,7 +8,11 @@ import {
   restoreSyncDevice,
   waitForMount,
 } from "./helpers";
-import type { ISyncStrategy } from "./writers/ISyncStrategy";
+import type {
+  ISyncStrategy,
+  SyncProgressHandler,
+  SyncSummary,
+} from "./writers/ISyncStrategy";
 
 export class SyncService {
   private scanner = new DeviceScanner();
@@ -127,15 +131,16 @@ export class SyncService {
   async sync(
     device: SyncDevice,
     songs: Song[],
-    playlists: Playlist[]
-  ): Promise<void> {
+    playlists: Playlist[],
+    onProgress?: SyncProgressHandler
+  ): Promise<SyncSummary> {
     const strategy = await this.getStrategy(device);
 
     if (!strategy) {
       throw new Error(`Unable to sync to "${device.type}".`);
     }
 
-    await strategy.sync(device, songs, playlists);
+    return strategy.sync(device, songs, playlists, onProgress);
   }
 
   /**

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Song } from "@/models";
 
 /** An extra overflow-menu entry for a track row. */
@@ -7,6 +8,9 @@ export interface TrackItemAction {
   /** Destructive styling (red text). */
   destructive?: boolean;
 }
+
+/** The inline actions a track row can offer. */
+export type TrackItemActionKind = "favorite" | "play";
 
 /**
  * Props for TrackItem — a compact, tappable song row built on the shadcn
@@ -54,6 +58,16 @@ export interface TrackItemProps {
    * them leaves a gap that reads as padding.
    */
   alwaysShowActions?: boolean;
+  /**
+   * Which inline actions the row offers. Empty means none: the action slot is
+   * dropped entirely, for hosts that act on a device rather than on playback.
+   */
+  availableActions?: TrackItemActionKind[];
+  /**
+   * Replace the trailing duration with custom content (e.g. a file size).
+   * The sync lists show size there instead of length.
+   */
+  trailing?: ReactNode;
   /**
    * ⋯ menu entries. Play/shuffle/edit are deliberately NOT mirrored into the
    * menu from the callbacks above — the row's inline play/pause button and the

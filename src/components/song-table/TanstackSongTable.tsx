@@ -70,7 +70,6 @@ export function TanstackSongTable(props: SongTableProps) {
     onSort,
     onSelect,
     onSongDoubleClicked,
-    onTrackDrop,
   } = props;
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
@@ -195,9 +194,10 @@ export function TanstackSongTable(props: SongTableProps) {
   function handleDragEnd(event: any) {
     const { active, over } = event;
 
-    // A track drag belongs to the page's sidebar context, not column order.
+    // A track drag belongs to the page's sidebar context, which the layout
+    // already dispatches on drag end. Calling `onTrackDrop` here as well ran
+    // every drop twice (two playlist writes, two toasts).
     if (String(active.id).startsWith("track:")) {
-      onTrackDrop?.(event);
       return;
     }
 
