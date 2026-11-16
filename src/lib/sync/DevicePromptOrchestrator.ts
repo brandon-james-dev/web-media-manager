@@ -1,7 +1,7 @@
 import type { SyncDevice } from "@/models";
 import type { UsbDeviceInfo } from "./usb/UsbDeviceInfo";
 import { SyncService } from "./SyncService";
-import { mapUsbDevice } from "./usb";
+import { mapUsbDevice, USB_DEVICE_FILTERS } from "./usb";
 
 export type AddDeviceFn = (
   usbDevice?: UsbDeviceInfo,
@@ -48,10 +48,7 @@ export class DevicePromptOrchestrator {
     if (!usbInfo) {
       try {
         const usbDevice = await navigator.usb.requestDevice({
-          filters: [
-            { classCode: 0x06 }, // MTP/PTP
-            { classCode: 0x08 }, // Mass Storage
-          ],
+          filters: USB_DEVICE_FILTERS,
         });
         usbInfo = mapUsbDevice(usbDevice);
       } catch {

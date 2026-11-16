@@ -5,6 +5,8 @@ export * from "./getDirectorySize";
 export * from "./hasDirectory";
 export * from "./hasFile";
 export * from "./mapSyncDeviceToRecord";
+export * from "./markDeviceDisconnected";
 export * from "./restoreSyncDevice";
+export * from "./startDeviceSync";
 export * from "./waitForMount";
 export * from "./trackIdentity";

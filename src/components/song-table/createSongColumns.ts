@@ -34,7 +34,9 @@ export function createSongColumns(features: any) {
     columnHelper.accessor("track", {
       id: "track",
       header: "Track",
-      maxSize: 50,
+      size: 70,
+      minSize: 60,
+      maxSize: 80,
       cell: (info) => info.getValue(),
     }),
 

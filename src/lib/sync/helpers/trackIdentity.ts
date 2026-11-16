@@ -40,3 +40,21 @@ export function isSongOnDevice(
 ): boolean {
   return identities.has(songIdentity(song));
 }
+
+/**
+ * True when every connected device already holds this song.
+ *
+ * A song is only unqueueable when no connected device lacks it. Testing
+ * against one merged set meant a song on the Zune 8 could never be queued for
+ * a Zune 120 that did not have it, so the queue came out empty and the sync
+ * copied nothing.
+ */
+export function isSongOnEveryDevice(
+  song: Song,
+  perDeviceIdentities: readonly ReadonlySet<string>[]
+): boolean {
+  return (
+    perDeviceIdentities.length > 0 &&
+    perDeviceIdentities.every((identities) => isSongOnDevice(song, identities))
+  );
+}

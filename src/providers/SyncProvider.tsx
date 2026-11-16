@@ -16,10 +16,13 @@ import { getPlaylists } from "@/core/playlists";
 import {
   SyncService,
   deviceTrackIdentities,
-  isSongOnDevice,
+  isSongOnEveryDevice,
   type UsbDeviceInfo,
 } from "@/lib/sync";
 import { isOnDevice, type SyncSongOutcome } from "@/lib/sync/writers/ISyncStrategy";
+import { markDeviceDisconnected } from "@/lib/sync/helpers/markDeviceDisconnected";
+import { createDeviceListSync } from "@/lib/sync/helpers/deviceListSync";
+import { startDeviceSync } from "@/lib/sync/helpers/startDeviceSync";
 import {
   clearDeviceArtwork,
   setDeviceArtwork,
@@ -58,6 +61,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   // the same tick would both see the pre-render state and queue the same song
   // twice, so the dedupe reads and writes this ref instead.
   const queuedSongsRef = useRef<Song[]>([]);
+  // Guards the device list against a refresh that started before an add or an
+  // unplug resolving afterwards and overwriting the newer state.
+  const deviceListSync = useRef(
+    createDeviceListSync((next) => setDevices(next))
+  );
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Queued songs now on the device (written, or already there), filled in as
@@ -94,13 +102,16 @@ export function SyncProvider({ children }: { children: ReactNode }) {
    */
   const queueSongs = useCallback(
     async (songs: Song[]): Promise<Song[]> => {
-      const connectedIdentities = new Set<string>();
+      // A song is only unqueueable when *every* connected device already has
+      // it. Collecting one shared set meant a song on the Zune 8 could never
+      // be queued for a Zune 120 that lacked it, so the queue came out empty
+      // and the sync copied nothing.
+      const perDeviceIdentities = devices
+        .filter((x) => x.connected)
+        .map((device) => deviceTrackIdentities(device));
 
-      for (const device of devices.filter((x) => x.connected)) {
-        for (const identity of deviceTrackIdentities(device)) {
-          connectedIdentities.add(identity);
-        }
-      }
+      const onEveryDevice = (song: Song): boolean =>
+        isSongOnEveryDevice(song, perDeviceIdentities);
 
       const alreadyQueued = new Set(
         queuedSongsRef.current.map((song) => song.id)
@@ -116,22 +127,20 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       // Songs skipped because they are already queued are not "on device";
       // only the latter earns the notification below.
       const onDevice = songs.filter(
-        (song) =>
-          !alreadyQueued.has(song.id) &&
-          isSongOnDevice(song, connectedIdentities)
+        (song) => !alreadyQueued.has(song.id) && onEveryDevice(song)
       );
 
       const notOffline = songs.filter(
         (song) =>
           !alreadyQueued.has(song.id) &&
-          !isSongOnDevice(song, connectedIdentities) &&
+          !onEveryDevice(song) &&
           !offlineIds.has(song.id)
       );
 
       const added = songs.filter(
         (song) =>
           !alreadyQueued.has(song.id) &&
-          !isSongOnDevice(song, connectedIdentities) &&
+          !onEveryDevice(song) &&
           offlineIds.has(song.id)
       );
 
@@ -204,7 +213,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const refreshDevices = useCallback(async () => {
     // loadPersistedDevices only returns devices matching a currently
     // connected USB device, so disconnected/absent ones are not shown.
-    setDevices(await syncService.loadPersistedDevices());
+    //
+    // The result is applied through the revision guard: a scan that started
+    // before `addDevice` appended the picked device must not replace the list
+    // with its pre-add snapshot, which made a just-added device disappear.
+    await deviceListSync.current.refresh(() =>
+      syncService.loadPersistedDevices()
+    );
   }, [syncService]);
 
   const syncQueue = useCallback(
@@ -226,12 +241,15 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const playlists = await getPlaylists();
-
+      // Raise the flag before the queue read: `getPlaylists()` is async, and
+      // setting it afterwards meant a throw there left the UI with no syncing
+      // indicator and no error.
       setIsSyncing(true);
       setSyncCompleted(false);
       setSyncedSongIds([]);
       setSyncProgress({ completed: 0, total: songsToSync.length });
+
+      const playlists = await getPlaylists();
 
       // The write runs in the worker pool: the device handle and the queue
       // are structured-cloneable, so the worker opens the device itself and
@@ -468,11 +486,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
       const device = await syncService.addDevice(rootDirectory, usbDevice);
 
-      setDevices([...devices, device]);
+      // Bump the revision so an in-flight refresh cannot overwrite this add,
+      // and merge through the functional form so a stale `devices` closure
+      // cannot drop a device added in the same tick.
+      deviceListSync.current.markMutation();
+      setDevices((current) => [
+        ...current.filter((existing) => existing.id !== device.id),
+        device,
+      ]);
 
       return device;
     },
-    [devices, setDevices, syncService]
+    [setDevices, syncService]
   );
   //#endregion
 
@@ -493,13 +518,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     };
 
     const handleDisconnect = (event: USBConnectionEvent) => {
-      const deviceMatches = (d: SyncDevice) => {
-        if (!d.usb) return false;
-        const match =
-          String(d.usb.serialNumber) != String(event.device.serialNumber);
-        return match;
-      };
-      setDevices(devices.filter(deviceMatches));
+      // Clear the device's `connected` flag instead of dropping the row: the
+      // device is still configured, it is just no longer plugged in, and the
+      // row renders that as "offline".
+      setDevices((current) =>
+        markDeviceDisconnected(current, event.device.serialNumber)
+      );
+      deviceListSync.current.markMutation();
     };
 
     navigator.usb.addEventListener("connect", handleConnect);
@@ -565,14 +590,38 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     const unregisterSync = commandDispatcher.register(
       "wmm.sync.sync",
       (payload?: { deviceId: string }) => {
-        const device = devices.find((d) => d.id === payload?.deviceId);
-        if (!device) return;
+        const deviceId = payload?.deviceId ?? "";
 
-        // Fire and forget: the run continues in the background so the caller
-        // is not blocked, and its progress lands in `syncProgress`.
-        void syncQueue(device).then(() =>
-          wmmBus.publish("wmm.sync.syncCompleted", { deviceId: device.id })
-        );
+        startDeviceSync(deviceId, {
+          findDevice: (id) => devices.find((d) => d.id === id),
+          syncQueue,
+          onStarted: (device) => {
+            wmmBus.publish("wmm.sync.syncCompleted", { deviceId: device.id });
+          },
+          onMissingDevice: (id) => {
+            notification$.next({
+              id: uuidv7(),
+              kind: "Sync Device Error",
+              state: "error",
+              title: "Device not available",
+              detail: `The device ${id} is no longer connected. Reconnect it and try again.`,
+            });
+          },
+          onFailed: (_id, error) => {
+            // The run never started, so clear the flag it may have raised and
+            // say why instead of leaving an unhandled rejection.
+            setIsSyncing(false);
+            setSyncProgress(null);
+            notification$.next({
+              id: uuidv7(),
+              kind: "Sync Device Error",
+              state: "error",
+              title: "Sync could not start",
+              detail:
+                error instanceof Error ? error.message : String(error),
+            });
+          },
+        });
       }
     );
 

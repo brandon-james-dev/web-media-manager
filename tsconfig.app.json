@@ -11,6 +11,7 @@
     ],
     "module": "ESNext",
     "types": [
+      "node",
       "vite/client",
       "vite-plugin-pwa/client"
     ],
@@ -27,6 +28,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "zunesync-ts": [
+        "./packages/zunesync-ts/src/index.ts"
       ]
     },
     /* Linting */
@@ -36,6 +40,7 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "src"
+    "src",
+    "packages/zunesync-ts/src"
   ]
 }

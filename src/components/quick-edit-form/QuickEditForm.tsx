@@ -29,6 +29,12 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
     onDirtyChange?.(dirty);
   }, [values, updatedFrontCover, onDirtyChange]);
 
+  // Nothing to edit. The editor can hold a selection whose songs did not
+  // resolve — a track on a sync device is not a library song, so it is absent
+  // from `filteredSongs` — and rendering the fields then read `songs[0].id`
+  // off `undefined` and crashed the page.
+  if (songs.length === 0) return null;
+
   //#region Helpers
   function stripEmptyFields<T extends Record<string, any>>(obj: T): Partial<T> {
     const result: Partial<T> = {};

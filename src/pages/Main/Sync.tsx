@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "cn";
 import { SidebarSyncedTracks, SidebarSyncQueue } from "@/components/library-sidebar";
 import { formatBytes } from "@/lib/sync/helpers";
+import { hasConnectedDevice } from "@/lib/sync/helpers/markDeviceDisconnected";
 import { notification$ } from "@/events/notification-events";
 import { AddDeviceDialog, SyncDeviceCard, SyncQueue } from "@/components/sync";
 import { useSync } from "@/hooks";
@@ -116,7 +117,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
           // and the device's own tracks as two half-width tabs that fill the
           // rest of the panel.
           <>
-            {devices.length === 0 ? (
+            {!hasConnectedDevice(devices) ? (
               <div className="flex items-center gap-1 px-1 pb-1">
                 <Button
                   variant="ghost"
@@ -246,7 +247,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
           <div className="flex gap-2">
             <Button
               onClick={() => setIsAddDeviceDialogOpen(true)}
-              hidden={devices.length > 0}
+              hidden={hasConnectedDevice(devices)}
               disabled={!usbSupported}
               title={
                 usbSupported

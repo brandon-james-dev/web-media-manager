@@ -19,6 +19,19 @@ export async function resyncAllSources(
   for (const source of sources) {
     if (skipSourceIds.has(source.id)) continue;
     const strategy = allMusicSourceStrategies.find((s) => s.kind === source.kind);
-    await strategy?.sync?.({ source, silent: true });
+
+    // One unreadable source must not abort the whole resync. A Zune that was
+    // unplugged throws from `refreshSource` (`NotFoundError: The device was
+    // disconnected`), and letting that escape rejected this function, which
+    // runs unawaited at boot — so `main.tsx` painted the boot-failure screen
+    // over the app and no later source was resynced either.
+    try {
+      await strategy?.sync?.({ source, silent: true });
+    } catch (error) {
+      console.warn(
+        `[resyncAllSources] Could not resync "${source.name}":`,
+        error
+      );
+    }
   }
 }

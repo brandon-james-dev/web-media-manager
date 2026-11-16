@@ -464,7 +464,7 @@ export function Editor({
 
   return (
     <>
-      {selectedSongIds.length > 0 && !isAdvancedEdit && (
+      {selectedSongIds.length > 0 && selectedSongs.length > 0 && !isAdvancedEdit && (
         <div className="flex shrink-0 p-4 border-t bg-secondary/50 select-none">
           <div className="max-w-240 mx-auto w-full">
             <div className="flex items-center justify-between mb-3">

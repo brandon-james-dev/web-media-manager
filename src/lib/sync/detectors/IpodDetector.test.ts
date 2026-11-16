@@ -87,15 +87,22 @@ describe("IpodDetector", () => {
       serialNumber: "000A27001B2C3D4E",
     } as never);
 
-    expect(device.media.tracks).toHaveLength(1);
-    expect(device.media.tracks[0]).toMatchObject({
+    expect(device).toBeDefined();
+    expect(device!.media.tracks).toHaveLength(1);
+    expect(device!.media.tracks[0]).toMatchObject({
       id: 7,
       title: "Amarillo by Morning",
       artist: "George Strait",
     });
-    expect(device.media.playlists).toHaveLength(1);
-    expect(device.media.playlists[0].name).toBe("Library (Master)");
-    expect(device.media.artworks).toHaveLength(1);
+    expect(device!.media.playlists).toHaveLength(1);
+    expect(device!.media.playlists[0].name).toBe("Library (Master)");
+    expect(device!.media.artworks).toHaveLength(1);
+  });
+
+  it("returns undefined when no storage root was picked", async () => {
+    await expect(
+      new IpodDetector().detect(undefined, { productId: 0x1209 } as never)
+    ).resolves.toBeUndefined();
   });
 
   it("still disposes the handle", async () => {

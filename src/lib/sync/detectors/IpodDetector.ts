@@ -14,7 +14,8 @@ import type {
 } from "@/models";
 import type { DeviceDetector } from "./DeviceDetector";
 import { uuidv7 } from "uuidv7";
-import { mapUsbDevice, type UsbDeviceInfo } from "../usb";
+import { mapUsbDevice, USB_DEVICE_FILTERS } from "../usb";
+import type { UsbDeviceInfo } from "../usb";
 import { getDirectorySize } from "../helpers/getDirectorySize";
 
 /**
@@ -54,8 +55,13 @@ export class IpodDetector implements DeviceDetector {
   async detect(
     root?: FileSystemDirectoryHandle,
     usb?: UsbDeviceInfo
-  ): Promise<SyncDevice> {
-    if (!root) throw new Error("The root directory was not found");
+  ): Promise<SyncDevice | undefined> {
+    // An iPod is a mass-storage device, so it is only detectable once its
+    // storage root has been picked. Returning undefined lets the scan move on
+    // to the next detector; throwing here aborted every rootless scan, which
+    // is how adding an MTP player (a Zune) failed with "root directory not
+    // found" before its own detector was ever tried.
+    if (!root) return undefined;
     const usbInfo = usb ?? (await this.tryGetUsbInfo());
     const device = usbInfo?.productId
       ? detectDevice(usbInfo.productId)
@@ -260,10 +266,7 @@ export class IpodDetector implements DeviceDetector {
   private async tryGetUsbInfo() {
     try {
       const usbDevice = await navigator.usb.requestDevice({
-        filters: [
-          { classCode: 0x06 }, // MTP/PTP
-          { classCode: 0x08 }, // Mass Storage
-        ],
+        filters: USB_DEVICE_FILTERS,
       });
 
       return mapUsbDevice(usbDevice);

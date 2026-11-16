@@ -3,7 +3,8 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "zunesync-ts": ["./packages/zunesync-ts/src/index.ts"]
     }
   },
   "files": [],

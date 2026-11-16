@@ -3,7 +3,7 @@ import type { UsbDeviceInfo } from "../usb";
 
 export interface DeviceDetector {
   detect(
-    root: FileSystemDirectoryHandle,
+    root: FileSystemDirectoryHandle | undefined,
     usb?: UsbDeviceInfo
   ): Promise<SyncDevice | undefined>;
 }

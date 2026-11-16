@@ -23,6 +23,7 @@ import { getSourcesStore } from "@/core/ports";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { Badge } from "@/components/ui/badge";
 import { musicSourceStrategies } from "@/lib/sources";
+import { runSourceRefresh } from "@/lib/sources/runSourceRefresh";
 import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
 import { cn } from "cn"
 import { sourceKindBadge } from "@/lib/sources/source-ui";
@@ -94,12 +95,25 @@ export function Settings() {
 
   /** Re-pull a source's library via its music source strategy. */
   async function handleSyncSource(source: MusicSource) {
-    if (syncingId) return;
     const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
-    if (!strategy) return;
-    setSyncingId(source.id);
-    const handle = await strategy.sync({ source });
-    if (!handle) setSyncingId(null);
+    if (!strategy) {
+      console.warn(
+        `[Settings] No sync strategy for source "${source.name}" (kind=${source.kind})`
+      );
+      return;
+    }
+
+    await runSourceRefresh({
+      syncingId,
+      sourceId: source.id,
+      sourceName: source.name,
+      onStart: setSyncingId,
+      onFinish: () => setSyncingId(null),
+      refresh: async () => {
+        const handle = await strategy.sync({ source });
+        if (handle) setSyncingId(null);
+      },
+    });
   }
 
   async function refresh(dir?: MusicSource) {

@@ -4,7 +4,15 @@ import { DeviceScanner } from "../DeviceScanner";
 export async function restoreSyncDevice(
   record: SyncDeviceRecord
 ): Promise<SyncDevice | null> {
-  if (!record.rootHandle) return null;
+  // A Zune has no mountable filesystem: its library is read over MTP, so
+  // there is no directory permission to request.
+  if (!record.rootHandle) {
+    if (record.type !== "zune") return null;
+
+    const scanner = new DeviceScanner();
+    const device = await scanner.scan(undefined, record.usb);
+    return { ...device, id: record.id };
+  }
 
   const permission = await record.rootHandle.requestPermission({
     mode: "readwrite",

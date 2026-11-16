@@ -4,9 +4,13 @@ import type { UsbDeviceInfo } from "../usb";
 
 export class MtpDetector implements DeviceDetector {
   async detect(
-    root: FileSystemDirectoryHandle,
+    root: FileSystemDirectoryHandle | undefined,
     _usb?: UsbDeviceInfo
   ): Promise<SyncDevice | undefined> {
+    // This detector recognises a player by the folders on its storage, so it
+    // needs a root handle; without one there is nothing to inspect.
+    if (!root) return undefined;
+
     const entries: string[] = [];
 
     for await (const [name] of root.entries()) {

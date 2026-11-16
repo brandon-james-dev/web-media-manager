@@ -20,12 +20,15 @@ export class SyncService {
 
   /* The iPod writer pulls in Node-only (sharp/itunesdb-ts) code, so it's
    * lazily loaded only when an iPod actually needs syncing — keeping the
-   * node-builtin chain out of the main browser bundle. */
+   * node-builtin chain out of the main browser bundle. The Zune writer is
+   * loaded the same way for symmetry and to keep its MTP stack out of the
+   * initial bundle. */
   private async getStrategy(
     device: SyncDevice
   ): Promise<ISyncStrategy | undefined> {
     const { IpodSyncStrategy } = await import("./writers/IpodSyncStrategy");
-    const options = [new IpodSyncStrategy()];
+    const { ZuneSyncStrategy } = await import("./writers/ZuneSyncStrategy");
+    const options = [new IpodSyncStrategy(), new ZuneSyncStrategy()];
     return options.find((x) => x.canHandle(device));
   }
 
@@ -46,13 +49,22 @@ export class SyncService {
     );
 
     const connectedRecords = records.filter((record) => {
-      if (!record.rootHandle || !record.usb?.serialNumber) return false;
+      if (!record.usb?.serialNumber) return false;
+
+      // A Zune has no root handle: its library is read over MTP, so it is
+      // connected whenever its USB serial is still enumerated.
+      if (!record.rootHandle) {
+        return (
+          record.type === "zune" &&
+          connectedSerials.has(record.usb.serialNumber)
+        );
+      }
 
       return connectedSerials.has(record.usb.serialNumber);
     });
 
     for (const record of connectedRecords) {
-      await waitForMount(record.rootHandle!);
+      if (record.rootHandle) await waitForMount(record.rootHandle);
     }
 
     // Read each device independently: one unreadable record (mid-eject,
@@ -79,10 +91,8 @@ export class SyncService {
       throw new Error("The device cannot be added without USB information");
     }
 
-    if (!rootHandle) {
-      throw new Error("The selected directory is invalid");
-    }
-
+    // An MTP device (a Zune) has no directory to pick, so a missing root
+    // handle is only an error when the device is not one of those.
     const device = await this.scanner.scan(rootHandle, usbInfo);
 
     if (!device.usb || !device.usb.serialNumber) {
@@ -103,12 +113,44 @@ export class SyncService {
    * source record reflects the device as it is now.
    */
   async refreshSource(source: SyncMusicSource): Promise<void> {
-    if (!source.rootHandle) return;
+    // A Zune has no mountable filesystem: its library is read over MTP, so
+    // there is no directory permission to request. Returning early here made a
+    // refresh of a Zune source do nothing at all, silently.
+    if (!source.rootHandle) {
+      if (source.type !== "zune") {
+        console.warn(
+          `[SyncService] Cannot refresh "${source.name}": no directory handle`
+        );
+        return;
+      }
+
+      const scanned = await this.scanner.scan(undefined, source.usb);
+      const { getSourcesStore } = await import("@/core/ports");
+
+      await getSourcesStore().saveSource({
+        ...source,
+        name: scanned.name || source.name,
+        model: scanned.model ?? source.model,
+        type: scanned.type,
+        productId: scanned.productId ?? source.productId,
+      });
+
+      console.debug(
+        `[SyncService] Refreshed "${scanned.name}" over MTP ` +
+          `(model=${scanned.model ?? "-"}, type=${scanned.type})`
+      );
+      return;
+    }
 
     const permission = await source.rootHandle.requestPermission({
       mode: "readwrite",
     });
-    if (permission !== "granted") return;
+    if (permission !== "granted") {
+      console.warn(
+        `[SyncService] Cannot refresh "${source.name}": permission not granted`
+      );
+      return;
+    }
 
     const scanned = await this.scanner.scan(source.rootHandle, source.usb);
     const { getSourcesStore } = await import("@/core/ports");
@@ -120,10 +162,16 @@ export class SyncService {
       type: scanned.type,
       productId: scanned.productId ?? source.productId,
     });
+
+    console.debug(
+      `[SyncService] Refreshed "${scanned.name}" ` +
+        `(model=${scanned.model ?? "-"}, type=${scanned.type})`
+    );
   }
 
   /** Detect mass-storage devices — those needing a directory prompt (e.g. iPod). */
-  requiresRootDirectory(usbInfo: UsbDeviceInfo): boolean {    // Apple iPods (vendor 0x05ac) expose a mass-storage filesystem and so
+  requiresRootDirectory(usbInfo: UsbDeviceInfo): boolean {
+    // Apple iPods (vendor 0x05ac) expose a mass-storage filesystem and so
     // require a directory picker. MTP/PTP devices (Zune, etc.) do not.
     return usbInfo.vendorId === 0x05ac;
   }

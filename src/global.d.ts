@@ -71,6 +71,16 @@ interface USBDevice {
   readonly manufacturerName?: string;
   readonly productName?: string;
   readonly serialNumber?: string;
+
+  /**
+   * Clear a stalled endpoint (WebUSB spec order: endpoint number, then
+   * direction). The DOM lib bundled with TypeScript does not declare it, and
+   * `MtpProtocol` needs it to recover a session after a timed-out transaction.
+   */
+  clearHalt(
+    endpointNumber: number,
+    direction: "in" | "out"
+  ): Promise<void>;
 }
 
 interface USBEndpoint {
@@ -153,6 +163,34 @@ interface USBDevice {
   claimInterface(interfaceNumber: number): Promise<void>;
 
   releaseInterface(interfaceNumber: number): Promise<void>;
+
+  transferIn(
+    endpointNumber: number,
+    length: number
+  ): Promise<{ status: string; data: DataView }>;
+
+  transferOut(
+    endpointNumber: number,
+    data: Uint8Array
+  ): Promise<{ status: string; bytesWritten?: number }>;
+
+  controlTransferOut(
+    setup: USBControlTransferParameters,
+    data?: Uint8Array
+  ): Promise<{ status: string; bytesWritten?: number }>;
+
+  controlTransferIn(
+    setup: USBControlTransferParameters,
+    length: number
+  ): Promise<{ status: string; data?: DataView }>;
+}
+
+interface USBControlTransferParameters {
+  requestType: "standard" | "class" | "vendor";
+  recipient: "device" | "interface" | "endpoint" | "other";
+  request: number;
+  value: number;
+  index: number;
 }
 
 interface USB {
