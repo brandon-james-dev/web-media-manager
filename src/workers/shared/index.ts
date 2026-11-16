@@ -3,4 +3,6 @@ export * from "./runArtworkProcess";
 export * from "./runBulkEdit";
 export * from "./runBulkImport";
 export * from "./runDeviceSync";
+export * from "./runDeviceRemove";
+export * from "./runSourceRemove";
 export * from "./runOfflineDownload";

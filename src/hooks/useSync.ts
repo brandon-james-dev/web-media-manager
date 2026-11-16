@@ -23,6 +23,14 @@ export interface SyncContextValue {
   syncCompleted: boolean;
   queuedSongs: Song[];
   /**
+   * Delete tracks from a device by their on-device ids, then rescan so every
+   * surface sees the new library.
+   */
+  removeTracksFromDevice(
+    device: SyncDevice,
+    trackIds: number[]
+  ): Promise<void>;
+  /**
    * Mark a sync surface (the sidebar queue or the sync page) as mounted.
    * Returns the cleanup that unmarks it. A sync that finishes with no surface
    * mounted reports through a notification instead of silent progress.

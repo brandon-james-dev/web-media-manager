@@ -299,4 +299,7 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
     await store.deleteSource(options.source.id);
     await options.onSourceRemoved?.();
   }
+
+  /** Nothing beyond the source record and its songs to clean up. */
+  async cleanupRemovedSource(): Promise<void> {}
 }

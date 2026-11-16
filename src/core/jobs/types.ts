@@ -22,6 +22,8 @@ export type WorkerJobType =
   | "Bulk Import"
   | "Bulk Edit"
   | "Device Sync"
+  | "Device Remove"
+  | "Source Remove"
   | "Offline Download"
   | (string & {});
 

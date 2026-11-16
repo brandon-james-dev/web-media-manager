@@ -3,8 +3,10 @@ import {
   runArtworkProcess,
   runBulkEdit,
   runBulkImport,
+  runDeviceRemove,
   runDeviceSync,
   runOfflineDownload,
+  runSourceRemove,
 } from ".";
 
 export const workerStrategies: Record<
@@ -21,5 +23,7 @@ export const workerStrategies: Record<
   "Bulk Edit": runBulkEdit,
   "Bulk Import": runBulkImport,
   "Device Sync": runDeviceSync,
+  "Device Remove": runDeviceRemove,
+  "Source Remove": runSourceRemove,
   "Offline Download": runOfflineDownload,
 };

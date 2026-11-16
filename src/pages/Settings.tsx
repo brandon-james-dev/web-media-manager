@@ -19,6 +19,8 @@ import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, Pack
 import { useTheme, useVisualizer } from "@/hooks";
 import { clearLibrary } from "@/core/scanning";
 import { clearSubsonicSecrets } from "@/lib/sources/subsonic/subsonicSecrets";
+import { runJobWithProgress } from "@/lib/jobs/runJobWithProgress";
+import type { SourceRemoveResult } from "@/workers/shared/runSourceRemove";
 import { getSourcesStore } from "@/core/ports";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { Badge } from "@/components/ui/badge";
@@ -167,21 +169,38 @@ export function Settings() {
       return;
     }
 
-    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
-    if (strategy) {
-      await strategy.removeSource({
-        source,
-        onSourceRemoved: async () => {
-          setPendingDeleteId(null);
-          setDeleteDirDialogOpen(false);
+    // The songs and the source record are deleted by a worker job so a large
+    // library reports progress instead of freezing the page. The kind's own
+    // cleanup (stored secrets, mirrored playlists) runs afterwards, since it
+    // needs the source object that the job removes.
+    try {
+      await runJobWithProgress<SourceRemoveResult>({
+        type: "Source Remove",
+        payload: { sourceId: source.id },
+        kind: "Source Remove",
+        title: "Removing Music Source",
+        bulk: true,
+        readResult: (raw) => {
+          const value = raw as Partial<SourceRemoveResult> | undefined;
+
+          return {
+            cancelled: value?.cancelled ?? false,
+            removed: value?.removed ?? 0,
+          };
         },
+      });
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title: "Could not remove the music source",
+        description: String(error),
       });
       return;
     }
 
-    // Fallback for an unregistered kind: plain removal (no kind cleanup).
-    const store = getSourcesStore();
-    await store.deleteSource(pendingDeleteId);
+    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
+    await strategy?.cleanupRemovedSource?.(source);
+
     setPendingDeleteId(null);
     setDeleteDirDialogOpen(false);
   };
@@ -246,6 +265,10 @@ export function Settings() {
             <Button onClick={handleSave} className="w-full">
               Save Settings
             </Button>
+            <Button variant="outline" onClick={() => setSettingsOpen(true)}>
+              <SlidersHorizontal />
+              Visualizer settings
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -265,10 +288,6 @@ export function Settings() {
             <Button variant="outline" onClick={() => setManagerOpen(true)}>
               <PackagePlus />
               Install or manage plugins
-            </Button>
-            <Button variant="outline" onClick={() => setSettingsOpen(true)}>
-              <SlidersHorizontal />
-              Visualizer settings
             </Button>
           </div>
 

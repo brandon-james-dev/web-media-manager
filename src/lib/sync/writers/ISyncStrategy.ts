@@ -70,6 +70,13 @@ export interface ISyncStrategy {
    * Remove tracks from the device by their on-device track ids
    * (`SyncTrack.id`). Optional: devices whose tracks cannot be addressed
    * this way (MTP) leave it unimplemented.
+   *
+   * `onProgress` is called once per track as it is deleted, so a removal job
+   * can report how far it has got instead of jumping at the end.
    */
-  removeTracks?(device: SyncDevice, trackIds: number[]): Promise<void>;
+  removeTracks?(
+    device: SyncDevice,
+    trackIds: number[],
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<void>;
 }

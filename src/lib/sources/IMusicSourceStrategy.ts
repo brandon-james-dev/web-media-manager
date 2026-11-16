@@ -123,6 +123,16 @@ export interface IMusicSourceStrategy {
   }): Promise<void>;
 
   /**
+   * Drop the artifacts this source kind owns beyond the source record and its
+   * songs — stored credentials, mirrored playlists.
+   *
+   * Called after the removal job has already deleted the songs and the source
+   * record, so implementations must not touch either. Optional: a kind with
+   * nothing extra to clean up leaves it unimplemented.
+   */
+  cleanupRemovedSource?(source: MusicSource): Promise<void>;
+
+  /**
    * Collect this source kind's library entries as app songs (bulk import).
    * Reports progress via the optional callback; returns the imported songs.
    * Runs inside the web worker (UI-free), so implementations must not

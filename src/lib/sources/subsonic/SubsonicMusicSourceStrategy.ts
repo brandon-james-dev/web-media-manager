@@ -431,4 +431,13 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
     await deleteSubsonicSecret(source.id);
     await options.onSourceRemoved?.();
   }
+
+  /**
+   * Drop the mirrored playlists and the stored auth secret. The songs and the
+   * source record are already gone by the time this runs.
+   */
+  async cleanupRemovedSource(source: MusicSource): Promise<void> {
+    await removeSubsonicPlaylists(source);
+    await deleteSubsonicSecret(source.id);
+  }
 }

@@ -260,7 +260,11 @@ export class IpodSyncStrategy implements ISyncStrategy {
    * Delete tracks from the device by their on-device ids (`SyncTrack.id`,
    * i.e. the iTunesDB trackId).
    */
-  async removeTracks(device: SyncDevice, trackIds: number[]): Promise<void> {
+  async removeTracks(
+    device: SyncDevice,
+    trackIds: number[],
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<void> {
     if (trackIds.length === 0) return;
 
     await this.withDatabase(device, (itdb) => {
@@ -268,13 +272,14 @@ export class IpodSyncStrategy implements ISyncStrategy {
 
       let removed = 0;
 
-      for (const trackId of trackIds) {
+      for (const [index, trackId] of trackIds.entries()) {
         if (!knownTrackIds.has(trackId)) {
           // Stale id: the track is already gone (removed elsewhere, or the
           // listing predates a rescan). Skipping keeps the rest deleting.
           console.warn(
             `[IpodSyncStrategy] cannot remove track ${trackId}: not on device`
           );
+          onProgress?.(index + 1, trackIds.length);
           continue;
         }
 
@@ -282,6 +287,8 @@ export class IpodSyncStrategy implements ISyncStrategy {
 
         itdb.removeTrack(trackId);
         removed++;
+
+        onProgress?.(index + 1, trackIds.length);
       }
 
       return removed > 0;

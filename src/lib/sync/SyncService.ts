@@ -195,7 +195,11 @@ export class SyncService {
    * Delete tracks from a device by their on-device ids (`SyncTrack.id`).
    * Throws when the device type cannot delete individual tracks.
    */
-  async removeTracks(device: SyncDevice, trackIds: number[]): Promise<void> {
+  async removeTracks(
+    device: SyncDevice,
+    trackIds: number[],
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<void> {
     const strategy = await this.getStrategy(device);
 
     if (!strategy) {
@@ -208,6 +212,6 @@ export class SyncService {
       );
     }
 
-    await strategy.removeTracks(device, trackIds);
+    await strategy.removeTracks(device, trackIds, onProgress);
   }
 }

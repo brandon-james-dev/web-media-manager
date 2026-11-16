@@ -25,6 +25,9 @@ wmmBus.on("wmm.jobs.state", (evt) => {
   // An offline download reports its own toast with the cached and failed
   // counts, so the generic "started / completed" pair would double it.
   if (evt.jobType === "Offline Download") return;
+  // A removal reports its own progress bar and its own result line.
+  if (evt.jobType === "Device Remove") return;
+  if (evt.jobType === "Source Remove") return;
 
   const jobType = evt.jobType ?? "Job";
   const state = evt.state as BackgroundJobState;

@@ -28,6 +28,8 @@ import {
   setDeviceArtwork,
 } from "@/lib/sync/deviceArtwork";
 import type { DeviceSyncResult } from "@/workers/shared/runDeviceSync";
+import type { DeviceRemoveResult } from "@/workers/shared/runDeviceRemove";
+import { runJobWithProgress } from "@/lib/jobs/runJobWithProgress";
 import { notification$ } from "@/events/notification-events";
 import {
   getOfflineSongIdsSnapshot,
@@ -443,13 +445,32 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   /**
    * Delete tracks from a device by their on-device ids, then rescan so the
    * card, the queue filter, and the nav badge all see the new library.
+   *
+   * Runs as a worker job so a large removal reports per-track progress and
+   * does not block the main thread.
    */
   const removeTracksFromDevice = useCallback(
     async (syncDevice: SyncDevice, trackIds: number[]) => {
       if (trackIds.length === 0) return;
 
       try {
-        await syncService.removeTracks(syncDevice, trackIds);
+        const result = await runJobWithProgress<DeviceRemoveResult>({
+          type: "Device Remove",
+          payload: { device: syncDevice, trackIds },
+          kind: "Device Remove",
+          title: "Removing Tracks",
+          bulk: trackIds.length > 1,
+          readResult: (raw) => {
+            const value = raw as Partial<DeviceRemoveResult> | undefined;
+
+            return {
+              cancelled: value?.cancelled ?? false,
+              removed: value?.removed ?? 0,
+            };
+          },
+        });
+
+        if (result.cancelled) return;
       } catch (error) {
         notification$.next({
           id: uuidv7(),
@@ -473,7 +494,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         } from ${syncDevice.name}.`,
       });
     },
-    [syncService, refreshDevices]
+    [refreshDevices]
   );
 
   const addDevice = useCallback(
@@ -664,6 +685,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       syncedSongIds,
       syncCompleted,
       queuedSongs,
+      removeTracksFromDevice,
       registerSyncUi,
     }),
     [
@@ -676,6 +698,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       syncCompleted,
       refreshDevices,
       addDevice,
+      removeTracksFromDevice,
       registerSyncUi,
     ]
   );

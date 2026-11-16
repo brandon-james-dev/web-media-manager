@@ -372,7 +372,11 @@ export class ZuneSyncStrategy implements ISyncStrategy {
   }
 
   /** Delete tracks from the device by their ZMDB atom ids (`SyncTrack.id`). */
-  async removeTracks(device: SyncDevice, trackIds: number[]): Promise<void> {
+  async removeTracks(
+    device: SyncDevice,
+    trackIds: number[],
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<void> {
     if (trackIds.length === 0) return;
 
     const usb = device.usb;
@@ -393,7 +397,7 @@ export class ZuneSyncStrategy implements ISyncStrategy {
     }
 
     try {
-      for (const trackId of trackIds) {
+      for (const [index, trackId] of trackIds.entries()) {
         try {
           await zune.deleteObject(trackId);
         } catch (error) {
@@ -403,6 +407,8 @@ export class ZuneSyncStrategy implements ISyncStrategy {
             error
           );
         }
+
+        onProgress?.(index + 1, trackIds.length);
       }
 
       await zune.syncDeviceDB(1);
