@@ -32,7 +32,13 @@ export async function ensureExampleVisualizers(): Promise<void> {
   }
 
   if (safeStorageGet(SEEDED_KEY) === EXAMPLE_PLUGIN_VERSION) {
-    return;
+    // The flag lives in localStorage, which outlives the database. Trusting it
+    // alone left the app with no visualizer after the database was renamed and
+    // came up empty, so the plugin's presence is what decides.
+    const installed = await manager.list();
+    if (installed.some((plugin) => plugin.id === EXAMPLE_PLUGIN_ID)) {
+      return;
+    }
   }
 
   const installed = await manager.list();

@@ -168,7 +168,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
       return selectedSongs;
     }
     return songs;
-  }, [selectedSongs, songs]);
+  }, [selectedSongs, songs, song]);
 
   // Playlists synced from a read-only source can't take new songs, and the
   // reserved favorites playlist is already covered by the favorites action.
@@ -239,12 +239,15 @@ export function useSongMenu(songs: Song[]): SongMenu {
 
   const isInSyncPage = useMemo(() => pathname.includes("sync"), [pathname]);
 
-  function onItemClick(callback: () => void) {
-    wmmBus.publish("wmm.ui.selectionChanged", {
-      songIds: target.map((x) => x.id),
-    });
-    callback();
-  }
+  const onItemClick = useCallback(
+    (callback: () => void) => {
+      wmmBus.publish("wmm.ui.selectionChanged", {
+        songIds: target.map((x) => x.id),
+      });
+      callback();
+    },
+    [target]
+  );
 
   /** Report an action's outcome, from either the menu or the drawer. */
   const notify = useCallback(
@@ -264,27 +267,30 @@ export function useSongMenu(songs: Song[]): SongMenu {
     target.length === 1 ? (song?.title ?? "1 song") : `${target.length} songs`;
 
   /** Add every selected song to an existing playlist. */
-  async function addToPlaylist(playlistId: string) {
-    await addSongsToPlaylist(
-      playlistId,
-      target.map((s) => s.id)
-    );
-  }
+  const addToPlaylist = useCallback(
+    async (playlistId: string) => {
+      await addSongsToPlaylist(
+        playlistId,
+        target.map((s) => s.id)
+      );
+    },
+    [target]
+  );
 
   /** Favorite every selected song, or unfavorite them when all already are. */
-  async function toggleFavorites() {
+  const toggleFavorites = useCallback(async () => {
     const allFavorite = target.every((s) => isFavorite(s.id));
     for (const s of target) {
       if (isFavorite(s.id) === allFavorite) await toggleFavorite(s.id);
     }
-  }
+  }, [target, isFavorite, toggleFavorite]);
 
   /**
    * Cache the selection for offline use, or drop it when every song is
    * already cached. Cached audio is what a sync job can read from a remote
    * source, and what lets a song play without the network.
    */
-  async function toggleOffline() {
+  const toggleOffline = useCallback(async () => {
     const allCached = target.every((s) => offlineSongIds.has(s.id));
 
     if (allCached) {
@@ -327,7 +333,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
         failed.slice(0, 3).join(", ")
       );
     }
-  }
+  }, [target, offlineSongIds, notify, selectionLabel]);
 
   /**
    * Create a playlist from the selection. Playlists live in the app's own
@@ -539,6 +545,10 @@ export function useSongMenu(songs: Song[]): SongMenu {
     selectionLabel,
     song,
     target,
+    toggleOffline,
+    addToPlaylist,
+    toggleFavorites,
+    onItemClick,
   ]);
 
   return {
