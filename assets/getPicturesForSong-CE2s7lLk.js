@@ -1,0 +1,1 @@
+import{i as e}from"./getPicturesForSongOfType-apL1xgLg.js";import{n as t}from"./contracts-2crkwRYZ.js";async function n(t){return await e().getBySong(t)}async function r(e){let r=await n(e);return Promise.all(r.map(async e=>({type:e.artworkType??t.Other,mimeType:`image/jpeg`,description:``,data:new Uint8Array(await e.full.arrayBuffer())})))}export{n,r as t};
