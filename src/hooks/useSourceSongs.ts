@@ -13,7 +13,11 @@ export function syncTrackToSong(deviceId: string, track: SyncTrack): Song {
   return {
     id: `${deviceId}:${track.id}`,
     sourceId: deviceId,
-    relativePath: "",
+    // The device stores locations colon-separated and rooted; the rest of the
+    // app addresses files with `/`-separated paths relative to the source root.
+    relativePath: track.path
+      ? track.path.replace(/^:/, "").replace(/:/g, "/")
+      : "",
     filename: track.title ?? "",
     title: track.title,
     artist: track.artist,

@@ -1,4 +1,5 @@
 import { getSongArtworkStore } from "@/lib/persistence/songArtworkStore";
+import { getDeviceArtwork } from "@/lib/sync/deviceArtwork";
 import { ArtworkType, type IPicture } from "../../contracts";
 import { ThumbnailSize } from "./resizeBitmap";
 
@@ -9,7 +10,20 @@ export async function getPicturesForSongOfType(
 ): Promise<IPicture | undefined> {
   const artwork = await getSongArtworkStore().getBySongAndType(songId, type);
 
-  if (!artwork) return undefined;
+  if (!artwork) {
+    // A sync device's tracks have no row in the artwork table: their covers
+    // live in the device's own ArtworkDB and are held in memory while it is
+    // connected. Without this fallback every device track showed a blank tile.
+    const deviceArtwork = getDeviceArtwork(songId);
+    if (!deviceArtwork) return undefined;
+
+    return {
+      type,
+      mimeType: deviceArtwork.type || "image/png",
+      description: "",
+      data: new Uint8Array(await deviceArtwork.arrayBuffer()),
+    };
+  }
 
   const blob =
     thumbSize == undefined

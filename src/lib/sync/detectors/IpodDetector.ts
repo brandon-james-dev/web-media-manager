@@ -17,6 +17,39 @@ import { uuidv7 } from "uuidv7";
 import { mapUsbDevice, type UsbDeviceInfo } from "../usb";
 import { getDirectorySize } from "../helpers/getDirectorySize";
 
+/**
+ * Encode raw RGBA pixels as a PNG blob.
+ *
+ * The device stores cover art as raw pixels in `.ithmb` files, which no `<img>`
+ * can render. `OffscreenCanvas` is available in every browser this app targets
+ * and in workers; when it is missing the track simply has no art.
+ */
+async function rgbaToPngBlob(image: {
+  width: number;
+  height: number;
+  pixels: Uint8Array;
+}): Promise<Blob | null> {
+  if (typeof OffscreenCanvas === "undefined") return null;
+
+  const canvas = new OffscreenCanvas(image.width, image.height);
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  const expected = image.width * image.height * 4;
+  if (image.pixels.length < expected) return null;
+
+  const pixels = new Uint8ClampedArray(expected);
+  pixels.set(image.pixels.subarray(0, expected));
+
+  context.putImageData(
+    new ImageData(pixels, image.width, image.height),
+    0,
+    0
+  );
+
+  return await canvas.convertToBlob({ type: "image/png" });
+}
+
 export class IpodDetector implements DeviceDetector {
   async detect(
     root?: FileSystemDirectoryHandle,
@@ -135,6 +168,7 @@ export class IpodDetector implements DeviceDetector {
           discTotal: track.discTotal,
           bitrate: track.bitrate,
           fileSize: track.size,
+          path: track.path,
           // Link the track to its cover-art image in the device ArtworkDB.
           // mhiiLink is the ArtworkDB imageId (mhii::song_id) this track's art
           // lives under; 0/absent means the track has no embedded cover art.
@@ -142,6 +176,31 @@ export class IpodDetector implements DeviceDetector {
         };
       });
       //#endregion
+
+      // Decode each distinct image once: many tracks share an album's cover,
+      // and reading the same .ithmb range per track would multiply the scan
+      // cost. The bytes are kept in memory on the track, never persisted.
+      const artworkBlobs = new Map<string, Blob>();
+      for (const track of tracks) {
+        const artworkId = track.artworkId;
+        if (!artworkId || artworkBlobs.has(artworkId)) continue;
+
+        try {
+          const raw = await itdb.getArtwork(track.id);
+          const blob = raw ? await rgbaToPngBlob(raw) : null;
+          if (blob) artworkBlobs.set(artworkId, blob);
+        } catch (err) {
+          // Art is optional: a track without a readable cover still syncs.
+          console.warn("[IpodDetector] Could not read cover art:", err);
+        }
+      }
+
+      for (const track of tracks) {
+        const blob = track.artworkId
+          ? artworkBlobs.get(track.artworkId)
+          : undefined;
+        if (blob) track.artwork = blob;
+      }
     } finally {
       itdb[Symbol.dispose]();
     }

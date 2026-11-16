@@ -30,6 +30,9 @@ export function ipodLocationToPath(location: string): string {
 /** Reads a song's audio, whatever source it comes from. */
 export type SongBytesResolver = (song: Song) => Promise<ArrayBuffer | null>;
 
+/** Reads a song's cover art bytes, when it has any. */
+export type SongArtworkResolver = (song: Song) => Promise<Uint8Array | null>;
+
 /**
  * Resolve a song's bytes, preferring the offline cache.
  *
@@ -41,11 +44,36 @@ export type SongBytesResolver = (song: Song) => Promise<ArrayBuffer | null>;
 const resolveCachedFirst: SongBytesResolver = async (song) =>
   await resolveSongBytesWithCache(song, resolveThroughSource);
 
+/**
+ * Read a song's front cover from the artwork store.
+ *
+ * IndexedDB is reachable from a worker, so the same rows the library shows are
+ * available here. A song with no stored cover returns null and is written
+ * without artwork, which is what the device shows for it today.
+ */
+const resolveStoredArtwork: SongArtworkResolver = async (song) => {
+  try {
+    const [{ getPictureOfType }, { ArtworkType }] = await Promise.all([
+      import("@/core/media"),
+      import("@/lib/contracts"),
+    ]);
+    const picture = await getPictureOfType(song.id, ArtworkType.FrontCover);
+    return picture?.data ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export class IpodSyncStrategy implements ISyncStrategy {
   private readonly resolveBytes: SongBytesResolver;
+  private readonly resolveArtwork: SongArtworkResolver;
 
-  constructor(resolveBytes: SongBytesResolver = resolveCachedFirst) {
+  constructor(
+    resolveBytes: SongBytesResolver = resolveCachedFirst,
+    resolveArtwork: SongArtworkResolver = resolveStoredArtwork
+  ) {
     this.resolveBytes = resolveBytes;
+    this.resolveArtwork = resolveArtwork;
   }
 
   canHandle(device: SyncDevice): boolean {
@@ -113,9 +141,24 @@ export class IpodSyncStrategy implements ISyncStrategy {
           continue;
         }
 
+        // Cover art travels with the track: without it the device shows a
+        // blank tile for every song written from here. A device with no
+        // artwork formats configured rejects explicit art, so it is only
+        // passed when the device can store it, and a failure to read the
+        // cover must not cost the track.
+        let artwork: Uint8Array | undefined;
+        if ((itdb.artworkFormats?.length ?? 0) > 0) {
+          try {
+            artwork = (await this.resolveArtwork(song)) ?? undefined;
+          } catch {
+            artwork = undefined;
+          }
+        }
+
         const track = await itdb.addTrack(
           this.mapSongToTrackStrings(song),
-          new Uint8Array(bytes)
+          new Uint8Array(bytes),
+          artwork
         );
 
         // Confirm the write landed on the device before calling it done: the

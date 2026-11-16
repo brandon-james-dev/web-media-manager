@@ -20,6 +20,10 @@ import {
   type UsbDeviceInfo,
 } from "@/lib/sync";
 import { isOnDevice, type SyncSongOutcome } from "@/lib/sync/writers/ISyncStrategy";
+import {
+  clearDeviceArtwork,
+  setDeviceArtwork,
+} from "@/lib/sync/deviceArtwork";
 import type { DeviceSyncResult } from "@/workers/shared/runDeviceSync";
 import { notification$ } from "@/events/notification-events";
 import {
@@ -66,6 +70,23 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   //#endregion
 
   //#region Functions
+  /**
+   * Register the cover art of every connected device track, keyed by the same
+   * namespaced song id the library uses. The library's artwork lookup reads
+   * the `songArtwork` table, which holds nothing for a device, so without this
+   * every device track rendered a blank tile.
+   */
+  useEffect(() => {
+    clearDeviceArtwork();
+
+    for (const device of devices) {
+      for (const track of device.media?.tracks ?? []) {
+        if (track.artwork) {
+          setDeviceArtwork(`${device.id}:${track.id}`, track.artwork);
+        }
+      }
+    }
+  }, [devices]);
   /**
    * Add songs to the queue, skipping anything already stored on a connected
    * device. The queue is device-agnostic, so a song counts as present when

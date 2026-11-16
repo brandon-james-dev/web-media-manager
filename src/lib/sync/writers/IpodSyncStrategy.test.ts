@@ -21,6 +21,9 @@ const { fakeItdb, fakeStore, fakeFs } = vi.hoisted(() => {
       path?: string;
     }[],
     playlists: [] as unknown[],
+    // The device's cover-art formats. Empty means it cannot store artwork, so
+    // the strategy must not pass any.
+    artworkFormats: [] as { formatId: number }[],
     // Mirrors the real addTrack: the track joins the database and gets a path
     // on the device, which is what the post-write verification looks for. The
     // location is colon-separated and rooted, exactly as itunesdb-ts stores it
@@ -169,6 +172,85 @@ describe("IpodSyncStrategy progress", () => {
     await expect(
       new IpodSyncStrategy().sync(device, [song("a", "One")], [])
     ).resolves.toBeDefined();
+  });
+});
+
+describe("IpodSyncStrategy artwork", () => {
+  it("writes the song's cover art with the track", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.artworkFormats = [{ formatId: 1 }];
+    fakeItdb.addTrack.mockClear();
+    const art = new Uint8Array([1, 2, 3]);
+
+    await new IpodSyncStrategy(undefined, async () => art).sync(
+      device,
+      [song("a", "One")],
+      []
+    );
+
+    expect(fakeItdb.addTrack).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      art
+    );
+    fakeItdb.artworkFormats = [];
+  });
+
+  it("writes no artwork when the song has none", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.artworkFormats = [{ formatId: 1 }];
+    fakeItdb.addTrack.mockClear();
+
+    await new IpodSyncStrategy(undefined, async () => null).sync(
+      device,
+      [song("a", "One")],
+      []
+    );
+
+    expect(fakeItdb.addTrack).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      undefined
+    );
+    fakeItdb.artworkFormats = [];
+  });
+
+  it("writes no artwork when the device cannot store it", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.artworkFormats = [];
+    fakeItdb.addTrack.mockClear();
+    const resolveArtwork = vi.fn(async () => new Uint8Array([1, 2, 3]));
+
+    await new IpodSyncStrategy(undefined, resolveArtwork).sync(
+      device,
+      [song("a", "One")],
+      []
+    );
+
+    expect(resolveArtwork).not.toHaveBeenCalled();
+    expect(fakeItdb.addTrack).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      undefined
+    );
+  });
+
+  it("still writes the track when reading the cover fails", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.artworkFormats = [{ formatId: 1 }];
+    fakeItdb.addTrack.mockClear();
+
+    await new IpodSyncStrategy(undefined, async () => {
+      throw new Error("no artwork");
+    }).sync(device, [song("a", "One")], []);
+
+    expect(fakeItdb.addTrack).toHaveBeenCalledTimes(1);
+    expect(fakeItdb.addTrack).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      undefined
+    );
+    fakeItdb.artworkFormats = [];
   });
 });
 

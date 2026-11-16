@@ -38,11 +38,42 @@ export class SyncMusicSourceStrategy implements IMusicSourceStrategy {
   }
 
   /**
-   * Devices are not streamed: their tracks are not in the library, so no
-   * song ever resolves bytes through this source.
+   * Read a track's audio back off the device.
+   *
+   * A device track is a real file under the device root, so playback resolves
+   * it the same way a local folder's song is resolved: walk the path from the
+   * root handle and read the file. Returning null here meant a device track
+   * could be listed and synced but never played.
    */
-  async resolveSongBytes(): Promise<ArrayBuffer | null> {
-    return null;
+  async resolveSongBytes(song: Song): Promise<ArrayBuffer | null> {
+    if (!song.relativePath) return null;
+
+    const { getSourcesStore } = await import("@/core/ports");
+    const sources = await getSourcesStore().getSources();
+    const source = sources.find((entry) => entry.id === song.sourceId);
+
+    if (!source || !isSyncSource(source) || !source.rootHandle) return null;
+
+    try {
+      const segments = song.relativePath.split("/").filter(Boolean);
+      const fileName = segments.pop();
+      if (!fileName) return null;
+
+      let directory = source.rootHandle;
+      for (const segment of segments) {
+        directory = await directory.getDirectoryHandle(segment);
+      }
+
+      const handle = await directory.getFileHandle(fileName);
+      const file = await handle.getFile();
+      return await file.arrayBuffer();
+    } catch (error) {
+      console.warn(
+        `[SyncMusicSourceStrategy] Could not read "${song.relativePath}":`,
+        error
+      );
+      return null;
+    }
   }
 
   /**
