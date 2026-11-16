@@ -43,6 +43,7 @@ import { AlbumArtImage } from "@/components/album-art-image";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import { wmmBus } from "@/events";
 import { FavoriteButton } from "@/components/favorite-button";
+import { useTranslation } from "@/i18n";
 import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
 import { formatLength } from "@/lib/formatLength";
 import { cn } from "cn";
@@ -77,6 +78,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   // this is a television.
   const isCompact = useIsCompact();
   const isTv = useIsTv();
+  const { t } = useTranslation();
 
   //#region State
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
@@ -454,7 +456,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
         <div
           className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-muted overflow-hidden"
           role={showBuffering ? "progressbar" : undefined}
-          aria-label={showBuffering ? "Buffering" : undefined}
+          aria-label={showBuffering ? t("playback.buffering") : undefined}
         >
           <div
             className="h-full bg-accent transition-[width] duration-200"
@@ -470,7 +472,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
         {nowPlaying?.duration ? (
           <div
             role="slider"
-            aria-label="Seek"
+            aria-label={t("playback.seek")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(scrubPct ?? progress)}
@@ -524,8 +526,8 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
           <div className="flex min-w-0 flex-1 items-center gap-3 px-1">
             <button
               type="button"
-              aria-label="Open now playing"
-              title="Now playing"
+              aria-label={t("playback.openNowPlaying")}
+              title={t("playback.nowPlaying")}
               className="shrink-0 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               onClick={() => setIsNowPlayingOpen(true)}
             >
@@ -543,7 +545,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
             <div className="min-w-0 flex-1 overflow-hidden">
               <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
                 <span className="min-w-0 truncate">
-                  {nowPlaying?.title ?? "Nothing is playing"}
+                  {nowPlaying?.title ?? t("playback.nothingPlaying")}
                 </span>
                 <ExplicitBadge song={nowPlaying} />
               </div>
@@ -567,7 +569,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
               className="h-14 w-14 rounded-full bg-secondary-foreground/10 hover:bg-secondary-foreground/20"
               onClick={handlePlayPause}
               disabled={!nowPlaying}
-              aria-label={isPlaying ? "Pause" : "Play"}
+              aria-label={isPlaying ? t("playback.pause") : t("playback.play")}
             >
               {isPlaying ? (
                 <Pause className="h-7 w-7 fill-secondary-foreground" />
@@ -600,7 +602,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       </span>
                       <div
                         role="slider"
-                        aria-label="Seek"
+                        aria-label={t("playback.seek")}
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-valuenow={Math.round(scrubPct ?? progress)}
@@ -669,8 +671,8 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       variant="ghost"
                       className="size-12 rounded-full"
                       onClick={handleShuffleToggle}
-                      title="Shuffle"
-                      aria-label="Shuffle"
+                      title={t("playback.shuffle")}
+                      aria-label={t("playback.shuffle")}
                       aria-pressed={shuffle === shuffleState.On}
                     >
                       <Shuffle
@@ -688,7 +690,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       className="size-14 rounded-full"
                       onClick={handlePrev}
                       disabled={!nowPlaying}
-                      aria-label="Previous"
+                      aria-label={t("playback.previous")}
                     >
                       <SkipBack className="size-7 fill-foreground" />
                     </Button>
@@ -697,7 +699,9 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       className="size-16 shrink-0 rounded-full transition-transform active:scale-95 disabled:opacity-50"
                       onClick={handlePlayPause}
                       disabled={!nowPlaying}
-                      aria-label={isPlaying ? "Pause" : "Play"}
+                      aria-label={
+                        isPlaying ? t("playback.pause") : t("playback.play")
+                      }
                     >
                       <PlayPauseCutout isPlaying={isPlaying} />
                     </button>
@@ -707,7 +711,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       className="size-14 rounded-full"
                       onClick={handleNext}
                       disabled={!nowPlaying}
-                      aria-label="Next"
+                      aria-label={t("playback.next")}
                     >
                       <SkipForward className="size-7 fill-foreground" />
                     </Button>
@@ -767,8 +771,8 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
               <Button
                 size="icon"
                 variant="ghost"
-                aria-label="Close now playing"
-                title="Close now playing"
+                aria-label={t("playback.closeNowPlaying")}
+                title={t("playback.closeNowPlaying")}
                 className="size-12 shrink-0"
                 onClick={() => setIsNowPlayingOpen(false)}
               >
@@ -777,8 +781,8 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
             ) : (
               <button
                 type="button"
-                aria-label="Open now playing"
-                title="Now playing"
+                aria-label={t("playback.openNowPlaying")}
+                title={t("playback.nowPlaying")}
                 className="group/art relative shrink-0 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 onClick={() => setIsNowPlayingOpen(true)}
               >
@@ -810,7 +814,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
               <div className="flex min-w-0 flex-col overflow-hidden">
                 <span className="flex items-center gap-1.5 font-medium">
                   <span className="truncate">
-                    {nowPlaying?.title ?? "Nothing is playing"}
+                    {nowPlaying?.title ?? t("playback.nothingPlaying")}
                   </span>
                   <ExplicitBadge song={nowPlaying} />
                 </span>
@@ -913,7 +917,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                   <div
                     className="pointer-events-none absolute inset-x-0 top-1/2 z-0 h-1 -translate-y-1/2 overflow-hidden rounded-full"
                     role="progressbar"
-                    aria-label="Buffering"
+                    aria-label={t("playback.buffering")}
                   >
                     <div className="buffering-sweep h-full w-1/3 bg-accent/60" />
                   </div>
@@ -949,7 +953,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
             <Button
               variant="ghost"
               onClick={handleMuteToggle}
-              title={muted ? "Unmute" : "Mute"}
+              title={muted ? t("playback.unmute") : t("playback.mute")}
             >
               {muted ? (
                 <VolumeX className="fill-secondary-foreground w-6" />

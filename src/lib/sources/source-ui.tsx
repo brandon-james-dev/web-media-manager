@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 import { Cpu, FolderOpen, HardDrive, Server } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { i18n } from "@/i18n";
 import type { MusicSourceKind } from "@/core/contracts";
 
 const KIND_ICON: Record<MusicSourceKind, ReactNode> = {
@@ -16,29 +17,29 @@ const KIND_ICON: Record<MusicSourceKind, ReactNode> = {
   sync: <HardDrive className="h-8 w-8" />,
 };
 
-const KIND_BADGE: Record<MusicSourceKind, ReactNode> = {
-  local: (
+const KIND_BADGE: Record<MusicSourceKind, () => ReactNode> = {
+  local: () => (
     <Badge variant="secondary">
       <FolderOpen />
-      On device
+      {i18n.t("source.kindLocal")}
     </Badge>
   ),
-  subsonic: (
+  subsonic: () => (
     <Badge variant="secondary">
       <Server />
       Subsonic
     </Badge>
   ),
-  server: (
+  server: () => (
     <Badge variant="secondary">
       <Cpu />
-      Server
+      {i18n.t("source.kindServer")}
     </Badge>
   ),
-  sync: (
+  sync: () => (
     <Badge variant="secondary">
       <HardDrive />
-      Sync device
+      {i18n.t("source.kindSync")}
     </Badge>
   ),
 };
@@ -50,5 +51,5 @@ export function sourceKindIcon(kind: MusicSourceKind): ReactNode {
 
 /** Badge element naming this source kind, e.g. for the Settings list. */
 export function sourceKindBadge(kind: MusicSourceKind): ReactNode {
-  return KIND_BADGE[kind];
+  return KIND_BADGE[kind]();
 }

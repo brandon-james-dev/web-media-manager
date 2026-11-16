@@ -1,4 +1,5 @@
 import type { AppNotificationEvent } from "@/events/notification-events";
+import { useTranslation } from "@/i18n";
 import { ItemContent } from "../ui/item";
 import { Progress } from "../ui/progress";
 import type { ProgressPayload } from "@/lib/background-jobs/callbacks";
@@ -27,6 +28,7 @@ export function BulkImportNotification({
 }: {
   notification: AppNotificationEvent;
 }) {
+  const { t } = useTranslation();
   let parent = {
     completed: 0,
     total: 0,
@@ -123,10 +125,14 @@ export function BulkImportNotification({
     <ItemContent>
       <div className="space-y-4">
         <div>
-          <div className="text-xs font-medium mb-1">Importing Songs</div>
+          <div className="text-xs font-medium mb-1">
+            {t("notification.importingSongs")}
+          </div>
 
           {parentComplete ? (
-            <div className="text-xs text-muted-foreground">Completed</div>
+            <div className="text-xs text-muted-foreground">
+              {t("notification.completed")}
+            </div>
           ) : (
             <>
               <Progress value={parent.overall * 100} />
@@ -134,7 +140,10 @@ export function BulkImportNotification({
               <div className="text-xs text-muted-foreground mt-1">
                 {parent.total > 0 && (
                   <span className="block">
-                    {parent.completed} / {parent.total}
+                    {t("notification.progressCount", [
+                      parent.completed,
+                      parent.total,
+                    ])}
                   </span>
                 )}
               </div>
@@ -144,13 +153,15 @@ export function BulkImportNotification({
 
         {playlists && (
           <div>
-            <div className="text-xs font-medium mb-1">Importing Playlists</div>
+            <div className="text-xs font-medium mb-1">
+              {t("notification.importingPlaylists")}
+            </div>
 
             {playlists.done || importDone ? (
               <div className="text-xs text-muted-foreground">
-                Completed
+                {t("notification.completed")}
                 {playlists.total > 0 &&
-                  ` · ${playlists.total} ${playlists.total === 1 ? "playlist" : "playlists"}`}
+                  ` · ${t("notification.playlistCount", [playlists.total])}`}
               </div>
             ) : (
               <>
@@ -158,7 +169,10 @@ export function BulkImportNotification({
 
                 {playlists.total > 0 && (
                   <div className="text-xs text-muted-foreground mt-1">
-                    {playlists.completed} / {playlists.total}
+                    {t("notification.progressCount", [
+                      playlists.completed,
+                      playlists.total,
+                    ])}
                   </div>
                 )}
               </>
@@ -169,17 +183,22 @@ export function BulkImportNotification({
         {child.total > 0 && (
           <div>
             <div className="text-xs font-medium mb-1">
-              Generating Thumbnails
+              {t("notification.generatingThumbnails")}
             </div>
 
             {childComplete ? (
-              <div className="text-xs text-muted-foreground">Completed</div>
+              <div className="text-xs text-muted-foreground">
+                {t("notification.completed")}
+              </div>
             ) : (
               <>
                 <Progress value={child.overall * 100} />
 
                 <div className="text-xs text-muted-foreground mt-1">
-                  {child.completed} / {child.total}
+                  {t("notification.progressCount", [
+                    child.completed,
+                    child.total,
+                  ])}
                 </div>
               </>
             )}

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { TvNowPlayingIndicator } from "@/components/tv";
+import { useTranslation } from "@/i18n";
 import { useIsTv } from "@/lib/hooks/useIsMobile";
 import { Settings } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -8,12 +9,13 @@ import NotificationPopover from "./NotificationPopover";
 export default function NavBar() {
   const isTv = useIsTv();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="relative flex h-14 items-center justify-between px-4 border-b">
-      <div className="font-semibold select-none">Web Media Manager</div>
+      <div className="font-semibold select-none">{t("app.title")}</div>
 
-      {/* Centred on the bar rather than in the flex flow, so it stays centred
+      {/* Centered on the bar rather than in the flex flow, so it stays centred
           whatever the width of the controls on either side. */}
       {isTv && (
         <div className="pointer-events-none absolute inset-x-0 flex justify-center">
@@ -28,7 +30,7 @@ export default function NavBar() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Settings"
+          aria-label={t("settings.title")}
           onClick={() => void navigate("/settings")}
         >
           <Settings className="h-5 w-5" />

@@ -31,6 +31,7 @@ import type { DeviceSyncResult } from "@/workers/shared/runDeviceSync";
 import type { DeviceRemoveResult } from "@/workers/shared/runDeviceRemove";
 import { runJobWithProgress } from "@/lib/jobs/runJobWithProgress";
 import { notification$ } from "@/events/notification-events";
+import { i18n } from "@/i18n";
 import {
   getOfflineSongIdsSnapshot,
   reloadOfflineSongIds,
@@ -164,10 +165,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           id: uuidv7(),
           kind: "Queue Skipped",
           state: "completed",
-          title: "Already on device",
-          detail:
-            `${skipped} song${skipped === 1 ? "" : "s"} skipped: already on `
-            + "the connected device.",
+          title: i18n.t("notification.alreadyOnDevice"),
+          detail: i18n.t("notification.skippedOnDevice", [skipped]),
         });
       }
 
@@ -176,11 +175,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           id: uuidv7(),
           kind: "Queue Skipped",
           state: "error",
-          title: "Not available offline",
-          detail:
-            `${notOffline.length} song${notOffline.length === 1 ? "" : "s"} `
-            + "skipped: only downloaded songs can be synced. Use the Offline "
-            + "column to download them first.",
+          title: i18n.t("notification.notAvailableOffline"),
+          detail: i18n.t("notification.skippedNotOffline", [
+            notOffline.length,
+          ]),
         });
       }
 
@@ -235,10 +233,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           id: uuidv7(),
           kind: "Sync Device Error",
           state: "error",
-          title: "No songs to sync",
-          detail:
-            "The sync queue was empty when sync started. Please queue " +
-            "at least one song and try again.",
+          title: i18n.t("notification.noSongsToSync"),
+          detail: i18n.t("notification.noSongsToSyncDetail"),
         });
         return;
       }
@@ -294,8 +290,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             id: uuidv7(),
             kind: "Sync Device",
             state: "canceled",
-            title: "Sync canceled",
-            detail: `The sync to ${device?.name ?? "the device"} was stopped.`,
+            title: i18n.t("notification.syncCanceled"),
+            detail: i18n.t("notification.syncCanceledDetail", [
+              device?.name ?? i18n.t("notification.theDevice"),
+            ]),
           });
         }
         return;
@@ -306,8 +304,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           id: uuidv7(),
           kind: "Sync Device Error",
           state: "error",
-          title: "Error syncing device",
-          detail: `The sync to ${device?.name ?? "the device"} did not finish.`,
+          title: i18n.t("notification.syncError"),
+          detail: i18n.t("notification.syncErrorDetail", [
+            device?.name ?? i18n.t("notification.theDevice"),
+          ]),
         });
         return;
       }
@@ -334,13 +334,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           id: uuidv7(),
           kind: "Device Refresh Error",
           state: "error",
-          title: "Error refreshing device",
-          detail: `Synced, but the device listing could not be refreshed: ${String(error)}`,
+          title: i18n.t("notification.deviceRefreshError"),
+          detail: i18n.t("notification.deviceRefreshErrorDetail", [
+            String(error),
+          ]),
         });
       }
 
-      const name = device?.name ?? "the device";
-      const plural = (n: number) => `${n} track${n === 1 ? "" : "s"}`;
+      const name = device?.name ?? i18n.t("notification.theDevice");
 
       // Songs that could not be read are reported even with the sync UI on
       // screen: a run that silently left songs out looked like a success.
@@ -351,11 +352,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           state: "error",
           title:
             summary.added.length === 0 && summary.alreadyPresent.length === 0
-              ? `Nothing was written to ${name}`
-              : `${plural(summary.skipped.length)} not synced`,
-          detail:
-            `${plural(summary.skipped.length)} could not be read, so they were `
-            + "left out. They are still in the queue, without a checkmark.",
+              ? i18n.t("notification.nothingWritten", [name])
+              : i18n.t("notification.tracksNotSynced", [
+                  summary.skipped.length,
+                ]),
+          detail: i18n.t("notification.tracksSkippedDetail", [
+            summary.skipped.length,
+          ]),
         });
         return;
       }
@@ -367,11 +370,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           id: uuidv7(),
           kind: "Sync Device Error",
           state: "error",
-          title: `${plural(summary.unverified.length)} not found on ${name}`,
-          detail:
-            `${plural(summary.unverified.length)} were written but could not be `
-            + "found when the device was re-read. They are still in the queue, "
-            + "without a checkmark.",
+          title: i18n.t("notification.tracksNotFound", [
+            summary.unverified.length,
+            name,
+          ]),
+          detail: i18n.t("notification.tracksUnverifiedDetail", [
+            summary.unverified.length,
+          ]),
         });
         return;
       }
@@ -383,8 +388,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           id: uuidv7(),
           kind: "Sync Device",
           state: "completed",
-          title: `Synced to ${name}`,
-          detail: `${plural(summary.added.length)} written to the device.`,
+          title: i18n.t("notification.syncedTo", [name]),
+          detail: i18n.t("notification.tracksWritten", [
+            summary.added.length,
+          ]),
         });
       }
     },
@@ -458,7 +465,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           type: "Device Remove",
           payload: { device: syncDevice, trackIds },
           kind: "Device Remove",
-          title: "Removing Tracks",
+          title: i18n.t("notification.removingTracks"),
           bulk: trackIds.length > 1,
           readResult: (raw) => {
             const value = raw as Partial<DeviceRemoveResult> | undefined;
@@ -476,7 +483,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           id: uuidv7(),
           kind: "Device Remove Error",
           state: "error",
-          title: "Error removing tracks",
+          title: i18n.t("notification.removeTracksError"),
           detail: String(error),
         });
         return;
@@ -488,10 +495,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         id: uuidv7(),
         kind: "Device Remove",
         state: "completed",
-        title: "Tracks removed",
-        detail: `Removed ${trackIds.length} track${
-          trackIds.length === 1 ? "" : "s"
-        } from ${syncDevice.name}.`,
+        title: i18n.t("notification.tracksRemoved"),
+        detail: i18n.t("notification.tracksRemovedDetail", [
+          trackIds.length,
+          syncDevice.name,
+        ]),
       });
     },
     [refreshDevices]
@@ -601,7 +609,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             id: uuidv7(),
             kind: "Sync Device Error",
             state: "error",
-            title: "Error adding device",
+            title: i18n.t("notification.addDeviceError"),
             detail: String(error),
           });
         }
@@ -624,8 +632,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
               id: uuidv7(),
               kind: "Sync Device Error",
               state: "error",
-              title: "Device not available",
-              detail: `The device ${id} is no longer connected. Reconnect it and try again.`,
+              title: i18n.t("notification.deviceNotAvailable"),
+              detail: i18n.t("notification.deviceNotAvailableDetail", [id]),
             });
           },
           onFailed: (_id, error) => {
@@ -637,7 +645,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
               id: uuidv7(),
               kind: "Sync Device Error",
               state: "error",
-              title: "Sync could not start",
+              title: i18n.t("notification.syncStartError"),
               detail:
                 error instanceof Error ? error.message : String(error),
             });

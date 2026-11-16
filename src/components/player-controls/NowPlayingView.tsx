@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatLength } from "@/lib/formatLength";
 import { usePlayback } from "@/hooks/usePlayback";
+import { useTranslation, type WmmResourceKey } from "@/i18n";
 import {
   VisualizationHost,
   VisualizerSelector,
@@ -154,6 +155,7 @@ export function NowPlayingView({
 
   const [panel, setPanel] = useState<PanelTab | null>(null);
   const [darkRoom, setDarkRoom] = useState<boolean>(false);
+  const { t } = useTranslation();
   const { setSettingsOpen, settingsOpen } = useVisualizer();
   const palette = useArtworkPalette(nowPlaying?.id, open);
   const [upNext, setUpNext] = useState<Song | undefined>();
@@ -258,10 +260,13 @@ export function NowPlayingView({
     setPanel(panel === tab ? null : tab);
   }
 
-  const tabs: { id: PanelTab; label: string; icon: typeof ListMusic }[] = [
-    { id: "queue", label: "Queue", icon: ListMusic },
+  const tabs: (
+    | { id: PanelTab; labelKey: WmmResourceKey; icon: typeof ListMusic }
+    | { id: PanelTab; label: string; icon: typeof ListMusic }
+  )[] = [
+    { id: "queue", labelKey: "playback.queue", icon: ListMusic },
     { id: "lyrics", label: "Lyrics", icon: MicVocal },
-    { id: "visualizer", label: "Visualizer", icon: Activity },
+    { id: "visualizer", labelKey: "visualizer.title", icon: Activity },
   ];
 
   function playQueueItem(song: Song) {
@@ -324,23 +329,28 @@ export function NowPlayingView({
             )}
           >
             <div className="flex items-center gap-1">
-              {tabs.map(({ id, label, icon: Icon }) => (
-                <Button
-                  key={id}
-                  size="icon"
-                  variant="ghost"
-                  className={cn(
-                    panel === id &&
-                      "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
-                  )}
-                  title={panel === id ? `Hide ${label}` : label}
-                  aria-label={label}
-                  aria-pressed={panel === id}
-                  onClick={() => togglePanel(id)}
-                >
-                  <Icon />
-                </Button>
-              ))}
+              {tabs.map((tab) => {
+                const { id, icon: Icon } = tab;
+                const label = "labelKey" in tab ? t(tab.labelKey) : tab.label;
+
+                return (
+                  <Button
+                    key={id}
+                    size="icon"
+                    variant="ghost"
+                    className={cn(
+                      panel === id &&
+                        "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
+                    )}
+                    title={panel === id ? `Hide ${label}` : label}
+                    aria-label={label}
+                    aria-pressed={panel === id}
+                    onClick={() => togglePanel(id)}
+                  >
+                    <Icon />
+                  </Button>
+                );
+              })}
               {panel === "visualizer" && (
                 <>
                   <VisualizerSelector
@@ -350,8 +360,8 @@ export function NowPlayingView({
                   <Button
                     size="icon"
                     variant="ghost"
-                    title="Visualizer settings"
-                    aria-label="Visualizer settings"
+                    title={t("visualizer.settings")}
+                    aria-label={t("visualizer.settings")}
                     onClick={() => setSettingsOpen(true)}
                   >
                     <SlidersHorizontal />
@@ -390,7 +400,7 @@ export function NowPlayingView({
               <Button
                 size="icon"
                 variant="ghost"
-                aria-label="Close now playing"
+                aria-label={t("playback.closeNowPlaying")}
                 onClick={onClose}
               >
                 <ChevronDown />
@@ -462,7 +472,7 @@ export function NowPlayingView({
                         minPx={12}
                         className="font-semibold text-white"
                       >
-                        {nowPlaying?.title ?? "Nothing is playing"}
+                        {nowPlaying?.title ?? t("playback.nothingPlaying")}
                       </FitText>
                       <div className="flex justify-start">
                         {nowPlaying && (
@@ -597,7 +607,9 @@ export function NowPlayingView({
 
                 {showUpNext && upNext && (
                   <div className="flex min-h-0 w-full flex-col justify-center rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none">
-                    <span className="pb-2 text-sm font-medium">Up next</span>
+                    <span className="pb-2 text-sm font-medium">
+                      {t("playback.upNext")}
+                    </span>
                     <button
                       type="button"
                       className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left active:bg-white/10 hover:bg-white/5"

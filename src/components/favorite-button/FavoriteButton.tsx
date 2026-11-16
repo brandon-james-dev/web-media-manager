@@ -1,5 +1,6 @@
 import { Heart } from "lucide-react";
 import { useFavorites } from "@/hooks";
+import { useTranslation } from "@/i18n";
 import { cn } from "cn";
 
 interface FavoriteButtonProps {
@@ -16,15 +17,18 @@ export function FavoriteButton({
   alwaysVisible = true,
 }: FavoriteButtonProps) {
   const { isFavorite, originOf, toggleFavorite } = useFavorites();
+  const { t } = useTranslation();
   const origin = originOf(songId);
   const local = isFavorite(songId);
   const favorite = origin !== undefined;
-  const label = local ? "Remove from Favorites" : "Add to Favorites";
+  const label = local
+    ? t("library.removeFromFavorites")
+    : t("library.addToFavorites");
   const title =
     origin === "both"
-      ? "Favorite on this device and the server"
+      ? t("library.favoriteBoth")
       : origin === "server"
-        ? "Favorite on the server"
+        ? t("library.favoriteServer")
         : label;
 
   return (

@@ -39,10 +39,11 @@ import {
   ContextMenuGroup,
 } from "@/components/ui/context-menu";
 import { selectors, type SortableColumn } from "@/lib/persistence";
+import { useTranslation } from "@/i18n";
 import type { SongTableProps } from "./SongTableProps";
 import { SongRow } from "./TanstackSongRow";
 import { DraggableHeader } from "./DraggableHeader";
-import { createSongColumns } from "./createSongColumns";
+import { SONG_COLUMN_LABEL_KEYS, createSongColumns } from "./createSongColumns";
 import {
   loadSongTableColumns,
   saveSongTableColumns,
@@ -73,6 +74,7 @@ export function TanstackSongTable(props: SongTableProps) {
   } = props;
   const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [selectionAnchor, setSelectionAnchor] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (selectedSongIds.length === 1) {
@@ -90,7 +92,7 @@ export function TanstackSongTable(props: SongTableProps) {
     [selectedSongIds]
   );
 
-  const columns = useMemo(() => createSongColumns(features), []);
+  const columns = useMemo(() => createSongColumns(features, t), [t]);
 
   const savedColumns = useMemo(() => loadSongTableColumns(), []);
 
@@ -312,7 +314,11 @@ export function TanstackSongTable(props: SongTableProps) {
                   onCheckedChange={(checked) => col.toggleVisibility(!!checked)}
                   className="capitalize"
                 >
-                  {col.columnDef.header as string}
+                  {t(
+                    SONG_COLUMN_LABEL_KEYS[
+                      col.id as keyof typeof SONG_COLUMN_LABEL_KEYS
+                    ]
+                  )}
                 </ContextMenuCheckboxItem>
               ))}
             </ContextMenuGroup>
@@ -323,7 +329,7 @@ export function TanstackSongTable(props: SongTableProps) {
               <ContextMenuItem
                 onClick={() => table.toggleAllColumnsVisible(true)}
               >
-                Reset
+                {t("common.reset")}
               </ContextMenuItem>
             </ContextMenuGroup>
           </ContextMenuContent>
@@ -331,7 +337,7 @@ export function TanstackSongTable(props: SongTableProps) {
 
         {rows.length === 0 ? (
           <div className="h-24 flex items-center justify-center">
-            No results.
+            {t("library.noResults")}
           </div>
         ) : isVirtualizing ? (
           <div

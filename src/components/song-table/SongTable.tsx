@@ -1,4 +1,5 @@
 import { selectors, type SortableColumn } from "@/lib/persistence";
+import { useTranslation, type WmmResourceKey } from "@/i18n";
 import { SongRow } from "./SongRow";
 import type { SongTableProps } from "./SongTableProps";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -6,14 +7,15 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 export function SongTable(props: SongTableProps) {
   const { songs, sort, isEditMultiple, onSelect, onSort, selectedSongIds } =
     props;
+  const { t } = useTranslation();
 
-  const sortableColumns: [SortableColumn, string][] = [
-    ["title", "Title"],
-    ["album", "Album"],
-    ["artist", "Artist"],
-    ["track", "Track"],
-    ["genre", "Genre"],
-    ["year", "Year"],
+  const sortableColumns: [SortableColumn, WmmResourceKey][] = [
+    ["title", "metadata.title"],
+    ["album", "metadata.album"],
+    ["artist", "metadata.artist"],
+    ["track", "metadata.track"],
+    ["genre", "metadata.genre"],
+    ["year", "metadata.year"],
   ];
 
   const sortableColumnKeys = sortableColumns.map((key) => key);
@@ -31,7 +33,7 @@ export function SongTable(props: SongTableProps) {
       <table className="w-full border-collapse text-sm select-none">
         <thead className="sticky top-0 bg-background z-10">
           <tr className="border-b">
-            {sortableColumns.map(([key, label]) => {
+            {sortableColumns.map(([key, labelKey]) => {
               const isActive = sort?.selector === selectors[key];
               const Icon = isActive
                 ? sort?.desc
@@ -49,7 +51,7 @@ export function SongTable(props: SongTableProps) {
                   ].join(" ")}
                 >
                   <div className="flex items-center gap-1">
-                    {label}
+                    {t(labelKey)}
                     {Icon && <Icon size=".75lh" className="text-primary" />}
                   </div>
                 </th>

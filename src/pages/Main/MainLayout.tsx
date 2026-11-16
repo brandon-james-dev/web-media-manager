@@ -34,6 +34,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
 import { SourceFilter } from "@/components/source-filter";
 import { useSongs, useSync } from "@/hooks";
+import { useTranslation } from "@/i18n";
 import type { QueryOptions } from "@/lib/persistence";
 import type { Song } from "@/models";
 import {
@@ -164,6 +165,7 @@ function SidebarDndArea({
   children: ReactNode;
 }) {
   const drag = useSidebarDrag();
+  const { t } = useTranslation();
   // The ghost follows the pointer, so it carries the dragged row's title and
   // artist, how many songs travel with it, and how far it is leaning.
   const [ghost, setGhost] = useState<{
@@ -207,7 +209,7 @@ function SidebarDndArea({
           songIds.length === 0
             ? null
             : {
-                title: typeof data.title === "string" ? data.title : "Track",
+                title: typeof data.title === "string" ? data.title : t("metadata.track"),
                 artist: typeof data.artist === "string" ? data.artist : "",
                 count: songIds.length,
               }
@@ -293,6 +295,7 @@ function MainLayout() {
   // Phones and tablets share the compact chrome (bottom bars, no header tabs).
   const isCompact = isMobile || isTablet;
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const isSyncPage = pathname.startsWith("/sync");
   const isPlaylistsPage = pathname.includes("playlists");
@@ -490,7 +493,7 @@ function MainLayout() {
                       className="flex items-center gap-2 cursor-default"
                     >
                       <Music className="h-4 w-4" />
-                      Songs
+                      {t("navigation.songs")}
                     </NavLink>
                   }
                 />
@@ -504,7 +507,7 @@ function MainLayout() {
                       className="flex items-center gap-2 cursor-default"
                     >
                       <DiscAlbum className="h-4 w-4" />
-                      Albums
+                      {t("navigation.albums")}
                     </NavLink>
                   }
                 />
@@ -518,7 +521,7 @@ function MainLayout() {
                       className="flex items-center gap-2 cursor-default"
                     >
                       <MicVocal className="h-4 w-4" />
-                      Artists
+                      {t("navigation.artists")}
                     </NavLink>
                   }
                 />
@@ -532,7 +535,7 @@ function MainLayout() {
           >
             <InputGroup ref={setSearchAnchor} className="w-full max-w-xs">
               <InputGroupInput
-                placeholder="Search..."
+                placeholder={t("search.placeholder")}
                 value={queryText}
                 onChange={handleFilterTextChange}
                 disabled={searchDisabled}
@@ -542,7 +545,7 @@ function MainLayout() {
               </InputGroupAddon>
               {filteredTotal != total && (
                 <InputGroupAddon align="inline-end">
-                  {filteredTotal} results
+                  {t("search.resultCount", [filteredTotal ?? 0])}
                 </InputGroupAddon>
               )}
               <InputGroupAddon align="inline-end">
@@ -566,7 +569,7 @@ function MainLayout() {
               }}
             >
               <Pen className="h-4 w-4" />
-              Edit
+              {t("common.edit")}
             </Toggle>
 
             <div className="relative rounded-lg bg-muted py-px px-2">
@@ -593,7 +596,7 @@ function MainLayout() {
               `}
               >
                 <ListMusic className="h-4 w-4" />
-                Playlists
+                {t("navigation.playlists")}
               </NavLink>
             </div>
 
@@ -619,7 +622,7 @@ function MainLayout() {
               `}
               >
                 <MonitorSmartphone className="h-4 w-4" />
-                Sync
+                {t("navigation.sync")}
               </NavLink>
 
               {queuedSongs.length > 0 && (
@@ -635,10 +638,10 @@ function MainLayout() {
               className="shrink-0"
               title={
                 sidebarBlocked
-                  ? "This view is already open full screen"
-                  : "Playlists and sync sidebar"
+                  ? t("navigation.sidebarBlocked")
+                  : t("navigation.sidebar")
               }
-              aria-label="Playlists and sync sidebar"
+              aria-label={t("navigation.sidebar")}
               aria-pressed={sidebarVisible}
               disabled={sidebarBlocked}
               onClick={() => setSidebarOpen((open) => !open)}
@@ -698,7 +701,7 @@ function MainLayout() {
               <InputGroup className="h-14 border-0">
                 <InputGroupInput
                   ref={mobileSearchRef}
-                  placeholder="Search..."
+                  placeholder={t("search.placeholder")}
                   value={queryText}
                   onChange={handleFilterTextChange}
                   enterKeyHint="search"
@@ -710,7 +713,7 @@ function MainLayout() {
                 </InputGroupAddon>
                 {filteredTotal != total && (
                   <InputGroupAddon className="p-4" align="inline-end">
-                    {filteredTotal} results
+                    {t("search.resultCount", [filteredTotal ?? 0])}
                   </InputGroupAddon>
                 )}
               </InputGroup>
@@ -748,22 +751,22 @@ function MainLayout() {
                   [
                     {
                       tab: "songs",
-                      label: "Songs",
+                      labelKey: "navigation.songs",
                       icon: <Music className="h-5 w-5" />,
                     },
                     {
                       tab: "albums",
-                      label: "Albums",
+                      labelKey: "navigation.albums",
                       icon: <DiscAlbum className="h-5 w-5" />,
                     },
                     {
                       tab: "artists",
-                      label: "Artists",
+                      labelKey: "navigation.artists",
                       icon: <MicVocal className="h-5 w-5" />,
                     },
                     {
                       tab: "playlists",
-                      label: "Playlists",
+                      labelKey: "navigation.playlists",
                       icon: <ListMusic className="h-5 w-5" />,
                     },
                   ] as const
@@ -784,7 +787,7 @@ function MainLayout() {
                       )}
                     >
                       {item.icon}
-                      <span>{item.label}</span>
+                      <span>{t(item.labelKey)}</span>
                     </NavLink>
                   );
                 })}
@@ -804,7 +807,7 @@ function MainLayout() {
                   )}
                 >
                   <Search className="h-5 w-5" />
-                  <span>Search</span>
+                  <span>{t("search.label")}</span>
                 </button>
               </div>
             </nav>

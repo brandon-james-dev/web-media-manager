@@ -34,6 +34,7 @@ import { ItemGroup } from "@/components/ui/item";
 import { SongContextMenu } from "@/components/song-context-menu";
 import { TrackItem } from "@/components/track-item";
 import { DraggableSongs } from "@/components/library-sidebar";
+import { useTranslation } from "@/i18n";
 import {
   albumGenre,
   albumPictureSong,
@@ -55,6 +56,7 @@ const ALL_ARTISTS = "__all_artists__";
  */
 export function Artists() {
   //#region State
+  const { t, language } = useTranslation();
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
   const { setSort, activeMode, selectedSourceIds } =
@@ -102,7 +104,7 @@ export function Artists() {
     const map = new Map<string, Artist>();
 
     for (const song of visibleSongs) {
-      const name = song.artist || "Unknown Artist";
+      const name = song.artist || t("common.unknownArtist");
       let artist = map.get(name);
       if (!artist) {
         artist = { id: name, name, songs: [], albums: [] };
@@ -115,7 +117,7 @@ export function Artists() {
     for (const artist of map.values()) {
       const albumMap = new Map<string, Album>();
       for (const song of artist.songs) {
-        const title = song.album || "Unknown Album";
+        const title = song.album || t("library.unknownAlbum");
         const key = `${title}-${artist.name}`;
         const existing = albumMap.get(key);
         if (existing) {
@@ -149,7 +151,7 @@ export function Artists() {
     return Array.from(map.values()).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
-  }, [visibleSongs]);
+  }, [visibleSongs, t, language]);
 
   // The "All Artists" entry is selected by default (and by its sentinel id);
   // a real artist id switches the right pane to the detail column.
@@ -184,7 +186,7 @@ export function Artists() {
     ? allAlbums.flatMap((a) => a.songs)
     : (selectedArtist?.songs ?? []);
   const detailName = isAllArtists
-    ? "All Artists"
+    ? t("library.allArtists")
     : (selectedArtist?.name ?? "");
 
   // Apply the A–Z / Z–A toggle to the artist list order.
@@ -323,16 +325,16 @@ export function Artists() {
       >
         <div className="px-3 py-2 border-b flex items-center justify-between">
           <div>
-            <div className="font-bold">Artists</div>
+            <div className="font-bold">{t("library.artists")}</div>
             <div className="text-xs text-muted-foreground">
-              {artists.length} {artists.length === 1 ? "artist" : "artists"}
+              {t("library.artistCount", [artists.length])}
             </div>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setSortDesc(!sortDesc)}
-            title="Toggle A-Z / Z-A"
+            title={t("library.toggleSortOrder")}
           >
             {sortDesc ? <ArrowUpAZ /> : <ArrowDownAZ />}
           </Button>
@@ -365,11 +367,10 @@ export function Artists() {
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">
-                      All Artists
+                      {t("library.allArtists")}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {artists.length}{" "}
-                      {artists.length === 1 ? "artist" : "artists"}
+                      {t("library.artistCount", [artists.length])}
                     </div>
                   </div>
                 </button>
@@ -380,9 +381,9 @@ export function Artists() {
                   key={a.id}
                   dragId={`artist:${a.id}`}
                   label={a.name}
-                  sublabel={`${a.albums.length} ${
-                    a.albums.length === 1 ? "album" : "albums"
-                  }`}
+                  sublabel={
+                    t("library.albumCount", [a.albums.length])
+                  }
                   songIds={a.songs.map((song) => song.id)}
                 >
                   {/* The menu wraps the button, not the drag wrapper: the
@@ -412,8 +413,7 @@ export function Artists() {
                         {a.name}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {a.albums.length}{" "}
-                        {a.albums.length === 1 ? "album" : "albums"}
+                        {t("library.albumCount", [a.albums.length])}
                       </div>
                     </div>
                   </button>
@@ -460,7 +460,7 @@ export function Artists() {
                   size="icon"
                   variant="ghost"
                   className="shrink-0"
-                  aria-label="Back to artists"
+                  aria-label={t("library.backToArtists")}
                   onClick={() => setMobileShowingList(true)}
                 >
                   <ChevronLeft />
@@ -480,7 +480,7 @@ export function Artists() {
                 <Button
                   size="icon"
                   variant="ghost"
-                  title="Play all"
+                  title={t("playback.playAll")}
                   onClick={() => playSongs(detailSongs)}
                 >
                   <Play className="fill-current" />
@@ -488,7 +488,7 @@ export function Artists() {
                 <Button
                   size="icon"
                   variant="ghost"
-                  title="Shuffle"
+                  title={t("playback.shuffle")}
                   onClick={() => shuffleSongs(detailSongs)}
                 >
                   <Shuffle />
@@ -496,11 +496,11 @@ export function Artists() {
                 <MoreActionsButton
                   items={[
                     {
-                      label: "Play all",
+                      label: t("playback.playAll"),
                       onClick: () => playSongs(detailSongs),
                     },
                     {
-                      label: "Shuffle",
+                      label: t("playback.shuffle"),
                       onClick: () => shuffleSongs(detailSongs),
                     },
                   ]}
@@ -512,20 +512,19 @@ export function Artists() {
                 size="sm"
                 variant="outline"
                 className="h-7 shrink-0 gap-1 px-2 text-xs"
-                title="Deselect all"
-                aria-label="Deselect all songs"
+                title={t("library.deselectAll")}
+                aria-label={t("library.deselectAllSongs")}
                 onClick={deselectSongs}
               >
                 <X />
-                Deselect {selectedSongIds.length}
+                {t("library.deselectCount", [selectedSongIds.length])}
               </Button>
             )}
           </div>
           <div className="text-sm text-muted-foreground mt-1">
-            {detailAlbums.length}{" "}
-            {detailAlbums.length === 1 ? "album" : "albums"}
+            {t("library.albumCount", [detailAlbums.length])}
             {" · "}
-            {detailSongs.length} {detailSongs.length === 1 ? "song" : "songs"}
+            {t("library.songCount", [detailSongs.length])}
           </div>
         </div>
 
@@ -626,6 +625,7 @@ function AlbumSection({
   /** Double-click the art: play the album (edit mode: open the album editor). */
   onArtDoubleClick: () => void;
 }) {
+  const { t } = useTranslation();
   const songs = trackSorted(album);
   const meta = [albumGenre(album), albumYear(album)]
     .filter((v) => v !== undefined && v !== null && v !== "")
@@ -638,7 +638,7 @@ function AlbumSection({
           <div
             className={cn("w-44", isCompact && "w-32 self-start")}
             onDoubleClick={onArtDoubleClick}
-            title="Play album"
+            title={t("playback.playAlbum")}
           >
             <div className="aspect-square rounded-lg overflow-hidden border bg-muted shadow-sm">
               <AlbumArtImage
@@ -680,7 +680,7 @@ function AlbumSection({
                 <Button
                   size="icon"
                   variant="ghost"
-                  title="Edit album"
+                  title={t("library.editAlbum")}
                   onClick={onEdit}
                 >
                   <Pencil />
@@ -690,7 +690,7 @@ function AlbumSection({
                   <Button
                     size="icon"
                     variant="ghost"
-                    title="Play"
+                    title={t("playback.play")}
                     onClick={onPlay}
                   >
                     <Play className="fill-current" />
@@ -698,7 +698,7 @@ function AlbumSection({
                   <Button
                     size="icon"
                     variant="ghost"
-                    title="Shuffle"
+                    title={t("playback.shuffle")}
                     onClick={onShuffle}
                   >
                     <Shuffle />
@@ -708,10 +708,13 @@ function AlbumSection({
               <MoreActionsButton
                 items={
                   activeMode === "edit"
-                    ? [{ label: "Edit album", onClick: onEdit }]
+                    ? [{ label: t("library.editAlbum"), onClick: onEdit }]
                     : [
-                      { label: "Play album", onClick: onPlay },
-                      { label: "Shuffle album", onClick: onShuffle },
+                      { label: t("playback.playAlbum"), onClick: onPlay },
+                      {
+                        label: t("playback.shuffleAlbum"),
+                        onClick: onShuffle,
+                      },
                     ]
                 }
               />
@@ -769,6 +772,8 @@ function MoreActionsButton({
   items: Array<{ label: string; onClick: () => void }>;
   className?: string;
 }) {
+  const { t } = useTranslation();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -778,7 +783,7 @@ function MoreActionsButton({
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           className
         )}
-        title="More actions"
+        title={t("common.moreActions")}
       >
         <MoreHorizontal size={16} />
       </DropdownMenuTrigger>

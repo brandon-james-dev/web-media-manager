@@ -1,4 +1,5 @@
 import type { AppNotificationEvent } from "@/events/notification-events";
+import { useTranslation } from "@/i18n";
 import { ItemContent } from "../ui/item";
 import { Progress } from "../ui/progress";
 
@@ -20,6 +21,7 @@ export function OfflineDownloadNotification({
 }: {
   notification: AppNotificationEvent;
 }) {
+  const { t } = useTranslation();
   const payload = (notification.payload ?? {}) as OfflineDownloadPayload;
 
   // `?? 0` does not guard NaN, and a NaN would reach <Progress value>.
@@ -37,20 +39,23 @@ export function OfflineDownloadNotification({
   return (
     <ItemContent>
       <div className="space-y-2">
-        <div className="text-xs font-medium">Downloading Songs</div>
+        <div className="text-xs font-medium">
+          {t("notification.downloadingSongs")}
+        </div>
 
         {done ? (
           <div className="text-xs text-muted-foreground">
-            Completed
-            {cached > 0 && ` · ${cached} ${cached === 1 ? "song" : "songs"}`}
-            {failed > 0 && ` · ${failed} failed`}
+            {t("notification.completed")}
+            {cached > 0 &&
+              ` · ${t("notification.songCount", [cached])}`}
+            {failed > 0 && ` · ${t("notification.failedCount", [failed])}`}
           </div>
         ) : (
           <>
             <Progress value={percent} />
 
             <div className="text-xs text-muted-foreground">
-              {completed} / {total}
+              {t("notification.progressCount", [completed, total])}
             </div>
           </>
         )}

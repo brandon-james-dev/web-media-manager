@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import { usePlayback } from "@/hooks";
+import { useTranslation } from "@/i18n";
 import { wmmBus } from "@/events";
 
 /** How long a quick-edit preview plays before stopping automatically. */
@@ -24,6 +25,7 @@ interface PreviewButtonProps {
  */
 export function PreviewButton({ songId, disabled }: PreviewButtonProps) {
   const { isPlaying, nowPlaying, getCurrentTime } = usePlayback();
+  const { t } = useTranslation();
   // Whether THIS song is the one currently loaded in the player (previewing).
   // Note: based on nowPlaying identity alone, NOT isPlaying — so clicking the
   // button while this track is paused toggles pause/resume instead of restarting.
@@ -101,7 +103,9 @@ export function PreviewButton({ songId, disabled }: PreviewButtonProps) {
       type="button"
       onClick={handleClick}
       disabled={disabled || !songId}
-      aria-label={active ? "Pause preview" : "Play preview"}
+      aria-label={
+        active ? t("playback.pausePreview") : t("playback.playPreview")
+      }
       className="relative rounded-full aspect-square p-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {/* Ring layer behind the button, at the button's exact size, so it

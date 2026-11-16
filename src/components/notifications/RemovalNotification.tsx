@@ -1,4 +1,5 @@
 import type { AppNotificationEvent } from "@/events/notification-events";
+import { useTranslation } from "@/i18n";
 import { ItemContent } from "../ui/item";
 import { Progress } from "../ui/progress";
 
@@ -19,6 +20,7 @@ export function RemovalNotification({
 }: {
   notification: AppNotificationEvent;
 }) {
+  const { t } = useTranslation();
   const payload = (notification.payload ?? {}) as RemovalPayload;
 
   // `?? 0` does not guard NaN, and a NaN would reach <Progress value>.
@@ -33,8 +35,8 @@ export function RemovalNotification({
 
   const label =
     notification.kind === "Source Remove"
-      ? "Removing Music Source"
-      : "Removing Tracks";
+      ? t("notification.removingMusicSource")
+      : t("notification.removingTracks");
 
   return (
     <ItemContent>
@@ -43,16 +45,16 @@ export function RemovalNotification({
 
         {done ? (
           <div className="text-xs text-muted-foreground">
-            Completed
+            {t("notification.completed")}
             {removed > 0 &&
-              ` · ${removed} ${removed === 1 ? "track" : "tracks"}`}
+              ` · ${t("notification.trackCount", [removed])}`}
           </div>
         ) : (
           <>
             <Progress value={percent} />
 
             <div className="text-xs text-muted-foreground">
-              {completed} / {total}
+              {t("notification.progressCount", [completed, total])}
             </div>
           </>
         )}

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "@/i18n";
 import {
   Select,
   SelectContent,
@@ -63,6 +64,7 @@ export function VisualizerSelector({
   onSelect,
   onConfigure,
 }: VisualizerSelectorProps) {
+  const { t } = useTranslation();
   const { data: plugins, isPending } = useInstalledPlugins();
   const { activePluginId, setActivePluginId } = useVisualizer();
   const [query, setQuery] = useState("");
@@ -102,7 +104,7 @@ export function VisualizerSelector({
       >
         <SelectTrigger
           className={cn("h-8 w-full min-w-0", className)}
-          aria-label="Visualizer"
+          aria-label={t("visualizer.title")}
         >
           <SelectValue />
         </SelectTrigger>
@@ -124,8 +126,8 @@ export function VisualizerSelector({
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search visualizers"
-          aria-label="Search visualizers"
+          placeholder={t("visualizer.search")}
+          aria-label={t("visualizer.search")}
           className="pl-7"
         />
       </div>
@@ -133,18 +135,19 @@ export function VisualizerSelector({
       <ScrollArea className="min-h-0 flex-1">
         {isPending ? (
           <p className="p-3 text-sm text-muted-foreground">
-            Loading plugins…
+            {t("visualizer.loadingPlugins")}
           </p>
         ) : filtered.length === 0 ? (
           <p className="p-3 text-sm text-muted-foreground">
             {plugins?.length
-              ? "No visualizers match this search."
-              : "No visualizers installed yet."}
+              ? t("visualizer.noMatches")
+              : t("visualizer.noneInstalled")}
           </p>
         ) : (
           <ul className="flex flex-col gap-1">
             {filtered.map((plugin) => {
               const isActive = plugin.id === activePluginId;
+              const runtime = getRuntimeDescriptor(plugin.runtime);
 
               return (
                 <li key={plugin.id}>
@@ -172,10 +175,9 @@ export function VisualizerSelector({
                           <Badge variant="outline">{plugin.version}</Badge>
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
-                          {plugin.author ?? "Unknown author"}
+                          {plugin.author ?? t("visualizer.unknownAuthor")}
                           {" · "}
-                          {getRuntimeDescriptor(plugin.runtime)?.label ??
-                            plugin.runtime}
+                          {runtime ? t(runtime.labelKey) : plugin.runtime}
                         </span>
                       </span>
                     </button>
@@ -189,8 +191,10 @@ export function VisualizerSelector({
                         variant="ghost"
                         size="icon"
                         className="shrink-0"
-                        title={`Configure ${plugin.name}`}
-                        aria-label={`Configure ${plugin.name}`}
+                        title={t("visualizer.configureNamed", [plugin.name])}
+                        aria-label={t("visualizer.configureNamed", [
+                          plugin.name,
+                        ])}
                         onClick={() => onConfigure(plugin.id)}
                       >
                         <SlidersHorizontal className="size-4" />

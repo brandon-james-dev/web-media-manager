@@ -20,11 +20,13 @@ import { notification$ } from "@/events/notification-events";
 import { wmmBus } from "@/events";
 import { AddDeviceDialog, SyncDeviceCard, SyncStat } from "@/components/sync";
 import { useOfflineSongs, useSongs, useSourceKinds, useSync } from "@/hooks";
+import { useTranslation } from "@/i18n";
 import { DevicePromptOrchestrator } from "@/lib/sync";
 import { usbAvailable } from "@/lib/sync/usbAvailable";
 import type { Song } from "@/models";
 
 export function Sync({ compact = false }: { compact?: boolean } = {}) {
+  const { t } = useTranslation();
   //#region State
   const { devices, addDevice, queuedSongs, syncedSongIds, syncCompleted } =
     useSync();
@@ -241,8 +243,8 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
       if (result) {
         notification$.next({
           id: uuidv7(),
-          title: "Device added",
-          detail: `${result.name} connected`,
+          title: t("notification.deviceAdded"),
+          detail: t("notification.deviceAddedDetail", [result.name]),
           kind: "Device added",
           state: "completed",
         });
@@ -257,7 +259,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
 
     notification$.next({
       id: uuidv7(),
-      title: "Device add error",
+      title: t("notification.deviceAddError"),
       detail: errorMessage,
       kind: "Device add error",
       state: "error",
@@ -629,7 +631,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
                       <>
                         {isOnDevice && (
                           <span className="shrink-0 rounded-full border px-1.5 text-[10px] text-muted-foreground">
-                            On device
+                            {t("source.kindLocal")}
                           </span>
                         )}
 

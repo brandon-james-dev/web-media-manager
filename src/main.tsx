@@ -8,6 +8,11 @@ import { syncTvOverrideFromUrl } from "./lib/tv/detectTv.ts";
 import App from "./App.tsx";
 import { registerSW } from "virtual:pwa-register";
 import { toast } from "@/components/ui/toast";
+import {
+  I18nProvider,
+  reportResourceIssues,
+  validateAppResources,
+} from "@/i18n";
 
 function formatError(error: unknown): string {
   if (error instanceof Error) return error.stack ?? error.message;
@@ -72,12 +77,15 @@ try {
   // `?tv=1` is remembered before the first render, so the television layout
   // survives navigation on a device with no address bar.
   syncTvOverrideFromUrl();
+  if (import.meta.env.DEV) reportResourceIssues(validateAppResources());
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <ErrorBoundary>
         <MemoryRouter>
           <BrowserHistorySync />
-          <App />
+          <I18nProvider>
+            <App />
+          </I18nProvider>
         </MemoryRouter>
       </ErrorBoundary>
     </StrictMode>

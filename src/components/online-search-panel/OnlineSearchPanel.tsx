@@ -8,6 +8,7 @@ import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvid
 import { OnlineMetadataResolver } from "@/lib/metadata-providers/online/OnlineMetadataResolver";
 import type { IPicture } from "@/lib/contracts";
 import { SplitButton } from "../split-button/SplitButton";
+import { useTranslation } from "@/i18n";
 import type { OnlineSearchPanelProps } from "./OnlineSearchPanelProps";
 
 const PROVIDER_ICON: Record<MetadataProvider, React.ReactNode> = {
@@ -21,6 +22,7 @@ const PROVIDER_NAME: Record<MetadataProvider, string> = {
 
 export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
   const { song, onSelect } = props;
+  const { t } = useTranslation();
   //#region State
   const [titleQuery, setTitleQuery] = useState(song.title);
   const [artistQuery, setArtistQuery] = useState(song.artist);
@@ -83,25 +85,25 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
             value={titleQuery}
             autoComplete="off"
             onChange={(e) => setTitleQuery(e.target.value)}
-            placeholder="Title..."
+            placeholder={t("search.titlePlaceholder")}
             className="flex-1 min-w-0"
           />
           <Input
             value={artistQuery}
             autoComplete="off"
             onChange={(e) => setArtistQuery(e.target.value)}
-            placeholder="Artist..."
+            placeholder={t("search.artistPlaceholder")}
             className="flex-1 min-w-0"
           />
           <Input
             value={albumQuery}
             autoComplete="off"
             onChange={(e) => setAlbumQuery(e.target.value)}
-            placeholder="Album..."
+            placeholder={t("search.albumPlaceholder")}
             className="flex-1 min-w-0"
           />
           <SplitButton
-            label="Search"
+            label={t("search.label")}
             dropdownSide="left"
             onPrimaryClick={async () => await handleSearch(selectedProvider)}
             buttonVariant="secondary"
@@ -124,7 +126,7 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
       <div className="flex-1 py-2">
         {loading && (
           <div className="text-center space-y-2">
-            <Loader2 className="inline-block animate-spin" /> Searching…
+            <Loader2 className="inline-block animate-spin" /> {t("search.searching")}
           </div>
         )}
 
@@ -157,7 +159,7 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
 
             <div className="border rounded-md p-4">
               {!selected && (
-                <div className="text-muted-foreground">Select a result</div>
+                <div className="text-muted-foreground">{t("search.selectResult")}</div>
               )}
 
               {selected && (
@@ -184,46 +186,48 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
                           className="w-32 h-32 object-cover rounded-md border"
                         />
                       )}
-                      {!coverFront(selected) && <text>No album photo</text>}
+                      {!coverFront(selected) && <text>{t("search.noAlbumPhoto")}</text>}
                     </div>
 
                     <div>
-                      <div className="font-semibold">Title</div>
+                      <div className="font-semibold">{t("metadata.title")}</div>
                       <div className="text-muted-foreground">
                         {selected.title}
                       </div>
                     </div>
 
                     <div>
-                      <div className="font-semibold">Artist</div>
+                      <div className="font-semibold">{t("metadata.artist")}</div>
                       <div className="text-muted-foreground">
                         {selected.artist}
                       </div>
                     </div>
 
                     <div>
-                      <div className="font-semibold">Album</div>
+                      <div className="font-semibold">{t("metadata.album")}</div>
                       <div className="text-muted-foreground">
                         {selected.album}
                       </div>
                     </div>
 
                     <div>
-                      <div className="font-semibold">Album Artist</div>
+                      <div className="font-semibold">
+                        {t("metadata.albumArtist")}
+                      </div>
                       <div className="text-muted-foreground">
                         {selected.albumArtist ?? "—"}
                       </div>
                     </div>
 
                     <div>
-                      <div className="font-semibold">Year</div>
+                      <div className="font-semibold">{t("metadata.year")}</div>
                       <div className="text-muted-foreground">
                         {selected.year ?? "—"}
                       </div>
                     </div>
 
                     <div>
-                      <div className="font-semibold">Genre</div>
+                      <div className="font-semibold">{t("metadata.genre")}</div>
                       <div className="text-muted-foreground">
                         {selected.genre ?? "—"}
                       </div>
@@ -231,7 +235,7 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
                   </div>
                   <div className="flex justify-center p-3">
                     <Button onClick={() => onSelect(selected)}>
-                      Apply Metadata
+                      {t("metadata.apply")}
                     </Button>
                   </div>
                 </div>

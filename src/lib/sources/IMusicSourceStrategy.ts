@@ -1,4 +1,5 @@
 import type { MusicSourceKind } from "@/core/contracts";
+import type { WmmResourceKey } from "@/i18n";
 import type { MusicSource, Playlist } from "@/models";
 import type { Song } from "@/models/Song";
 import type { WorkerProgress } from "@/core/jobs";
@@ -26,8 +27,12 @@ export interface IMusicSourceStrategy {
   readonly kind: MusicSourceKind;
   /** Display name ("On device", "Subsonic server"...). */
   readonly name: string;
+  /** Resource key of the display name, so the picker renders it translated. */
+  readonly labelKey: WmmResourceKey;
   /** One-line description shown on the card. */
   readonly description: string;
+  /** Resource key of the description shown on the card. */
+  readonly descriptionKey: WmmResourceKey;
   /** Whether this source kind can run on the current platform. E.g. the
    *  on-device source needs the File System Access API (showDirectoryPicker),
    *  which Safari lacks — the chooser disables it there. Default true. */

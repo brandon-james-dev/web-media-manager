@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/i18n";
 import type { VisualizerSettingsProps } from "./VisualizerSettingsProps";
 
 function formatNumber(value: number, step: number): string {
@@ -141,6 +142,7 @@ export function VisualizerSettings({
   pluginId,
   className,
 }: VisualizerSettingsProps) {
+  const { t } = useTranslation();
   const {
     settingsOpen,
     setSettingsOpen,
@@ -218,20 +220,22 @@ export function VisualizerSettings({
       >
         <DialogHeader>
           <DialogTitle>
-            {plugin ? `${plugin.name} settings` : "Visualizer settings"}
+            {plugin
+              ? t("visualizer.settingsNamed", [plugin.name])
+              : t("visualizer.settings")}
           </DialogTitle>
           <DialogDescription>
-            Settings are stored with the plugin and restored on the next launch.
+            {t("visualizer.settingsDescription")}
           </DialogDescription>
         </DialogHeader>
 
         {!plugin ? (
           <p className="text-sm text-muted-foreground">
-            Select a visualizer to configure it.
+            {t("visualizer.selectToConfigure")}
           </p>
         ) : descriptors.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            This visualizer has no settings.
+            {t("visualizer.noSettings")}
           </p>
         ) : (
           <ScrollArea className="max-h-[60vh]">
@@ -283,7 +287,7 @@ export function VisualizerSettings({
                 }}
               >
                 <RotateCcw />
-                Reset to defaults
+                {t("visualizer.resetDefaults")}
               </Button>
             </div>
           </ScrollArea>

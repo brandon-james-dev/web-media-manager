@@ -1,9 +1,21 @@
 import { cn } from "@/lib/shadcn-utils/utils";
 import type { QuickEditFieldProps } from "./QuickEditFieldProps";
+import type { EditableField } from "./QuickEditFormProps";
 import { AutocompleteInput } from "@/components/autocomplete-input";
+import { useTranslation, type WmmResourceKey } from "@/i18n";
+
+const FIELD_LABEL_KEYS = {
+  title: "metadata.title",
+  artist: "metadata.artist",
+  album: "metadata.album",
+  genre: "metadata.genre",
+  year: "metadata.year",
+  track: "metadata.track",
+} as const satisfies Record<EditableField, WmmResourceKey>;
 
 export function QuickEditField(props: QuickEditFieldProps) {
   const { name, field, songs, value, onChange, disabled } = props;
+  const { t } = useTranslation();
 
   const unique = (() => {
     const set = new Set<string>();
@@ -18,17 +30,17 @@ export function QuickEditField(props: QuickEditFieldProps) {
 
   const placeholder =
     unique.length > 1
-      ? `(Multiple Values…)`
+      ? t("metadata.multipleValues")
       : unique[0]
         ? unique[0]
-        : capitalize(field);
+        : t(FIELD_LABEL_KEYS[field]);
 
   const isDirty = value !== undefined && value !== "";
 
   return (
     <div className="flex flex-col gap-1 p-1">
       <label className="text-xs font-medium text-muted-foreground">
-        {capitalize(field)}
+        {t(FIELD_LABEL_KEYS[field])}
       </label>
 
       <AutocompleteInput
@@ -42,8 +54,4 @@ export function QuickEditField(props: QuickEditFieldProps) {
       />
     </div>
   );
-}
-
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }

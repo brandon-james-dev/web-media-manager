@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
+import { useTranslation } from "@/i18n";
 import { musicSourceStrategies } from "@/lib/sources";
 import { sourceKindIcon } from "@/lib/sources/source-ui";
 import type { IMusicSourceStrategy } from "@/lib/sources";
@@ -52,6 +53,7 @@ export function AddMusicSource({
   editingSource,
   onClose,
 }: AddMusicSourceProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(Boolean(editingSource));
   const [activeStrategy, setActiveStrategy] =
     useState<IMusicSourceStrategy | null>(null);
@@ -94,7 +96,7 @@ export function AddMusicSource({
       await onSourceAdded?.();
       toast.add({
         type: "success",
-        title: `Updated ${editingSource.name}`,
+        title: t("source.updated", [editingSource.name]),
       });
     } catch (error) {
       toast.add({
@@ -102,7 +104,7 @@ export function AddMusicSource({
         title:
           error instanceof Error
             ? error.message
-            : `Unable to update ${editingSource.name}`,
+            : t("source.updateFailed", [editingSource.name]),
       });
     } finally {
       setOpen(false);
@@ -127,7 +129,7 @@ export function AddMusicSource({
         title:
           error instanceof Error
             ? error.message
-            : `Unable to add ${activeStrategy.name}`,
+            : t("source.addFailed", [activeStrategy.name]),
       });
     } finally {
       setOpen(false);
@@ -156,15 +158,15 @@ export function AddMusicSource({
             size="icon"
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Cancel"
-            title="Cancel"
+            aria-label={t("common.cancel")}
+            title={t("common.cancel")}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
         <Header className="flex-1 text-left">
-          <Title>Add a music source</Title>
-          <Description>Choose a source type to connect to.</Description>
+          <Title>{t("source.addTitle")}</Title>
+          <Description>{t("source.addDescription")}</Description>
         </Header>
       </div>
 
@@ -178,7 +180,7 @@ export function AddMusicSource({
             onClick={() => handleChoose(strategy)}
             title={
               strategy.isAvailable === false
-                ? "Not supported in this browser"
+                ? t("source.notSupported")
                 : undefined
             }
           >
@@ -187,15 +189,15 @@ export function AddMusicSource({
             </div>
             <div className="min-w-0">
               <div className="font-medium">
-                {strategy.name}
+                {t(strategy.labelKey)}
                 {strategy.isAvailable === false && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    Not supported in this browser
+                    {t("source.notSupported")}
                   </span>
                 )}
               </div>
               <div className="text-sm text-muted-foreground">
-                {strategy.description}
+                {t(strategy.descriptionKey)}
               </div>
             </div>
           </button>
@@ -212,17 +214,19 @@ export function AddMusicSource({
               size="icon"
               type="button"
               onClick={handleBack}
-              aria-label="Back"
-              title="Back"
+              aria-label={t("common.back")}
+              title={t("common.back")}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
           <Title>
-            {isEditing ? `Edit ${editingSource?.name}` : formStrategy.name}
+            {isEditing
+              ? t("source.editNamed", [editingSource?.name ?? ""])
+              : t(formStrategy.labelKey)}
           </Title>
         </div>
-        <Description>{formStrategy.description}</Description>
+        <Description>{t(formStrategy.descriptionKey)}</Description>
       </Header>
 
       {formStrategy.configFields?.length ? (
@@ -249,7 +253,7 @@ export function AddMusicSource({
       return (
         <Button className="w-full" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4 mr-1" />
-          Add Music Source
+          {t("source.add")}
         </Button>
       );
     }
@@ -271,7 +275,7 @@ export function AddMusicSource({
             className={compact ? "" : "w-full"}
           >
             <Plus className="h-4 w-4 mr-1" />
-            {isEditing ? "Edit" : "Add Music Source"}
+            {isEditing ? t("common.edit") : t("source.add")}
           </Button>
         }
       />

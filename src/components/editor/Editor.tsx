@@ -29,6 +29,7 @@ import type { Album, Song } from "@/models";
 import { AlbumDetailDialog } from "../album-detail-dialog";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import { notification$ } from "@/events/notification-events";
+import { useTranslation } from "@/i18n";
 import { uuidv7 } from "uuidv7";
 
 export function Editor({
@@ -38,6 +39,7 @@ export function Editor({
 }) {
   //#region Songs
   //#region State
+  const { t } = useTranslation();
   const { filteredSongs } = useSongs();
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
@@ -88,8 +90,11 @@ export function Editor({
     const updatedSong = await updateTags(selectedSong, editUpdates, cover);
     notification$.next({
       id: uuidv7(),
-      title: "Song Updated",
-      detail: `Updated "${updatedSong.title} - ${updatedSong.artist}"`,
+      title: t("notification.songUpdated"),
+      detail: t("notification.songUpdatedDetail", [
+        updatedSong.title ?? "",
+        updatedSong.artist ?? "",
+      ]),
       state: "completed",
       kind: "Song Edit",
     });
@@ -134,8 +139,11 @@ export function Editor({
 
       notification$.next({
         id: uuidv7(),
-        title: "Song Updated",
-        detail: `Updated "${updatedSong.title} - ${updatedSong.artist}"`,
+        title: t("notification.songUpdated"),
+        detail: t("notification.songUpdatedDetail", [
+          updatedSong.title ?? "",
+          updatedSong.artist ?? "",
+        ]),
         state: "completed",
         kind: "Song Edit",
       });
@@ -174,8 +182,8 @@ export function Editor({
     const map = new Map<string, Album>();
 
     for (const song of filteredSongs) {
-      const title = song.album || "Unknown Album";
-      const artist = song.artist || "Unknown Artist";
+      const title = song.album || t("library.unknownAlbum");
+      const artist = song.artist || t("common.unknownArtist");
       const key = `${title}-${artist}`;
 
       if (!map.has(key)) {
@@ -192,7 +200,7 @@ export function Editor({
     }
 
     return Array.from(map.values());
-  }, [filteredSongs]);
+  }, [filteredSongs, t]);
   //#endregion
   //#region Helpers
   function isAlbumDetailsPrevButtonDisabled(): boolean {
@@ -434,7 +442,7 @@ export function Editor({
         const album = albums.find(
           (a) =>
             a.title === song.album &&
-            a.artist === (song.artist ?? "Unknown Artist")
+            a.artist === (song.artist ?? t("common.unknownArtist"))
         );
         if (!album) return;
         setSelectedAlbum(album);
@@ -476,15 +484,15 @@ export function Editor({
                 />
                 <h3 className="font-medium truncate">
                   {selectedSongs.length > 1
-                    ? `Quick Edit (${selectedSongs.length} selected)`
-                    : (selectedSongs[0]?.filename ?? "Quick Edit")}
+                    ? t("library.quickEditSelected", [selectedSongs.length])
+                    : (selectedSongs[0]?.filename ?? t("library.quickEdit"))}
                 </h3>
               </div>
 
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={() => setIsAdvancedEdit(true)}>
                   <PencilRuler />
-                  Advanced Edit
+                  {t("library.advancedEdit")}
                 </Button>
 
                 <Button
@@ -496,7 +504,7 @@ export function Editor({
                   className="border-accent/50 hover:border-accent/70 text-white"
                 >
                   <Eraser />
-                  Reset
+                  {t("common.reset")}
                 </Button>
 
                 <Button
@@ -508,7 +516,7 @@ export function Editor({
                   className="bg-accent/50 hover:bg-accent/70 text-white"
                 >
                   <Save />
-                  Save
+                  {t("common.save")}
                 </Button>
                 <div className="flex gap-2">
                   <Button
@@ -518,7 +526,7 @@ export function Editor({
                     disabled={isPrevButtonDisabled()}
                   >
                     <ChevronLeft />
-                    Prev
+                    {t("common.prev")}
                   </Button>
                   <Button
                     size="sm"
@@ -526,7 +534,7 @@ export function Editor({
                     onClick={handleNextClick}
                     disabled={isNextButtonDisabled()}
                   >
-                    Next
+                    {t("common.next")}
                     <ChevronRight />
                   </Button>
                 </div>
@@ -536,7 +544,7 @@ export function Editor({
                   onClick={() => setSelectedSongIds([])}
                 >
                   <X />
-                  Close
+                  {t("common.close")}
                 </Button>
               </div>
             </div>
@@ -571,7 +579,7 @@ export function Editor({
                 <div>
                   <DrawerTitle>{selectedSongs[0].filename}</DrawerTitle>
                   <DrawerDescription>
-                    Update the metadata for the selected song
+                    {t("metadata.updateDescription")}
                   </DrawerDescription>
                 </div>
               </div>

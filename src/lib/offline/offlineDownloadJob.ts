@@ -9,6 +9,7 @@ import {
 import { resolveThroughSource } from "./songOffline";
 import { reloadOfflineSongIds } from "./offlineSongIds";
 import { notification$ } from "@/events/notification-events";
+import { i18n } from "@/i18n";
 
 export interface OfflineDownloadJobResult {
   cached: number;
@@ -79,7 +80,7 @@ export async function runOfflineDownloadJob(
           id: notificationId,
           kind: "Offline Download",
           state: "progress",
-          title: "Downloading Songs",
+          title: i18n.t("notification.downloadingSongs"),
           payload: {
             index: index + 1,
             total: songs.length,
@@ -106,7 +107,7 @@ export async function runOfflineDownloadJob(
         id: notificationId,
         kind: "Offline Download",
         state: "completed",
-        title: "Downloading Songs",
+        title: i18n.t("notification.downloadingSongs"),
         payload: { cached, failed },
       });
     }

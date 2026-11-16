@@ -49,6 +49,7 @@ import { FAVORITES_PLAYLIST_ID } from "@/models";
 import { cn } from "cn";
 import { useDetailPane } from "@/lib/router/useDetailPane";
 import { NewPlaylistDialog } from "@/components/new-playlist-dialog";
+import { useTranslation } from "@/i18n";
 import {
   closestCenter,
   DndContext,
@@ -97,6 +98,7 @@ function SortableRow({
     transition,
     isDragging,
   } = useSortable({ id, disabled: !editing });
+  const { t } = useTranslation();
 
   return (
     <div
@@ -111,8 +113,8 @@ function SortableRow({
         <button
           ref={setActivatorNodeRef}
           type="button"
-          title="Drag to reorder"
-          aria-label="Drag to reorder"
+          title={t("playlist.dragToReorder")}
+          aria-label={t("playlist.dragToReorder")}
           className="shrink-0 cursor-grab touch-none px-1 py-2 text-muted-foreground hover:text-foreground active:cursor-grabbing"
           {...attributes}
           {...listeners}
@@ -139,6 +141,7 @@ export function Playlists({
   onOpenPlaylist?: (playlistId: string) => void;
 } = {}) {
   //#region State
+  const { t } = useTranslation();
   const { songs } = useSongs();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
@@ -448,21 +451,21 @@ export function Playlists({
     <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
       <DialogContent className="select-none w-lg">
         <DialogHeader>
-          <DialogTitle>Delete Playlist</DialogTitle>
+          <DialogTitle>{t("playlist.deleteTitle")}</DialogTitle>
           <DialogDescription>
-            This will permanently delete{" "}
-            <span className="font-medium">
-              {playlists.find((p) => p.id === pendingDeleteId)?.name}
-            </span>
-            . The songs themselves stay in your library.
+            {t("playlist.deleteDescription", [
+              playlists.find((p) => p.id === pendingDeleteId)?.name ?? "",
+            ])}
           </DialogDescription>
         </DialogHeader>
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline">Cancel</Button>} />
+          <DialogClose
+            render={<Button variant="outline">{t("common.cancel")}</Button>}
+          />
 
           <Button variant="destructive" onClick={() => void deletePending()}>
-            Delete
+            {t("common.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -548,16 +551,16 @@ export function Playlists({
           <Input
             value={compactFilter}
             onChange={(event) => setCompactFilter(event.target.value)}
-            placeholder="Filter playlists"
-            aria-label="Filter playlists"
+            placeholder={t("playlist.filter")}
+            aria-label={t("playlist.filter")}
             className="h-7 min-w-0 flex-1 text-xs"
           />
           <Button
             size="icon"
             variant="ghost"
             className="shrink-0"
-            title="New playlist"
-            aria-label="New playlist"
+            title={t("playlist.new")}
+            aria-label={t("playlist.new")}
             onClick={() => setNewPlaylistOpen(true)}
           >
             <Plus />
@@ -588,13 +591,13 @@ export function Playlists({
                   {readOnly && (
                     <span
                       className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
-                      title={`Read-only — from ${
-                        sourceName ?? "an unknown source"
-                      }`}
+                      title={t("playlist.readOnlyFrom", [
+                        sourceName ?? t("playlist.unknownSource"),
+                      ])}
                     >
                       <Lock className="size-3 shrink-0" aria-hidden="true" />
                       <span className="max-w-20 truncate">
-                        {sourceName ?? "Read-only"}
+                        {sourceName ?? t("playlist.readOnly")}
                       </span>
                     </span>
                   )}
@@ -608,8 +611,10 @@ export function Playlists({
                       size="icon"
                       variant="ghost"
                       className="size-5 shrink-0"
-                      title="Delete playlist"
-                      aria-label={`Delete ${playlist.name}`}
+                      title={t("playlist.delete")}
+                      aria-label={t("playlist.deleteNamed", [
+                        playlist.name,
+                      ])}
                       onClick={() => {
                         setPendingDeleteId(playlist.id);
                         setDeleteDialogOpen(true);
@@ -625,8 +630,8 @@ export function Playlists({
             {visiblePlaylists.length === 0 && (
               <div className="px-2 py-2 text-xs text-muted-foreground">
                 {compactFilter.trim() === ""
-                  ? "No playlists yet"
-                  : "No matching playlists"}
+                  ? t("playlist.none")
+                  : t("playlist.noMatches")}
               </div>
             )}
           </div>
@@ -655,18 +660,17 @@ export function Playlists({
         <div className="px-3 py-2 border-b">
           <div className="flex flex-row items-center gap-2">
             <div className="flex-1">
-              <div className="font-bold">Playlists</div>
+              <div className="font-bold">{t("navigation.playlists")}</div>
               <div className="text-xs text-muted-foreground">
-                {playlists.length}{" "}
-                {playlists.length === 1 ? "playlist" : "playlists"}
+                {t("playlist.count", [playlists.length])}
               </div>
             </div>
             <Button
               size="icon"
               variant="ghost"
               className="shrink-0"
-              title="New playlist"
-              aria-label="New playlist"
+              title={t("playlist.new")}
+              aria-label={t("playlist.new")}
               onClick={() => setNewPlaylistOpen(true)}
             >
               <Plus />
@@ -697,15 +701,14 @@ export function Playlists({
                       playlist.id === selectedId ? "text-accent-foreground" : ""
                     )}
                   >
-                    {playlist.songs.length}{" "}
-                    {playlist.songs.length === 1 ? "song" : "songs"}
+                    {t("library.songCount", [playlist.songs.length])}
                   </span>
                 </button>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="shrink-0 dark:hover:bg-destructive hover:bg-destructive"
-                  title={`Delete ${playlist.name}`}
+                  title={t("playlist.deleteNamed", [playlist.name])}
                   hidden={
                     !editMode ||
                     playlist.isFavorites ||
@@ -723,7 +726,7 @@ export function Playlists({
 
             {playlists.length === 0 && (
               <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                No playlists yet
+                {t("playlist.none")}
               </div>
             )}
           </div>
@@ -749,7 +752,7 @@ export function Playlists({
                   size="icon"
                   variant="ghost"
                   className="shrink-0"
-                  aria-label="Back to playlists"
+                  aria-label={t("playlist.backToPlaylists")}
                   onClick={() => setMobileShowingList(true)}
                 >
                   <ChevronLeft />
@@ -769,12 +772,12 @@ export function Playlists({
                     value={renameValue}
                     onChange={(event) => setRenameValue(event.target.value)}
                     onBlur={commitRename}
-                    placeholder="Playlist name"
+                    placeholder={t("playlist.name")}
                     className={cn(
                       "h-auto font-bold py-0",
                       isCompact ? "text-xl md:text-xl" : "text-3xl md:text-3xl"
                     )}
-                    aria-label="Playlist name"
+                    aria-label={t("playlist.name")}
                   />
                 </form>
               ) : (
@@ -788,10 +791,11 @@ export function Playlists({
                     {selected.name}
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    {tracks.length} {tracks.length === 1 ? "song" : "songs"}
+                    {t("library.songCount", [tracks.length])}
                     {selectedReadOnly && (
-                      <span title="Managed by its music source; edit it there">
-                        {" · Read-only"}
+                      <span title={t("playlist.readOnlyManaged")}>
+                        {" · "}
+                        {t("playlist.readOnly")}
                       </span>
                     )}
                   </div>
@@ -804,7 +808,7 @@ export function Playlists({
                     <Button
                       size="icon"
                       variant="ghost"
-                      title="Play all"
+                      title={t("playback.playAll")}
                       onClick={() => playSongs(tracks)}
                     >
                       <Play className="fill-current" />
@@ -812,7 +816,7 @@ export function Playlists({
                     <Button
                       size="icon"
                       variant="ghost"
-                      title="Shuffle"
+                      title={t("playback.shuffle")}
                       onClick={() => shuffleSongs(tracks)}
                     >
                       <Shuffle />
@@ -858,7 +862,7 @@ export function Playlists({
                     }}
                   >
                     {editMode ? <Check /> : <Pen />}
-                    {editMode ? "Done" : "Edit"}
+                    {editMode ? t("common.done") : t("common.edit")}
                   </Button>
                 )}
               </div>
@@ -870,8 +874,8 @@ export function Playlists({
                   className="max-w-md"
                   query={addQuery}
                   onQueryChange={setAddQuery}
-                  title="Add to playlist"
-                  ariaLabel="Search songs to add"
+                  title={t("playlist.add")}
+                  ariaLabel={t("search.songsToAdd")}
                   songs={addResults}
                   artists={addArtistResults}
                   albums={addAlbumResults}
@@ -908,7 +912,7 @@ export function Playlists({
                 <>
                   {addQuery.trim() && (
                     <div className="pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      In this playlist · {tracks.length}
+                      {t("playlist.inThisPlaylist", [tracks.length])}
                     </div>
                   )}
                   <DndContext
@@ -951,7 +955,7 @@ export function Playlists({
                                 size="icon"
                                 variant="ghost"
                                 className="shrink-0 mr-1"
-                                title="Remove from playlist"
+                                title={t("playlist.removeTrack")}
                                 onClick={() => void removeTracks([song.id])}
                               >
                                 <Trash2 />
@@ -965,7 +969,7 @@ export function Playlists({
 
                   {tracks.length === 0 && (
                     <div className="py-10 text-center text-sm text-muted-foreground">
-                      This playlist is empty
+                      {t("playlist.empty")}
                     </div>
                   )}
                 </>
@@ -974,7 +978,7 @@ export function Playlists({
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            Select a playlist
+            {t("playlist.select")}
           </div>
         )}
       </div>

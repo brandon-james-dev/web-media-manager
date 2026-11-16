@@ -37,9 +37,11 @@ import { CoverFlow, type CoverFlowItem } from "@/components/ui/CoverFlow";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { ThumbnailSize } from "@/lib";
 import { AlbumDetailModal } from "@/components/album-modal";
+import { useTranslation } from "@/i18n";
 
 export function Albums() {
   //#region State
+  const { t, language } = useTranslation();
   const isCompact = useIsCompact();
   const isPhoneLandscape = useIsPhoneLandscape();
   const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
@@ -63,8 +65,8 @@ export function Albums() {
   const [sortField, setSortField] = useState<"album" | "artist">("album");
   const [sortDesc, setSortDesc] = useState<boolean>(false);
   const sortFieldLabels = {
-    album: "Album Title",
-    artist: "Artist",
+    album: "library.albumTitle",
+    artist: "metadata.artist",
   } as const;
   //#endregion
 
@@ -104,8 +106,8 @@ export function Albums() {
     const map = new Map<string, Album>();
 
     for (const song of visibleSongs) {
-      const title = song.album || "Unknown Album";
-      const artist = song.artist || "Unknown Artist";
+      const title = song.album || t("library.unknownAlbum");
+      const artist = song.artist || t("common.unknownArtist");
       const key = `${title}-${artist}`;
 
       if (!map.has(key)) {
@@ -122,7 +124,7 @@ export function Albums() {
     }
 
     return Array.from(map.values());
-  }, [visibleSongs]);
+  }, [visibleSongs, t, language]);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const letterIndex = useMemo(
@@ -275,7 +277,7 @@ export function Albums() {
                   </li>
                 ))}
                 <li
-                  aria-label="Flip back"
+                  aria-label={t("library.flipBack")}
                   className="h-16"
                   onClick={() => setFlippedIndex(null)}
                 />
@@ -313,10 +315,10 @@ export function Albums() {
         >
           <TabsList>
             <TabsTrigger value="grid">
-              <Grid2x2 /> Grid
+              <Grid2x2 /> {t("library.viewGrid")}
             </TabsTrigger>
             <TabsTrigger value="coverflow">
-              <GalleryHorizontal /> Cover Flow
+              <GalleryHorizontal /> {t("library.viewCoverFlow")}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -328,12 +330,12 @@ export function Albums() {
               onValueChange={(v) => setSortField(v as "album" | "artist")}
             >
               <SelectTrigger className="w-35">
-                <SelectValue>{sortFieldLabels[sortField]}</SelectValue>
+                <SelectValue>{t(sortFieldLabels[sortField])}</SelectValue>
               </SelectTrigger>
 
               <SelectContent>
-                <SelectItem value="album">Album Title</SelectItem>
-                <SelectItem value="artist">Artist</SelectItem>
+                <SelectItem value="album">{t("library.albumTitle")}</SelectItem>
+                <SelectItem value="artist">{t("metadata.artist")}</SelectItem>
               </SelectContent>
             </Select>
             <Toggle
@@ -406,7 +408,7 @@ export function Albums() {
               <div className="fixed inset-0 z-100 bg-background pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
                 <button
                   type="button"
-                  aria-label="Exit full screen"
+                  aria-label={t("common.exitFullScreen")}
                   className="absolute right-2 bottom-2 z-110 flex size-9 items-center justify-center rounded-full bg-secondary/80 text-foreground"
                   onClick={() => {
                     setFlippedIndex(null);
@@ -425,7 +427,7 @@ export function Albums() {
           {albums.length > 1 && !isPhoneLandscape && (
             <div className="scrollbar-slider mt-2">
               <Slider
-                aria-label="Scroll albums"
+                aria-label={t("library.scrollAlbums")}
                 min={0}
                 max={albums.length - 1}
                 step={1}

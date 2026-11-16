@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TrackItem } from "@/components/track-item";
+import { useTranslation } from "@/i18n";
 import {
   deletePlaylist,
   getPlaylist,
@@ -43,6 +44,7 @@ interface SidebarPlaylistTracksProps {
  */
 function EmptyDropZone({ playlistId }: { playlistId: string }) {
   const { active } = useDndContext();
+  const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({
     id: sidebarPlaylistEmptyDropId(playlistId),
   });
@@ -57,7 +59,7 @@ function EmptyDropZone({ playlistId }: { playlistId: string }) {
         isOver && "bg-primary/15 text-foreground ring-2 ring-primary ring-inset"
       )}
     >
-      {active !== null ? "Drop here to add" : "No tracks yet"}
+      {active !== null ? t("playlist.dropToAdd") : t("playlist.noTracks")}
     </div>
   );
 }
@@ -74,6 +76,7 @@ export function SidebarPlaylistTracks({
 }: SidebarPlaylistTracksProps) {
   const { songs } = useSongs();
   const { nowPlaying } = usePlayback();
+  const { t } = useTranslation();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [sources, setSources] = useState<MusicSource[]>([]);
   // Selected track ids, so several can be removed in one go.
@@ -240,14 +243,14 @@ export function SidebarPlaylistTracks({
           size="icon"
           variant="ghost"
           className="shrink-0"
-          title="Back to playlists"
-          aria-label="Back to playlists"
+          title={t("playlist.backToPlaylists")}
+          aria-label={t("playlist.backToPlaylists")}
           onClick={onBack}
         >
           <ChevronLeft />
         </Button>
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
-          {playlist?.name ?? "Playlist"}
+          {playlist?.name ?? t("playlist.title")}
         </span>
         {editMode && !readOnly && playlistId !== FAVORITES_PLAYLIST_ID && (
           <>
@@ -255,8 +258,8 @@ export function SidebarPlaylistTracks({
               size="icon"
               variant="ghost"
               className="shrink-0"
-              title="Reorder tracks A–Z"
-              aria-label="Reorder tracks alphabetically"
+              title={t("playlist.reorder")}
+              aria-label={t("playlist.reorderLabel")}
               onClick={reorderAlphabetically}
             >
               <ArrowDownAZ />
@@ -265,8 +268,8 @@ export function SidebarPlaylistTracks({
               size="icon"
               variant="ghost"
               className="shrink-0"
-              title="Delete playlist"
-              aria-label="Delete playlist"
+              title={t("playlist.delete")}
+              aria-label={t("playlist.delete")}
               onClick={() => setDeleteOpen(true)}
             >
               <Trash2 />
@@ -278,8 +281,8 @@ export function SidebarPlaylistTracks({
             size="icon"
             variant="ghost"
             className="shrink-0"
-            title="Select all"
-            aria-label="Select all tracks"
+            title={t("common.selectAll")}
+            aria-label={t("playlist.selectAllTracks")}
             onClick={() => setSelectedIds(tracks.map((track) => track.id))}
           >
             <ListChecks />
@@ -290,8 +293,8 @@ export function SidebarPlaylistTracks({
             size="icon"
             variant="ghost"
             className="shrink-0"
-            title="Clear selection"
-            aria-label="Clear selection"
+            title={t("common.clearSelection")}
+            aria-label={t("common.clearSelection")}
             onClick={() => setSelectedIds([])}
           >
             <X />
@@ -302,8 +305,10 @@ export function SidebarPlaylistTracks({
             size="sm"
             variant="destructive"
             className="h-6 shrink-0 gap-1 px-2 text-xs"
-            title={`Remove ${selectedIds.length} selected`}
-            aria-label={`Remove ${selectedIds.length} selected tracks`}
+            title={t("playlist.removeSelected", [selectedIds.length])}
+            aria-label={t("playlist.removeSelectedTracks", [
+              selectedIds.length,
+            ])}
             onClick={removeSelected}
           >
             <Trash2 />
@@ -366,17 +371,17 @@ export function SidebarPlaylistTracks({
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="select-none w-lg">
           <DialogHeader>
-            <DialogTitle>Delete Playlist</DialogTitle>
+            <DialogTitle>{t("playlist.deleteTitle")}</DialogTitle>
             <DialogDescription>
-              This will permanently delete{" "}
-              <span className="font-medium">{playlist?.name}</span>. The songs
-              themselves stay in your library.
+              {t("playlist.deleteDescription", [playlist?.name ?? ""])}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <DialogClose render={<Button variant="outline">Cancel</Button>} />
+            <DialogClose
+              render={<Button variant="outline">{t("common.cancel")}</Button>}
+            />
             <Button variant="destructive" onClick={confirmDeletePlaylist}>
-              Delete
+              {t("common.delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

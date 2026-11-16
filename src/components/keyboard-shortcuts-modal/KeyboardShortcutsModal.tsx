@@ -5,6 +5,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "@/i18n";
+import type { WmmResourceKey } from "@/i18n";
 import { getShortcuts } from "@/lib/keyboard-shortcuts";
 import { Kbd } from "@/components/ui/kbd";
 import { usesCommandMeta } from "@/lib/keyboard-shortcuts";
@@ -18,6 +20,18 @@ import {
   Option,
 } from "lucide-react";
 
+/** Resource key for each registered shortcut, by shortcut id. */
+const SHORTCUT_LABEL_KEYS: Record<string, WmmResourceKey> = {
+  openShortcuts: "settings.shortcutOpenShortcuts",
+  next: "settings.shortcutNext",
+  prev: "settings.shortcutPrev",
+  playpause: "settings.shortcutPlayPause",
+  queue: "settings.shortcutQueue",
+  edit: "settings.shortcutEdit",
+  fullscreen: "settings.shortcutFullscreen",
+  close: "settings.shortcutClose",
+};
+
 export function KeyboardShortcutsModal({
   open,
   onOpenChange,
@@ -25,13 +39,14 @@ export function KeyboardShortcutsModal({
   open: boolean;
   onOpenChange: (openState: boolean) => void;
 }) {
-  const shortcuts = [...getShortcuts().values()];
+  const shortcuts = open ? [...getShortcuts().values()] : [];
+  const { t } = useTranslation();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-6 w-150 max-h-[80%]">
         <DialogHeader>
-          <DialogTitle>Keyboard Shortcuts</DialogTitle>
+          <DialogTitle>{t("settings.shortcuts")}</DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] pr-4">
@@ -44,7 +59,11 @@ export function KeyboardShortcutsModal({
                   key={s.id}
                   className="flex justify-between items-center border-b pb-2"
                 >
-                  <span className="text-sm">{s.description}</span>
+                  <span className="text-sm">
+                    {SHORTCUT_LABEL_KEYS[s.id]
+                      ? t(SHORTCUT_LABEL_KEYS[s.id])
+                      : s.description}
+                  </span>
 
                   <span className="flex gap-1 select-none items-center">
                     {c.ctrl && (

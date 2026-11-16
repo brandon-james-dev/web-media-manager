@@ -3,6 +3,7 @@ import { ListChecks, RotateCw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatBytes } from "@/lib/sync/helpers/formatBytes";
+import { useTranslation } from "@/i18n";
 import { wmmBus } from "@/events";
 import { cn } from "cn";
 import type { SyncTrack } from "@/models";
@@ -25,6 +26,7 @@ export function SidebarSyncedTracks({
   tracks,
 }: SidebarSyncedTracksProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const { t } = useTranslation();
 
   // Total size of what is on the device, shown beside the count so the panel
   // says how much space the library occupies without opening the card.
@@ -70,20 +72,20 @@ export function SidebarSyncedTracks({
           size="sm"
           variant="ghost"
           className="h-6 min-w-0 flex-1 justify-start gap-1 px-1.5 text-xs"
-          title="Re-read the device's contents"
-          aria-label="Refresh device contents"
+          title={t("sync.rereadDevice")}
+          aria-label={t("sync.refreshDevice")}
           onClick={() => wmmBus.invoke("wmm.sync.refreshDevices")}
         >
           <RotateCw />
-          Refresh device contents
+          {t("sync.refreshDevice")}
         </Button>
         {tracks.length > 0 && (
           <Button
             size="icon"
             variant="ghost"
             className="shrink-0"
-            title="Select all"
-            aria-label="Select all synced tracks"
+            title={t("common.selectAll")}
+            aria-label={t("sync.selectAllSynced")}
             onClick={() => setSelectedIds(tracks.map((track) => track.id))}
           >
             <ListChecks />
@@ -94,8 +96,8 @@ export function SidebarSyncedTracks({
             size="icon"
             variant="ghost"
             className="shrink-0"
-            title="Clear selection"
-            aria-label="Clear selection"
+            title={t("common.clearSelection")}
+            aria-label={t("common.clearSelection")}
             onClick={() => setSelectedIds([])}
           >
             <X />
@@ -106,8 +108,10 @@ export function SidebarSyncedTracks({
             size="sm"
             variant="destructive"
             className="h-6 shrink-0 gap-1 px-2 text-xs"
-            title={`Remove ${selectedIds.length} selected from the device`}
-            aria-label={`Remove ${selectedIds.length} selected tracks from the device`}
+            title={t("sync.removeSelectedFromDevice", [selectedIds.length])}
+            aria-label={t("sync.removeSelectedTracksFromDevice", [
+              selectedIds.length,
+            ])}
             onClick={removeSelected}
           >
             <Trash2 />
@@ -116,7 +120,10 @@ export function SidebarSyncedTracks({
         ) : (
           <span
             className="shrink-0 text-xs text-muted-foreground tabular-nums"
-            title={`${tracks.length} track${tracks.length === 1 ? "" : "s"}, ${formatBytes(totalBytes)}`}
+            title={t("sync.trackCount", [
+              tracks.length,
+              formatBytes(totalBytes),
+            ])}
           >
             {tracks.length} · {formatBytes(totalBytes)}
           </span>
@@ -149,7 +156,7 @@ export function SidebarSyncedTracks({
 
           {tracks.length === 0 && (
             <div className="px-2 py-2 text-xs text-muted-foreground">
-              Nothing synced yet
+              {t("sync.nothingSynced")}
             </div>
           )}
         </div>

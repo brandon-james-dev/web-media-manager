@@ -14,9 +14,21 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Item } from "@/components/ui/item";
 import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus } from "lucide-react";
 import { useTheme, useVisualizer } from "@/hooks";
+import {
+  AUTO_LANGUAGE,
+  useTranslation,
+  type LanguagePreference,
+} from "@/i18n";
 import { clearLibrary } from "@/core/scanning";
 import { clearSubsonicSecrets } from "@/lib/sources/subsonic/subsonicSecrets";
 import { runJobWithProgress } from "@/lib/jobs/runJobWithProgress";
@@ -39,9 +51,9 @@ import {
 } from "@/components/visualizer";
 
 const THEME_OPTIONS = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
+  { value: "light", labelKey: "settings.themeLight", icon: Sun },
+  { value: "dark", labelKey: "settings.themeDark", icon: Moon },
+  { value: "system", labelKey: "settings.themeSystem", icon: Monitor },
 ] as const;
 
 export function Settings() {
@@ -50,6 +62,8 @@ export function Settings() {
   const isTv = useIsTv();
   const { setTheme, theme, accentColor, setAccentColor } = useTheme();
   const { setManagerOpen, setSettingsOpen } = useVisualizer();
+  const { t, preference, detectedLanguage, changeLanguage, languages } =
+    useTranslation();
   const [settingsPluginId, setSettingsPluginId] = useState<string>();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
@@ -60,7 +74,23 @@ export function Settings() {
   const [settings, setSettings] = useState({
     theme: theme || "system",
     accentColor: accentColor || "#3b82f6",
+    language: preference as LanguagePreference,
   });
+  const languageOptions = [
+    {
+      value: AUTO_LANGUAGE as LanguagePreference,
+      label: t("settings.languageAuto", [
+        languages.find((entry) => entry.language === detectedLanguage)
+          ?.nativeName ?? detectedLanguage,
+      ]),
+    },
+    ...languages
+      .filter((entry) => entry.language !== detectedLanguage)
+      .map((entry) => ({
+        value: entry.language as LanguagePreference,
+        label: entry.nativeName,
+      })),
+  ];
   //#endregion
 
   //#region Global event listeners
@@ -91,7 +121,7 @@ export function Settings() {
     return (
       <Badge variant="secondary">
         <Cpu />
-        Server
+        {t("source.kindServer")}
       </Badge>
     );
   }
@@ -142,10 +172,11 @@ export function Settings() {
   const handleSave = () => {
     setTheme(settings.theme as "light" | "dark" | "system");
     setAccentColor(settings.accentColor);
+    changeLanguage(settings.language);
 
     toast.add({
       type: "success",
-      title: "Settings saved",
+      title: t("settings.saved"),
     });
   };
 
@@ -156,7 +187,7 @@ export function Settings() {
     setClearSongsDialogOpen(false);
     toast.add({
       type: "success",
-      title: "All songs cleared from the database",
+      title: t("settings.songsCleared"),
     });
   };
 
@@ -179,7 +210,7 @@ export function Settings() {
         type: "Source Remove",
         payload: { sourceId: source.id },
         kind: "Source Remove",
-        title: "Removing Music Source",
+        title: t("source.removing"),
         bulk: true,
         readResult: (raw) => {
           const value = raw as Partial<SourceRemoveResult> | undefined;
@@ -193,7 +224,7 @@ export function Settings() {
     } catch (error) {
       toast.add({
         type: "error",
-        title: "Could not remove the music source",
+        title: t("source.removeFailed"),
         description: String(error),
       });
       return;
@@ -221,21 +252,21 @@ export function Settings() {
             <ArrowLeft />
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold">Settings and Data</h1>
+        <h1 className="text-3xl font-bold">{t("settings.pageTitle")}</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Settings</CardTitle>
-          <CardDescription>Manage your application preferences</CardDescription>
+          <CardTitle>{t("settings.title")}</CardTitle>
+          <CardDescription>{t("settings.description")}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
           <div className="space-y-3">
-            <Label>Theme</Label>
+            <Label>{t("settings.theme")}</Label>
 
             <div className="flex flex-wrap gap-2">
-              {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+              {THEME_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
                 <Button
                   key={value}
                   variant="outline"
@@ -247,14 +278,14 @@ export function Settings() {
                   onClick={() => handleChange("theme", value)}
                 >
                   <Icon />
-                  {label}
+                  {t(labelKey)}
                 </Button>
               ))}
             </div>
           </div>
 
           <div className="space-y-3">
-            <Label>Accent Color</Label>
+            <Label>{t("settings.accentColor")}</Label>
 
             <AccentColorSelector
               value={settings.accentColor}
@@ -262,9 +293,38 @@ export function Settings() {
             />
           </div>
 
+          <div className="space-y-3">
+            <Label>{t("settings.language")}</Label>
+
+            <Select
+              value={settings.language}
+              items={languageOptions}
+              onValueChange={(value) => {
+                const next = languageOptions.find(
+                  (option) => option.value === value
+                );
+                if (next) handleChange("language", next.value);
+              }}
+            >
+              <SelectTrigger
+                className="w-full"
+                aria-label={t("settings.language")}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {languageOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <Button onClick={handleSave} className="w-full">
-              Save Settings
+              {t("settings.save")}
             </Button>
           </div>
         </CardContent>
@@ -272,9 +332,9 @@ export function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Visualizers</CardTitle>
+          <CardTitle>{t("settings.visualizers")}</CardTitle>
           <CardDescription>
-            Install visualizer plugins and configure the active one
+            {t("settings.visualizersDescription")}
           </CardDescription>
         </CardHeader>
 
@@ -291,7 +351,7 @@ export function Settings() {
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={() => setManagerOpen(true)}>
               <PackagePlus />
-              Install or manage plugins
+              {t("settings.installPlugins")}
             </Button>
           </div>
 
@@ -302,19 +362,19 @@ export function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Data</CardTitle>
+          <CardTitle>{t("settings.data")}</CardTitle>
           <CardDescription>
-            Manage all song data and the sources used for scanning and importing music
+            {t("settings.dataDescription")}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <div className="flex items-center justify-between">
-            <Label>Sources</Label>
+            <Label>{t("library.sources")}</Label>
           </div>
           {sources.length === 0 && (
             <p className="text-sm text-muted-foreground my-2">
-              No music sources added yet. Add an on-device folder or a Subsonic server.
+              {t("source.noneAdded")}
             </p>
           )}
 
@@ -345,7 +405,7 @@ export function Settings() {
                         variant="ghost"
                         size="icon"
                         className={isCompact ? "w-auto px-3" : undefined}
-                        aria-label={`Edit ${dir.name}`}
+                        aria-label={t("source.editNamed", [dir.name])}
                         onClick={() => setEditingSource(dir)}
                       >
                         <Pencil className="h-4 w-4" />
@@ -357,7 +417,7 @@ export function Settings() {
                         variant="ghost"
                         size="icon"
                         className={isCompact ? "w-auto px-3" : undefined}
-                        aria-label={`Sync ${dir.name}`}
+                        aria-label={t("source.syncNamed", [dir.name])}
                         disabled={syncingId === dir.id}
                         onClick={() => handleSyncSource(dir)}
                       >
@@ -402,46 +462,53 @@ export function Settings() {
           <Dialog open={deleteDirDialogOpen} onOpenChange={setDeleteDirDialogOpen}>
             <DialogContent className="select-none w-lg">
               <DialogHeader>
-                <DialogTitle>Remove Music Source</DialogTitle>
+                <DialogTitle>{t("source.removeTitle")}</DialogTitle>
                 <DialogDescription>
-                  This will remove the source from your library. Songs already imported will remain.
+                  {t("source.removeDescription")}
                 </DialogDescription>
               </DialogHeader>
 
               <DialogFooter>
-                <DialogClose render={<Button variant="outline">Cancel</Button>}></DialogClose>
+                <DialogClose
+                  render={
+                    <Button variant="outline">{t("common.cancel")}</Button>
+                  }
+                ></DialogClose>
 
                 <Button variant="destructive" onClick={handleDeleteMusicSource}>
-                  Remove Music Source
+                  {t("source.removeTitle")}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
           <div className="flex items-center justify-between">
-            <Label htmlFor="clearDb">Clear Song Database</Label>
+            <Label htmlFor="clearDb">{t("settings.clearDatabase")}</Label>
 
             <Dialog open={clearSongsDialogOpen} onOpenChange={setClearSongsDialogOpen}>
               <DialogTrigger
                 render={
                   <Button id="clearDb" variant="destructive">
-                    Clear
+                    {t("common.clear")}
                   </Button>
                 }
               ></DialogTrigger>
 
               <DialogContent className="select-none w-lg">
                 <DialogHeader>
-                  <DialogTitle>Are you absolutely sure?</DialogTitle>
+                  <DialogTitle>{t("settings.clearDatabaseTitle")}</DialogTitle>
                   <DialogDescription>
-                    This action cannot be undone. This will remove all song data managed by Web
-                    Media Manager.
+                    {t("settings.clearDatabaseDescription")}
                   </DialogDescription>
                 </DialogHeader>
 
                 <DialogFooter>
-                  <DialogClose render={<Button variant="outline">Cancel</Button>}></DialogClose>
+                  <DialogClose
+                    render={
+                      <Button variant="outline">{t("common.cancel")}</Button>
+                    }
+                  ></DialogClose>
                   <Button variant="destructive" onClick={handleClearSongs}>
-                    Clear
+                    {t("common.clear")}
                   </Button>
                 </DialogFooter>
               </DialogContent>

@@ -11,10 +11,12 @@ import { Eraser, Globe, Pen, Save, ChevronLeft, ChevronRight, X } from "lucide-r
 import type { SongEditFormProps } from "./SongEditFormProps";
 import { AlbumArtImage } from "../album-art-image";
 import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
+import { useTranslation } from "@/i18n";
 
 export function SongEditForm(props: SongEditFormProps) {
   //#region State
   const { song, formId, onFormSubmit, onNavigatePrev, onNavigateNext, isPrevDisabled, isNextDisabled, onClose } = props;
+  const { t } = useTranslation();
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
   const [showSearch, setShowSearch] = useState(false);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
@@ -201,7 +203,7 @@ export function SongEditForm(props: SongEditFormProps) {
             onClick={() => setShowSearch(!showSearch)}
             disabled={!editable}
           >
-            <Globe /> Online Search
+            <Globe /> {t("metadata.onlineSearch")}
           </Button>
           <Button
             variant="secondary"
@@ -214,7 +216,7 @@ export function SongEditForm(props: SongEditFormProps) {
             disabled={!Object.values(dirty).some((v) => v)}
           >
             <Eraser />
-            Reset
+            {t("common.reset")}
           </Button>
           <Button
             type="submit"
@@ -222,24 +224,24 @@ export function SongEditForm(props: SongEditFormProps) {
             form={formId || "song-edit-form"}
             disabled={!editable || !Object.values(dirty).some((v) => v)}
           >
-            <Save /> Save
+            <Save /> {t("common.save")}
           </Button>
           <Button
             variant="secondary"
             onClick={onNavigatePrev}
             disabled={isPrevDisabled}
-            aria-label="Previous song"
+            aria-label={t("metadata.previousSong")}
           >
             <ChevronLeft />
-            Prev
+            {t("common.prev")}
           </Button>
           <Button
             variant="secondary"
             onClick={onNavigateNext}
             disabled={isNextDisabled}
-            aria-label="Next song"
+            aria-label={t("metadata.nextSong")}
           >
-            Next
+            {t("common.next")}
             <ChevronRight />
           </Button>
           <Button
@@ -248,7 +250,7 @@ export function SongEditForm(props: SongEditFormProps) {
             onClick={onClose}
           >
             <X />
-            Close
+            {t("common.close")}
           </Button>
         </div>
       </div>
@@ -278,7 +280,7 @@ export function SongEditForm(props: SongEditFormProps) {
                 htmlFor="coverFront"
                 className="pb-1 flex items-center gap-2"
               >
-                Album Art
+                {t("metadata.albumArt")}
                 {dirty.coverFront && (
                   <span className="w-2 h-2 bg-accent/50 rounded-full" />
                 )}
@@ -324,9 +326,9 @@ export function SongEditForm(props: SongEditFormProps) {
                         className="object-cover rounded"
                         fallback={
                           <>
-                            <div>No cover art</div>
+                            <div>{t("library.noCoverArt")}</div>
                             <div className="text-muted-foreground">
-                              Click to select
+                              {t("common.clickToSelect")}
                             </div>
                           </>
                         }
@@ -369,7 +371,7 @@ export function SongEditForm(props: SongEditFormProps) {
 
             <div>
               <Label className="pb-1" htmlFor="title">
-                Title
+                {t("metadata.title")}
               </Label>
               <Input
                 name="title"
@@ -390,7 +392,7 @@ export function SongEditForm(props: SongEditFormProps) {
             </div>
 
             <div>
-              <Label className="pb-1">Artist</Label>
+              <Label className="pb-1">{t("metadata.artist")}</Label>
               <Input
                 name="artist"
                 defaultValue={song.artist}
@@ -410,7 +412,7 @@ export function SongEditForm(props: SongEditFormProps) {
             </div>
 
             <div>
-              <Label className="pb-1">Album</Label>
+              <Label className="pb-1">{t("metadata.album")}</Label>
               <Input
                 name="album"
                 defaultValue={song.album}
@@ -426,7 +428,7 @@ export function SongEditForm(props: SongEditFormProps) {
             </div>
 
             <div>
-              <Label className="pb-1">Album Artist</Label>
+              <Label className="pb-1">{t("metadata.albumArtist")}</Label>
               <Input
                 name="albumArtist"
                 defaultValue={song.albumArtist ?? ""}
@@ -442,7 +444,7 @@ export function SongEditForm(props: SongEditFormProps) {
             </div>
 
             <div>
-              <Label className="pb-1">Year</Label>
+              <Label className="pb-1">{t("metadata.year")}</Label>
               <Input
                 name="year"
                 defaultValue={song.year}
@@ -458,7 +460,7 @@ export function SongEditForm(props: SongEditFormProps) {
             </div>
 
             <div>
-              <Label className="pb-1">Genre</Label>
+              <Label className="pb-1">{t("metadata.genre")}</Label>
               <Input
                 name="genre"
                 defaultValue={song.genre ?? ""}
@@ -476,12 +478,12 @@ export function SongEditForm(props: SongEditFormProps) {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">Track Position</h2>
+          <h2 className="text-lg font-semibold mb-2">{t("metadata.trackPosition")}</h2>
           <div className="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
             <div>
               <div className="grid grid-cols-3">
                 <div>
-                  <Label className="pb-1">Track</Label>
+                  <Label className="pb-1">{t("metadata.track")}</Label>
                   <Input
                     name="track"
                     defaultValue={song.track}
@@ -496,10 +498,10 @@ export function SongEditForm(props: SongEditFormProps) {
                   />
                 </div>
                 <div className="text-muted-foreground flex justify-center align-middle">
-                  <Label className="pt-4 inline-flex">of</Label>
+                  <Label className="pt-4 inline-flex">{t("common.of")}</Label>
                 </div>
                 <div>
-                  <Label className="pb-1">Tracks</Label>
+                  <Label className="pb-1">{t("metadata.tracks")}</Label>
                   <Input
                     name="totalTracks"
                     defaultValue={song.totalTracks}
@@ -518,7 +520,7 @@ export function SongEditForm(props: SongEditFormProps) {
             <div>
               <div className="grid grid-cols-3">
                 <div>
-                  <Label className="pb-1">Disc</Label>
+                  <Label className="pb-1">{t("metadata.disc")}</Label>
                   <Input
                     name="disc"
                     defaultValue={song.discNumber}
@@ -533,10 +535,10 @@ export function SongEditForm(props: SongEditFormProps) {
                   />
                 </div>
                 <div className="text-muted-foreground flex justify-center align-middle">
-                  <Label className="pt-4 inline-flex">of</Label>
+                  <Label className="pt-4 inline-flex">{t("common.of")}</Label>
                 </div>
                 <div>
-                  <Label className="pb-1">Discs</Label>
+                  <Label className="pb-1">{t("metadata.discs")}</Label>
                   <Input
                     name="totalDiscs"
                     defaultValue={song.totalDiscs}
@@ -556,10 +558,10 @@ export function SongEditForm(props: SongEditFormProps) {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">Credits</h2>
+          <h2 className="text-lg font-semibold mb-2">{t("metadata.credits")}</h2>
           <div className="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
             <div>
-              <Label className="pb-1">Composer</Label>
+              <Label className="pb-1">{t("metadata.composer")}</Label>
               <Input
                 name="composer"
                 defaultValue={song.composer ?? ""}
@@ -574,7 +576,7 @@ export function SongEditForm(props: SongEditFormProps) {
               />
             </div>
             <div>
-              <Label className="pb-1">BPM</Label>
+              <Label className="pb-1">{t("metadata.bpm")}</Label>
               <Input
                 name="bpm"
                 defaultValue={song.bpm ?? ""}
@@ -589,7 +591,7 @@ export function SongEditForm(props: SongEditFormProps) {
               />
             </div>
             <div>
-              <Label className="pb-1">Copyright</Label>
+              <Label className="pb-1">{t("metadata.copyright")}</Label>
               <Input
                 name="copyright"
                 defaultValue={song.copyright ?? ""}
@@ -604,7 +606,7 @@ export function SongEditForm(props: SongEditFormProps) {
               />
             </div>
             <div>
-              <Label className="pb-1">Encoder</Label>
+              <Label className="pb-1">{t("metadata.encoder")}</Label>
               <Input
                 name="encodedBy"
                 defaultValue={song.encodedBy ?? ""}
@@ -622,10 +624,10 @@ export function SongEditForm(props: SongEditFormProps) {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-4">Text Fields</h2>
+          <h2 className="text-lg font-semibold mb-4">{t("metadata.textFields")}</h2>
           <div className="grid xl:grid-cols-2 gap-4">
             <div>
-              <Label className="pb-1">Comment</Label>
+              <Label className="pb-1">{t("metadata.comment")}</Label>
               <Textarea
                 name="comment"
                 defaultValue={song.comment ?? ""}
@@ -640,7 +642,7 @@ export function SongEditForm(props: SongEditFormProps) {
               />
             </div>
             <div>
-              <Label className="pb-1">Lyrics</Label>
+              <Label className="pb-1">{t("metadata.lyrics")}</Label>
               <Textarea
                 name="lyrics"
                 defaultValue={song.lyrics ?? ""}

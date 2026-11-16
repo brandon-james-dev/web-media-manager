@@ -22,6 +22,7 @@ import { formatLength } from "@/lib/formatLength";
 import type { TrackItemProps } from "./TrackItemProps";
 import { ExplicitBadge } from "@/components/explicit-badge";
 import { FavoriteButton } from "@/components/favorite-button";
+import { useTranslation } from "@/i18n";
 
 /**
  * TrackItem — one song as a compact row, built on the shadcn Item
@@ -57,6 +58,7 @@ export function TrackItem(props: TrackItemProps) {
     focusable = false,
     className,
   } = props;
+  const { t } = useTranslation();
 
   const trackNumber = hideNumber
     ? undefined
@@ -187,8 +189,10 @@ export function TrackItem(props: TrackItemProps) {
                 e.stopPropagation();
                 activate();
               }}
-              title={isPlaying ? "Now playing" : "Play"}
-              aria-label={isPlaying ? "Now playing" : "Play"}
+              title={isPlaying ? t("playback.nowPlaying") : t("playback.play")}
+              aria-label={
+                isPlaying ? t("playback.nowPlaying") : t("playback.play")
+              }
             >
               {isPlaying ? (
                 <Pause size={14} className="fill-current" />
@@ -216,8 +220,8 @@ export function TrackItem(props: TrackItemProps) {
                   "opacity-0 group-hover/track:opacity-100 data-[state=open]:opacity-100"
                 )}
                 onClick={(e) => e.stopPropagation()}
-                title="More actions"
-                aria-label="More actions"
+                title={t("common.moreActions")}
+                aria-label={t("common.moreActions")}
               >
                 <MoreHorizontal size={16} />
               </DropdownMenuTrigger>

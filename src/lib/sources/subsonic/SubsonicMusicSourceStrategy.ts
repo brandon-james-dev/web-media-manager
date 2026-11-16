@@ -68,7 +68,9 @@ async function sourceConfigToCredentials(
 export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
   readonly kind = "subsonic" as const;
   readonly name = "Subsonic server";
+  readonly labelKey = "source.subsonicName" as const;
   readonly description = "Connect to an Open Subsonic API server";
+  readonly descriptionKey = "source.subsonicDescription" as const;
   readonly requiresConfig = true;
 
   /** Declarative fields — the caller's standard config form renders these. */
@@ -76,33 +78,38 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
     {
       name: "baseUrl",
       label: "Server URL",
+      labelKey: "source.serverUrl",
       placeholder: "https://music.example.com",
       required: true,
       validate: (v) =>
         !v.trim()
-          ? "Enter a server URL"
+          ? "source.enterServerUrl"
           : !isValidHttpUrl(v)
-            ? "URL must start with http:// or https://"
+            ? "source.invalidServerUrl"
             : undefined,
     },
     {
       name: "username",
       label: "Username",
+      labelKey: "source.username",
       placeholder: "username",
+      placeholderKey: "source.usernamePlaceholder",
       required: true,
-      validate: (v) => (!v.trim() ? "Username is required" : undefined),
+      validate: (v) => (!v.trim() ? "source.usernameRequired" : undefined),
     },
     {
       name: "password",
       label: "Password",
+      labelKey: "source.password",
       type: "password",
       placeholder: "••••••••",
       required: true,
-      validate: (v) => (!v ? "Password is required" : undefined),
+      validate: (v) => (!v ? "source.passwordRequired" : undefined),
     },
     {
       name: "musicFolderId",
       label: "Music folder id (optional)",
+      labelKey: "source.musicFolderId",
       type: "text",
       placeholder: "1",
       required: false,

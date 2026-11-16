@@ -34,6 +34,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/i18n";
 import {
   Tabs,
   TabsContent,
@@ -92,6 +93,7 @@ export function PluginManagerDialog({
   onOpenChange,
   className,
 }: PluginManagerDialogProps) {
+  const { t } = useTranslation();
   const {
     managerOpen,
     setManagerOpen,
@@ -113,9 +115,17 @@ export function PluginManagerDialog({
   const isOpen = open ?? managerOpen;
   const setOpen = onOpenChange ?? setManagerOpen;
   const active = plugins?.find((plugin) => plugin.id === activePluginId);
+  const activeRuntime = active
+    ? getRuntimeDescriptor(active.runtime)
+    : undefined;
 
   function handleInstalled(result: InstallPluginResult) {
-    setSuccess(`Installed ${result.plugin.name} ${result.plugin.version}.`);
+    setSuccess(
+      t("visualizer.installedNamed", [
+        result.plugin.name,
+        result.plugin.version,
+      ])
+    );
     setFile(null);
     setReplace(false);
     if (fileInputRef.current) {
@@ -162,7 +172,7 @@ export function PluginManagerDialog({
         { cache: "no-store" }
       );
       if (!response.ok) {
-        throw new Error(`Example plugin not found (${response.status}).`);
+        throw new Error(t("visualizer.exampleNotFound", [response.status]));
       }
 
       const blob = await response.blob();
@@ -204,17 +214,18 @@ export function PluginManagerDialog({
         overlayClassName="z-120"
       >
         <DialogHeader>
-          <DialogTitle>Visualizer plugins</DialogTitle>
+          <DialogTitle>{t("visualizer.pluginsTitle")}</DialogTitle>
           <DialogDescription>
-            Install a plugin from a ZIP archive, or manage the ones already
-            installed.
+            {t("visualizer.pluginsDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="installed">
           <TabsList>
-            <TabsTrigger value="installed">Installed</TabsTrigger>
-            <TabsTrigger value="install">Install</TabsTrigger>
+            <TabsTrigger value="installed">
+              {t("visualizer.installed")}
+            </TabsTrigger>
+            <TabsTrigger value="install">{t("visualizer.install")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="installed" className="min-h-0">
@@ -234,24 +245,25 @@ export function PluginManagerDialog({
                       <Badge variant="outline">{active.version}</Badge>
                     </div>
                     <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                      <dt>Id</dt>
+                      <dt>{t("visualizer.fieldId")}</dt>
                       <dd className="truncate">{active.id}</dd>
-                      <dt>Runtime</dt>
+                      <dt>{t("visualizer.fieldRuntime")}</dt>
                       <dd>
-                        {getRuntimeDescriptor(active.runtime)?.label ??
-                          active.runtime}
+                        {activeRuntime
+                          ? t(activeRuntime.labelKey)
+                          : active.runtime}
                       </dd>
-                      <dt>Author</dt>
+                      <dt>{t("visualizer.fieldAuthor")}</dt>
                       <dd className="truncate">
-                        {active.author ?? "Unknown"}
+                        {active.author ?? t("common.unknown")}
                       </dd>
-                      <dt>Entry</dt>
+                      <dt>{t("visualizer.fieldEntry")}</dt>
                       <dd className="truncate">{active.entryPath}</dd>
-                      <dt>Files</dt>
+                      <dt>{t("visualizer.fieldFiles")}</dt>
                       <dd>{active.fileCount}</dd>
-                      <dt>Size</dt>
+                      <dt>{t("visualizer.fieldSize")}</dt>
                       <dd>{formatBytes(active.sizeBytes)}</dd>
-                      <dt>Installed</dt>
+                      <dt>{t("visualizer.fieldInstalled")}</dt>
                       <dd>
                         {new Date(active.installedAt).toLocaleDateString()}
                       </dd>
@@ -265,7 +277,7 @@ export function PluginManagerDialog({
                     {confirmRemoveId === active.id ? (
                       <div className="flex flex-col gap-2">
                         <p className="text-xs text-destructive">
-                          Remove {active.name} and its stored files?
+                          {t("visualizer.removeConfirm", [active.name])}
                         </p>
                         <div className="flex gap-2">
                           <Button
@@ -274,14 +286,14 @@ export function PluginManagerDialog({
                             disabled={remove.isPending}
                             onClick={() => handleRemove(active.id)}
                           >
-                            Remove
+                            {t("common.remove")}
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setConfirmRemoveId(null)}
                           >
-                            Cancel
+                            {t("common.cancel")}
                           </Button>
                         </div>
                       </div>
@@ -292,13 +304,13 @@ export function PluginManagerDialog({
                         onClick={() => setConfirmRemoveId(active.id)}
                       >
                         <Trash2 />
-                        Remove plugin
+                        {t("visualizer.removePlugin")}
                       </Button>
                     )}
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Select a plugin to see its details.
+                    {t("visualizer.selectToSeeDetails")}
                   </p>
                 )}
               </div>
@@ -309,7 +321,7 @@ export function PluginManagerDialog({
             <ScrollArea className="max-h-[60vh]">
               <div className="flex flex-col gap-3 pr-2">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="plugin-zip">Plugin ZIP</Label>
+                  <Label htmlFor="plugin-zip">{t("visualizer.pluginZip")}</Label>
                   <Input
                     id="plugin-zip"
                     ref={fileInputRef}
@@ -322,16 +334,17 @@ export function PluginManagerDialog({
                     }}
                   />
                   <p className="text-xs text-muted-foreground">
-                    The archive must contain a manifest.json at its root (or
-                    inside a single top-level folder).
+                    {t("visualizer.zipHint")}
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between gap-3 rounded-lg border p-2">
                   <div className="min-w-0">
-                    <Label htmlFor="plugin-replace">Update if installed</Label>
+                    <Label htmlFor="plugin-replace">
+                      {t("visualizer.updateIfInstalled")}
+                    </Label>
                     <p className="text-xs text-muted-foreground">
-                      Replace an existing plugin with the same id.
+                      {t("visualizer.updateIfInstalledHint")}
                     </p>
                   </div>
                   <Switch
@@ -347,7 +360,19 @@ export function PluginManagerDialog({
                     onClick={handleInstall}
                   >
                     <Upload />
-                    {install.isPending ? "Installing…" : "Install plugin"}
+                    {install.isPending
+                      ? t("visualizer.installing")
+                      : t("visualizer.installPlugin")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={examplePending || install.isPending}
+                    onClick={() => void handleInstallExample()}
+                  >
+                    <Sparkles />
+                    {examplePending
+                      ? t("visualizer.loadingExample")
+                      : t("visualizer.installExample")}
                   </Button>
                   <Button
                     variant="outline"

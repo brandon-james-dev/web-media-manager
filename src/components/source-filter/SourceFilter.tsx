@@ -11,6 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { MusicSource } from "@/models";
+import { useTranslation } from "@/i18n";
 
 export type SourceFilterProps = {
   /** Ids of the sources currently filtering the page; empty means "all". */
@@ -46,6 +47,7 @@ export function SourceFilter({
   const [sources, setSources] = useState<MusicSource[]>([]);
   const [open, setOpen] = useState(false);
   const { devices } = useSync();
+  const { t } = useTranslation();
 
   // A sync device is only a filterable source while it is connected: its
   // tracks are read from the device, so an absent one would filter to nothing.
@@ -133,8 +135,8 @@ export function SourceFilter({
             variant={selected.length > 0 ? "default" : "ghost"}
             size="icon-sm"
             className="shrink-0"
-            title="Filter by source"
-            aria-label="Filter by source"
+            title={t("source.filter")}
+            aria-label={t("source.filter")}
             aria-pressed={selected.length > 0}
           >
             <Filter />
@@ -150,7 +152,7 @@ export function SourceFilter({
       >
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium">Sources</div>
+            <div className="text-sm font-medium">{t("library.sources")}</div>
             {selected.length > 0 && (
               <Button
                 variant="ghost"
@@ -158,7 +160,7 @@ export function SourceFilter({
                 onClick={() => onSelectedChange([])}
               >
                 <X />
-                Clear
+                {t("common.clear")}
               </Button>
             )}
           </div>
@@ -179,7 +181,9 @@ export function SourceFilter({
                   disabled={singleSource}
                   onPressedChange={() => toggle(source.id)}
                   title={
-                    editable ? `${source.name} — editable` : `${source.name} — read-only`
+                    editable
+                      ? t("source.editableNamed", [source.name])
+                      : t("source.readOnlyNamed", [source.name])
                   }
                 >
                   <span className="min-w-0 truncate text-left">

@@ -2,6 +2,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { cn } from "cn";
 import type { ReactNode } from "react";
 import { useSongs } from "@/hooks";
+import { useTranslation } from "@/i18n";
 import { useTrackDragEnabled } from "./SidebarDragContext";
 import { trackDragId } from "./sidebarDrop";
 
@@ -30,6 +31,7 @@ export function DraggableTrack({
 }: DraggableTrackProps) {
   const enabled = useTrackDragEnabled();
   const { songs } = useSongs();
+  const { t } = useTranslation();
   const song = songs.find((candidate) => candidate.id === songId);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: trackDragId(songId),
@@ -38,7 +40,7 @@ export function DraggableTrack({
       // A row inside a multi-selection drags the whole selection, so the ghost
       // can show the stack and the count.
       songIds: songIds ?? [songId],
-      title: song?.title ?? "Track",
+      title: song?.title ?? t("metadata.track"),
       artist: song?.artist ?? "",
       fromPlaylistId,
     },

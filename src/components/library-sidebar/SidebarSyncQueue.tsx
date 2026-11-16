@@ -18,6 +18,7 @@ import { sidebarSyncDropId, songIdsFromDrag } from "./sidebarDrop";
 import { formatBytes } from "@/lib/sync/helpers/formatBytes";
 import { useOfflineSongs, usePlayback, useSync, useSyncUiVisible } from "@/hooks";
 import { useDndContext } from "@dnd-kit/core";
+import { useTranslation } from "@/i18n";
 import { wmmBus } from "@/events";
 import { cn } from "cn";
 import type { Song } from "@/models";
@@ -56,6 +57,7 @@ export function SidebarSyncQueue({
   onFlightArrive,
 }: SidebarSyncQueueProps) {
   const { nowPlaying } = usePlayback();
+  const { t } = useTranslation();
   const { isSyncing, syncProgress, cancelSync, syncedSongIds, syncCompleted } =
     useSync();
   useSyncUiVisible();
@@ -120,7 +122,7 @@ export function SidebarSyncQueue({
       ...arrived.map((id) => ({
         key: nextFlightKey.current++,
         songId: id,
-        title: songs.find((song) => song.id === id)?.title ?? "Track",
+        title: songs.find((song) => song.id === id)?.title ?? t("metadata.track"),
         from,
         to,
       })),
@@ -175,12 +177,12 @@ export function SidebarSyncQueue({
             aria-valuemin={0}
             aria-valuemax={syncProgress.total}
             aria-valuenow={syncProgress.completed}
-            aria-label="Sync progress, click to cancel"
-            title="Cancel sync"
+            aria-label={t("sync.progressCancel")}
+            title={t("sync.cancel")}
             onClick={cancelSync}
           >
             <div className="flex items-baseline justify-between gap-1 text-xs">
-              <span className="truncate">Syncing</span>
+              <span className="truncate">{t("sync.syncing")}</span>
               <span className="shrink-0 tabular-nums text-muted-foreground">
                 {syncProgress.completed}/{syncProgress.total}
               </span>
@@ -205,12 +207,12 @@ export function SidebarSyncQueue({
             size="sm"
             variant="ghost"
             className="h-6 min-w-0 flex-1 justify-start gap-1 px-1.5 text-xs text-accent"
-            title="Clear the synced queue"
-            aria-label="Sync completed, clear the queue"
+            title={t("sync.clearQueueHint")}
+            aria-label={t("sync.clearQueueLabel")}
             onClick={() => setClearOpen(true)}
           >
             <Check />
-            Sync completed
+            {t("sync.completed")}
           </Button>
         ) : (
           <Button
@@ -219,15 +221,15 @@ export function SidebarSyncQueue({
             className="h-6 min-w-0 flex-1 justify-start gap-1 px-1.5 text-xs"
             title={
               songs.length === 0
-                ? "Queue some tracks to sync"
-                : `Sync ${songs.length} queued track${songs.length === 1 ? "" : "s"} to the device`
+                ? t("sync.emptyQueueHint")
+                : t("sync.syncQueued", [songs.length])
             }
-            aria-label="Sync queue to device"
+            aria-label={t("sync.syncQueueToDevice")}
             disabled={songs.length === 0 || isSyncing}
             onClick={() => wmmBus.invoke("wmm.sync.sync", { deviceId })}
           >
             <ArrowDownToLine />
-            Sync
+            {t("sync.title")}
           </Button>
         )}
         {songs.length > 0 && (
@@ -235,8 +237,8 @@ export function SidebarSyncQueue({
             size="icon"
             variant="ghost"
             className="shrink-0"
-            title="Select all"
-            aria-label="Select all queued tracks"
+            title={t("common.selectAll")}
+            aria-label={t("sync.selectAllQueued")}
             onClick={() => setSelectedIds(songs.map((song) => song.id))}
           >
             <ListChecks />
@@ -247,8 +249,8 @@ export function SidebarSyncQueue({
             size="icon"
             variant="ghost"
             className="shrink-0"
-            title="Clear selection"
-            aria-label="Clear selection"
+            title={t("common.clearSelection")}
+            aria-label={t("common.clearSelection")}
             onClick={() => setSelectedIds([])}
           >
             <X />
@@ -259,8 +261,8 @@ export function SidebarSyncQueue({
             size="sm"
             variant="destructive"
             className="h-6 shrink-0 gap-1 px-2 text-xs"
-            title={`Remove ${selectedIds.length} selected`}
-            aria-label={`Remove ${selectedIds.length} selected tracks`}
+            title={t("sync.removeSelectedCount", [selectedIds.length])}
+            aria-label={t("sync.removeSelectedTracks", [selectedIds.length])}
             onClick={removeSelected}
           >
             <Trash2 />
@@ -269,7 +271,10 @@ export function SidebarSyncQueue({
         ) : (
           <span
             className="shrink-0 text-xs text-muted-foreground tabular-nums"
-            title={`${songs.length} track${songs.length === 1 ? "" : "s"}, ${formatBytes(totalBytes)}`}
+            title={t("sync.trackCount", [
+              songs.length,
+              formatBytes(totalBytes),
+            ])}
           >
             {songs.length} · {formatBytes(totalBytes)}
           </span>
@@ -302,7 +307,7 @@ export function SidebarSyncQueue({
                       {isSynced && (
                         <Check
                           className="text-accent"
-                          aria-label="Synced to device"
+                          aria-label={t("sync.syncedToDevice")}
                         />
                       )}
                     </span>
@@ -337,7 +342,7 @@ export function SidebarSyncQueue({
 
             {songs.length === 0 && showDropHint && (
               <div className="mx-1 rounded-md px-2 py-3 text-center text-xs text-muted-foreground">
-                Drop tracks here to queue them
+                {t("sync.dropToQueue")}
               </div>
             )}
           </div>
@@ -388,16 +393,14 @@ export function SidebarSyncQueue({
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Clear the synced queue?</DialogTitle>
+            <DialogTitle>{t("sync.clearQueueTitle")}</DialogTitle>
             <DialogDescription>
-              {songs.length} track{songs.length === 1 ? "" : "s"} have been
-              written to the device. Clearing the queue does not remove them
-              from the device.
+              {t("sync.clearQueueDescription", [songs.length])}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setClearOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={() => {
@@ -405,7 +408,7 @@ export function SidebarSyncQueue({
                 setClearOpen(false);
               }}
             >
-              Clear Queue
+              {t("sync.clearQueueAction")}
             </Button>
           </DialogFooter>
         </DialogContent>

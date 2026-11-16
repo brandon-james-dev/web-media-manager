@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "cn";
 import { formatLength } from "@/lib/formatLength";
 import { usePlayback } from "@/hooks/usePlayback";
+import { useTranslation } from "@/i18n";
 import { wmmBus } from "@/events";
 
 export interface TvPlaybackControlsProps {
@@ -22,6 +23,7 @@ const SCRUB_HOLD_MS = 1000;
  */
 export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) {
   const { nowPlaying, isPlaying, getCurrentTime, getDuration } = usePlayback();
+  const { t } = useTranslation();
   const [position, setPosition] = useState(0);
   // While scrubbing, the thumb follows the gesture rather than the poll, so it
   // does not snap back to the old position between seeks.
@@ -95,7 +97,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
             max={100}
             step={1}
             value={pct}
-            aria-label="Seek"
+            aria-label={t("playback.seek")}
             onChange={(event) => handleScrub(Number(event.target.value))}
             className="h-1 flex-1 cursor-default appearance-none rounded-full bg-white/25 accent-white outline-none"
             style={{
@@ -110,7 +112,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
         <div className="flex items-center justify-center gap-4">
           <button
             type="button"
-            aria-label="Previous track"
+            aria-label={t("playback.previousTrack")}
             onClick={() => wmmBus.invoke("wmm.playback.prev")}
             className="flex size-12 cursor-default items-center justify-center rounded-full text-white outline-none hover:bg-white/15"
           >
@@ -118,7 +120,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
           </button>
           <button
             type="button"
-            aria-label={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? t("playback.pause") : t("playback.play")}
             onClick={() => wmmBus.invoke("wmm.playback.playpause")}
             className="flex size-16 cursor-default items-center justify-center rounded-full bg-white text-black outline-none hover:bg-white/90"
           >
@@ -130,7 +132,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
           </button>
           <button
             type="button"
-            aria-label="Next track"
+            aria-label={t("playback.nextTrack")}
             onClick={() => wmmBus.invoke("wmm.playback.next")}
             className="flex size-12 cursor-default items-center justify-center rounded-full text-white outline-none hover:bg-white/15"
           >

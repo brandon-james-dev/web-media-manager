@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { useSourceKinds } from "@/hooks";
+import { useTranslation } from "@/i18n";
 import { isAlwaysOfflineKind } from "@/lib/offline";
 import type { Song } from "@/models";
 import { OfflineDownloadButton } from "./OfflineDownloadButton";
@@ -29,14 +30,15 @@ interface OfflineCellProps {
  */
 export function OfflineCell({ song, songs, batchId, label }: OfflineCellProps) {
   const sourceKinds = useSourceKinds();
+  const { t } = useTranslation();
   const kind = sourceKinds.get(song.sourceId);
 
   if (isAlwaysOfflineKind(kind)) {
     return (
       <span
         className="inline-flex h-6 w-6 items-center justify-center text-accent"
-        title="Stored on this device"
-        aria-label="Stored on this device"
+        title={t("library.storedOnDevice")}
+        aria-label={t("library.storedOnDevice")}
       >
         <Check size={14} strokeWidth={3} />
       </span>

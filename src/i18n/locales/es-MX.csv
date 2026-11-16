@@ -1,0 +1,468 @@
+key,es-MX
+app.title,Web Media Manager
+common.cancel,Cancelar
+common.close,Cerrar
+common.remove,Quitar
+common.save,Guardar
+common.delete,Eliminar
+common.edit,Editar
+common.done,Listo
+common.create,Crear
+common.add,Agregar
+common.clear,Borrar
+common.clearSelection,Quitar selección
+common.selectAll,Seleccionar todo
+common.loading,Cargando…
+common.prev,Anterior
+common.next,Siguiente
+common.of,de
+common.name,Nombre
+common.view,Ver
+common.reset,Restablecer
+common.moreActions,Más acciones
+common.moreOptions,Más opciones
+common.clickToSelect,Haz clic para elegir
+common.exitFullScreen,Salir de pantalla completa
+common.unknownArtist,Artista desconocido
+common.back,Atrás
+common.unknown,Desconocido
+playback.playPause,Reproducir / Pausar
+playback.play,Reproducir
+playback.pause,Pausar
+playback.next,Siguiente
+playback.previous,Anterior
+playback.nextTrack,Pista siguiente
+playback.previousTrack,Pista anterior
+playback.stop,Detener
+playback.volume,Volumen
+playback.mute,Silenciar
+playback.unmute,Activar sonido
+playback.shuffle,Aleatorio
+playback.repeat,Repetir
+playback.seek,Posición de reproducción
+playback.buffering,Cargando
+playback.nothingPlaying,No se está reproduciendo nada
+playback.nowPlaying,Reproduciendo ahora
+playback.nowPlayingFormat,{0} - {1}
+playback.openNowPlaying,Abrir la vista de reproducción
+playback.closeNowPlaying,Cerrar la vista de reproducción
+playback.upNext,A continuación
+playback.queue,Cola
+playback.playAll,Reproducir todo
+playback.playSelection,Reproducir todo
+playback.playSong,Reproducir canción
+playback.playAlbum,Reproducir álbum
+playback.shuffleAlbum,Reproducir álbum en aleatorio
+playback.addToQueue,Agregar a la cola
+playback.playPreview,Reproducir vista previa
+playback.pausePreview,Pausar vista previa
+playback.section,Reproducción
+library.artists,Artistas
+library.albums,Álbumes
+library.songs,Canciones
+library.sources,Fuentes
+library.noSongsFound,No se encontraron canciones
+library.noResults,Sin resultados.
+library.albumTitle,Título del álbum
+library.viewGrid,Cuadrícula
+library.viewCoverFlow,Carrusel de portadas
+library.unknownAlbum,Álbum desconocido
+library.allArtists,Todos los artistas
+library.artistCountOne,{0} artista
+library.artistCountMany,{0} artistas
+library.artistCountOther,{0} artistas
+library.albumCountOne,{0} álbum
+library.albumCountMany,{0} álbumes
+library.albumCountOther,{0} álbumes
+library.songCountOne,{0} canción
+library.songCountMany,{0} canciones
+library.songCountOther,{0} canciones
+library.toggleSortOrder,Alternar A-Z / Z-A
+library.backToArtists,Volver a los artistas
+library.deselectAll,Quitar toda la selección
+library.deselectAllSongs,Quitar la selección de todas las canciones
+library.deselectCount,Quitar selección de {0}
+library.editAlbum,Editar álbum
+library.flipBack,Girar de nuevo
+library.scrollAlbums,Desplazar álbumes
+library.noArtwork,Sin portada
+library.noCoverArt,Sin portada
+library.quickEdit,Edición rápida
+library.quickEditSelected,Edición rápida ({0} seleccionadas)
+library.advancedEdit,Edición avanzada
+library.applyToCount,Aplicar a {0} canciones
+library.editing,Edición
+library.offline,Sin conexión
+library.removeDownload,Quitar descarga
+library.removeDownloadHint,Quitar descarga
+library.removeDownloadFailed,No se pudo quitar la descarga
+library.makeAvailableOffline,Disponible sin conexión
+library.makeAvailableOfflineNamed,Hacer que {0} esté disponible sin conexión
+library.downloading,Descargando {0}
+library.cacheFailed,No se pudo guardar la canción
+library.cacheFailedCountOne,No se pudo guardar {0} canción
+library.cacheFailedCountMany,No se pudieron guardar {0} canciones
+library.cacheFailedCountOther,No se pudieron guardar {0} canciones
+library.removedDownload,Descarga quitada
+library.availableOffline,Disponible sin conexión
+library.songsCachedOne,{0} canción guardada.
+library.songsCachedMany,{0} canciones guardadas.
+library.songsCachedOther,{0} canciones guardadas.
+library.storedOnDevice,Guardada en este dispositivo
+library.addToFavorites,Agregar a favoritas
+library.removeFromFavorites,Quitar de favoritas
+library.favoriteSelection,Agregar a favoritas
+library.unfavoriteSelection,Quitar de favoritas
+library.favoriteBoth,Favorita en este dispositivo y en el servidor
+library.favoriteServer,Favorita en el servidor
+library.alphabetIndex,Índice alfabético
+library.closeAlbum,Cerrar álbum
+library.song,Canción
+playlist.current,Lista actual
+playlist.add,Agregar a la lista
+playlist.save,Guardar lista
+playlist.delete,Eliminar lista
+playlist.noTracks,Todavía no hay pistas
+playlist.dropToAdd,Suelta aquí para agregar
+playlist.backToPlaylists,Volver a las listas
+playlist.dragToReorder,Arrastra para reordenar
+playlist.deleteTitle,Eliminar lista de reproducción
+playlist.deleteDescription,Esto eliminará {0} de forma permanente. Las canciones seguirán en tu biblioteca.
+playlist.deleteNamed,Eliminar {0}
+playlist.filter,Filtrar listas
+playlist.new,Nueva lista
+playlist.create,Nueva lista...
+playlist.rename,Cambiar el nombre de la lista
+playlist.name,Nombre de la lista
+playlist.readOnly,Solo lectura
+playlist.readOnlyFrom,Solo lectura — de {0}
+playlist.readOnlyManaged,La administra su fuente de música; edítala allí
+playlist.unknownSource,una fuente desconocida
+playlist.none,Todavía no hay listas
+playlist.noMatches,Ninguna lista coincide
+playlist.countOne,{0} lista
+playlist.countMany,{0} listas
+playlist.countOther,{0} listas
+playlist.inThisPlaylist,En esta lista · {0}
+playlist.removeTrack,Quitar de la lista
+playlist.empty,Esta lista está vacía
+playlist.select,Selecciona una lista
+playlist.title,Lista
+playlist.reorder,Reordenar pistas A–Z
+playlist.reorderLabel,Reordenar las pistas alfabéticamente
+playlist.selectAllTracks,Seleccionar todas las pistas
+playlist.removeSelected,Quitar {0} seleccionadas
+playlist.removeSelectedTracks,Quitar {0} pistas seleccionadas
+playlist.addSelection,Agregar a la lista
+playlist.addedTo,Agregado a {0}
+playlist.addFailed,No se pudo agregar a {0}
+playlist.created,Creada {0}
+playlist.addCountOne,Se agregará {0} canción.
+playlist.addCountMany,Se agregarán {0} canciones.
+playlist.addCountOther,Se agregarán {0} canciones.
+playlist.section,Lista
+sync.title,Sincronización
+sync.queue,Cola de sincronización
+sync.devices,Dispositivos
+sync.start,Iniciar sincronización
+sync.cancel,Cancelar sincronización
+sync.addToQueue,Agregar a la cola de sincronización
+sync.removeFromQueue,Quitar de la cola
+sync.syncing,Sincronizando
+sync.completed,Sincronización completada
+sync.progressCancel,"Progreso de sincronización, haz clic para cancelar"
+sync.clearQueueAction,Borrar cola
+sync.clearQueueTitle,¿Borrar la cola sincronizada?
+sync.clearQueueHint,Borrar la cola sincronizada
+sync.clearQueueLabel,"Sincronización completada, borra la cola"
+sync.clearQueueDescriptionOne,{0} pista se escribió en el dispositivo. Borrar la cola no la quita del dispositivo.
+sync.clearQueueDescriptionMany,{0} pistas se escribieron en el dispositivo. Borrar la cola no las quita del dispositivo.
+sync.clearQueueDescriptionOther,{0} pistas se escribieron en el dispositivo. Borrar la cola no las quita del dispositivo.
+sync.emptyQueueHint,Agrega pistas para sincronizar
+sync.syncQueuedOne,Sincronizar {0} pista en cola con el dispositivo
+sync.syncQueuedMany,Sincronizar {0} pistas en cola con el dispositivo
+sync.syncQueuedOther,Sincronizar {0} pistas en cola con el dispositivo
+sync.syncQueueToDevice,Sincronizar la cola con el dispositivo
+sync.selectAllQueued,Seleccionar todas las pistas en cola
+sync.selectAllSynced,Seleccionar todas las pistas sincronizadas
+sync.removeSelectedCount,Quitar {0} seleccionadas
+sync.removeSelectedTracks,Quitar {0} pistas seleccionadas
+sync.removeSelectedFromDevice,Quitar {0} seleccionadas del dispositivo
+sync.removeSelectedTracksFromDevice,Quitar {0} pistas seleccionadas del dispositivo
+sync.trackCountOne,"{0} pista, {1}"
+sync.trackCountMany,"{0} pistas, {1}"
+sync.trackCountOther,"{0} pistas, {1}"
+sync.syncedToDevice,Sincronizada con el dispositivo
+sync.dropToQueue,Suelta pistas aquí para ponerlas en cola
+sync.refreshDevice,Actualizar el contenido del dispositivo
+sync.rereadDevice,Volver a leer el contenido del dispositivo
+sync.nothingSynced,Todavía no hay nada sincronizado
+visualizer.title,Visualizador
+visualizer.select,Seleccionar visualizador
+visualizer.settings,Configuración del visualizador
+visualizer.search,Buscar visualizadores
+visualizer.loadingPlugins,Cargando complementos...
+visualizer.noMatches,Ningún visualizador coincide con esta búsqueda.
+visualizer.noneInstalled,Aún no hay visualizadores instalados.
+visualizer.unknownAuthor,Autor desconocido
+visualizer.configureNamed,Configurar {0}
+visualizer.pluginsTitle,Complementos de visualizadores
+visualizer.pluginsDescription,Instala un complemento desde un archivo ZIP o administra los que ya están instalados.
+visualizer.installed,Instalados
+visualizer.install,Instalar
+visualizer.fieldId,Id
+visualizer.fieldRuntime,Entorno
+visualizer.fieldAuthor,Autor
+visualizer.fieldEntry,Entrada
+visualizer.fieldFiles,Archivos
+visualizer.fieldSize,Tamaño
+visualizer.fieldInstalled,Instalado
+visualizer.removeConfirm,¿Quitar {0} y sus archivos guardados?
+visualizer.removePlugin,Quitar complemento
+visualizer.selectToSeeDetails,Elige un complemento para ver sus detalles.
+visualizer.pluginZip,ZIP del complemento
+visualizer.zipHint,El archivo debe contener un manifest.json en la raíz (o dentro de una sola carpeta de nivel superior).
+visualizer.updateIfInstalled,Actualizar si ya está instalado
+visualizer.updateIfInstalledHint,Reemplaza un complemento existente con el mismo id.
+visualizer.installing,Instalando...
+visualizer.installPlugin,Instalar complemento
+visualizer.loadingExample,Cargando ejemplo...
+visualizer.installExample,Instalar el ejemplo de aurora
+visualizer.installedNamed,Se instaló {0} {1}.
+visualizer.exampleNotFound,No se encontró el complemento de ejemplo ({0}).
+visualizer.settingsNamed,Configuración de {0}
+visualizer.settingsDescription,La configuración se guarda con el complemento y se restaura en el siguiente inicio.
+visualizer.selectToConfigure,Elige un visualizador para configurarlo.
+visualizer.noSettings,Este visualizador no tiene configuración.
+visualizer.resetDefaults,Restablecer valores predeterminados
+visualizer.runtimeWebgl,Shader de WebGL
+visualizer.runtimeCanvas2d,Canvas 2D (TypeScript)
+visualizer.runtimeWasm,WebAssembly
+metadata.title,Título
+metadata.artist,Artista
+metadata.album,Álbum
+metadata.track,Pista
+metadata.tracks,Pistas
+metadata.disc,Disco
+metadata.discs,Discos
+metadata.duration,Duración
+metadata.genre,Género
+metadata.year,Año
+metadata.albumArtist,Artista del álbum
+metadata.albumArt,Portada
+metadata.trackPosition,Posición de la pista
+metadata.credits,Créditos
+metadata.composer,Compositor
+metadata.bpm,PPM
+metadata.bitrate,Tasa de bits
+metadata.copyright,Copyright
+metadata.encoder,Codificador
+metadata.textFields,Campos de texto
+metadata.comment,Comentario
+metadata.lyrics,Letra
+metadata.explicit,Explícito
+metadata.multipleValues,(Varios valores…)
+metadata.onlineSearch,Búsqueda en línea
+metadata.apply,Aplicar metadatos
+metadata.updateDescription,Actualiza los metadatos de la canción seleccionada
+metadata.previousSong,Canción anterior
+metadata.nextSong,Canción siguiente
+settings.title,Configuración
+settings.pageTitle,Configuración y datos
+settings.description,Administra las preferencias de la aplicación
+settings.shortcuts,Atajos de teclado
+settings.theme,Tema
+settings.themeLight,Claro
+settings.themeDark,Oscuro
+settings.themeSystem,Sistema
+settings.accentColor,Color de acento
+settings.language,Idioma
+settings.languageAuto,Automático ({0})
+settings.saved,Configuración guardada
+settings.save,Guardar configuración
+settings.shortcutOpenShortcuts,Abrir los atajos de teclado
+settings.shortcutNext,Canción siguiente / álbum siguiente
+settings.shortcutPrev,Canción anterior / álbum anterior
+settings.shortcutPlayPause,Reproducir / Pausar
+settings.shortcutQueue,Poner en cola la canción seleccionada
+settings.shortcutEdit,Abrir la edición avanzada
+settings.shortcutFullscreen,Alternar pantalla completa (reproduciendo ahora)
+settings.shortcutClose,Cerrar el editor
+settings.visualizers,Visualizadores
+settings.visualizersDescription,Instala complementos de visualizador y configura el activo
+settings.installPlugins,Instalar o administrar complementos
+settings.data,Datos
+settings.dataDescription,Administra todos los datos de canciones y las fuentes usadas para escanear e importar música
+settings.clearDatabase,Borrar la base de datos de canciones
+settings.clearDatabaseTitle,¿Estás completamente seguro?
+settings.clearDatabaseDescription,Esta acción no se puede deshacer. Se eliminarán todos los datos de canciones administrados por Web Media Manager.
+settings.songsCleared,Se borraron todas las canciones de la base de datos
+navigation.library,Biblioteca
+navigation.songs,Canciones
+navigation.albums,Álbumes
+navigation.artists,Artistas
+navigation.playlists,Listas
+navigation.nowPlaying,Reproduciendo ahora
+navigation.sync,Sincronización
+navigation.sidebar,Barra lateral de listas y sincronización
+navigation.closeSidebar,Cerrar la barra lateral
+navigation.sidebarBlocked,Esta vista ya está abierta en pantalla completa
+search.label,Buscar
+search.placeholder,Buscar...
+search.clear,Borrar búsqueda
+search.searching,Buscando…
+search.selectResult,Selecciona un resultado
+search.noAlbumPhoto,Sin foto del álbum
+search.noMatches,Sin coincidencias
+search.noSongs,Ninguna canción coincide
+search.songsToAdd,Buscar canciones para agregar
+search.resultCountOne,{0} resultado
+search.resultCountMany,{0} resultados
+search.resultCountOther,{0} resultados
+search.matchCountOne,{0} coincidencia
+search.matchCountMany,{0} coincidencias
+search.matchCountOther,{0} coincidencias
+search.matchCountCapped,{0}+ coincidencias
+search.addAllGenreTracks,Agregar las {0} pistas
+search.addAllArtistTracks,Agregar las {0} pistas
+search.addAllAlbumTracks,Agregar todas las pistas de {0}
+search.addSong,Agregar {0}
+search.titlePlaceholder,Título...
+search.artistPlaceholder,Artista...
+search.albumPlaceholder,Álbum...
+source.filter,Filtrar por fuente
+source.editableNamed,{0} — editable
+source.readOnlyNamed,{0} — solo lectura
+source.add,Agregar fuente de música
+source.addTitle,Agregar una fuente de música
+source.addDescription,Elige un tipo de fuente al que conectarte.
+source.addFailed,No se pudo agregar {0}
+source.updated,Se actualizó {0}
+source.updateFailed,No se pudo actualizar {0}
+source.editNamed,Editar {0}
+source.syncNamed,Sincronizar {0}
+source.notSupported,No es compatible con este navegador
+source.removing,Quitando la fuente de música
+source.removeFailed,No se pudo quitar la fuente de música
+source.removeTitle,Quitar fuente de música
+source.removeDescription,Esto quitará la fuente de tu biblioteca. Las canciones ya importadas se conservarán.
+source.noneAdded,Aún no hay fuentes de música agregadas. Agrega una carpeta en el dispositivo o un servidor Subsonic.
+source.kindLocal,En el dispositivo
+source.kindServer,Servidor
+source.kindSync,Dispositivo de sincronización
+source.localDescription,Agrega una carpeta de música de esta computadora
+source.syncDescription,"Un reproductor portátil como un iPod, usado como destino de sincronización."
+source.subsonicName,Servidor Subsonic
+source.subsonicDescription,Conéctate a un servidor con API Open Subsonic
+source.connect,Conectar
+source.connecting,Conectando...
+source.connectFailed,No se pudo conectar
+source.invalidCredentials,Usuario o contraseña incorrectos
+source.serverUnreachable,"No se pudo alcanzar el servidor: revisa la URL y la red, y vuelve a intentarlo."
+source.folderUnsupported,La selección de carpetas no es compatible con este navegador
+source.folderNamedAlreadyAdded,"Ya se agregó una carpeta llamada ""{0}"""
+source.folderAlreadyAdded,"Ya se agregó ""{0}"""
+source.chooseAtLeastOneFolder,Elige al menos una carpeta
+source.chooseFolder,Elige una carpeta
+source.fieldRequired,{0} es obligatorio
+source.removeFolderNamed,Quitar {0}
+source.addFolder,Agregar carpeta
+source.addAnotherFolder,Agregar otra carpeta
+source.clickToChangeFolder,Haz clic para cambiar de carpeta
+source.browseForFolder,Busca una carpeta de música en tu dispositivo
+source.musicFolders,Carpetas de música
+source.serverUrl,URL del servidor
+source.username,Usuario
+source.password,Contraseña
+source.musicFolderId,Id de la carpeta de música (opcional)
+source.usernamePlaceholder,usuario
+source.enterServerUrl,Escribe la URL del servidor
+source.invalidServerUrl,La URL debe empezar con http:// o https://
+source.usernameRequired,El usuario es obligatorio
+source.passwordRequired,La contraseña es obligatoria
+source.credentialsRequired,"La URL del servidor, el usuario y la contraseña son obligatorios"
+source.urlAndUsernameRequired,La URL del servidor y el usuario son obligatorios
+notification.songUpdated,Canción actualizada
+notification.songUpdatedDetail,"Se actualizó ""{0} - {1}"""
+notification.empty,No hay notificaciones
+notification.title,Notificaciones
+notification.importingSongs,Importando canciones
+notification.importingPlaylists,Importando listas
+notification.playlistsPhase,Importando listas
+notification.generatingThumbnails,Generando miniaturas
+notification.downloadingSongs,Descargando canciones
+notification.removingTracks,Eliminando pistas
+notification.removingMusicSource,Eliminando fuente de música
+notification.completed,Completado
+notification.progressCount,{0} / {1}
+notification.playlistCountOne,{0} lista
+notification.playlistCountMany,{0} listas
+notification.playlistCountOther,{0} listas
+notification.songCountOne,{0} canción
+notification.songCountMany,{0} canciones
+notification.songCountOther,{0} canciones
+notification.trackCountOne,{0} pista
+notification.trackCountMany,{0} pistas
+notification.trackCountOther,{0} pistas
+notification.failedCount,{0} con error
+notification.started,Iniciado
+notification.finishedSuccessfully,Terminó correctamente
+notification.unknownError,Error desconocido
+notification.job,Tarea
+notification.jobStarted,{0} iniciada
+notification.jobCompleted,{0} completada
+notification.jobFailed,{0} falló
+notification.jobCanceled,{0} cancelada
+notification.jobTypeThumbnailGeneration,Generación de miniaturas
+notification.jobTypeBulkImport,Importación masiva
+notification.jobTypeBulkEdit,Edición masiva
+notification.jobTypeDeviceSync,Sincronización con el dispositivo
+notification.jobTypeDeviceRemove,Eliminación de pistas del dispositivo
+notification.jobTypeSourceRemove,Eliminación de fuente de música
+notification.jobTypeOfflineDownload,Descarga sin conexión
+notification.alreadyOnDevice,Ya está en el dispositivo
+notification.skippedOnDeviceOne,{0} canción omitida: ya está en el dispositivo conectado.
+notification.skippedOnDeviceMany,{0} canciones omitidas: ya están en el dispositivo conectado.
+notification.skippedOnDeviceOther,{0} canciones omitidas: ya están en el dispositivo conectado.
+notification.notAvailableOffline,No está disponible sin conexión
+notification.skippedNotOfflineOne,{0} canción omitida: solo se pueden sincronizar las canciones descargadas. Usa la columna Sin conexión para descargarlas primero.
+notification.skippedNotOfflineMany,{0} canciones omitidas: solo se pueden sincronizar las canciones descargadas. Usa la columna Sin conexión para descargarlas primero.
+notification.skippedNotOfflineOther,{0} canciones omitidas: solo se pueden sincronizar las canciones descargadas. Usa la columna Sin conexión para descargarlas primero.
+notification.noSongsToSync,No hay canciones para sincronizar
+notification.noSongsToSyncDetail,La cola de sincronización estaba vacía al iniciar. Agrega al menos una canción e inténtalo de nuevo.
+notification.theDevice,el dispositivo
+notification.syncCanceled,Sincronización cancelada
+notification.syncCanceledDetail,Se detuvo la sincronización con {0}.
+notification.syncError,Error al sincronizar el dispositivo
+notification.syncErrorDetail,La sincronización con {0} no terminó.
+notification.deviceRefreshError,Error al actualizar el dispositivo
+notification.deviceRefreshErrorDetail,"Se sincronizó, pero no se pudo actualizar la lista del dispositivo: {0}"
+notification.nothingWritten,No se escribió nada en {0}
+notification.tracksNotSyncedOne,{0} pista no sincronizada
+notification.tracksNotSyncedMany,{0} pistas no sincronizadas
+notification.tracksNotSyncedOther,{0} pistas no sincronizadas
+notification.tracksSkippedDetailOne,"No se pudo leer {0} pista, así que quedó fuera. Sigue en la cola, sin marca."
+notification.tracksSkippedDetailMany,"No se pudieron leer {0} pistas, así que quedaron fuera. Siguen en la cola, sin marca."
+notification.tracksSkippedDetailOther,"No se pudieron leer {0} pistas, así que quedaron fuera. Siguen en la cola, sin marca."
+notification.tracksNotFoundOne,{0} pista no encontrada en {1}
+notification.tracksNotFoundMany,{0} pistas no encontradas en {1}
+notification.tracksNotFoundOther,{0} pistas no encontradas en {1}
+notification.tracksUnverifiedDetailOne,"Se escribió {0} pista, pero no se encontró al volver a leer el dispositivo. Sigue en la cola, sin marca."
+notification.tracksUnverifiedDetailMany,"Se escribieron {0} pistas, pero no se encontraron al volver a leer el dispositivo. Siguen en la cola, sin marca."
+notification.tracksUnverifiedDetailOther,"Se escribieron {0} pistas, pero no se encontraron al volver a leer el dispositivo. Siguen en la cola, sin marca."
+notification.syncedTo,Sincronizado con {0}
+notification.tracksWrittenOne,{0} pista escrita en el dispositivo.
+notification.tracksWrittenMany,{0} pistas escritas en el dispositivo.
+notification.tracksWrittenOther,{0} pistas escritas en el dispositivo.
+notification.removeTracksError,Error al eliminar pistas
+notification.tracksRemoved,Pistas eliminadas
+notification.tracksRemovedDetailOne,Se eliminó {0} pista de {1}.
+notification.tracksRemovedDetailMany,Se eliminaron {0} pistas de {1}.
+notification.tracksRemovedDetailOther,Se eliminaron {0} pistas de {1}.
+notification.addDeviceError,Error al agregar el dispositivo
+notification.deviceNotAvailable,Dispositivo no disponible
+notification.deviceNotAvailableDetail,El dispositivo {0} ya no está conectado. Vuelve a conectarlo e inténtalo de nuevo.
+notification.syncStartError,No se pudo iniciar la sincronización
+notification.deviceAdded,Dispositivo agregado
+notification.deviceAddedDetail,{0} conectado
+notification.deviceAddError,Error al agregar el dispositivo

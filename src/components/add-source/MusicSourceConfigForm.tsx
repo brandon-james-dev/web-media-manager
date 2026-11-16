@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { showDirectoryPicker, isApiSupported } from "use-fs-access/core";
+import { i18n, useTranslation } from "@/i18n";
 import type {
   IMusicSourceStrategy,
   MusicSourceConfigField,
@@ -20,10 +21,10 @@ export interface MusicSourceConfigFormProps {
  *  config-requiring source can surface the same standardized error. */
 function connectErrorMessage(err: unknown): string {
   const msg = err instanceof Error ? err.message : "";
-  if (/(\(40\))/.test(msg)) return "Incorrect username or password";
+  if (/(\(40\))/.test(msg)) return i18n.t("source.invalidCredentials");
   if (msg.includes("HTTP "))
-    return "Couldn't reach the server — check the URL and network, then retry.";
-  return msg || "Failed to connect";
+    return i18n.t("source.serverUnreachable");
+  return msg || i18n.t("source.connectFailed");
 }
 
 /**
@@ -38,6 +39,7 @@ export function MusicSourceConfigForm({
   onSubmit,
   onConnect,
 }: MusicSourceConfigFormProps) {
+  const { t } = useTranslation();
   const fields: MusicSourceConfigField[] = strategy.configFields ?? [];
   const initial = (initialValue ?? {}) as Record<string, string>;
 
@@ -77,7 +79,7 @@ export function MusicSourceConfigForm({
     if (!isApiSupported) {
       setErrors((prev) => ({
         ...prev,
-        [field.name]: "Folder selection is not supported in this browser",
+        [field.name]: t("source.folderUnsupported"),
       }));
       return;
     }
@@ -89,11 +91,11 @@ export function MusicSourceConfigForm({
         // Names are unique within a source: they prefix each song's path.
         let error: string | undefined;
         if (current.some((f) => f.name === dirHandle.name)) {
-          error = `A folder named "${dirHandle.name}" is already added`;
+          error = t("source.folderNamedAlreadyAdded", [dirHandle.name]);
         } else {
           for (const f of current) {
             if (await f.isSameEntry(dirHandle)) {
-              error = `"${dirHandle.name}" is already added`;
+              error = t("source.folderAlreadyAdded", [dirHandle.name]);
               break;
             }
           }
@@ -134,22 +136,22 @@ export function MusicSourceConfigForm({
       if (f.type === "folder") {
         if (f.options?.multiple) {
           if (!folderLists[f.name]?.length) {
-            next[f.name] = "Choose at least one folder";
+            next[f.name] = t("source.chooseAtLeastOneFolder");
           }
           continue;
         }
         if (!folderHandles[f.name]) {
-          next[f.name] = "Choose a folder";
+          next[f.name] = t("source.chooseFolder");
           continue;
         }
         continue;
       }
       if (f.required !== false && !v.trim()) {
-        next[f.name] = `${f.label} is required`;
+        next[f.name] = t("source.fieldRequired", [t(f.labelKey)]);
         continue;
       }
       const err = f.validate?.(v, values);
-      if (err) next[f.name] = err;
+      if (err) next[f.name] = t(err);
     }
     setErrors(next);
     if (Object.keys(next).length > 0) return null;
@@ -182,7 +184,7 @@ export function MusicSourceConfigForm({
       {fields.map((f) =>
         f.type === "folder" && f.options?.multiple ? (
           <div className="space-y-1.5" key={f.name}>
-            <Label>{f.label}</Label>
+            <Label>{t(f.labelKey)}</Label>
             <ul className="space-y-1">
               {(folderLists[f.name] ?? []).map((folder) => (
                 <li
@@ -196,8 +198,8 @@ export function MusicSourceConfigForm({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
-                    aria-label={`Remove ${folder.name}`}
-                    title={`Remove ${folder.name}`}
+                    aria-label={t("source.removeFolderNamed", [folder.name])}
+                    title={t("source.removeFolderNamed", [folder.name])}
                     disabled={connecting}
                     onClick={() =>
                       setFolderLists((prev) => ({
@@ -216,12 +218,12 @@ export function MusicSourceConfigForm({
               onClick={() => pickFolder(f)}
               disabled={connecting}
               className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-4 text-sm font-medium text-muted-foreground transition-colors border-border hover:border-accent hover:bg-accent/5"
-              aria-label="Add folder"
+              aria-label={t("source.addFolder")}
             >
               <FolderPlus className="h-5 w-5 shrink-0 text-accent" />
               {folderLists[f.name]?.length
-                ? "Add another folder"
-                : "Choose a folder"}
+                ? t("source.addAnotherFolder")
+                : t("source.chooseFolder")}
             </button>
             {errors[f.name] && (
               <p className="text-sm text-destructive">{errors[f.name]}</p>
@@ -229,7 +231,7 @@ export function MusicSourceConfigForm({
           </div>
         ) : f.type === "folder" ? (
           <div className="space-y-1.5" key={f.name}>
-            <Label htmlFor={`src-config-${f.name}`}>{f.label}</Label>
+            <Label htmlFor={`src-config-${f.name}`}>{t(f.labelKey)}</Label>
             <button
               type="button"
               id={`src-config-${f.name}`}
@@ -239,21 +241,23 @@ export function MusicSourceConfigForm({
                 border-border hover:border-accent hover:bg-accent/5
                 data-[empty=true]:text-muted-foreground"
               data-empty={!values[f.name]}
-              aria-label="Choose folder"
+              aria-label={t("source.chooseFolder")}
             >
               <FolderOpen className="h-6 w-6 shrink-0 text-accent" />
               {values[f.name] ? (
                 <>
                   <span className="text-sm font-medium">{values[f.name]}</span>
                   <span className="text-xs text-muted-foreground">
-                    Click to change folder
+                    {t("source.clickToChangeFolder")}
                   </span>
                 </>
               ) : (
                 <>
-                  <span className="text-sm font-medium">Choose a folder</span>
+                  <span className="text-sm font-medium">
+                    {t("source.chooseFolder")}
+                  </span>
                   <span className="text-xs text-muted-foreground">
-                    Browse your device for a music folder
+                    {t("source.browseForFolder")}
                   </span>
                 </>
               )}
@@ -264,11 +268,11 @@ export function MusicSourceConfigForm({
           </div>
         ) : (
           <div className="space-y-1.5" key={f.name}>
-            <Label htmlFor={`src-config-${f.name}`}>{f.label}</Label>
+            <Label htmlFor={`src-config-${f.name}`}>{t(f.labelKey)}</Label>
             <Input
               id={`src-config-${f.name}`}
               type={f.type ?? "text"}
-              placeholder={f.placeholder}
+              placeholder={f.placeholderKey ? t(f.placeholderKey) : f.placeholder}
               value={values[f.name] ?? ""}
               onChange={(e) => {
                 const next = { ...values, [f.name]: e.target.value };
@@ -297,7 +301,7 @@ export function MusicSourceConfigForm({
       )}
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={connecting} className="gap-1.5">
-          {connecting ? "Connecting..." : "Connect"}
+          {connecting ? t("source.connecting") : t("source.connect")}
         </Button>
       </div>
     </form>

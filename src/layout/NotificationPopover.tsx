@@ -4,10 +4,12 @@ import { Item } from "@/components/ui/item";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/components/ui/toast";
 import { notification$, type AppNotificationEvent } from "@/events/notification-events";
+import { useTranslation } from "@/i18n";
 import { Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 
 function NotificationPopover() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<AppNotificationEvent[]>([]);
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -46,7 +48,11 @@ function NotificationPopover() {
     <Popover open={open} onOpenChange={handleOpen}>
       <PopoverTrigger
         render={
-          <Button variant="ghost" className="relative px-2">
+          <Button
+            variant="ghost"
+            className="relative px-2"
+            aria-label={t("notification.title")}
+          >
             <Bell />
 
             {unreadCount > 0 && (
@@ -69,11 +75,11 @@ function NotificationPopover() {
       <PopoverContent className="w-screen md:w-80 max-h-80 overflow-y-auto gap-0.5 select-none">
         <div className="flex justify-end" hidden={items.length === 0}>
           <Button size="xs" variant="outline" onClick={() => setItems([])}>
-            Clear
+            {t("common.clear")}
           </Button>
         </div>
         <div hidden={items.length > 0}>
-          <span>No notifications</span>
+          <span>{t("notification.empty")}</span>
         </div>
         <div className="divide-y">
           {items.map((n) => (

@@ -2,6 +2,7 @@ import { Download, HardDriveDownload, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "@/components/ui/toast";
 import { useOfflineDownloads, useOfflineSongs } from "@/hooks";
+import { useTranslation } from "@/i18n";
 import { cacheSongsOffline, removeSongOffline } from "@/lib/offline";
 import type { Song } from "@/models";
 
@@ -38,6 +39,7 @@ export function OfflineDownloadButton({
 }: OfflineDownloadButtonProps) {
   const { offlineSongIds } = useOfflineSongs();
   const batches = useOfflineDownloads();
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
 
   const cached = offlineSongIds.has(song.id);
@@ -73,9 +75,7 @@ export function OfflineDownloadButton({
         if (result.failed.length > 0) {
           toast.add({
             type: "error",
-            title: `Could not cache ${result.failed.length} song${
-              result.failed.length === 1 ? "" : "s"
-            }`,
+            title: t("library.cacheFailedCount", [result.failed.length]),
             description: result.failed.join(", "),
           });
         }
@@ -83,7 +83,9 @@ export function OfflineDownloadButton({
     } catch {
       toast.add({
         type: "error",
-        title: cached ? "Could not remove download" : "Could not cache song",
+        title: cached
+          ? t("library.removeDownloadFailed")
+          : t("library.cacheFailed"),
         description: name,
       });
     } finally {
@@ -105,17 +107,17 @@ export function OfflineDownloadButton({
       }}
       title={
         pending
-          ? `Downloading ${name}`
+          ? t("library.downloading", [name])
           : cached
-            ? "Remove download"
-            : `Make ${name} available offline`
+            ? t("library.removeDownloadHint")
+            : t("library.makeAvailableOfflineNamed", [name])
       }
       aria-label={
         pending
-          ? `Downloading ${name}`
+          ? t("library.downloading", [name])
           : cached
-            ? "Remove download"
-            : `Make ${name} available offline`
+            ? t("library.removeDownloadHint")
+            : t("library.makeAvailableOfflineNamed", [name])
       }
       aria-pressed={cached}
     >

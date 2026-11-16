@@ -19,6 +19,7 @@ import {
 import type { Song } from "@/models";
 import { useState, type ReactElement } from "react";
 import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useTranslation } from "@/i18n";
 import { NewPlaylistDialog } from "@/components/new-playlist-dialog";
 import { useSongMenu, type SongMenuAction } from "./songMenuItems";
 
@@ -31,6 +32,7 @@ export function SongContextMenu({
 }) {
   const menu = useSongMenu(songs);
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const song = songs[0];
@@ -120,8 +122,8 @@ export function SongContextMenu({
             <DrawerHeader className="pb-1">
               <DrawerTitle className="truncate text-sm">
                 {menu.target.length > 1
-                  ? `${menu.target.length} songs`
-                  : (song?.title ?? "Song")}
+                  ? t("library.songCount", [menu.target.length])
+                  : (song?.title ?? t("library.song"))}
               </DrawerTitle>
             </DrawerHeader>
 

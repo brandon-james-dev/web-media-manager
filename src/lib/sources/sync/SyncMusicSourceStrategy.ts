@@ -17,8 +17,10 @@ import { usbAvailable } from "@/lib/sync/usbAvailable";
 export class SyncMusicSourceStrategy implements IMusicSourceStrategy {
   readonly kind: MusicSourceKind = "sync";
   readonly name = "Sync device";
+  readonly labelKey = "source.kindSync" as const;
   readonly description =
     "A portable player such as an iPod, used as a sync target.";
+  readonly descriptionKey = "source.syncDescription" as const;
   readonly requiresConfig = false;
 
   /** Devices need WebUSB to be enumerated. */

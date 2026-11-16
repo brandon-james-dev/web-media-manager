@@ -6,6 +6,8 @@
  * runtime is a new descriptor here plus a host factory — nothing else in the
  * plugin system branches on the runtime id.
  */
+import type { WmmResourceKey } from "@/i18n";
+
 export type VisualizerRuntime =
   | "webgl-shader"
   | "canvas2d-typescript"
@@ -14,6 +16,8 @@ export type VisualizerRuntime =
 export interface VisualizerRuntimeDescriptor {
   id: VisualizerRuntime;
   label: string;
+  /** Resource key of the label, so the UI renders it translated. */
+  labelKey: WmmResourceKey;
   /** Entry file extensions this runtime can execute. */
   entryExtensions: readonly string[];
   /**
@@ -29,6 +33,7 @@ export const VISUALIZER_RUNTIMES: readonly VisualizerRuntimeDescriptor[] = [
   {
     id: "webgl-shader",
     label: "WebGL shader",
+    labelKey: "visualizer.runtimeWebgl",
     entryExtensions: [".glsl", ".frag", ".fs"],
     implemented: true,
     description:
@@ -37,6 +42,7 @@ export const VISUALIZER_RUNTIMES: readonly VisualizerRuntimeDescriptor[] = [
   {
     id: "canvas2d-typescript",
     label: "Canvas 2D (TypeScript)",
+    labelKey: "visualizer.runtimeCanvas2d",
     entryExtensions: [".ts", ".js", ".mjs"],
     implemented: true,
     description:
@@ -45,6 +51,7 @@ export const VISUALIZER_RUNTIMES: readonly VisualizerRuntimeDescriptor[] = [
   {
     id: "wasm",
     label: "WebAssembly",
+    labelKey: "visualizer.runtimeWasm",
     entryExtensions: [".wasm"],
     implemented: false,
     description:

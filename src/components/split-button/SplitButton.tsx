@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "@/i18n";
 import type { VariantProps } from "class-variance-authority";
 
 type DropdownSide = "left" | "right" | "top" | "bottom";
@@ -32,6 +33,7 @@ export function SplitButton({
   dropdownSide = "right",
   dropdownTriggerContent = <ChevronDown className="h-4 w-4" />, // default icon
 }: SplitButtonProps) {
+  const { t } = useTranslation();
   const isLeft = dropdownSide === "left";
 
   return (
@@ -42,7 +44,7 @@ export function SplitButton({
             <Button
               variant="secondary"
               className={isLeft ? "rounded-r-none px-2" : "rounded-l-none px-2"}
-              aria-label="More options"
+              aria-label={t("common.moreOptions")}
               {...triggerProps}
             >
               {dropdownTriggerContent}

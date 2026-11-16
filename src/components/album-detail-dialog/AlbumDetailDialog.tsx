@@ -14,6 +14,7 @@ import { Button } from "../ui/button";
 import type { AlbumDetailDialogProps } from "./AlbumDetailDialogProps";
 import type { AlbumDetailDto } from "@/dto";
 import { AlbumArtImage } from "../album-art-image";
+import { useTranslation } from "@/i18n";
 
 export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
   //#region State
@@ -28,6 +29,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
     handleNextClick,
     handlePrevClick,
   } = props;
+  const { t } = useTranslation();
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob | null>(null);
   //#endregion
 
@@ -125,9 +127,9 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                             bg-background
                           "
                           >
-                            <div>No cover art</div>
+                            <div>{t("library.noCoverArt")}</div>
                             <div className="text-muted-foreground">
-                              Click to select
+                              {t("common.clickToSelect")}
                             </div>
                           </div>
                         }
@@ -166,7 +168,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                       disabled={!!isPrevButtonDisabled}
                     >
                       <ChevronLeft />
-                      Prev
+                      {t("common.prev")}
                     </Button>
                   )}
 
@@ -177,7 +179,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                       onClick={handleNextClicked}
                       disabled={!!isNextButtonDisabled}
                     >
-                      Next
+                      {t("common.next")}
                       <ChevronRight />
                     </Button>
                   )}
@@ -191,7 +193,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                     className="bg-accent/50 hover:bg-accent/70 text-white"
                   >
                     <Save />
-                    Save
+                    {t("common.save")}
                   </Button>
 
                   <Button
@@ -202,7 +204,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                     onClick={() => setUpdatedFrontCover(null)}
                   >
                     <Eraser />
-                    Reset
+                    {t("common.reset")}
                   </Button>
 
                   <Button
@@ -211,7 +213,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                     onClick={() => handleOpenChange(false)}
                   >
                     <X />
-                    Close
+                    {t("common.close")}
                   </Button>
                 </div>
               </div>
@@ -236,9 +238,9 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
               </DialogHeader>
 
               <div className="grid grid-cols-[60px_1fr_60px] bg-muted/40 text-xs font-medium py-1 rounded-md w-full">
-                <div>Track</div>
-                <div>Title</div>
-                <div>Duration</div>
+                <div>{t("metadata.track")}</div>
+                <div>{t("metadata.title")}</div>
+                <div>{t("metadata.duration")}</div>
               </div>
 
               <div className="divide-y w-full">

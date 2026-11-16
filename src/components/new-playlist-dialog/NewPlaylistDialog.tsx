@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "@/i18n";
 
 export type NewPlaylistDialogProps = {
   open: boolean;
@@ -31,6 +32,7 @@ export function NewPlaylistDialog({
 }: NewPlaylistDialogProps) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation();
 
   // Start from an empty field each time the dialog is opened (or from the
   // current name in the rename flow).
@@ -56,7 +58,7 @@ export function NewPlaylistDialog({
       <DialogContent className="max-w-sm sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>
-            {initialName ? "Rename playlist" : "New playlist"}
+            {initialName ? t("playlist.rename") : t("playlist.new")}
           </DialogTitle>
         </DialogHeader>
 
@@ -68,17 +70,17 @@ export function NewPlaylistDialog({
           }}
         >
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="new-playlist-name">Name</Label>
+            <Label htmlFor="new-playlist-name">{t("common.name")}</Label>
             <Input
               id="new-playlist-name"
               autoFocus
               value={name}
-              placeholder="Playlist name"
+              placeholder={t("playlist.name")}
               onChange={(event) => setName(event.target.value)}
             />
             {songCount > 0 && (
               <div className="text-xs text-muted-foreground">
-                {songCount} {songCount === 1 ? "song" : "songs"} will be added.
+                {t("playlist.addCount", [songCount])}
               </div>
             )}
           </div>
@@ -89,10 +91,10 @@ export function NewPlaylistDialog({
               variant="ghost"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={!trimmed || busy}>
-              Create
+              {t("common.create")}
             </Button>
           </DialogFooter>
         </form>

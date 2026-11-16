@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { getJobService } from "@/core/jobs";
 import { getPictureOfType } from "@/core/media";
+import { useTranslation } from "@/i18n";
 import type { AlbumArtImageProps } from "./AlbumArtImageProps";
 
 export function AlbumArtImage(props: AlbumArtImageProps) {
   const { songId, artworkType, thumbSize, fallback, className } = props;
+  const { t } = useTranslation();
   const [artwork, setArtwork] = useState<string | null>(null);
   const [inView, setInView] = useState(false);
   const loadingRef = useRef(false);
@@ -143,7 +145,7 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
       {!artwork ? (
         (fallback ?? (
           <div className="bg-foreground rounded flex justify-center items-center w-full h-full">
-            <span>No artwork</span>
+            <span>{t("library.noArtwork")}</span>
           </div>
         ))
       ) : (

@@ -44,6 +44,7 @@ import {
 import type { MusicSource, Playlist, Song } from "@/models";
 import { FAVORITES_PLAYLIST_ID } from "@/models";
 import { toast } from "@/components/ui/toast";
+import { useTranslation } from "@/i18n";
 import { getCurrentSelection, setCurrentSelection } from "./selection";
 
 /** One actionable entry, rendered as a menu item or a drawer row. */
@@ -102,6 +103,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { offlineSongIds } = useOfflineSongs();
   const sourceKinds = useSourceKinds();
+  const { t } = useTranslation();
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [newPlaylistOpen, setNewPlaylistOpen] = useState(false);
@@ -264,7 +266,9 @@ export function useSongMenu(songs: Song[]): SongMenu {
 
   /** "Seed Track 1" for one song, "3 songs" for a selection. */
   const selectionLabel =
-    target.length === 1 ? (song?.title ?? "1 song") : `${target.length} songs`;
+    target.length === 1
+      ? (song?.title ?? t("library.songCount", [1]))
+      : t("library.songCount", [target.length]);
 
   /** Add every selected song to an existing playlist. */
   const addToPlaylist = useCallback(
@@ -295,7 +299,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
 
     if (allCached) {
       for (const s of target) await removeSongOffline(s.id);
-      notify("success", "Removed download", selectionLabel);
+      notify("success", t("library.removedDownload"), selectionLabel);
       return;
     }
 
@@ -321,19 +325,19 @@ export function useSongMenu(songs: Song[]): SongMenu {
     if (cached > 0) {
       notify(
         "success",
-        `Available offline`,
-        `${cached} song${cached === 1 ? "" : "s"} cached.`
+        t("library.availableOffline"),
+        t("library.songsCached", [cached])
       );
     }
 
     if (failed.length > 0) {
       notify(
         "error",
-        `Could not cache ${failed.length} song${failed.length === 1 ? "" : "s"}`,
+        t("library.cacheFailedCount", [failed.length]),
         failed.slice(0, 3).join(", ")
       );
     }
-  }, [target, offlineSongIds, notify, selectionLabel]);
+  }, [target, offlineSongIds, notify, selectionLabel, t]);
 
   /**
    * Create a playlist from the selection. Playlists live in the app's own
@@ -345,8 +349,8 @@ export function useSongMenu(songs: Song[]): SongMenu {
       name,
       songs: target.map((s) => ({ songId: s.id, addedAt: Date.now() })),
     });
-    notify("success", `Created ${saved.name}`, selectionLabel, {
-      children: "View",
+    notify("success", t("playlist.created", [saved.name]), selectionLabel, {
+      children: t("common.view"),
       onClick: () => navigate(`/playlists?playlist=${saved.id}`),
     });
   }
@@ -364,16 +368,16 @@ export function useSongMenu(songs: Song[]): SongMenu {
     return [
       {
         id: "playback",
-        label: "Playback",
+        label: t("playback.section"),
         hidden: isPlaybackHidden,
         actions: [
           {
             id: "play",
             label: isNowPlaying
-              ? "Pause"
+              ? t("playback.pause")
               : target.length === 1
-                ? "Play Song"
-                : "Play All",
+                ? t("playback.playSong")
+                : t("playback.playAll"),
             icon: isNowPlaying ? (
               <Pause className="fill-foreground" />
             ) : (
@@ -391,7 +395,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
           },
           {
             id: "queue",
-            label: "Add To Queue",
+            label: t("playback.addToQueue"),
             icon: <PlusCircle />,
             onSelect: () =>
               onItemClick(() =>
@@ -404,19 +408,21 @@ export function useSongMenu(songs: Song[]): SongMenu {
       },
       {
         id: "playlist",
-        label: "Playlist",
+        label: t("playlist.section"),
         hidden: isPlaybackHidden,
         actions: [
           {
             id: "favorites",
-            label: allFavorite ? "Remove From Favorites" : "Add To Favorites",
+            label: allFavorite
+              ? t("library.unfavoriteSelection")
+              : t("library.favoriteSelection"),
             icon: <Heart />,
             onSelect: () => void toggleFavorites(),
           },
         ],
         submenu: {
           id: "add-to-playlist",
-          label: "Add To Playlist",
+          label: t("playlist.addSelection"),
           icon: <ListPlus />,
           actions: [
             ...editablePlaylists.map((playlist) => ({
@@ -433,18 +439,18 @@ export function useSongMenu(songs: Song[]): SongMenu {
                   .then(() =>
                     notify(
                       "success",
-                      `Added to ${playlist.name}`,
+                      t("playlist.addedTo", [playlist.name]),
                       selectionLabel
                     )
                   )
                   .catch(() =>
-                    notify("error", `Could not add to ${playlist.name}`)
+                    notify("error", t("playlist.addFailed", [playlist.name]))
                   );
               },
             })),
             {
               id: "new-playlist",
-              label: "New Playlist...",
+              label: t("playlist.create"),
               icon: <PlusCircle />,
               onSelect: () => setNewPlaylistOpen(true),
             },
@@ -453,12 +459,12 @@ export function useSongMenu(songs: Song[]): SongMenu {
       },
       {
         id: "editing",
-        label: "Editing",
+        label: t("library.editing"),
         hidden: isEditHidden,
         actions: [
           {
             id: "quick-edit",
-            label: "Quick Edit",
+            label: t("library.quickEdit"),
             icon: <Pen />,
             onSelect: () =>
               onItemClick(() =>
@@ -469,7 +475,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
           },
           {
             id: "advanced-edit",
-            label: "Advanced Edit",
+            label: t("library.advancedEdit"),
             icon: <PencilRuler />,
             onSelect: () =>
               song &&
@@ -479,7 +485,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
       },
       {
         id: "offline",
-        label: "Offline",
+        label: t("library.offline"),
         // A local folder and a sync device already hold their own audio, so
         // there is nothing to download and nothing to remove.
         hidden: target.every((s) =>
@@ -488,7 +494,9 @@ export function useSongMenu(songs: Song[]): SongMenu {
         actions: [
           {
             id: "cache-offline",
-            label: allOffline ? "Remove Download" : "Make Available Offline",
+            label: allOffline
+              ? t("library.removeDownload")
+              : t("library.makeAvailableOffline"),
             icon: allOffline ? <HardDriveDownload /> : <Download />,
             onSelect: () => void toggleOffline(),
           },
@@ -496,14 +504,14 @@ export function useSongMenu(songs: Song[]): SongMenu {
       },
       {
         id: "sync",
-        label: "Sync",
+        label: t("sync.title"),
         // Shown whenever a device is connected: queueing is the common case,
         // and removing only appears once the songs are actually queued.
         hidden: !hasConnectedDevices,
         actions: [
           {
             id: "queue-sync",
-            label: "Add To Sync Queue",
+            label: t("sync.addToQueue"),
             icon: <PlusCircle />,
             // Only downloaded audio can be written to a device, so the action
             // stays visible but disabled for songs that are not cached.
@@ -518,7 +526,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
           },
           {
             id: "dequeue",
-            label: "Remove From Queue",
+            label: t("sync.removeFromQueue"),
             icon: <MinusCircle />,
             hidden: !isQueued,
             onSelect: () =>
@@ -544,6 +552,7 @@ export function useSongMenu(songs: Song[]): SongMenu {
     sourceKinds,
     selectionLabel,
     song,
+    t,
     target,
     toggleOffline,
     addToPlaylist,

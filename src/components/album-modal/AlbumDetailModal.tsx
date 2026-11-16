@@ -11,6 +11,7 @@ import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks/usePlayback";
 import { shuffleState } from "@/hooks/usePlayback";
 import { useIsCompact } from "@/lib/hooks/useIsMobile";
+import { useTranslation } from "@/i18n";
 import { cn } from "cn";
 import { albumGenre, albumPictureSong, albumYear, trackSorted } from "@/lib/albums/albumDisplay";
 import type { Album } from "@/models";
@@ -26,6 +27,7 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
   // Real playback state, so the Play button reflects what is actually going,
   // including playback started from elsewhere (library rows, artist view).
   const { isPlaying, nowPlaying, shuffle } = usePlayback();
+  const { t } = useTranslation();
   const isCompact = useIsCompact();
   // Manual exit animation: Base UI's `data-ending-style` doesn't run on a
   // programmatic close (its duration is `calc(--drawer-swipe-strength * 400ms)`
@@ -119,7 +121,7 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
     </Button>
   );
 
-  const trackCount = `${tracks.length} ${tracks.length === 1 ? "song" : "songs"}`;
+  const trackCount = t("library.songCount", [tracks.length]);
 
   const trackList = (
     <div className="min-h-0 flex-1 overflow-y-auto my-6">
@@ -187,7 +189,7 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
                 size="icon"
                 variant="ghost"
                 className="absolute right-2 top-8"
-                aria-label="Close album"
+                aria-label={t("library.closeAlbum")}
                 onClick={requestClose}
               >
                 <X />

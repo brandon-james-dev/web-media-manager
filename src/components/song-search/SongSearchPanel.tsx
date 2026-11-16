@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TrackItem } from "@/components/track-item";
+import { useTranslation } from "@/i18n";
 import { cn } from "cn";
 import type { Song } from "@/models";
 
@@ -71,7 +72,7 @@ export function SongSearchPanel({
   onQueryChange,
   title,
   ariaLabel,
-  placeholder = "Search songs to add",
+  placeholder,
   songs,
   artists,
   albums,
@@ -87,6 +88,7 @@ export function SongSearchPanel({
   isGroupAddDisabled,
   className,
 }: SongSearchPanelProps) {
+  const { t } = useTranslation();
   const empty =
     songs.length === 0 &&
     artists.length === 0 &&
@@ -101,7 +103,7 @@ export function SongSearchPanel({
         <Input
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t("search.songsToAdd")}
           aria-label={ariaLabel}
           className="pr-8 pl-8"
         />
@@ -111,8 +113,8 @@ export function SongSearchPanel({
             type="button"
             className="absolute right-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent/15 hover:text-foreground"
             onClick={() => onQueryChange("")}
-            title="Clear search"
-            aria-label="Clear search"
+            title={t("search.clear")}
+            aria-label={t("search.clear")}
           >
             <X className="size-3.5" />
           </button>
@@ -125,8 +127,9 @@ export function SongSearchPanel({
             <span>{title}</span>
 
             <span>
-              {songs.length === 50 ? "50+" : songs.length}{" "}
-              {songs.length === 1 ? "match" : "matches"}
+              {songs.length === 50
+                ? t("search.matchCountCapped", [50])
+                : t("search.matchCount", [songs.length])}
             </span>
           </div>
 
@@ -151,8 +154,8 @@ export function SongSearchPanel({
                   variant="ghost"
                   className="shrink-0"
                   disabled={isGroupAddDisabled?.({ name: genre.name })}
-                  title={`Add all ${genre.name} tracks`}
-                  aria-label={`Add all ${genre.name} tracks`}
+                  title={t("search.addAllGenreTracks", [genre.name])}
+                  aria-label={t("search.addAllGenreTracks", [genre.name])}
                   onClick={() => onAddGenre?.(genre)}
                 >
                   <Plus />
@@ -180,8 +183,8 @@ export function SongSearchPanel({
                   variant="ghost"
                   className="shrink-0"
                   disabled={isGroupAddDisabled?.({ name: artist.name })}
-                  title={`Add all ${artist.name} tracks`}
-                  aria-label={`Add all ${artist.name} tracks`}
+                  title={t("search.addAllArtistTracks", [artist.name])}
+                  aria-label={t("search.addAllArtistTracks", [artist.name])}
                   onClick={() => onAddArtist(artist)}
                 >
                   <Plus />
@@ -215,8 +218,8 @@ export function SongSearchPanel({
                   variant="ghost"
                   className="shrink-0"
                   disabled={isGroupAddDisabled?.({ name: album.album })}
-                  title={`Add all tracks from ${album.album}`}
-                  aria-label={`Add all tracks from ${album.album}`}
+                  title={t("search.addAllAlbumTracks", [album.album])}
+                  aria-label={t("search.addAllAlbumTracks", [album.album])}
                   onClick={() => onAddAlbum(album)}
                 >
                   <Plus />
@@ -244,8 +247,10 @@ export function SongSearchPanel({
                   variant="ghost"
                   className="mr-1 shrink-0"
                   disabled={isSongAddDisabled?.(song)}
-                  title={songAddTitle?.(song) ?? "Add"}
-                  aria-label={`Add ${song.title ?? song.filename}`}
+                  title={songAddTitle?.(song) ?? t("common.add")}
+                  aria-label={t("search.addSong", [
+                    song.title ?? song.filename,
+                  ])}
                   onClick={() => onAddSong(song)}
                 >
                   <Plus />
@@ -255,7 +260,7 @@ export function SongSearchPanel({
 
             {empty && (
               <div className="px-1 py-2 text-xs text-muted-foreground">
-                No matching songs
+                {t("search.noSongs")}
               </div>
             )}
           </div>

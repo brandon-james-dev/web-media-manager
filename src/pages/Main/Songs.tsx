@@ -19,11 +19,13 @@ import {
   type SortableColumn,
 } from "@/lib/persistence";
 import { useSourceSongs, useSongs } from "@/hooks";
+import { useTranslation } from "@/i18n";
 import type { MusicSource, Song } from "@/models";
 import type { MainContext } from "./MainLayout";
 
 export function Songs() {
   //#region State
+  const { t } = useTranslation();
   const [musicSources, setMusicSources] = useState<MusicSource[]>([]);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [isEditMultiple, setIsEditMultiple] = useState<boolean>(false);
@@ -176,7 +178,7 @@ export function Songs() {
       {isLoading ? (
         <div className="flex flex-col justify-center items-center h-full w-full">
           <span>
-            <Loader2 className="inline-block animate-spin" /> Loading…
+            <Loader2 className="inline-block animate-spin" /> {t("common.loading")}
           </span>
         </div>
       ) : (

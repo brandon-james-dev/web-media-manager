@@ -1,4 +1,5 @@
 import { wmmBus } from "@/events";
+import { i18n, type WmmResourceKey } from "@/i18n";
 import { notification$ } from "./notification-events";
 import type { BackgroundJobState } from "./background-job-events";
 
@@ -10,6 +11,21 @@ function isPlaylistPhase(payload: unknown): boolean {
     (payload as { data?: { phase?: string } } | undefined)?.data?.phase ===
     "playlists"
   );
+}
+
+const JOB_TYPE_KEYS = {
+  "Thumbnail Generation": "notification.jobTypeThumbnailGeneration",
+  "Bulk Import": "notification.jobTypeBulkImport",
+  "Bulk Edit": "notification.jobTypeBulkEdit",
+  "Device Sync": "notification.jobTypeDeviceSync",
+  "Device Remove": "notification.jobTypeDeviceRemove",
+  "Source Remove": "notification.jobTypeSourceRemove",
+  "Offline Download": "notification.jobTypeOfflineDownload",
+} as const satisfies Record<string, WmmResourceKey>;
+
+function jobTypeText(jobType: string): string {
+  const key = JOB_TYPE_KEYS[jobType as keyof typeof JOB_TYPE_KEYS];
+  return key ? i18n.t(key) : jobType;
 }
 
 wmmBus.on("wmm.jobs.state", (evt) => {
@@ -29,11 +45,12 @@ wmmBus.on("wmm.jobs.state", (evt) => {
   if (evt.jobType === "Device Remove") return;
   if (evt.jobType === "Source Remove") return;
 
-  const jobType = evt.jobType ?? "Job";
+  const jobType = evt.jobType ?? i18n.t("notification.job");
+  const jobName = jobTypeText(jobType);
   const state = evt.state as BackgroundJobState;
   const message =
     (evt.payload as { message?: string } | undefined)?.message ??
-    "Unknown error";
+    i18n.t("notification.unknownError");
 
   switch (evt.state) {
     case "progress":
@@ -44,9 +61,9 @@ wmmBus.on("wmm.jobs.state", (evt) => {
         state,
         payload: evt.payload,
         title: isPlaylistPhase(evt.payload)
-          ? "Importing playlists"
-          : `${jobType} started`,
-        detail: "Started",
+          ? i18n.t("notification.playlistsPhase")
+          : i18n.t("notification.jobStarted", [jobName]),
+        detail: i18n.t("notification.started"),
       });
       break;
 
@@ -57,8 +74,8 @@ wmmBus.on("wmm.jobs.state", (evt) => {
         kind: jobType,
         state,
         payload: evt.payload,
-        title: `${jobType} completed`,
-        detail: "Finished successfully",
+        title: i18n.t("notification.jobCompleted", [jobName]),
+        detail: i18n.t("notification.finishedSuccessfully"),
       });
       break;
 
@@ -69,7 +86,7 @@ wmmBus.on("wmm.jobs.state", (evt) => {
         kind: jobType,
         state,
         payload: evt.payload,
-        title: `${jobType} failed`,
+        title: i18n.t("notification.jobFailed", [jobName]),
         detail: message,
       });
       break;
@@ -81,7 +98,7 @@ wmmBus.on("wmm.jobs.state", (evt) => {
         kind: jobType,
         state,
         payload: evt.payload,
-        title: `${jobType} canceled`,
+        title: i18n.t("notification.jobCanceled", [jobName]),
         detail: message,
       });
       break;

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/shadcn-utils/utils";
 import { ALPHABET_LETTERS } from "@/lib/alphabet";
+import { useTranslation } from "@/i18n";
 import type { AlphabetScrubberProps } from "./AlphabetScrubberProps";
 
 const HIDE_DELAY_MS = 1500;
@@ -15,6 +16,7 @@ export function AlphabetScrubber({
   reversed = false,
   scrollRef,
 }: AlphabetScrubberProps) {
+  const { t } = useTranslation();
   const letters = reversed ? [...ALPHABET_LETTERS].reverse() : ALPHABET_LETTERS;
   const trackRef = useRef<HTMLDivElement>(null);
   const lastSelectedRef = useRef<string | null>(null);
@@ -85,7 +87,7 @@ export function AlphabetScrubber({
         role="group"
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
-        aria-label="Alphabet index"
+        aria-label={t("library.alphabetIndex")}
         className="relative flex h-full max-h-136 w-6 touch-none flex-col rounded-full bg-background/40 select-none"
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);

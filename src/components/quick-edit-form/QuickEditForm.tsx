@@ -9,9 +9,11 @@ import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { AlbumArtImage } from "../album-art-image";
 import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
+import { useTranslation } from "@/i18n";
 
 export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEditFormProps) {
   //#region State
+  const { t } = useTranslation();
   const [values, setValues] = useState<
     Partial<Record<EditableField, string | number>>
   >({});
@@ -94,7 +96,7 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
       >
         <div className="row-span-2 flex flex-col items-center gap-2">
           <Label className="text-xs font-medium text-muted-foreground mt-1">
-            Album Art
+            {t("metadata.albumArt")}
           </Label>
 
           <input
@@ -161,9 +163,9 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
                         bg-background
                       "
                     >
-                      <div>No cover art</div>
+                      <div>{t("library.noCoverArt")}</div>
                       <div className="text-muted-foreground">
-                        Click to select
+                        {t("common.clickToSelect")}
                       </div>
                     </div>
                   }
@@ -208,7 +210,7 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
           disabled={!editable}
         >
           <Save />
-          Apply to {songs.length} songs
+          {t("library.applyToCount", [songs.length])}
         </Button>
       </div>
     </>

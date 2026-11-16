@@ -9,6 +9,7 @@ import {
   CommandList,
 } from "../ui/command";
 import { ChevronsUpDown } from "lucide-react";
+import { useTranslation } from "@/i18n";
 import {
   InputGroup,
   InputGroupAddon,
@@ -17,6 +18,7 @@ import {
 
 export function AutocompleteInput(props: AutocompleteInputProps) {
   const { name, value, onChange, suggestions, className, placeholder, disabled } = props;
+  const { t } = useTranslation();
 
   const [active, setActive] = useState(false);
 
@@ -35,7 +37,7 @@ export function AutocompleteInput(props: AutocompleteInputProps) {
             <CommandList>
               <CommandGroup>
                 {filtered.length === 0 && (
-                  <CommandEmpty>No matches</CommandEmpty>
+                  <CommandEmpty>{t("search.noMatches")}</CommandEmpty>
                 )}
 
                 {filtered.map((s) => (

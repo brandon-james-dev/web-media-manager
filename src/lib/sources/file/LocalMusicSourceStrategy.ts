@@ -41,7 +41,9 @@ import type { MusicSourceConfigField } from "../MusicSourceConfigField";
 export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
   readonly kind = "local" as const;
   readonly name = "On device";
+  readonly labelKey = "source.kindLocal" as const;
   readonly description = "Add a music folder from this computer";
+  readonly descriptionKey = "source.localDescription" as const;
   readonly isAvailable = fsAccessSupported;
   readonly requiresConfig = true;
 
@@ -52,6 +54,7 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
     {
       name: "folders",
       label: "Music folders",
+      labelKey: "source.musicFolders",
       type: "folder",
       options: { multiple: true },
       required: true,

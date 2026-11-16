@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/i18n";
 import { ListMusic, MonitorSmartphone, X } from "lucide-react";
 import { Playlists } from "@/pages/Main/Playlists";
 import { Sync } from "@/pages/Main/Sync";
@@ -21,6 +22,7 @@ interface LibrarySidebarProps {
  */
 export function LibrarySidebar({ view, onClose }: LibrarySidebarProps) {
   const [openPlaylistId, setOpenPlaylistId] = useState<string>();
+  const { t } = useTranslation();
 
   const isPlaylists = view === "playlists";
 
@@ -33,14 +35,14 @@ export function LibrarySidebar({ view, onClose }: LibrarySidebarProps) {
           <MonitorSmartphone className="size-4 shrink-0" aria-hidden="true" />
         )}
         <span className="flex-1 truncate text-sm font-semibold">
-          {isPlaylists ? "Playlists" : "Sync"}
+          {isPlaylists ? t("navigation.playlists") : t("sync.title")}
         </span>
         <Button
           size="icon"
           variant="ghost"
           className="shrink-0"
-          title="Close sidebar"
-          aria-label="Close sidebar"
+          title={t("navigation.closeSidebar")}
+          aria-label={t("navigation.closeSidebar")}
           onClick={onClose}
         >
           <X />
