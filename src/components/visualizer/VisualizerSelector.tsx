@@ -1,18 +1,15 @@
-import { Check, ImageOff, Search } from "lucide-react";
+import { Check, ImageOff, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "cn";
 
-import {
-  VISUALIZER_RUNTIMES,
-  getRuntimeDescriptor,
-  type VisualizerRuntime,
-} from "@/core/visualizers";
+import { getRuntimeDescriptor } from "@/core/visualizers";
 import {
   useInstalledPlugins,
   usePluginThumbnail,
   useVisualizer,
 } from "@/hooks";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -58,26 +55,22 @@ function PluginThumbnail({
 
 /**
  * Lists installed visualizers with a thumbnail, name, version and author, and
- * makes one active. Search matches name, author, description and id; the
- * runtime filter narrows by execution model.
+ * makes one active. Search matches name, author, description and id.
  */
 export function VisualizerSelector({
   className,
   variant = "list",
   onSelect,
+  onConfigure,
 }: VisualizerSelectorProps) {
   const { data: plugins, isPending } = useInstalledPlugins();
   const { activePluginId, setActivePluginId } = useVisualizer();
   const [query, setQuery] = useState("");
-  const [runtime, setRuntime] = useState<VisualizerRuntime | "all">("all");
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
 
     return (plugins ?? []).filter((plugin) => {
-      if (runtime !== "all" && plugin.runtime !== runtime) {
-        return false;
-      }
       if (!needle) {
         return true;
       }
@@ -86,7 +79,7 @@ export function VisualizerSelector({
         .filter((value): value is string => typeof value === "string")
         .some((value) => value.toLowerCase().includes(needle));
     });
-  }, [plugins, query, runtime]);
+  }, [plugins, query]);
 
   function select(pluginId: string) {
     setActivePluginId(pluginId);
@@ -126,44 +119,15 @@ export function VisualizerSelector({
 
   return (
     <div className={cn("flex min-h-0 flex-col gap-2", className)}>
-      <div className="flex shrink-0 items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search visualizers"
-            aria-label="Search visualizers"
-            className="pl-7"
-          />
-        </div>
-        <Select
-          value={runtime}
-          items={[
-            { value: "all", label: "All runtimes" },
-            ...VISUALIZER_RUNTIMES.map((descriptor) => ({
-              value: descriptor.id,
-              label: descriptor.label,
-            })),
-          ]}
-          onValueChange={(value) => {
-            if (typeof value === "string") {
-              setRuntime(value as VisualizerRuntime | "all");
-            }
-          }}
-        >
-          <SelectTrigger className="w-36 shrink-0" aria-label="Runtime">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All runtimes</SelectItem>
-            {VISUALIZER_RUNTIMES.map((descriptor) => (
-              <SelectItem key={descriptor.id} value={descriptor.id}>
-                {descriptor.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="relative shrink-0">
+        <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search visualizers"
+          aria-label="Search visualizers"
+          className="pl-7"
+        />
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -178,43 +142,61 @@ export function VisualizerSelector({
               : "No visualizers installed yet."}
           </p>
         ) : (
-          <ul className="flex flex-col gap-1 pr-2">
+          <ul className="flex flex-col gap-1">
             {filtered.map((plugin) => {
               const isActive = plugin.id === activePluginId;
 
               return (
                 <li key={plugin.id}>
-                  <button
-                    type="button"
-                    onClick={() => select(plugin.id)}
-                    aria-pressed={isActive}
+                  <div
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-lg border border-transparent p-2 text-left transition-colors hover:bg-muted",
+                      "flex w-full items-center gap-1 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted",
                       isActive && "border-border bg-muted"
                     )}
                   >
-                    <PluginThumbnail
-                      pluginId={plugin.id}
-                      className="size-12"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate font-medium">
-                          {plugin.name}
+                    <button
+                      type="button"
+                      onClick={() => select(plugin.id)}
+                      aria-pressed={isActive}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      <PluginThumbnail
+                        pluginId={plugin.id}
+                        className="size-12"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate font-medium">
+                            {plugin.name}
+                          </span>
+                          <Badge variant="outline">{plugin.version}</Badge>
                         </span>
-                        <Badge variant="outline">{plugin.version}</Badge>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {plugin.author ?? "Unknown author"}
+                          {" · "}
+                          {getRuntimeDescriptor(plugin.runtime)?.label ??
+                            plugin.runtime}
+                        </span>
                       </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {plugin.author ?? "Unknown author"}
-                        {" · "}
-                        {getRuntimeDescriptor(plugin.runtime)?.label ??
-                          plugin.runtime}
-                      </span>
-                    </span>
+                    </button>
+
                     {isActive && (
                       <Check className="size-4 shrink-0 text-primary" />
                     )}
-                  </button>
+
+                    {onConfigure && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        title={`Configure ${plugin.name}`}
+                        aria-label={`Configure ${plugin.name}`}
+                        onClick={() => onConfigure(plugin.id)}
+                      >
+                        <SlidersHorizontal className="size-4" />
+                      </Button>
+                    )}
+                  </div>
                 </li>
               );
             })}

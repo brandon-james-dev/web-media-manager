@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Item } from "@/components/ui/item";
-import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus, SlidersHorizontal } from "lucide-react";
+import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus } from "lucide-react";
 import { useTheme, useVisualizer } from "@/hooks";
 import { clearLibrary } from "@/core/scanning";
 import { clearSubsonicSecrets } from "@/lib/sources/subsonic/subsonicSecrets";
@@ -50,6 +50,7 @@ export function Settings() {
   const isTv = useIsTv();
   const { setTheme, theme, accentColor, setAccentColor } = useTheme();
   const { setManagerOpen, setSettingsOpen } = useVisualizer();
+  const [settingsPluginId, setSettingsPluginId] = useState<string>();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -208,7 +209,7 @@ export function Settings() {
 
   return (
     <div className="h-full overflow-y-auto select-none">
-      <div className="max-w-2xl mx-auto p-2 md:p-8 space-y-2 md:space-y-8">
+      <div className="max-w-2xl mx-auto p-2 md:p-8 space-y-2 md:space-y-4">
       <div className="flex gap-3 items-center">
         {/* The anchor is not a stop: the button inside it is, so the focus ring
             follows the button's rounded corners instead of the link's square
@@ -265,10 +266,6 @@ export function Settings() {
             <Button onClick={handleSave} className="w-full">
               Save Settings
             </Button>
-            <Button variant="outline" onClick={() => setSettingsOpen(true)}>
-              <SlidersHorizontal />
-              Visualizer settings
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -282,7 +279,14 @@ export function Settings() {
         </CardHeader>
 
         <CardContent className="space-y-3">
-          <VisualizerSelector variant="list" className="max-h-80" />
+          <VisualizerSelector
+            variant="list"
+            className="max-h-80"
+            onConfigure={(pluginId) => {
+              setSettingsPluginId(pluginId);
+              setSettingsOpen(true);
+            }}
+          />
 
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={() => setManagerOpen(true)}>
@@ -292,7 +296,7 @@ export function Settings() {
           </div>
 
           <PluginManagerDialog />
-          <VisualizerSettings />
+          <VisualizerSettings pluginId={settingsPluginId} />
         </CardContent>
       </Card>
 
