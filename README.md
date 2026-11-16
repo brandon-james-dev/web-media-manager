@@ -1,6 +1,6 @@
 # Web Media Manager
 
-A modern web-based media management application focused on local media libraries, portable device synchronization, metadata management, and high-performance playback. 
+A modern web-based media management application focused on local media libraries, portable device synchronization, metadata management, and high-performance playback.
 
 ## Live Demo
 
@@ -12,14 +12,22 @@ Open it directly in your browser — no installation required.
 
 ## Features
 
-
 ### Library Management
 
 - Scan and import local media libraries
-- Organize music, albums, artists, and playlists
+- Organize music, albums, artists, genres, and playlists
 - Edit metadata and artwork
 - Fast client-side searching and filtering
 - Multi-column sorting and grouping
+- Shared search panel across playlists and the sync queue, grouping matches by genre, artist, album, then song
+
+### Music Sources
+
+- Local folder sources (File System Access API)
+- Subsonic-compatible servers, with credentials held in the secrets store
+- Sync devices exposed as browsable sources
+- Per-source capability flags (streaming, browsing, searching, metadata write, library scanning, offline, playlist write, sync write)
+- Background resync that keeps a source's library current without blocking the UI
 
 ### Playlist Management
 
@@ -27,14 +35,25 @@ Open it directly in your browser — no installation required.
 - Import playlists from supported devices
 - Smart playlist support
 - Playlist editing and track reordering
+- Drag and drop between the library and the sidebar
 
 ### Device Support
 
 - Classic iPod synchronization
+- Zune synchronization over MTPZ
+- Generic MTP / mass-storage devices
 - iTunesDB parsing and generation
 - Artwork database support
-- Device library inspection
+- Device library inspection, grouped by songs, albums, artists, genres, and playlists
 - Playlist and metadata synchronization
+- Per-track and multi-select removal from a device, behind a **Manage** toggle and a confirmation dialog
+
+### Offline Caching
+
+- Per-song audio cached in IndexedDB
+- Downloads run as a background job with batch progress
+- Offline state surfaced per row, per album ring, and in the sidebar queue
+- Local and sync-device songs count as available without a cache entry
 
 ### Audio Playback
 
@@ -43,6 +62,14 @@ Open it directly in your browser — no installation required.
 - Queue management
 - Volume and gain control
 - Efficient buffering and scheduling
+- Cache-first byte resolution for offline songs
+
+### Visualizers
+
+- Plugin system with ZIP installation
+- Canvas and shader runtime hosts
+- Per-plugin settings and file storage
+- Example visualizer seeded on first run
 
 ### Metadata
 
@@ -51,15 +78,29 @@ Open it directly in your browser — no installation required.
 - Automatic metadata parsing
 - Bulk metadata operations
 
+### Background Jobs
+
+Long-running work runs in a web worker pool and reports progress through notifications:
+
+```text
+Thumbnail Generation
+Bulk Import
+Bulk Edit
+Device Sync
+Device Remove
+Source Remove
+Offline Download
+```
+
 ## Architecture
 
 ```text
 Web Media Manager
 │
 ├── Application
-│   ├── React
+│   ├── React 19
 │   ├── TypeScript
-│   └── Vite
+│   └── Vite (vite-plus)
 │
 ├── Playback Engine
 │   ├── Web Audio API
@@ -70,18 +111,28 @@ Web Media Manager
 │   ├── Artists
 │   ├── Albums
 │   ├── Tracks
+│   ├── Genres
 │   └── Playlists
 │
+├── Music Sources
+│   ├── Local folder
+│   ├── Subsonic
+│   └── Sync device
+│
 ├── Device Support
-│   ├── iPod
-│   ├── iTunesDB
-│   ├── ArtworkDB
+│   ├── iPod (itunesdb-ts)
+│   ├── Zune (zunesync-ts)
+│   ├── MTP
 │   └── Sync Engine
 │
+├── Workers
+│   ├── Job pool
+│   └── Per-job strategies
+│
 └── Persistence
-    ├── Settings
-    ├── Metadata
-    └── Cache
+    ├── Dexie (wmm.music)
+    ├── Secrets
+    └── Settings
 ```
 
 ## Current Development Status
@@ -90,11 +141,12 @@ Web Media Manager
 
 ```text
 React application shell
-Library browsing
+Library browsing (songs, albums, artists, playlists)
 Track management
 Playlist management
 Search and filtering
 Sorting infrastructure
+Right sidebar for playlists and the sync queue
 ```
 
 ### Playback
@@ -105,12 +157,24 @@ Queue management
 Timing optimization
 Gain control
 Playback state management
+Buffering indicator
+```
+
+### Music Sources
+
+```text
+Local folder, Subsonic, and sync-device kinds
+Capability flags per source
+Silent startup resync
+Background refresh job
 ```
 
 ### Device Support
 
 ```text
 Classic iPod synchronization (nano 3G-7G, classic, photo, video, mini, shuffle, touch)
+Zune synchronization over MTPZ
+Generic MTP / mass-storage devices
 iTunesDB read/write — Apple-compatible 5-section layout (4,1,3,2,5)
 ArtworkDB read/write — per-format thumbnails (RGB565/RGB555/UYVY/I420)
 Device detection from SysInfo / model number / USB product id
@@ -120,7 +184,7 @@ Byte-preserving round-trips of Apple-accepted databases
 Browser + Node + Tauri runtimes (pure-ArrayBuffer core, pure-JS AES-ECB)
 ```
 
-The core library lives in `packages/itunesdb-ts` — parse/write iTunesDB
+The iPod core lives in `packages/itunesdb-ts` — parse/write iTunesDB
 and ArtworkDB, device detection, artwork processing, and the high-level
 `Itdb` sync engine. The app's sync flow (add device → scan → choose
 folder → sync songs → artwork + audio + DB in one transaction) is
@@ -145,6 +209,24 @@ Open item
     byte-level facts established so far.
 ```
 
+### Offline Caching
+
+```text
+Per-song cache in the offlineAudio table
+Worker download job with per-song batch progress
+Cache-first byte resolution during playback
+Offline state in the song table, album ring, and sidebar queue
+```
+
+### Visualizers
+
+```text
+ZIP plugin installation
+Canvas and shader runtime hosts
+Per-plugin settings and file records
+Example plugin seeded when the plugin is absent
+```
+
 ### Performance
 
 ```text
@@ -155,7 +237,27 @@ Stable object identity optimization
 React render reduction
 ```
 
+## Persistence
+
+The application database is Dexie-backed under the name `wmm.music`,
+currently at schema version 1:
+
+```text
+sources        songs          songArtwork    playlists
+jobs           playHistory    plugins        pluginFiles
+pluginSettings offlineAudio
+```
+
+The schema is edited in place while the application is unreleased — there
+are no migration steps. Changing a store definition requires deleting the
+`wmm.music` database so it is recreated at the new shape.
+
+Credentials are kept out of the application database and stored separately
+under the `wmm.secrets.<namespace>` naming convention.
+
 ## Development
+
+Requires Node 26 or newer.
 
 Install dependencies:
 
@@ -179,6 +281,12 @@ Run tests:
 
 ```bash
 npm test
+```
+
+Lint:
+
+```bash
+npm run lint
 ```
 
 ## Debugging
@@ -218,7 +326,6 @@ VS Code is configured to:
 
 ```text
 - Full iTunes-session sync handshake parity
-- Plugin architecture
 - Additional portable media devices
 - Enhanced metadata tools
 - Native application packaging
