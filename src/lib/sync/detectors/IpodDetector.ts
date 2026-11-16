@@ -229,16 +229,14 @@ export class IpodDetector implements DeviceDetector {
       console.warn("[IpodDetector] Could not measure used space:", err);
     }
 
-    // Capacity is nominal and decimal (Apple's 1 GB = 1e9 bytes), making it
-    // comparable with the byte counts above. `resolved` is the device
-    // SysInfo actually reported; `device` is the representative SKU inferred
-    // from the USB product ID, which only identifies the generation.
-    const capacityGB = resolved?.capacityGB ?? device.capacityGB;
-
+    // Capacity is deliberately left unset. The browser exposes no volume size
+    // for a directory handle, and the only capacity the device carries is
+    // derived from its model number — which names a generation, not the exact
+    // SKU, so it reports the representative capacity (8 GB for a 16 GB nano).
+    // A blank capacity is honest; a wrong one is not.
     const storage: SyncDevice["storage"] = {
       usedBytes,
-      capacityBytes:
-        capacityGB != null && capacityGB > 0 ? capacityGB * 1e9 : undefined,
+      capacityBytes: undefined,
     };
     //#endregion
 

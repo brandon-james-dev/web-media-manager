@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowDownToLine, Check, ListChecks, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,13 @@ interface SidebarSyncQueueProps {
    * queue is the drop target; the sync page has its own search to add songs.
    */
   showDropHint?: boolean;
+  /**
+   * Viewport rect of the device panel a synced track should fly to. Omitted in
+   * the sidebar, where the chip flies across the queue instead.
+   */
+  flightTarget?: () => DOMRect | null;
+  /** Called when a chip lands, so the device panel can splash. */
+  onFlightArrive?: (songId: string) => void;
 }
 
 /**
@@ -44,6 +52,8 @@ export function SidebarSyncQueue({
   deviceId,
   songs,
   showDropHint = true,
+  flightTarget,
+  onFlightArrive,
 }: SidebarSyncQueueProps) {
   const { nowPlaying } = usePlayback();
   const { isSyncing, syncProgress, cancelSync, syncedSongIds, syncCompleted } =
@@ -68,8 +78,21 @@ export function SidebarSyncQueue({
   const seenSynced = useRef<Set<string>>(new Set());
   const nextFlightKey = useRef(0);
   const [flights, setFlights] = useState<
-    { key: number; title: string; distance: number }[]
+    {
+      key: number;
+      songId: string;
+      title: string;
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+    }[]
   >([]);
+
+  // Read through refs: the effect keys off the synced ids, and a changing
+  // callback identity must not re-run it.
+  const flightTargetRef = useRef(flightTarget);
+  flightTargetRef.current = flightTarget;
+  const onFlightArriveRef = useRef(onFlightArrive);
+  onFlightArriveRef.current = onFlightArrive;
 
   useEffect(() => {
     const arrived = syncedSongIds.filter((id) => !seenSynced.current.has(id));
@@ -77,14 +100,29 @@ export function SidebarSyncQueue({
 
     if (arrived.length === 0) return;
 
-    const distance = rootRef.current?.clientWidth ?? 320;
+    const rootRect = rootRef.current?.getBoundingClientRect();
+    if (!rootRect) return;
+
+    // Fly to the device card when one is given, otherwise across the queue
+    // itself — the sidebar has no device panel to land on.
+    const target = flightTargetRef.current?.() ?? null;
+
+    const from = { x: rootRect.left + 8, y: rootRect.bottom - 32 };
+    const to = target
+      ? {
+          x: target.left + target.width / 2,
+          y: target.top + target.height / 2,
+        }
+      : { x: rootRect.right - 80, y: rootRect.bottom - 32 };
 
     setFlights((current) => [
       ...current,
       ...arrived.map((id) => ({
         key: nextFlightKey.current++,
+        songId: id,
         title: songs.find((song) => song.id === id)?.title ?? "Track",
-        distance,
+        from,
+        to,
       })),
     ]);
   }, [syncedSongIds, songs]);
@@ -306,37 +344,46 @@ export function SidebarSyncQueue({
         </ScrollArea>
       </SidebarDropZone>
 
-      {/* Handoff: a chip per newly synced track flies out of the queue toward
-          the device panel, so the transfer is visible rather than instant. */}
-      <AnimatePresence>
-        {flights.map((flight) => (
-          <motion.div
-            key={flight.key}
-            className="pointer-events-none absolute bottom-3 left-2 z-10 flex max-w-[60%] items-center gap-1.5 rounded-full border bg-popover px-2.5 py-1 text-xs shadow-lg"
-            initial={{ x: 0, opacity: 0, scale: 0.9 }}
-            animate={{
-              x: flight.distance - 80,
-              opacity: [0, 1, 1, 0],
-              scale: [0.9, 1, 1, 0.95],
-            }}
-            exit={{ opacity: 0 }}
-            transition={{
-              duration: 1.1,
-              ease: "easeInOut",
-              times: [0, 0.15, 0.75, 1],
-            }}
-            onAnimationComplete={() =>
-              setFlights((current) =>
-                current.filter((entry) => entry.key !== flight.key)
-              )
-            }
-          >
-            <Check className="size-3 shrink-0 text-accent" />
+      {/* Handoff: a chip per newly synced track flies out of the queue and
+          lands on the device panel, so the transfer is visible rather than
+          instant. Portalled to the body: the queue sits inside an
+          overflow-hidden card, which would clip a chip crossing into the
+          device column. */}
+      {createPortal(
+        <AnimatePresence>
+          {flights.map((flight) => (
+            <motion.div
+              key={flight.key}
+              className="pointer-events-none fixed z-50 flex max-w-[60%] items-center gap-1.5 rounded-full border bg-popover px-2.5 py-1 text-xs shadow-lg"
+              style={{ left: flight.from.x, top: flight.from.y }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{
+                x: flight.to.x - flight.from.x,
+                y: flight.to.y - flight.from.y,
+                opacity: [0, 1, 1, 0],
+                scale: [0.9, 1, 1, 0.9],
+              }}
+              exit={{ opacity: 0 }}
+              transition={{
+                duration: 1.1,
+                ease: "easeInOut",
+                times: [0, 0.15, 0.75, 1],
+              }}
+              onAnimationComplete={() => {
+                setFlights((current) =>
+                  current.filter((entry) => entry.key !== flight.key)
+                );
+                onFlightArriveRef.current?.(flight.songId);
+              }}
+            >
+              <Check className="size-3 shrink-0 text-accent" />
 
-            <span className="truncate">{flight.title}</span>
-          </motion.div>
-        ))}
-      </AnimatePresence>
+              <span className="truncate">{flight.title}</span>
+            </motion.div>
+          ))}
+        </AnimatePresence>,
+        document.body
+      )}
 
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
         <DialogContent className="sm:max-w-sm">

@@ -111,4 +111,15 @@ describe("IpodDetector", () => {
     expect(fakeItdb.db.tracks).toHaveLength(0);
     expect(fakeItdb.db.playlists).toHaveLength(0);
   });
+
+  it("leaves capacity unset and still measures used space", async () => {
+    // The browser cannot read a volume size, and the model number only names a
+    // generation, so capacity is deliberately blank rather than guessed.
+    const device = await new IpodDetector().detect(fakeRoot(), {
+      productId: 0x1261,
+      serialNumber: "000A27001B2C3D4E",
+    } as never);
+
+    expect(device!.storage?.capacityBytes).toBeUndefined();
+  });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { uuidv7 } from "uuidv7";
 import {
   Check,
@@ -28,6 +28,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
   //#region State
   const { devices, addDevice, queuedSongs, syncedSongIds, syncCompleted } =
     useSync();
+  const { refreshDevices } = useSync();
   const { songs } = useSongs();
   const { offlineSongIds } = useOfflineSongs();
   const sourceKinds = useSourceKinds();
@@ -43,6 +44,26 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
   const [orchestrator] = useState(
     () => new DevicePromptOrchestrator(addDevice)
   );
+
+  // The device card a synced track flies onto, and a counter bumped on each
+  // landing so the card can splash. The refresh runs once per completed run,
+  // after the last chip lands, so the contents match what was written.
+  const deviceCardRef = useRef<HTMLDivElement>(null);
+  const [splashToken, setSplashToken] = useState(0);
+  const refreshedRun = useRef(false);
+
+  const handleFlightArrive = useCallback(() => {
+    setSplashToken((current) => current + 1);
+
+    if (!syncCompleted || refreshedRun.current) return;
+
+    refreshedRun.current = true;
+    void refreshDevices().catch(() => undefined);
+  }, [syncCompleted, refreshDevices]);
+
+  useEffect(() => {
+    if (!syncCompleted) refreshedRun.current = false;
+  }, [syncCompleted]);
 
   // A song can only be queued when its bytes are reachable offline: local and
   // sync-device sources are always on disk, remote sources only once cached.
@@ -515,7 +536,9 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
             key={device.id}
             className="grid min-h-0 flex-1 items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]"
           >
-            <SyncDeviceCard device={device} />
+            <div ref={deviceCardRef} className="flex min-h-0 flex-col">
+              <SyncDeviceCard device={device} splashToken={splashToken} />
+            </div>
 
             <Card className="h-full min-h-0 pt-0">
               <CardHeader className="rounded-t-xl border-b bg-muted/50 py-2.5">
@@ -635,6 +658,10 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
                     deviceId={device.id}
                     songs={queuedSongs}
                     showDropHint={false}
+                    flightTarget={() =>
+                      deviceCardRef.current?.getBoundingClientRect() ?? null
+                    }
+                    onFlightArrive={handleFlightArrive}
                   />
                 </div>
               </CardContent>
