@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { ArrowDownToLine, Check, ListChecks, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,11 @@ interface SidebarSyncQueueProps {
   /** The device the queue will be written to; also the drop target id. */
   deviceId: string;
   songs: Song[];
+  /**
+   * Show the empty-state drop hint. Only meaningful in the sidebar, where the
+   * queue is the drop target; the sync page has its own search to add songs.
+   */
+  showDropHint?: boolean;
 }
 
 /**
@@ -34,7 +40,11 @@ interface SidebarSyncQueueProps {
  * The whole list is the drop target, so a track dragged from the library
  * anywhere over it is queued.
  */
-export function SidebarSyncQueue({ deviceId, songs }: SidebarSyncQueueProps) {
+export function SidebarSyncQueue({
+  deviceId,
+  songs,
+  showDropHint = true,
+}: SidebarSyncQueueProps) {
   const { nowPlaying } = usePlayback();
   const { isSyncing, syncProgress, cancelSync, syncedSongIds, syncCompleted } =
     useSync();
@@ -51,6 +61,33 @@ export function SidebarSyncQueue({ deviceId, songs }: SidebarSyncQueueProps) {
   const dragNotOffline = draggedSongIds.some((id) => !offlineSongIds.has(id));
 
   const synced = useMemo(() => new Set(syncedSongIds), [syncedSongIds]);
+
+  // Tracks that just landed on the device, animated flying out of the queue
+  // toward the device panel. Each chip removes itself when its flight ends.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const seenSynced = useRef<Set<string>>(new Set());
+  const nextFlightKey = useRef(0);
+  const [flights, setFlights] = useState<
+    { key: number; title: string; distance: number }[]
+  >([]);
+
+  useEffect(() => {
+    const arrived = syncedSongIds.filter((id) => !seenSynced.current.has(id));
+    seenSynced.current = new Set(syncedSongIds);
+
+    if (arrived.length === 0) return;
+
+    const distance = rootRef.current?.clientWidth ?? 320;
+
+    setFlights((current) => [
+      ...current,
+      ...arrived.map((id) => ({
+        key: nextFlightKey.current++,
+        title: songs.find((song) => song.id === id)?.title ?? "Track",
+        distance,
+      })),
+    ]);
+  }, [syncedSongIds, songs]);
 
   // Total size of the queued tracks, shown beside the count so the panel says
   // how much will be written to the device.
@@ -87,7 +124,7 @@ export function SidebarSyncQueue({ deviceId, songs }: SidebarSyncQueueProps) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div ref={rootRef} className="relative flex h-full min-h-0 flex-col">
       <div className="flex items-center gap-1 border-b px-2 py-1.5">
         {isSyncing && syncProgress ? (
           // The sync button's space becomes the progress readout, and the
@@ -260,7 +297,7 @@ export function SidebarSyncQueue({ deviceId, songs }: SidebarSyncQueueProps) {
               );
             })}
 
-            {songs.length === 0 && (
+            {songs.length === 0 && showDropHint && (
               <div className="mx-1 rounded-md px-2 py-3 text-center text-xs text-muted-foreground">
                 Drop tracks here to queue them
               </div>
@@ -269,8 +306,40 @@ export function SidebarSyncQueue({ deviceId, songs }: SidebarSyncQueueProps) {
         </ScrollArea>
       </SidebarDropZone>
 
+      {/* Handoff: a chip per newly synced track flies out of the queue toward
+          the device panel, so the transfer is visible rather than instant. */}
+      <AnimatePresence>
+        {flights.map((flight) => (
+          <motion.div
+            key={flight.key}
+            className="pointer-events-none absolute bottom-3 left-2 z-10 flex max-w-[60%] items-center gap-1.5 rounded-full border bg-popover px-2.5 py-1 text-xs shadow-lg"
+            initial={{ x: 0, opacity: 0, scale: 0.9 }}
+            animate={{
+              x: flight.distance - 80,
+              opacity: [0, 1, 1, 0],
+              scale: [0.9, 1, 1, 0.95],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: 1.1,
+              ease: "easeInOut",
+              times: [0, 0.15, 0.75, 1],
+            }}
+            onAnimationComplete={() =>
+              setFlights((current) =>
+                current.filter((entry) => entry.key !== flight.key)
+              )
+            }
+          >
+            <Check className="size-3 shrink-0 text-accent" />
+
+            <span className="truncate">{flight.title}</span>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Clear the synced queue?</DialogTitle>
             <DialogDescription>

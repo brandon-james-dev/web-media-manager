@@ -7,7 +7,6 @@ import {
   Pen,
   Play,
   Plus,
-  Search,
   Shuffle,
   Trash2,
 } from "lucide-react";
@@ -41,6 +40,7 @@ import {
 } from "@/core/playlists";
 import { isPlaylistReadOnly } from "@/core/playlists";
 import { wmmBus } from "@/events";
+import { SongSearchPanel } from "@/components/song-search";
 import { useShufflePlay, useSongs } from "@/hooks";
 import { useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router";
 import type { MainContext } from "./MainLayout";
@@ -309,12 +309,87 @@ export function Playlists({
       .filter(
         (song) =>
           !inPlaylist.has(song.id) &&
-          [song.title, song.artist, song.album, song.albumArtist].some((f) =>
-            f?.toLowerCase().includes(q)
+          [song.title, song.artist, song.album, song.albumArtist, song.genre].some(
+            (f) => f?.toLowerCase().includes(q)
           )
       )
       .slice(0, 50);
   }, [addQuery, songs, tracks]);
+
+  // Artists and albums whose name matches, so a whole record can be added
+  // without typing every track title. Mirrors the sync queue's add-search.
+  const addArtistResults = useMemo(() => {
+    const q = addQuery.trim().toLowerCase();
+    if (!q) return [];
+    const counts = new Map<string, number>();
+    for (const song of songs) {
+      const artist = song.albumArtist || song.artist;
+      if (!artist || !artist.toLowerCase().includes(q)) continue;
+      counts.set(artist, (counts.get(artist) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([name, trackCount]) => ({ name, trackCount }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 10);
+  }, [addQuery, songs]);
+
+  const addAlbumResults = useMemo(() => {
+    const q = addQuery.trim().toLowerCase();
+    if (!q) return [];
+    const counts = new Map<string, { artist?: string; trackCount: number }>();
+    for (const song of songs) {
+      if (!song.album || !song.album.toLowerCase().includes(q)) continue;
+      const key = `${song.albumArtist ?? song.artist ?? ""}|${song.album}`;
+      const existing = counts.get(key);
+      if (existing) existing.trackCount++;
+      else
+        counts.set(key, {
+          artist: song.albumArtist ?? song.artist,
+          trackCount: 1,
+        });
+    }
+    return [...counts.entries()]
+      .map(([key, value]) => ({
+        key,
+        album: key.split("|")[1] ?? "",
+        artist: value.artist,
+        trackCount: value.trackCount,
+      }))
+      .sort((a, b) => a.album.localeCompare(b.album))
+      .slice(0, 10);
+  }, [addQuery, songs]);
+
+  // Every library song by an artist, or on an album, so one click adds the
+  // whole group.
+  function songIdsForArtist(artist: string): string[] {
+    return songs
+      .filter((song) => (song.albumArtist || song.artist) === artist)
+      .map((song) => song.id);
+  }
+
+  function songIdsForAlbum(album: string, artist?: string): string[] {
+    return songs
+      .filter(
+        (song) =>
+          song.album === album &&
+          (song.albumArtist ?? song.artist) === artist
+      )
+      .map((song) => song.id);
+  }
+
+  const addGenreResults = useMemo(() => {
+    const q = addQuery.trim().toLowerCase();
+    if (!q) return [];
+    const counts = new Map<string, number>();
+    for (const song of songs) {
+      if (!song.genre || !song.genre.toLowerCase().includes(q)) continue;
+      counts.set(song.genre, (counts.get(song.genre) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([name, trackCount]) => ({ name, trackCount }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 10);
+  }, [addQuery, songs]);
 
   // The editor dock's prev/next walks the open playlist's tracks. The dock
   // portals elsewhere, so the page hands it the list via the nav context;
@@ -791,62 +866,45 @@ export function Playlists({
 
             {!selectedReadOnly && (
               <div className={cn("shrink-0 pb-2", isCompact ? "px-3" : "px-5")}>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={addQuery}
-                    onChange={(event) => setAddQuery(event.target.value)}
-                    placeholder="Search songs to add"
-                    aria-label="Search songs to add"
-                    className="pl-8"
-                  />
-                </div>
+                <SongSearchPanel
+                  className="max-w-md"
+                  query={addQuery}
+                  onQueryChange={setAddQuery}
+                  title="Add to playlist"
+                  ariaLabel="Search songs to add"
+                  songs={addResults}
+                  artists={addArtistResults}
+                  albums={addAlbumResults}
+                  genres={addGenreResults}
+                  onAddSong={(song) =>
+                    void addSongsToPlaylist(selected.id, [song.id])
+                  }
+                  onAddGenre={(genre) =>
+                    void addSongsToPlaylist(
+                      selected.id,
+                      songs
+                        .filter((song) => song.genre === genre.name)
+                        .map((song) => song.id)
+                    )
+                  }
+                  onAddArtist={(artist) =>
+                    void addSongsToPlaylist(
+                      selected.id,
+                      songIdsForArtist(artist.name)
+                    )
+                  }
+                  onAddAlbum={(album) =>
+                    void addSongsToPlaylist(
+                      selected.id,
+                      songIdsForAlbum(album.album, album.artist)
+                    )
+                  }
+                />
               </div>
             )}
 
             <ScrollArea className="flex-1 min-h-0">
               <div className={cn("pb-6", isCompact ? "px-3" : "px-5")}>
-                {!selectedReadOnly && addQuery.trim() && (
-                  <section className="mb-4 rounded-lg border border-primary/30 bg-primary/5 px-3 pb-1 pt-2">
-                    <div className="flex items-center justify-between pb-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                      <span>Add to playlist</span>
-                      <span>
-                        {addResults.length === 50 ? "50+" : addResults.length}{" "}
-                        {addResults.length === 1 ? "match" : "matches"}
-                      </span>
-                    </div>
-                    <ItemGroup className="gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0! divide-y divide-border">
-                      {addResults.map((song) => (
-                        <div key={song.id} className="flex items-center">
-                          <TrackItem
-                            song={song}
-                            size="sm"
-                            hideNumber
-                            onPlay={playTrack}
-                            className="min-w-0 flex-1"
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="shrink-0 mr-1"
-                            title="Add to playlist"
-                            onClick={() =>
-                              void addSongsToPlaylist(selected.id, [song.id])
-                            }
-                          >
-                            <Plus />
-                          </Button>
-                        </div>
-                      ))}
-                      {addResults.length === 0 && (
-                        <div className="py-10 text-center text-sm text-muted-foreground">
-                          No matching songs to add
-                        </div>
-                      )}
-                    </ItemGroup>
-                  </section>
-                )}
-
                 <>
                   {addQuery.trim() && (
                     <div className="pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

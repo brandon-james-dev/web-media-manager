@@ -35,6 +35,20 @@ function subscribe(onChange: () => void): () => void {
   if (!started) {
     started = true;
     void reload();
+
+    // A source added, removed or cleared after the first load must refresh the
+    // map: a local folder picked mid-session otherwise had no kind, so its
+    // songs fell through to the download button instead of the offline tick.
+    try {
+      const store = getSourcesStore();
+      const refresh = () => void reload();
+
+      store.onSourceAdded(refresh);
+      store.onSourceDeleted(refresh);
+      store.onSourcesCleared(refresh);
+    } catch {
+      // No provider registered yet (tests, non-browser): the first load stands.
+    }
   }
 
   return () => {

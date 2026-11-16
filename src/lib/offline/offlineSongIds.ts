@@ -87,6 +87,23 @@ export function onOfflineSongIdsChanged(listener: () => void): () => void {
     });
   });
 
+  // A source added mid-session brings songs that are already on disk, so the
+  // snapshot has to be rebuilt or those songs read as unavailable.
+  void import("@/core/ports").then(({ getSourcesStore }) => {
+    if (cancelled) return;
+
+    try {
+      const store = getSourcesStore();
+      const refresh = () => void reloadOfflineSongIds();
+
+      store.onSourceAdded(refresh);
+      store.onSourceDeleted(refresh);
+      store.onSourcesCleared(refresh);
+    } catch {
+      // No provider registered yet: the cache subscription still covers writes.
+    }
+  });
+
   return () => {
     cancelled = true;
     subscribers.delete(listener);

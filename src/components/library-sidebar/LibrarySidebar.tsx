@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useSync } from "@/hooks";
 import { ListMusic, MonitorSmartphone, X } from "lucide-react";
 import { Playlists } from "@/pages/Main/Playlists";
 import { Sync } from "@/pages/Main/Sync";
-import { useSidebarPlaylists } from "./useSidebarPlaylists";
 import { SidebarPlaylistTracks } from "./SidebarPlaylistTracks";
 
 /** Which compact view the sidebar is showing. */
@@ -18,16 +16,13 @@ interface LibrarySidebarProps {
 /**
  * The right sidebar: the playlists or sync page in its compact form.
  *
- * The chrome (title, count, close) lives here; the list itself is the page's
+ * The chrome (title, close) lives here; the list itself is the page's
  * own compact variant, so the sidebar and the full page never drift apart.
  */
 export function LibrarySidebar({ view, onClose }: LibrarySidebarProps) {
   const [openPlaylistId, setOpenPlaylistId] = useState<string>();
-  const playlists = useSidebarPlaylists();
-  const { devices } = useSync();
 
   const isPlaylists = view === "playlists";
-  const count = isPlaylists ? playlists.length : devices.length;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -39,9 +34,6 @@ export function LibrarySidebar({ view, onClose }: LibrarySidebarProps) {
         )}
         <span className="flex-1 truncate text-sm font-semibold">
           {isPlaylists ? "Playlists" : "Sync"}
-        </span>
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-          {count}
         </span>
         <Button
           size="icon"

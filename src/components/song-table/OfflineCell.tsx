@@ -1,13 +1,22 @@
-import { Check, Download, HardDriveDownload, Loader2 } from "lucide-react";
-import { useMemo, useState } from "react";
-import {
-  useOfflineDownloads,
-  useOfflineSongs,
-  useSourceKinds,
-} from "@/hooks";
-import { cacheSongOffline, isAlwaysOfflineKind, removeSongOffline } from "@/lib/offline";
-import { toast } from "@/components/ui/toast";
+import { Check } from "lucide-react";
+import { useSourceKinds } from "@/hooks";
+import { isAlwaysOfflineKind } from "@/lib/offline";
 import type { Song } from "@/models";
+import { OfflineDownloadButton } from "./OfflineDownloadButton";
+
+interface OfflineCellProps {
+  /** The row's song; its cached state drives the icon. */
+  song: Song;
+  /**
+   * Songs to cache when the button is pressed. Defaults to `song`; pass a
+   * group to download an artist or an album in one batch.
+   */
+  songs?: Song[];
+  /** Batch id the download reports progress under. */
+  batchId?: string;
+  /** What is being downloaded, for the title and the failure toast. */
+  label?: string;
+}
 
 /**
  * The Offline column's cell: shows whether a song's audio is cached and
@@ -18,32 +27,11 @@ import type { Song } from "@/models";
  * songs show a plain tick: there is nothing to download and nothing to
  * remove, and the cell is not a button.
  */
-export function OfflineCell({ song }: { song: Song }) {
-  const { offlineSongIds } = useOfflineSongs();
+export function OfflineCell({ song, songs, batchId, label }: OfflineCellProps) {
   const sourceKinds = useSourceKinds();
-  const batches = useOfflineDownloads();
-  const [busy, setBusy] = useState(false);
-
   const kind = sourceKinds.get(song.sourceId);
-  const alwaysOffline = isAlwaysOfflineKind(kind);
 
-  const cached = offlineSongIds.has(song.id);
-
-  // A download started anywhere — this cell, the context menu, an album — puts
-  // the song in a running batch, so the spinner follows the work rather than
-  // only this button's own click.
-  const downloading = useMemo(() => {
-    for (const batch of batches.values()) {
-      if (batch.state !== "running") continue;
-      if (!batch.songIds.includes(song.id)) continue;
-      if (!batch.doneIds.includes(song.id)) return true;
-    }
-    return false;
-  }, [batches, song.id]);
-
-  const pending = busy || downloading;
-
-  if (alwaysOffline) {
+  if (isAlwaysOfflineKind(kind)) {
     return (
       <span
         className="inline-flex h-6 w-6 items-center justify-center text-accent"
@@ -55,46 +43,12 @@ export function OfflineCell({ song }: { song: Song }) {
     );
   }
 
-  async function toggle(): Promise<void> {
-    if (busy) return;
-    setBusy(true);
-
-    try {
-      if (cached) {
-        await removeSongOffline(song.id);
-      } else {
-        await cacheSongOffline(song);
-      }
-    } catch {
-      toast.add({
-        type: "error",
-        title: cached ? "Could not remove download" : "Could not cache song",
-        description: song.title ?? song.filename,
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
-    <button
-      type="button"
-      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent/15 hover:text-foreground"
-      onClick={(event) => {
-        event.stopPropagation();
-        void toggle();
-      }}
-      title={cached ? "Remove download" : "Make available offline"}
-      aria-label={cached ? "Remove download" : "Make available offline"}
-      aria-pressed={cached}
-    >
-      {pending ? (
-        <Loader2 size={14} className="animate-spin" />
-      ) : cached ? (
-        <HardDriveDownload size={14} className="text-accent" />
-      ) : (
-        <Download size={14} />
-      )}
-    </button>
+    <OfflineDownloadButton
+      song={song}
+      songs={songs}
+      batchId={batchId}
+      label={label}
+    />
   );
 }
