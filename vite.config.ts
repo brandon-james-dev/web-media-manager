@@ -114,12 +114,6 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(import.meta.dirname, "./src"),
-        // The Zune package is a workspace folder, not an installed dependency,
-        // so Vite needs the same path mapping the tsconfigs declare.
-        "zunesync-ts": path.resolve(
-          import.meta.dirname,
-          "./packages/zunesync-ts/src/index.ts"
-        ),
       },
     },
   };
