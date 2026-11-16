@@ -29,6 +29,7 @@ const h = vi.hoisted(() => ({
     albumArtwork: {} as Record<number, Uint8Array | undefined>,
     objectStrings: {} as Record<string, string>,
     objectStringReads: 0,
+    objectInfoHandles: [] as number[],
     objectProps: {} as Record<string, number>,
   },
 }));
@@ -59,6 +60,7 @@ vi.mock("zunesync-ts", () => {
       if (h.state.atomIdsAreHandles === false && handle < 0x1000) {
         throw new Error("Invalid object handle");
       }
+      h.state.objectInfoHandles.push(handle);
       return {
         storageId: 0x00010001,
         objectFormat: 0x3009,
@@ -562,6 +564,54 @@ describe("ZuneDetector", () => {
     const artwork = device?.media.tracks[0].artwork;
     expect(artwork).toBeInstanceOf(Blob);
     expect(artwork?.size).toBe(4);
+  });
+
+  /**
+   * An album with no artwork must not trigger a per-handle `GetObjectInfo`
+   * sweep over album objects.
+   *
+   * That fallback matched albums by filename, but a Zune 120 does not answer
+   * `GetObjectInfo` for album handles: each call burned the full 15 s timeout
+   * and wedged the session, so the rest failed with GenericFailure. Measured on
+   * hardware with 14 tracks and 12 albums: 70453 ms per scan, 68 s of it four
+   * timed-out album reads. Without the sweep the same scan takes 2239 ms.
+   */
+  it("does not probe album handles when an album has no artwork", async () => {
+    h.state.library = {
+      ...h.state.library,
+      albums: {
+        5: {
+          atomId: 5,
+          artistRef: 0,
+          title: "Human Clay",
+          artistName: "Creed",
+          releaseYear: 1999,
+          filename: "Creed--Human Clay.alb",
+        },
+      },
+      tracks: [
+        {
+          atomId: 7,
+          title: "Higher",
+          artist: "Creed",
+          album: "Human Clay",
+          genre: "Rock",
+          trackNumber: 1,
+          discNumber: 1,
+          duration: 240_000,
+          size: 5_242_880,
+          filename: "Higher.mp3",
+        },
+      ],
+    };
+    // No artwork for album 5, so the album stays unresolved.
+    h.state.albumArtwork = {};
+    h.state.objectInfoHandles = [];
+
+    const device = await new ZuneDetector().detect(undefined, zuneUsb);
+
+    expect(device?.media.tracks[0].artwork).toBeUndefined();
+    expect(h.state.objectInfoHandles).not.toContain(5);
   });
 
   /**

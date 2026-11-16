@@ -395,35 +395,14 @@ async function readAlbumArtwork(
 
   if (unresolved.length === 0) return byAlbum;
 
-  try {
-    const handles = await zune.listObjects(0xba03, 0);
-    const byFilename = new Map<string, number>();
-
-    await Promise.all(
-      handles.map(async (handle) => {
-        try {
-          const info = await zune.getObjectInfo(handle);
-          if (info.filename) byFilename.set(info.filename, handle);
-        } catch {
-          // A handle that cannot be read is simply not in the map.
-        }
-      })
-    );
-
-    await Promise.all(
-      unresolved.map(async ({ title, filename }) => {
-        const handle = byFilename.get(filename);
-        if (handle === undefined) return;
-        const data = await zune.readAlbumArtwork(handle);
-        if (data) {
-          byAlbum.set(title, new Blob([new Uint8Array(data)], { type: "image/jpeg" }));
-        }
-      })
-    );
-  } catch (error) {
-    console.warn("[ZuneDetector] could not read album artwork:", error);
-  }
-
+  // No fallback by filename. Resolving an unresolved album meant calling
+  // `GetObjectInfo` on every album handle from `listObjects(0xba03, 0)`, and a
+  // Zune 120 does not answer that for album objects: each call burned the full
+  // 15 s timeout and then wedged the session, so the remaining calls failed
+  // with GenericFailure. Measured on hardware with 14 tracks and 12 albums:
+  // 70453 ms for a full scan, of which 68 s was four timed-out album reads.
+  // The primary pass above already reads artwork from every album's own
+  // handle, so an album missing there simply has no artwork on the device.
   return byAlbum;
 }
 
