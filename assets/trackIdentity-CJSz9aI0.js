@@ -1,0 +1,1 @@
+function e(e,t,n){return[e??``,t??``,n??``].join(`\0`)}function t(t){return e(t.title,t.album,t.artist)}function n(t){let n=new Set;for(let r of t?.media?.tracks??[])n.add(e(r.title,r.album,r.artist));return n}function r(e,n){return n.has(t(e))}function i(e,t){return t.length>0&&t.every(t=>r(e,t))}export{e as i,i as n,t as r,n as t};
