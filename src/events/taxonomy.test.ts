@@ -4,6 +4,7 @@ import {
   WMM_EVENTS,
   WMM_COMMAND_NAMES,
   WMM_EVENT_NAMES,
+  WMM_THEME_COMMANDS,
   isWmmCommand,
   isWmmEvent,
 } from "./taxonomy";
@@ -52,5 +53,23 @@ describe("taxonomy", () => {
     for (const name of WMM_EVENT_NAMES) {
       expect(name).toMatch(scheme);
     }
+  });
+});
+
+describe("WMM_THEME_COMMANDS", () => {
+  it("only lists real commands", () => {
+    for (const name of Object.keys(WMM_THEME_COMMANDS)) {
+      expect(isWmmCommand(name)).toBe(true);
+    }
+  });
+
+  it("declares seekBy's integer delta domain", () => {
+    expect(WMM_THEME_COMMANDS["wmm.playback.seekBy"]?.parameter).toEqual({
+      kind: "integer",
+      field: "deltaSeconds",
+      min: -300,
+      max: 300,
+      nonZero: true,
+    });
   });
 });

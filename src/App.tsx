@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router";
+import { Routes, Route, useNavigate } from "react-router";
 import {
   Songs,
   Albums,
@@ -67,6 +67,15 @@ import.meta.hot?.dispose(disconnectCommandDispatch);
  * The root route: a television gets the tile grid, everything else the song
  * list. A TV has no persistent navigation, so its home screen is the map.
  */
+const NAVIGATE_PATHS: Readonly<Record<string, string>> = {
+  songs: "/songs",
+  albums: "/albums",
+  artists: "/artists",
+  playlists: "/playlists",
+  sync: "/sync",
+  settings: "/settings",
+};
+
 function HomeRoute() {
   const isTv = useIsTv();
   return isTv ? <TvHome /> : <Songs />;
@@ -125,6 +134,26 @@ function App() {
       offCmd();
     };
   });
+
+  const navigate = useNavigate();
+  useEffect(() => {
+    const offSettings = wmmBus.onCommand("wmm.ui.openSettings", () =>
+      navigate("/settings")
+    );
+    const offNavigate = wmmBus.onCommand("wmm.ui.navigate", (payload) => {
+      const path = payload ? NAVIGATE_PATHS[payload.page] : undefined;
+      if (!path) {
+        console.warn(`[wmm.ui.navigate] Unknown page "${payload?.page}"`);
+        return;
+      }
+      navigate(path);
+    });
+
+    return () => {
+      offSettings();
+      offNavigate();
+    };
+  }, [navigate]);
 
   return (
     <ThemeProvider>

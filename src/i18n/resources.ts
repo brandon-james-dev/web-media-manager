@@ -152,6 +152,7 @@ export const WMM_RESOURCES = {
   "common.moreActions": text("Opens a menu of further actions for a row."),
   "common.moreOptions": text("Opens a menu of alternative options for a button."),
   "common.clickToSelect": text("Invites the user to pick a file."),
+  "common.fullScreen": text("Enters the full screen view."),
   "common.exitFullScreen": text("Leaves the full screen view."),
   "common.unknownArtist": text("Stand-in artist name for a track with no artist tag."),
   "common.back": text("Returns to the previous step of a flow."),
@@ -192,6 +193,20 @@ export const WMM_RESOURCES = {
   "playback.playPreview": text("Starts the short preview of the edited song."),
   "playback.pausePreview": text("Pauses the short preview of the edited song."),
   "playback.section": text("Heading of the playback actions in the song menu."),
+  "playback.lyrics": text("Lyrics panel of the now playing view."),
+  "playback.hidePanel": template("Hides the named now playing panel.", ["panel"]),
+  "playback.darkRoom": text("Dark room mode of the now playing view."),
+  "playback.lightsOn": text("Leaves dark room mode."),
+  "playback.noLyrics": text("Shown when the current song has no lyrics."),
+  "playback.queueHeading": plural(
+    "Heading of the now playing queue, naming how many songs it holds.",
+    ["count"]
+  ),
+  "playback.playlist": text("The playback queue popover."),
+  "playback.playlistHeading": plural(
+    "Heading of the queue popover, naming how many songs it holds.",
+    ["count"]
+  ),
 
   // library
   "library.artists": text("Artists in the library."),
@@ -446,6 +461,15 @@ export const WMM_RESOURCES = {
   ),
   "visualizer.noneInstalled": text(
     "Shown when no visualizer plugin is installed."
+  ),
+  "visualizer.noVisualizerInstalled": text(
+    "Shown in the visualizer host when no plugin is installed."
+  ),
+  "visualizer.installVisualizer": text(
+    "Opens the plugin manager to install a visualizer."
+  ),
+  "visualizer.loadingVisualizer": text(
+    "Shown while the visualizer plugin is loading."
   ),
   "visualizer.unknownAuthor": text(
     "Stand-in author name for a plugin without one."

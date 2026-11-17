@@ -22,6 +22,7 @@ common.reset,Restablecer
 common.moreActions,Más acciones
 common.moreOptions,Más opciones
 common.clickToSelect,Haz clic para elegir
+common.fullScreen,Pantalla completa
 common.exitFullScreen,Salir de pantalla completa
 common.unknownArtist,Artista desconocido
 common.back,Atrás
@@ -57,6 +58,18 @@ playback.addToQueue,Agregar a la cola
 playback.playPreview,Reproducir vista previa
 playback.pausePreview,Pausar vista previa
 playback.section,Reproducción
+playback.lyrics,Letra
+playback.hidePanel,Ocultar {0}
+playback.darkRoom,Cuarto oscuro
+playback.lightsOn,Encender las luces
+playback.noLyrics,Esta canción no tiene letra.
+playback.queueHeadingOne,Cola — {0} canción
+playback.queueHeadingMany,Cola — {0} canciones
+playback.queueHeadingOther,Cola — {0} canciones
+playback.playlist,Lista de reproducción
+playback.playlistHeadingOne,Lista de reproducción - {0} canción
+playback.playlistHeadingMany,Lista de reproducción - {0} canciones
+playback.playlistHeadingOther,Lista de reproducción - {0} canciones
 library.artists,Artistas
 library.albums,Álbumes
 library.songs,Canciones
@@ -204,6 +217,9 @@ visualizer.search,Buscar visualizadores
 visualizer.loadingPlugins,Cargando complementos...
 visualizer.noMatches,Ningún visualizador coincide con esta búsqueda.
 visualizer.noneInstalled,Aún no hay visualizadores instalados.
+visualizer.noVisualizerInstalled,No hay ningún visualizador instalado.
+visualizer.installVisualizer,Instalar un visualizador
+visualizer.loadingVisualizer,Cargando visualizador…
 visualizer.unknownAuthor,Autor desconocido
 visualizer.configureNamed,Configurar {0}
 visualizer.pluginsTitle,Complementos de visualizadores

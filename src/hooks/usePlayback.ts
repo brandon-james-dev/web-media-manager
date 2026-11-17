@@ -1,20 +1,6 @@
-import type { Song } from "@/models";
+import { RepeatState, ShuffleState, type Song } from "@/models";
 import { createContext, useContext } from "react";
 
-type RepeatState = "Off" | "One" | "All";
-
-const repeatState = {
-  Off: "Off",
-  One: "One",
-  All: "All",
-} as const;
-
-type ShuffleState = "Off" | "On";
-
-const shuffleState = {
-  Off: "Off",
-  On: "On",
-} as const;
 
 interface PlaybackContextValue {
   playlist: Song[];
@@ -23,6 +9,7 @@ interface PlaybackContextValue {
   shuffle: ShuffleState;
   repeat: RepeatState;
   volume: number;
+  muted: boolean;
   isPlaying: boolean;
   /**
    * True while the current track's audio is being fetched and decoded. A
@@ -48,10 +35,8 @@ function usePlayback() {
 }
 
 export {
-  type ShuffleState,
-  type RepeatState,
-  repeatState,
-  shuffleState,
+  ShuffleState,
+  RepeatState,
   PlaybackContext,
   usePlayback,
 };

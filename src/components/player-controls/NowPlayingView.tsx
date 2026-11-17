@@ -42,7 +42,7 @@ import { wmmBus } from "@/events";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import type { Song } from "@/models";
 import { getStore } from "@/core/system";
-import { repeatState } from "@/hooks/usePlayback";
+import { RepeatState, ShuffleState } from "@/hooks/usePlayback";
 
 function NowPlayingArt({ songId }: { songId: string | undefined }) {
   const picture = useArtwork(songId ?? "", ArtworkType.FrontCover);
@@ -169,17 +169,17 @@ export function NowPlayingView({
 
   const hasUpcoming =
     playlist.length > 0 &&
-    (repeat === repeatState.All ||
+    (repeat === RepeatState.All ||
       (nowPlayingIndex ?? -1) < playlist.length - 1);
   const collectionNextId = (() => {
-    if (!open || playlist.length > 0 || !nowPlaying || shuffle === "On") {
+    if (!open || playlist.length > 0 || !nowPlaying || shuffle === ShuffleState.On) {
       return undefined;
     }
     const coll = getCollectionIds();
     const idx = coll.indexOf(nowPlaying.id);
     if (idx === -1) return undefined;
     if (idx + 1 < coll.length) return coll[idx + 1];
-    return repeat === repeatState.All ? coll[0] : undefined;
+    return repeat === RepeatState.All ? coll[0] : undefined;
   })();
 
   useEffect(() => {
@@ -218,9 +218,42 @@ export function NowPlayingView({
   useEffect(() => {
     const sync = () => setIsFullscreen(document.fullscreenElement !== null);
     sync();
-    document.addEventListener("fullscreenchange", sync);
-    return () => document.removeEventListener("fullscreenchange", sync);
+    const onChange = () => {
+      sync();
+      wmmBus.publish("wmm.ui.fullscreenChanged", {
+        fullscreen: document.fullscreenElement !== null,
+      });
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  const darkRoomMounted = useRef(false);
+  useEffect(() => {
+    if (!darkRoomMounted.current) {
+      darkRoomMounted.current = true;
+      return;
+    }
+    wmmBus.publish("wmm.ui.darkRoomChanged", { enabled: darkRoom });
+  }, [darkRoom]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const offFullscreen = wmmBus.onCommand("wmm.ui.toggleFullscreen", () => {
+      if (canFullscreen) {
+        toggleFullscreen();
+      }
+    });
+    const offDarkRoom = wmmBus.onCommand("wmm.ui.toggleDarkRoom", () =>
+      setDarkRoom((prev) => !prev)
+    );
+    return () => {
+      offFullscreen();
+      offDarkRoom();
+    };
+  }, [open, canFullscreen]);
 
   useEffect(() => {
     if (!open && document.fullscreenElement) {
@@ -260,12 +293,13 @@ export function NowPlayingView({
     setPanel(panel === tab ? null : tab);
   }
 
-  const tabs: (
-    | { id: PanelTab; labelKey: WmmResourceKey; icon: typeof ListMusic }
-    | { id: PanelTab; label: string; icon: typeof ListMusic }
-  )[] = [
+  const tabs: {
+    id: PanelTab;
+    labelKey: WmmResourceKey;
+    icon: typeof ListMusic;
+  }[] = [
     { id: "queue", labelKey: "playback.queue", icon: ListMusic },
-    { id: "lyrics", label: "Lyrics", icon: MicVocal },
+    { id: "lyrics", labelKey: "playback.lyrics", icon: MicVocal },
     { id: "visualizer", labelKey: "visualizer.title", icon: Activity },
   ];
 
@@ -331,7 +365,7 @@ export function NowPlayingView({
             <div className="flex items-center gap-1">
               {tabs.map((tab) => {
                 const { id, icon: Icon } = tab;
-                const label = "labelKey" in tab ? t(tab.labelKey) : tab.label;
+                const label = t(tab.labelKey);
 
                 return (
                   <Button
@@ -342,7 +376,9 @@ export function NowPlayingView({
                       panel === id &&
                         "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
                     )}
-                    title={panel === id ? `Hide ${label}` : label}
+                    title={
+                      panel === id ? t("playback.hidePanel", [label]) : label
+                    }
                     aria-label={label}
                     aria-pressed={panel === id}
                     onClick={() => togglePanel(id)}
@@ -378,8 +414,10 @@ export function NowPlayingView({
                     darkRoom &&
                       "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
                   )}
-                  title={darkRoom ? "Turn on the lights" : "Dark room"}
-                  aria-label="Dark room"
+                  title={
+                    darkRoom ? t("playback.lightsOn") : t("playback.darkRoom")
+                  }
+                  aria-label={t("playback.darkRoom")}
                   aria-pressed={darkRoom}
                   onClick={() => setDarkRoom(!darkRoom)}
                 >
@@ -390,8 +428,16 @@ export function NowPlayingView({
                 <Button
                   size="icon"
                   variant="ghost"
-                  title={isFullscreen ? "Exit full screen" : "Full screen"}
-                  aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
+                  title={
+                    isFullscreen
+                      ? t("common.exitFullScreen")
+                      : t("common.fullScreen")
+                  }
+                  aria-label={
+                    isFullscreen
+                      ? t("common.exitFullScreen")
+                      : t("common.fullScreen")
+                  }
                   onClick={toggleFullscreen}
                 >
                   {isFullscreen ? <Minimize /> : <Maximize />}
@@ -504,7 +550,7 @@ export function NowPlayingView({
                   <div className="flex min-h-0 w-full flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none">
                     <div className="flex shrink-0 items-center justify-between pb-2">
                       <span className="text-sm font-medium">
-                        {`Queue — ${playlist.length} ${playlist.length === 1 ? "song" : "songs"}`}
+                        {t("playback.queueHeading", [playlist.length])}
                       </span>
                       <Button
                         size="sm"
@@ -512,7 +558,7 @@ export function NowPlayingView({
                         disabled={playlist.length === 0}
                         onClick={() => wmmBus.invoke("wmm.playback.clearQueue")}
                       >
-                        Clear
+                        {t("common.clear")}
                       </Button>
                     </div>
 
@@ -599,7 +645,7 @@ export function NowPlayingView({
                       </ScrollArea>
                     ) : (
                       <p className="m-auto text-sm text-white/75">
-                        No lyrics for this song.
+                        {t("playback.noLyrics")}
                       </p>
                     )}
                   </div>

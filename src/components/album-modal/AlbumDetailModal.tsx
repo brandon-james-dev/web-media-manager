@@ -9,7 +9,7 @@ import { ItemGroup } from "@/components/ui/item";
 import { ThumbnailSize } from "@/lib";
 import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks/usePlayback";
-import { shuffleState } from "@/hooks/usePlayback";
+import { ShuffleState } from "@/hooks/usePlayback";
 import { useIsCompact } from "@/lib/hooks/useIsMobile";
 import { useTranslation } from "@/i18n";
 import { cn } from "cn";
@@ -61,7 +61,7 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
     const ids = tracks.map((s) => s.id);
     if (!ids.length) return;
 
-    if (shuffled && shuffle !== shuffleState.On) {
+    if (shuffled && shuffle !== ShuffleState.On) {
       // The provider shuffles the queue itself; flip it on for this album.
       wmmBus.invoke("wmm.playback.toggleShuffle");
     }
