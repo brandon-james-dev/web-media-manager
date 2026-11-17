@@ -1,7 +1,7 @@
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 
-import { PluginArchiveError, readZipArchive } from "./readZipArchive";
+import { PackageArchiveError, readZipArchive } from "./readZipArchive";
 
 function buildZip(files: Record<string, string>): Uint8Array {
   const entries: Record<string, Uint8Array> = {};
@@ -57,17 +57,17 @@ describe("readZipArchive", () => {
 
   it("rejects path traversal", () => {
     expect(() => readZipArchive(buildZip({ "../escape.js": "" }))).toThrow(
-      PluginArchiveError
+      PackageArchiveError
     );
   });
 
   it("rejects an empty archive", () => {
-    expect(() => readZipArchive(new Uint8Array())).toThrow(PluginArchiveError);
+    expect(() => readZipArchive(new Uint8Array())).toThrow(PackageArchiveError);
   });
 
   it("rejects unreadable bytes", () => {
     expect(() => readZipArchive(strToU8("not a zip"))).toThrow(
-      PluginArchiveError
+      PackageArchiveError
     );
   });
 

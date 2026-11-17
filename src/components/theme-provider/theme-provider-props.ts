@@ -16,6 +16,9 @@ type ThemeProviderState = {
 
   accentColor: string;
   setAccentColor: (color: string) => void;
+
+  lockedScheme: "light" | "dark" | undefined;
+  accentLocked: boolean;
 };
 
 const initialState: ThemeProviderState = {
@@ -24,6 +27,9 @@ const initialState: ThemeProviderState = {
 
   accentColor: "#3b82f6",
   setAccentColor: () => null,
+
+  lockedScheme: undefined,
+  accentLocked: false,
 };
 
 export const ThemeProviderContext =

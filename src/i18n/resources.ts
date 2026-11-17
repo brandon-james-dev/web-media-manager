@@ -452,12 +452,8 @@ export const WMM_RESOURCES = {
   "visualizer.title": text("The audio visualizer."),
   "visualizer.select": text("Chooses which visualizer to show."),
   "visualizer.settings": text("Opens settings for the active visualizer."),
-  "visualizer.search": text("Field that narrows the installed visualizers."),
   "visualizer.loadingPlugins": text(
     "Shown while the installed plugins are read."
-  ),
-  "visualizer.noMatches": text(
-    "Shown when the visualizer search matches nothing."
   ),
   "visualizer.noneInstalled": text(
     "Shown when no visualizer plugin is installed."
@@ -599,11 +595,17 @@ export const WMM_RESOURCES = {
   "settings.pageTitle": text("Heading of the settings and data screen."),
   "settings.description": text("Summary under the settings heading."),
   "settings.shortcuts": text("The keyboard shortcuts reference."),
-  "settings.theme": text("Colour theme preference."),
+  "settings.display": text("Light, dark or system display preference."),
+  "settings.displayLockedByTheme": text(
+    "Note that the active custom theme fixes the display preference."
+  ),
   "settings.themeLight": text("Light colour theme."),
   "settings.themeDark": text("Dark colour theme."),
   "settings.themeSystem": text("Follow the operating system colour theme."),
   "settings.accentColor": text("Accent colour preference."),
+  "settings.accentLockedByTheme": text(
+    "Note that the active custom theme supplies its own accent colour."
+  ),
   "settings.language": text("Display language preference."),
   "settings.languageAuto": template(
     "Language option that follows the browser, naming the detected language.",
@@ -635,7 +637,13 @@ export const WMM_RESOURCES = {
   "settings.shortcutClose": text(
     "Keyboard shortcut that closes the editor."
   ),
-  "settings.visualizers": text("Heading of the visualizer plugins card."),
+  "settings.extensibility": text(
+    "Heading of the settings card grouping custom themes and visualizer plugins."
+  ),
+  "settings.extensibilityDescription": text(
+    "Explains what the extensibility card contains."
+  ),
+  "settings.visualizers": text("Heading of the visualizer plugins section."),
   "settings.visualizersDescription": text(
     "Summary under the visualizer plugins heading."
   ),
@@ -653,6 +661,70 @@ export const WMM_RESOURCES = {
   ),
   "settings.songsCleared": text(
     "Toast shown after every song is cleared from the database."
+  ),
+  "settings.themeTrialPrompt": template(
+    "Bar shown after a theme is applied, counting down the seconds until it reverts.",
+    ["seconds"]
+  ),
+  "settings.themeTrialKeep": text(
+    "Keeps the newly applied theme and dismisses the trial bar."
+  ),
+  "settings.themeTrialRevert": text(
+    "Restores the previous theme from the trial bar."
+  ),
+  "settings.themes": text("Heading of the custom theme packages section."),
+  "settings.themesDescription": text(
+    "Explains the custom themes section of the extensibility card."
+  ),
+  "settings.themeBuiltIn": text("Selects the theme the app ships with."),
+  "settings.themeBuiltInDescription": text(
+    "Second line of the built-in theme row in the custom themes list."
+  ),
+  "settings.themeInstall": text("Opens the file picker for a theme ZIP."),
+  "settings.themeReset": text("Returns to the built-in theme."),
+  "settings.themeResetDone": text(
+    "Toast shown after the built-in theme is restored."
+  ),
+  "settings.themeRemoveNamed": template(
+    "Removes the named theme, as the button's accessible label.",
+    ["name"]
+  ),
+  "settings.themeRemoveTitle": text(
+    "Title of the dialog that confirms removing a theme."
+  ),
+  "settings.themeRemoveDescription": template(
+    "Explains that the named theme and its files are deleted.",
+    ["name"]
+  ),
+  "settings.themeInstallFailed": text(
+    "Title shown when a theme package has errors and cannot be installed."
+  ),
+  "settings.themeByAuthor": template("Names the theme's author.", ["author"]),
+  "settings.themeVersion": template("Names the theme's version.", ["version"]),
+  "settings.themeChangeUpdate": template(
+    "Says the package updates the installed version.",
+    ["from", "to"]
+  ),
+  "settings.themeChangeReinstall": template(
+    "Asks whether to reinstall a version that is already installed.",
+    ["version"]
+  ),
+  "settings.themeChangeDowngrade": template(
+    "Warns that the package is older than the installed version.",
+    ["installed", "incoming"]
+  ),
+  "settings.themeActionInstall": text("Installs the reviewed theme."),
+  "settings.themeActionUpdate": text("Updates the installed theme."),
+  "settings.themeActionReinstall": text("Reinstalls the installed theme."),
+  "settings.themeActionDowngrade": text(
+    "Installs the older package after the warning."
+  ),
+  "settings.themeInstalled": template(
+    "Toast shown after the named theme is installed.",
+    ["name"]
+  ),
+  "settings.themeApplyFailed": text(
+    "Toast shown when the chosen theme could not be applied."
   ),
 
   // navigation

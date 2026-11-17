@@ -42,7 +42,8 @@ Every primitive, control and widget accepts these:
 
 | Attribute | Type | Notes |
 |-----------|------|-------|
-| `id` | kebab-case | Optional, unique per file. Unused in v1 except for diagnostics. Reserved as the target for future bindings and states. |
+| `id` | kebab-case | Optional, unique per file. Used for diagnostics, and on a collapsible `Panel` as the `wmm.ui.togglePanel` target ([pages/songs.md § 4.3](pages/songs.md#43-collapsible-panels)). Reserved as the target for future bindings and states. |
+| `libraryMode` | `playback` · `edit` | Renders the element only in that library mode. Shell and library-family pages only (`E6201`). See [pages/songs.md § 4.2](pages/songs.md#42-library-mode). |
 | `width`, `height` | Length · `auto` | Default `auto`. |
 | `minWidth`, `minHeight`, `maxWidth`, `maxHeight` | Length | |
 | `margin` | Thickness | |
@@ -67,6 +68,10 @@ A decorated container with **zero or one** child.
 `style` (`@panel/…`) plus inline overrides of any panel style property (`background`, `border`,
 `borderWidth`, `cornerRadius`, `padding`, `shadow`). Inline overrides exist so authors don't
 create a one-off style for every spacing tweak.
+
+`collapsible` (Boolean, default `false`): the panel starts closed and opens with
+`wmm.ui.togglePanel`. Requires an `id`. Defined in
+[pages/songs.md § 4.3](pages/songs.md#43-collapsible-panels).
 
 ### Stack
 
@@ -132,6 +137,9 @@ children are allowed, with later ones drawn on top, which enables layered skins.
 | `display` | `icon` · `label` · `iconAndLabel` (default `iconAndLabel`). With `icon`, the label still exists for assistive technology. |
 | `style` | `@button/…`, plus inline overrides of button style properties (not states). |
 
+Host-driven decorations: a command can declare a **badge** (a count drawn on the button's top
+end corner), defined in [pages/songs.md § 2](pages/songs.md#2-host-driven-states).
+
 **Theme-invokable commands.** The command catalog is defined page by page, in the documents
 under [pages/](pages/). Each catalog entry gives the command's parameter domain, its host-driven
 states and its availability per form factor. The catalog grows in minor versions and never
@@ -171,7 +179,7 @@ set: `play`, `pause`, `playPause` (swaps with `active`), `stop`, `next`, `prev`,
 `repeat`, `volume`, `mute`, `search`, `settings`, `sync`, `device`, `library`, `artists`,
 `albums`, `playlists`, `nowPlaying`, `visualizer`, `edit`, `add`, `close`, `back`, `menu`, `more`,
 plus, from the playback page: `queue`, `lyrics`, `fullscreen` (swaps on `active`), `darkRoom`,
-`seekForward`, `seekBack`, `favorite`. `repeat` swaps to repeat-one on `active=one` and `mute`
+`seekForward`, `seekBack`, `favorite`, and from the songs page: `sidebar`. `repeat` swaps to repeat-one on `active=one` and `mute`
 swaps on `active`. The set grows additively.
 
 ### Tabs
@@ -191,13 +199,14 @@ outer chrome) and `density` (`compact` · `comfortable`, default from form facto
 | Widget | Purpose | Options | Style slots | Min size | Cardinality |
 |--------|---------|---------|-------------|----------|-------------|
 | `LibraryBrowser` | Navigate artists, albums, genres and playlists. Selection drives `TrackList`. | `views` (ordered subset of `artists albums genres playlists songs`), `initialView`, `display` (`list` · `grid`), `artwork` (Boolean) | `itemText`, `headerText` (`@text/`) | 160×160 | 1 per page |
-| `TrackList` | Songs for the current selection on the same page: the `LibraryBrowser` selection, or the playlist picked in a `Playlist`. With neither on the page, all songs. | `columns` (ordered subset of `title artist album albumArtist genre year track disc duration offline source`), `alternateRows` (Boolean), `showHeader` (Boolean) | `rowText`, `headerText`, `alternateBrush` (`@brush/`) | 240×120 | 1 per page |
+| `TrackList` | Songs for the current selection on the same page: the `LibraryBrowser` selection, or the playlist picked in a `Playlist`. With neither on the page, all songs. | `variant` (`table` · `list` · `tv`) and per-variant options, defined in [pages/songs.md § 3.1](pages/songs.md#31-tracklist) | `rowText`, `headerText`, `alternateBrush` (`@brush/`), `playingText` | per variant | 1 per page |
+| `CollectionSummary` | Summary of the page's `TrackList` collection. | Defined in [pages/songs.md § 3.3](pages/songs.md#33-collectionsummary-new) | `titleText`, `detailText` | 160×40 | 1 per page |
 | `Playlist` | The playlists list. (The play queue is `PlayQueue`, a playback widget.) | `artwork` | `rowText` | 160×120 | 1 per page |
 | Playback widgets | `NowPlaying`, `Artwork`, `TrackInfo`, `SeekBar`, `PlaybackTime`, `VolumeControl`, `PlayQueue`, `Lyrics`, `Visualizer` | Defined in [pages/playback.md](pages/playback.md#3-widgets) | | | |
 | `MetadataEditor` | Edit the selected songs' tags. | `mode` (`quick` · `full`) | `labelText` | 240×200 | 1 per layout |
 | `SyncQueue` | Songs queued for device sync. | `summary` (Boolean) | `rowText` | 200×120 | 1 per page |
 | `DevicePanel` | Connected devices and storage. | `storage`, `allowAdd` (Booleans) | `titleText` | 200×80 | 1 per page |
-| `SearchBox` | Library search input. | `scope` (`library` · `sync`), `placeholderKey` (resource key) | n/a | 120×32 | 1 per scope per page |
+| `SearchBox` | Library search input. | `scope` (`library` · `sync`), `placeholderKey` (resource key), plus `sourceFilter`, `resultCount`, `presentation` from [pages/songs.md § 3.2](pages/songs.md#32-searchbox) | n/a | 120×32 | 1 per scope per page |
 
 Rules:
 

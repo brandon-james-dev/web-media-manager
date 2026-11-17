@@ -25,6 +25,32 @@
 | 6. Semantic | `6xxx` | Reference resolution per kind, `basedOn` cycles and depth, parent-specific attributes, Grid bounds, page ids and the single `PageHost`, widget options and cardinality, commands against the theme-invokable list, resource keys exist and are `text` kind, required palette slots |
 | 7. Advisory | `7xxx` | Contrast (WCAG AA 4.5:1 for text styles against the brush they sit on, when determinable, plus required slot pairs like `foreground`/`background`), touch-target sizes per form factor, layouts that overflow their form factor's minimum viewport, literal text, deprecated features |
 
+### Archive and manifest codes
+
+| Code | Stage | Meaning |
+|------|-------|---------|
+| `E1001` | Archive | The file is empty or is not a readable ZIP. |
+| `E1002` | Archive | A size, count or compression-ratio limit is exceeded (see [Limits](#limits)). |
+| `W1003` | Archive | Unknown file. It is not stored. |
+| `E1004` | Archive | A file under `assets/` or `previews/` has a disallowed extension. |
+| `E1005` | Archive | An absolute path, or a path containing `..` or an empty segment. |
+| `E1006` | Archive | Duplicate path, including paths that differ only by letter case. |
+| `E1007` | Archive | The path is longer than 200 characters or deeper than 6 levels. |
+| `E1008` | Archive | `manifest.json`, `theme.xml` or `layouts/desktop.xml` is missing. |
+| `E2001` | Manifest | `manifest.json` is not UTF-8 JSON, or is not a JSON object. |
+| `I2001` | Manifest | Unknown field, ignored. Fields starting with `x-` never report. |
+| `E2002` | Manifest | Reserved field used. |
+| `E2003` | Manifest | `id` uses the reserved `wmm-` prefix. |
+| `E2004` | Manifest | A required field is missing, or a field has the wrong JSON type. |
+| `E2005` | Manifest | A field value breaks its rule in [01](01-package-and-manifest.md#2-manifestjson-specification). |
+| `E2006` | Manifest | A listed form factor has no layout file. |
+| `W2006` | Manifest | A layout file exists for a form factor that is not listed. It is not used. |
+| `W2008` | Manifest | The running app is older than `app.min`. Install is allowed. |
+| `E2010` | Manifest | `spec` needs a newer minor than the host supports. |
+| `E2011` | Manifest | `spec` has a different major than the host supports. |
+
+The `colorSchemes` ↔ palettes check needs the parsed `theme.xml`, so it runs in stage 6.
+
 ## Issue shape
 
 ```json

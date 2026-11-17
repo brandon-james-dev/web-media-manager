@@ -17,7 +17,11 @@
  *    share install/validate/store and only need their own host.
  */
 export * from "./contracts";
-export { PluginManager, PluginInstallError, PluginLoadError } from "./PluginManager";
+export {
+  PluginManager,
+  PluginInstallError,
+  PluginLoadError,
+} from "./PluginManager";
 export type {
   InstallPluginOptions,
   InstallPluginResult,
@@ -25,10 +29,7 @@ export type {
   PluginManagerOptions,
 } from "./PluginManager";
 export { AnalyserFrameSource } from "./analysis/AnalyserFrameSource";
-export {
-  coerceSettingsValues,
-  getDefaultSettings,
-} from "./manifest/settings";
+export { coerceSettingsValues, getDefaultSettings } from "./manifest/settings";
 export {
   parsePluginManifestJson,
   validatePluginManifest,
@@ -41,11 +42,11 @@ export type {
 } from "./manifest/validateManifest";
 export {
   DEFAULT_ZIP_LIMITS,
-  PluginArchiveError,
+  PackageArchiveError,
   readZipArchive,
-} from "./zip/readZipArchive";
+} from "@/lib/packages";
 export type {
-  PluginArchiveEntry,
-  PluginArchiveErrorCode,
+  PackageArchiveEntry,
+  PackageArchiveErrorCode,
   ReadZipOptions,
-} from "./zip/readZipArchive";
+} from "@/lib/packages";

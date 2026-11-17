@@ -8,7 +8,7 @@ import { unzipSync } from "fflate";
  * enforces limits and normalizes paths before anything reaches storage, so the
  * rest of the system only ever sees safe, archive-relative paths.
  */
-export interface PluginArchiveEntry {
+export interface PackageArchiveEntry {
   path: string;
   bytes: Uint8Array;
   size: number;
@@ -18,6 +18,8 @@ export interface ReadZipOptions {
   maxEntries?: number;
   maxEntryBytes?: number;
   maxTotalBytes?: number;
+  /** Largest allowed uncompressed-to-compressed size ratio per entry (`100` for 100:1). */
+  maxCompressionRatio?: number;
   /** Strip a single wrapping folder (`alchemy/fragment.glsl` -> `fragment.glsl`). */
   stripCommonRoot?: boolean;
 }
@@ -28,7 +30,7 @@ export const DEFAULT_ZIP_LIMITS = {
   maxTotalBytes: 32 * 1024 * 1024,
 } as const;
 
-export type PluginArchiveErrorCode =
+export type PackageArchiveErrorCode =
   | "empty-archive"
   | "invalid-archive"
   | "too-many-entries"
@@ -37,12 +39,12 @@ export type PluginArchiveErrorCode =
   | "unsafe-path"
   | "duplicate-path";
 
-export class PluginArchiveError extends Error {
-  readonly code: PluginArchiveErrorCode;
+export class PackageArchiveError extends Error {
+  readonly code: PackageArchiveErrorCode;
 
-  constructor(code: PluginArchiveErrorCode, message: string) {
+  constructor(code: PackageArchiveErrorCode, message: string) {
     super(message);
-    this.name = "PluginArchiveError";
+    this.name = "PackageArchiveError";
     this.code = code;
   }
 }
@@ -65,7 +67,7 @@ function normalizeEntryPath(path: string): string {
     normalized.startsWith("/") ||
     /^[a-zA-Z]:/.test(normalized)
   ) {
-    throw new PluginArchiveError(
+    throw new PackageArchiveError(
       "unsafe-path",
       `The archive contains an absolute path: "${path}".`
     );
@@ -73,7 +75,7 @@ function normalizeEntryPath(path: string): string {
 
   const segments = normalized.split("/");
   if (segments.some((segment) => segment === ".." || segment === "")) {
-    throw new PluginArchiveError(
+    throw new PackageArchiveError(
       "unsafe-path",
       `The archive contains an unsafe path: "${path}".`
     );
@@ -82,7 +84,7 @@ function normalizeEntryPath(path: string): string {
   return normalized;
 }
 
-function stripCommonRoot(entries: PluginArchiveEntry[]): PluginArchiveEntry[] {
+function stripCommonRoot(entries: PackageArchiveEntry[]): PackageArchiveEntry[] {
   if (entries.length === 0) {
     return entries;
   }
@@ -110,15 +112,17 @@ function stripCommonRoot(entries: PluginArchiveEntry[]): PluginArchiveEntry[] {
 export function readZipArchive(
   input: ArrayBuffer | Uint8Array,
   options: ReadZipOptions = {}
-): PluginArchiveEntry[] {
+): PackageArchiveEntry[] {
   const maxEntries = options.maxEntries ?? DEFAULT_ZIP_LIMITS.maxEntries;
-  const maxEntryBytes = options.maxEntryBytes ?? DEFAULT_ZIP_LIMITS.maxEntryBytes;
-  const maxTotalBytes = options.maxTotalBytes ?? DEFAULT_ZIP_LIMITS.maxTotalBytes;
+  const maxEntryBytes =
+    options.maxEntryBytes ?? DEFAULT_ZIP_LIMITS.maxEntryBytes;
+  const maxTotalBytes =
+    options.maxTotalBytes ?? DEFAULT_ZIP_LIMITS.maxTotalBytes;
   const stripRoot = options.stripCommonRoot ?? true;
 
   const data = input instanceof Uint8Array ? input : new Uint8Array(input);
   if (data.byteLength === 0) {
-    throw new PluginArchiveError("empty-archive", "The ZIP file is empty.");
+    throw new PackageArchiveError("empty-archive", "The ZIP file is empty.");
   }
 
   let unzipped: Record<string, Uint8Array>;
@@ -129,19 +133,28 @@ export function readZipArchive(
           return false;
         }
         if (file.originalSize > maxEntryBytes) {
-          throw new PluginArchiveError(
+          throw new PackageArchiveError(
             "entry-too-large",
             `"${file.name}" is larger than the ${maxEntryBytes} byte per-file limit.`
+          );
+        }
+        if (
+          options.maxCompressionRatio !== undefined &&
+          file.originalSize > file.size * options.maxCompressionRatio
+        ) {
+          throw new PackageArchiveError(
+            "entry-too-large",
+            `"${file.name}" expands more than ${options.maxCompressionRatio}:1.`
           );
         }
         return true;
       },
     });
   } catch (error) {
-    if (error instanceof PluginArchiveError) {
+    if (error instanceof PackageArchiveError) {
       throw error;
     }
-    throw new PluginArchiveError(
+    throw new PackageArchiveError(
       "invalid-archive",
       "The file is not a readable ZIP archive."
     );
@@ -149,25 +162,25 @@ export function readZipArchive(
 
   const paths = Object.keys(unzipped);
   if (paths.length === 0) {
-    throw new PluginArchiveError(
+    throw new PackageArchiveError(
       "empty-archive",
       "The ZIP file contains no files."
     );
   }
   if (paths.length > maxEntries) {
-    throw new PluginArchiveError(
+    throw new PackageArchiveError(
       "too-many-entries",
       `The archive contains ${paths.length} files; the limit is ${maxEntries}.`
     );
   }
 
   const seen = new Set<string>();
-  let entries: PluginArchiveEntry[] = [];
+  let entries: PackageArchiveEntry[] = [];
 
   for (const path of paths) {
     const normalized = normalizeEntryPath(path);
     if (seen.has(normalized)) {
-      throw new PluginArchiveError(
+      throw new PackageArchiveError(
         "duplicate-path",
         `The archive contains "${normalized}" more than once.`
       );
@@ -184,7 +197,7 @@ export function readZipArchive(
 
   const totalBytes = entries.reduce((total, entry) => total + entry.size, 0);
   if (totalBytes > maxTotalBytes) {
-    throw new PluginArchiveError(
+    throw new PackageArchiveError(
       "archive-too-large",
       `The archive expands to ${totalBytes} bytes; the limit is ${maxTotalBytes}.`
     );

@@ -1,4 +1,7 @@
-import type { PluginSettingsValues, VisualizerPluginManifest } from "./PluginManifest";
+import type {
+  PluginSettingsValues,
+  VisualizerPluginManifest,
+} from "./PluginManifest";
 
 /**
  * An installed plugin row. The manifest is denormalized onto the row so the
@@ -19,18 +22,6 @@ export interface InstalledVisualizerPlugin {
   updatedAt: number;
   fileCount: number;
   sizeBytes: number;
-}
-
-/** One file of an installed plugin, stored as raw bytes. */
-export interface PluginFileRecord {
-  /** Dexie auto-increment key; absent until the row is written. */
-  id?: number;
-  pluginId: string;
-  /** Archive-relative, normalized path (`shaders/main.glsl`). */
-  path: string;
-  bytes: Uint8Array;
-  size: number;
-  mimeType: string;
 }
 
 export interface PluginSettingsRecord {

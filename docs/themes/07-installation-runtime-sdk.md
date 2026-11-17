@@ -8,7 +8,7 @@ manifest envelope (`kind: "theme"`, already declared in `PluginKind`), and the s
 compiled-IR cache.
 
 ```
- User picks .zip (Settings ▸ Appearance ▸ Install theme)
+ User picks .zip (Settings ▸ Extensibility ▸ Custom themes ▸ Install theme)
         │
         ▼
  [Worker] 1. Read archive ────────── stage 1 (archive rules)
@@ -24,14 +24,14 @@ compiled-IR cache.
  Store (one Dexie transaction): package record + files (sanitized SVGs replace originals) + compiled IR
         │
         ▼
- Theme appears in Settings ▸ Appearance (not yet active)
+ Theme appears in Settings ▸ Extensibility ▸ Custom themes (not yet active)
 ```
 
 ### Activation and trial
 
-- Choosing a theme in Settings is a **draft**, like every other Settings preference. It
-  applies only on **Save Settings**.
-- On save, the theme applies immediately, with no reload, and a host-owned **trial bar** appears:
+- Choosing a theme in Settings ▸ Extensibility ▸ Custom themes applies it immediately, like
+  choosing a visualizer, with no reload and no **Save Settings** step.
+- A host-owned **trial bar** then appears:
   "Keep this theme? Reverting in 15 s · Keep · Revert". Without confirmation, the previous
   theme is restored. This guards against unreadable or broken themes.
 - If the active theme causes two root-level render failures within 30 s of activation, the host
@@ -51,7 +51,7 @@ compiled-IR cache.
 
 - The URL flag `?theme=default` starts with the built-in theme without changing the stored
   preference.
-- `Ctrl/Cmd+,` always opens Settings, and the Appearance section always has
+- `Ctrl/Cmd+,` always opens Settings, and the Custom themes section always has
   **Reset to default theme**.
 - Host chrome (Settings, dialogs, the trial bar, the system button) is never theme-laid-out.
 
@@ -92,9 +92,11 @@ a Tauri or server host reuses core unchanged and supplies its own store and asse
 ### Rendering rules
 
 - **Tokens:** palette slots map onto the CSS variables the UI kit already reads (`--background`,
-  `--foreground`, `--accent`, `--border`, `--ring`, …). That re-colors dialogs, menus, Settings
+  `--foreground`, `--accent`, `--border`, `--ring`, ...). That re-colors dialogs, menus, Settings
   and widgets with no per-component work. Theme-specific tokens become namespaced variables
-  (`--wmm-t-color-<hash>`).
+  (`--wmm-t-color-<hash>`). The default text style's font family is applied to the root element,
+  and theme-only slots (`selection`, `selectionForeground`, `progressTrack`, `progressFill`)
+  become `--wmm-<slot>` variables.
 - **Styles:** each IR style compiles to rules in a single constructed stylesheet, including the
   `:hover`, `:active`, `:focus-visible` and `[data-state]` rules for button states. Class names
   are host-generated hashes. Author ids never appear in CSS. The only values written into CSS are
@@ -157,7 +159,7 @@ missing tablet or mobile file.
 
 ### In-app developer mode
 
-Settings ▸ Appearance ▸ **Load theme from folder** (developer toggle) uses the File System
+Settings ▸ Extensibility ▸ Custom themes ▸ **Load theme from folder** (developer toggle) uses the File System
 Access API the app already relies on. It watches the folder and re-validates and re-applies on
 change, with no CLI needed. Folder themes are never persisted as installed themes.
 

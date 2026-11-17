@@ -4,15 +4,30 @@ import WorkerFile from "./metadata.worker.ts?worker";
 
 export class BrowserWorkerAdapter implements IWorkerAdapter {
   private worker: Worker;
+  private loadError: Error | null = null;
 
   constructor() {
     this.worker = new WorkerFile();
+    this.worker.onerror = (event) => {
+      this.loadError = new Error(
+        event.message || "The background worker failed to start"
+      );
+    };
   }
 
   runJob(job: WorkerJob, onProgress: (msg: any) => void): Promise<any> {
+    if (this.loadError) return Promise.reject(this.loadError);
+
     this.worker.postMessage(job);
 
     return new Promise((resolve, reject) => {
+      this.worker.onerror = (event) => {
+        this.loadError = new Error(
+          event.message || "The background worker failed to start"
+        );
+        reject(this.loadError);
+      };
+
       this.worker.onmessage = (event) => {
         const msg = event.data;
 

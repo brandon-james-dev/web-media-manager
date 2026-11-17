@@ -255,7 +255,7 @@ classic-blue.wmmtheme.zip
   <Page id="now-playing" role="nowPlaying" titleKey="navigation.nowPlaying" default="true">
     <Grid columns="1* 260" rows="1*" columnGap="@length/gap-md">
       <Visualizer column="0" selector="true" fallback="artwork" panel="@panel/inset" />
-      <Playlist column="1" mode="queue" artwork="true" panel="@panel/inset" rowText="@text/body" />
+      <PlayQueue column="1" artwork="true" panel="@panel/inset" rowText="@text/body" />
     </Grid>
   </Page>
 
@@ -273,7 +273,7 @@ classic-blue.wmmtheme.zip
 
   <Page id="playlists" role="playlists" titleKey="navigation.playlists">
     <Grid columns="240 1*" rows="1*" columnGap="@length/gap-md">
-      <Playlist column="0" mode="playlists" artwork="true" panel="@panel/inset" rowText="@text/body" />
+      <Playlist column="0" artwork="true" panel="@panel/inset" rowText="@text/body" />
       <TrackList column="1" columns="title artist album duration" alternateRows="true"
                  panel="@panel/inset" rowText="@text/body" headerText="@text/pane-header" />
     </Grid>
@@ -336,7 +336,7 @@ classic-blue.wmmtheme.zip
   <Page id="now-playing" role="nowPlaying" titleKey="navigation.nowPlaying">
     <Grid columns="2* 1*" rows="1*" columnGap="@length/gap-md">
       <Visualizer column="0" selector="true" fallback="artwork" panel="@panel/inset" />
-      <Playlist column="1" mode="queue" artwork="true" panel="@panel/inset" />
+      <PlayQueue column="1" artwork="true" panel="@panel/inset" />
     </Grid>
   </Page>
 

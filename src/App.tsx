@@ -14,6 +14,7 @@ import { NavBar } from "./layout";
 import { SongProvider, SyncProvider, VisualizerProvider } from "./providers";
 import { ThemeProvider } from "./components/theme-provider";
 import { Toaster } from "@/components/ui/toast";
+import { ThemeTrialBar } from "./components/theme-provider/ThemeTrialBar";
 import { PlaybackProvider } from "./providers/PlaybackProvider";
 import { useEffect, useState } from "react";
 import { keyShortcut$ } from "@/events";
@@ -26,6 +27,7 @@ import { registerBrowserMetadataReader } from "./lib/metadata/reader/browserMeta
 import { registerBrowserSourceProvider } from "./lib/persistence/browser/sourcesProvider";
 import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvider";
 import { registerBrowserVisualizerStoreProvider } from "./lib/persistence/browser/visualizerStoreProvider";
+import { registerBrowserThemeStoreProvider } from "./lib/persistence/browser/themeStoreProvider";
 import { resumeInterruptedJobs } from "./lib/background-jobs";
 import { ensureFavorites } from "./core/playlists";
 import { resyncAllSources } from "./lib/sources";
@@ -42,6 +44,7 @@ registerBrowserMetadataReader();
 registerBrowserSourceProvider();
 registerBrowserJobService();
 registerBrowserVisualizerStoreProvider();
+registerBrowserThemeStoreProvider();
 
 // Restore jobs a previous session left unfinished, then re-import every
 // configured source on startup so the library stays in sync
@@ -212,6 +215,7 @@ function App() {
         </PlaybackProvider>
       </SongProvider>
       <Toaster />
+      <ThemeTrialBar />
     </ThemeProvider>
   );
 }

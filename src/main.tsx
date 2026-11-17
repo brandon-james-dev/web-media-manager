@@ -5,14 +5,12 @@ import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";
 import { BrowserHistorySync } from "./lib/router/BrowserHistorySync.tsx";
 import { syncTvOverrideFromUrl } from "./lib/tv/detectTv.ts";
+import { applyThemeMirrorAtBoot } from "@/lib/themes/runtime/browser";
 import App from "./App.tsx";
 import { registerSW } from "virtual:pwa-register";
 import { toast } from "@/components/ui/toast";
-import {
-  I18nProvider,
-  reportResourceIssues,
-  validateAppResources,
-} from "@/i18n";
+import { reportResourceIssues, validateAppResources } from "@/i18n";
+import { I18nProvider } from "@/i18n/I18nProvider";
 
 function formatError(error: unknown): string {
   if (error instanceof Error) return error.stack ?? error.message;
@@ -77,6 +75,7 @@ try {
   // `?tv=1` is remembered before the first render, so the television layout
   // survives navigation on a device with no address bar.
   syncTvOverrideFromUrl();
+  applyThemeMirrorAtBoot();
   if (import.meta.env.DEV) reportResourceIssues(validateAppResources());
   createRoot(document.getElementById("root")!).render(
     <StrictMode>

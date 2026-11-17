@@ -1,5 +1,4 @@
-import { Check, ImageOff, Search, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Check, ImageOff, SlidersHorizontal } from "lucide-react";
 import { cn } from "cn";
 
 import { getRuntimeDescriptor } from "@/core/visualizers";
@@ -10,7 +9,6 @@ import {
 } from "@/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranslation } from "@/i18n";
 import {
@@ -56,7 +54,7 @@ function PluginThumbnail({
 
 /**
  * Lists installed visualizers with a thumbnail, name, version and author, and
- * makes one active. Search matches name, author, description and id.
+ * makes one active.
  */
 export function VisualizerSelector({
   className,
@@ -67,21 +65,6 @@ export function VisualizerSelector({
   const { t } = useTranslation();
   const { data: plugins, isPending } = useInstalledPlugins();
   const { activePluginId, setActivePluginId } = useVisualizer();
-  const [query, setQuery] = useState("");
-
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-
-    return (plugins ?? []).filter((plugin) => {
-      if (!needle) {
-        return true;
-      }
-
-      return [plugin.name, plugin.id, plugin.author, plugin.description]
-        .filter((value): value is string => typeof value === "string")
-        .some((value) => value.toLowerCase().includes(needle));
-    });
-  }, [plugins, query]);
 
   function select(pluginId: string) {
     setActivePluginId(pluginId);
@@ -121,31 +104,18 @@ export function VisualizerSelector({
 
   return (
     <div className={cn("flex min-h-0 flex-col gap-2", className)}>
-      <div className="relative shrink-0">
-        <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("visualizer.search")}
-          aria-label={t("visualizer.search")}
-          className="pl-7"
-        />
-      </div>
-
       <ScrollArea className="min-h-0 flex-1">
         {isPending ? (
           <p className="p-3 text-sm text-muted-foreground">
             {t("visualizer.loadingPlugins")}
           </p>
-        ) : filtered.length === 0 ? (
+        ) : (plugins ?? []).length === 0 ? (
           <p className="p-3 text-sm text-muted-foreground">
-            {plugins?.length
-              ? t("visualizer.noMatches")
-              : t("visualizer.noneInstalled")}
+            {t("visualizer.noneInstalled")}
           </p>
         ) : (
           <ul className="flex flex-col gap-1">
-            {filtered.map((plugin) => {
+            {(plugins ?? []).map((plugin) => {
               const isActive = plugin.id === activePluginId;
               const runtime = getRuntimeDescriptor(plugin.runtime);
 

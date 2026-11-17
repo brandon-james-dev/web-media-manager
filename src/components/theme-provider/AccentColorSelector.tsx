@@ -13,10 +13,12 @@ export function AccentColorSelector({
   value,
   accentSwatches,
   onChange,
+  disabled,
 }: {
   value: string;
   accentSwatches?: string[];
   onChange?: (color: string) => void;
+  disabled?: boolean;
 }) {
   const swatches = accentSwatches || ACCENT_SWATCHES;
 
@@ -25,6 +27,7 @@ export function AccentColorSelector({
       {swatches.map((color) => (
         <Button
           key={color}
+          disabled={disabled}
           onClick={() => onChange?.(color)}
           className={`
               w-10 h-10 rounded-full border-2 transition

@@ -59,6 +59,7 @@ export const WMM_COMMANDS = {
   "wmm.playback.toggleMute": undefined,
   "wmm.playback.toggleShuffle": undefined,
   "wmm.playback.toggleRepeat": undefined,
+  "wmm.playback.playAll": undefined,
   "wmm.playback.playSong": {} as { songId: string },
   "wmm.playback.playQueue": {} as { songIds: string[] },
   "wmm.playback.playCollection": {} as {
@@ -109,6 +110,8 @@ export const WMM_COMMANDS = {
   "wmm.ui.toggleFullscreen": undefined,
   "wmm.ui.toggleDarkRoom": undefined,
   "wmm.ui.navigate": {} as { page: string },
+  "wmm.ui.toggleEditMode": undefined,
+  "wmm.ui.togglePanel": {} as { id: string },
   // visualizer
   "wmm.visualizer.select": {} as { pluginId: string },
   "wmm.visualizer.openManager": undefined,
@@ -220,11 +223,26 @@ export type WmmThemeParameter =
       max: number;
       nonZero: boolean;
     }
-  | { kind: "pageId"; field: string };
+  | { kind: "pageId"; field: string }
+  | { kind: "panelId"; field: string };
 
-/** A command a theme button may invoke, with its parameter domain if any. */
+/**
+ * A command a theme button may invoke, with its parameter domain if any and
+ * the values its `<State name="active">` may match. A command without
+ * `activeValues` has a single, unvalued active state.
+ *
+ * @example
+ * ```xml
+ * <State name="active" value="one" image="@image/repeat-one" />
+ * ```
+ * @example
+ * ```ts
+ * WMM_THEME_COMMANDS["wmm.playback.toggleRepeat"]?.activeValues; // ["all", "one"]
+ * ```
+ */
 export interface WmmThemeCommand {
   readonly parameter?: WmmThemeParameter;
+  readonly activeValues?: readonly string[];
 }
 
 /**
@@ -239,9 +257,10 @@ export const WMM_THEME_COMMANDS: Readonly<
   "wmm.playback.next": {},
   "wmm.playback.prev": {},
   "wmm.playback.stop": {},
-  "wmm.playback.toggleShuffle": {},
-  "wmm.playback.toggleRepeat": {},
+  "wmm.playback.toggleShuffle": { activeValues: ["on"] },
+  "wmm.playback.toggleRepeat": { activeValues: ["all", "one"] },
   "wmm.playback.toggleMute": {},
+  "wmm.playback.playAll": {},
   "wmm.playback.seekBy": {
     parameter: {
       kind: "integer",
@@ -257,6 +276,8 @@ export const WMM_THEME_COMMANDS: Readonly<
   "wmm.ui.toggleDarkRoom": {},
   "wmm.ui.openSettings": {},
   "wmm.ui.navigate": { parameter: { kind: "pageId", field: "page" } },
+  "wmm.ui.toggleEditMode": {},
+  "wmm.ui.togglePanel": { parameter: { kind: "panelId", field: "id" } },
   "wmm.visualizer.openSettings": {},
   "wmm.sync.start": {},
 };

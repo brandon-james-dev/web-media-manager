@@ -299,3 +299,16 @@ text style for descendants that don't set one).
 
 These styles apply when an element doesn't name one. If absent, the host's built-in styles
 apply. They are derived from the palette, so a palette-only theme still looks coherent.
+
+## Validation codes
+
+| Code | Severity | Rule |
+|------|----------|------|
+| `E4011` | error | A color whose `value` chain of `@color/` references loops back to itself |
+| `E4012` | error | A section out of the order in [Root](#root), or a section that appears twice |
+| `E6010` | error | A reference whose `@kind/id` is not declared, in `theme.xml` or a layout. `@icon/` names a host icon instead. |
+| `E6011` | error | Two declarations with the same `id` in one reference kind |
+| `E6013` | error | A `basedOn` cycle, or a `basedOn` chain deeper than 8 |
+| `E6014` | error | A palette missing a required slot, or two palettes for the same `scheme` |
+| `E6015` | error | A `<State>` name the style kind does not support, or a `<State>` overriding `basedOn`, `minWidth` or `minHeight` |
+| `E6016` | error | `maxLines` without `overflow="wrap"`, `thumb="image"` without `thumbImage`, decreasing gradient `Stop` offsets, or more than 8 font families or 16 faces |

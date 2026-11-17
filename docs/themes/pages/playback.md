@@ -338,7 +338,7 @@ built-in `theme.xml`.
       <TabStripEnd>
         <Stack orientation="horizontal" gap="4" idleHide="true">
           <Button command="wmm.ui.toggleDarkRoom" labelKey="playback.darkRoom" icon="@icon/darkRoom" display="icon" />
-          <Button command="wmm.ui.toggleFullscreen" labelKey="playback.fullscreen" icon="@icon/fullscreen" display="icon" />
+          <Button command="wmm.ui.toggleFullscreen" labelKey="common.fullScreen" icon="@icon/fullscreen" display="icon" />
           <Button command="wmm.ui.closeNowPlaying" labelKey="playback.closeNowPlaying" icon="@icon/close" display="icon" />
         </Stack>
       </TabStripEnd>
@@ -478,7 +478,7 @@ which is why there's no `VolumeControl`.
 | `E6106` | error | More than one `nowPlaying` page, or a `Tabs` with fewer than 2 or more than 8 tabs |
 | `E6107` / `W6107` | error (tablet, mobile) / warning (desktop) | `overlay` Now Playing page with no reachable `wmm.ui.closeNowPlaying` button |
 | `W6108` | warning | `VolumeControl` in `tv.xml` (the TV remote controls volume) |
-| `W6109` | warning | A Now Playing page with no `wmm.playback.playpause` button and no `NowPlaying` with `transport="true"` |
+| `W6109` | warning | A Now Playing page with no `wmm.playback.playpause` button and no `NowPlaying` with `transport="true"`, counting the Shell's controls unless the page is an `overlay` |
 | `W6110` | warning | `SeekBar variant="edge"` whose parent isn't a `Panel` or `Grid` row (the edge needs a container top) |
 
 ## 10. App changes this page depended on (done)

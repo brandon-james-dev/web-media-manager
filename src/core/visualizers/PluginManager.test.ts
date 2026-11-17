@@ -1,17 +1,49 @@
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
 
+import type {
+  PackageFileRecord,
+  PackageFileStore,
+} from "@/core/ports/packageFiles";
 import type { VisualizerPluginStore } from "@/core/ports/visualizers";
 import type {
   InstalledVisualizerPlugin,
-  PluginFileRecord,
   PluginSettingsRecord,
 } from "./contracts";
 import { PluginInstallError, PluginManager } from "./PluginManager";
 
+class MemoryPackageFileStore implements PackageFileStore {
+  readonly byOwner = new Map<string, PackageFileRecord[]>();
+
+  async listFiles(ownerId: string): Promise<PackageFileRecord[]> {
+    return this.byOwner.get(ownerId) ?? [];
+  }
+
+  async getFile(
+    ownerId: string,
+    path: string
+  ): Promise<PackageFileRecord | undefined> {
+    return this.byOwner.get(ownerId)?.find((file) => file.path === path);
+  }
+
+  async putFiles(files: PackageFileRecord[]): Promise<void> {
+    for (const file of files) {
+      const existing = this.byOwner.get(file.ownerId) ?? [];
+      this.byOwner.set(file.ownerId, [
+        ...existing.filter((entry) => entry.path !== file.path),
+        file,
+      ]);
+    }
+  }
+
+  async deleteFiles(ownerId: string): Promise<void> {
+    this.byOwner.delete(ownerId);
+  }
+}
+
 class MemoryStore implements VisualizerPluginStore {
   readonly plugins = new Map<string, InstalledVisualizerPlugin>();
-  readonly files = new Map<string, PluginFileRecord[]>();
+  readonly files = new MemoryPackageFileStore();
   readonly settings = new Map<string, PluginSettingsRecord>();
 
   async listPlugins(): Promise<InstalledVisualizerPlugin[]> {
@@ -28,33 +60,8 @@ class MemoryStore implements VisualizerPluginStore {
 
   async deletePlugin(id: string): Promise<void> {
     this.plugins.delete(id);
-    this.files.delete(id);
+    await this.files.deleteFiles(id);
     this.settings.delete(id);
-  }
-
-  async listFiles(pluginId: string): Promise<PluginFileRecord[]> {
-    return this.files.get(pluginId) ?? [];
-  }
-
-  async getFile(
-    pluginId: string,
-    path: string
-  ): Promise<PluginFileRecord | undefined> {
-    return this.files.get(pluginId)?.find((file) => file.path === path);
-  }
-
-  async putFiles(files: PluginFileRecord[]): Promise<void> {
-    for (const file of files) {
-      const existing = this.files.get(file.pluginId) ?? [];
-      this.files.set(file.pluginId, [
-        ...existing.filter((entry) => entry.path !== file.path),
-        file,
-      ]);
-    }
-  }
-
-  async deleteFiles(pluginId: string): Promise<void> {
-    this.files.delete(pluginId);
   }
 
   async getSettings(
@@ -81,7 +88,14 @@ const MANIFEST = {
   thumbnail: "thumbnail.png",
   author: "Studio Nine",
   settings: [
-    { key: "speed", label: "Speed", type: "number", default: 1, min: 0.1, max: 4 },
+    {
+      key: "speed",
+      label: "Speed",
+      type: "number",
+      default: 1,
+      min: 0.1,
+      max: 4,
+    },
     { key: "glow", label: "Glow", type: "boolean", default: true },
   ],
 };
@@ -110,11 +124,9 @@ describe("PluginManager", () => {
     expect(result.plugin.fileCount).toBe(3);
     expect(result.replaced).toBe(false);
     expect(store.plugins.get("alchemy")?.author).toBe("Studio Nine");
-    expect(store.files.get("alchemy")?.map((file) => file.path)).toEqual([
-      "fragment.glsl",
-      "manifest.json",
-      "thumbnail.png",
-    ]);
+    expect(
+      store.files.byOwner.get("alchemy")?.map((file) => file.path)
+    ).toEqual(["fragment.glsl", "manifest.json", "thumbnail.png"]);
     expect(store.settings.get("alchemy")?.values).toEqual({
       speed: 1,
       glow: true,
@@ -208,7 +220,7 @@ describe("PluginManager", () => {
     await manager.remove("alchemy");
 
     expect(store.plugins.size).toBe(0);
-    expect(store.files.size).toBe(0);
+    expect(store.files.byOwner.size).toBe(0);
     expect(store.settings.size).toBe(0);
   });
 

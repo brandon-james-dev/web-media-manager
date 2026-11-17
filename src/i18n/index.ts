@@ -3,7 +3,10 @@
  *
  * Everything a component, a test or (later) a theme renderer needs comes from
  * here: the registry and its derived types, the language packs, the service
- * and its singleton, validation, and the React binding.
+ * and its singleton, validation, and the React hook. `I18nProvider` is
+ * imported from `@/i18n/I18nProvider` instead: a component module pulls the
+ * dev-server refresh preamble, which reads `window` and breaks the web worker
+ * that reaches this barrel.
  */
 
 import { enUS } from "./en-US";
@@ -28,7 +31,6 @@ export { I18nService } from "./I18nService";
 export type { I18nServiceOptions } from "./I18nService";
 export { I18nContext, useTranslation } from "./useTranslation";
 export type { UseTranslationResult } from "./useTranslation";
-export { I18nProvider } from "./I18nProvider";
 
 /**
  * Validates the packs this build ships with (dev startup, tests).

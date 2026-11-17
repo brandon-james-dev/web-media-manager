@@ -4,6 +4,7 @@ export * from ".//useSongs";
 export * from "./useSync";
 export * from "./useSourceSongs";
 export * from "./useTheme";
+export * from "./useThemes";
 export * from "./useShufflePlay";
 export * from "./useFavorites";
 export * from "./useOfflineSongs";
