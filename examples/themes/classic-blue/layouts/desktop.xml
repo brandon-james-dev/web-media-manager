@@ -5,7 +5,6 @@
       <DockPanel>
         <Panel dock="top" height="@length/title-height" style="@panel/title-strip">
           <Stack orientation="horizontal" gap="@length/gap-md" align="center">
-            <Image source="@image/logo" width="24" height="24" fit="contain" decorative="true" />
             <Text resourceKey="app.title" style="@text/logo" grow="1" />
             <SearchBox scope="library" width="260" />
             <Button command="wmm.ui.openSettings" labelKey="settings.title" icon="@icon/settings" display="icon" />
@@ -13,15 +12,27 @@
         </Panel>
 
         <Panel dock="bottom" height="@length/transport-height" style="@panel/transport-bar">
-          <Grid columns="auto 1*" rows="1*" columnGap="16">
+          <Grid columns="auto 1* auto" rows="1*" columnGap="16">
             <Stack column="0" orientation="horizontal" gap="@length/gap-sm" align="center">
+              <Button command="wmm.playback.toggleShuffle" labelKey="playback.shuffle" icon="@icon/shuffle" display="icon" style="@button/toggle" />
+              <Button command="wmm.playback.toggleRepeat" labelKey="playback.repeat" icon="@icon/repeat" display="icon" style="@button/toggle" />
               <Button command="wmm.playback.stop" labelKey="playback.stop" icon="@icon/stop" display="icon" style="@button/transport" />
               <Button command="wmm.playback.prev" labelKey="playback.previous" icon="@icon/prev" display="icon" style="@button/transport" />
-              <Button command="wmm.playback.playpause" labelKey="playback.playPause" display="icon" style="@button/play-orb" />
+              <Button command="wmm.playback.playpause" labelKey="playback.playPause" icon="@icon/playPause" display="icon" style="@button/play" />
               <Button command="wmm.playback.next" labelKey="playback.next" icon="@icon/next" display="icon" style="@button/transport" />
             </Stack>
-            <NowPlaying column="1" variant="bar" artwork="true" transport="false" seek="true" volume="true"
-                        titleText="@text/body" detailText="@text/caption" />
+            <Stack column="1" gap="@length/gap-sm" vAlign="center">
+              <Stack orientation="horizontal" gap="@length/gap-md" align="center">
+                <Artwork width="32" height="32" action="openNowPlaying" cornerRadius="4" />
+                <TrackInfo grow="1" fields="title artist album" arrangement="inline" titleText="@text/body" detailText="@text/caption" />
+                <PlaybackTime format="elapsedAndTotal" text="@text/caption" />
+              </Stack>
+              <SeekBar slider="@slider/seek" />
+            </Stack>
+            <Stack column="2" orientation="horizontal" gap="@length/gap-sm" align="center">
+              <PlayQueue presentation="popover" artwork="true" clearButton="true" button="@button/toggle" />
+              <VolumeControl width="120" muteButton="true" slider="@slider/volume" button="@button/toggle" />
+            </Stack>
           </Grid>
         </Panel>
 
@@ -42,21 +53,44 @@
   </Shell>
 
   <Page id="now-playing" role="nowPlaying" titleKey="navigation.nowPlaying" default="true">
-    <Grid columns="1* 260" rows="1*" columnGap="@length/gap-md">
-      <Visualizer column="0" selector="true" fallback="artwork" panel="@panel/inset" />
-      <PlayQueue column="1" artwork="true" panel="@panel/inset" rowText="@text/body" />
-    </Grid>
+    <Tabs strip="top" stripAlign="start" tabStyle="@button/tab">
+      <Tab id="visualizer" titleKey="visualizer.title" icon="@icon/visualizer">
+        <Visualizer selector="true" settingsButton="true" trackInfo="true" fallback="artwork" panel="@panel/inset" />
+      </Tab>
+      <Tab id="queue" titleKey="playback.queue" icon="@icon/queue">
+        <Grid columns="1* 1*" rows="1*" columnGap="@length/gap-md">
+          <Stack column="0" gap="@length/gap-md" align="center" vAlign="center">
+            <Artwork width="280" height="280" cornerRadius="8" />
+            <TrackInfo fields="title artist album" titleText="@text/np-title" detailText="@text/caption" />
+          </Stack>
+          <PlayQueue column="1" artwork="true" clearButton="true" upNext="true" panel="@panel/inset" rowText="@text/body" />
+        </Grid>
+      </Tab>
+      <Tab id="lyrics" titleKey="playback.lyrics" icon="@icon/lyrics">
+        <Lyrics align="center" panel="@panel/inset" text="@text/body" />
+      </Tab>
+      <TabStripEnd>
+        <Stack orientation="horizontal" gap="@length/gap-sm" idleHide="true">
+          <Button command="wmm.ui.toggleDarkRoom" labelKey="playback.darkRoom" icon="@icon/darkRoom" display="icon" style="@button/toggle" />
+          <Button command="wmm.ui.toggleFullscreen" labelKey="common.fullScreen" icon="@icon/fullscreen" display="icon" style="@button/toggle" />
+        </Stack>
+      </TabStripEnd>
+    </Tabs>
   </Page>
 
   <Page id="library" role="library" titleKey="navigation.library">
-    <Grid columns="220 1*" rows="1* 200" columnGap="@length/gap-md" rowGap="@length/gap-md">
-      <LibraryBrowser row="0" column="0" rowSpan="2" views="artists albums genres songs"
+    <Grid columns="220 1*" rows="auto 1* 200" columnGap="@length/gap-md" rowGap="@length/gap-md">
+      <LibraryBrowser row="0" column="0" rowSpan="3" views="artists albums genres songs"
                       initialView="artists" display="list" artwork="true"
                       panel="@panel/inset" itemText="@text/body" headerText="@text/pane-header" />
-      <TrackList row="0" column="1" columns="track title artist album duration offline"
+      <Stack row="0" column="1" orientation="horizontal" gap="@length/gap-md" align="center">
+        <CollectionSummary grow="1" fields="title count duration" titleText="@text/np-title" detailText="@text/caption" />
+        <Button command="wmm.playback.playAll" labelKey="playback.play" icon="@icon/play" style="@button/transport" />
+      </Stack>
+      <TrackList row="1" column="1" columns="track title artist album duration offline"
                  alternateRows="true" showHeader="true" panel="@panel/inset"
-                 rowText="@text/body" headerText="@text/pane-header" />
-      <MetadataEditor row="1" column="1" mode="quick" panel="@panel/inset" labelText="@text/caption" />
+                 rowText="@text/body" headerText="@text/pane-header" playingText="@text/playing" />
+      <MetadataEditor row="2" column="1" mode="quick" panel="@panel/inset" labelText="@text/caption" />
     </Grid>
   </Page>
 
@@ -64,7 +98,7 @@
     <Grid columns="240 1*" rows="1*" columnGap="@length/gap-md">
       <Playlist column="0" artwork="true" panel="@panel/inset" rowText="@text/body" />
       <TrackList column="1" columns="title artist album duration" alternateRows="true"
-                 panel="@panel/inset" rowText="@text/body" headerText="@text/pane-header" />
+                 panel="@panel/inset" rowText="@text/body" headerText="@text/pane-header" playingText="@text/playing" />
     </Grid>
   </Page>
 

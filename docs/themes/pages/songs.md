@@ -72,29 +72,80 @@ a page catalog have one.
 
 | Option | Variants | Values | Default |
 |--------|----------|--------|---------|
-| `variant` | | `table` · `list` · `tv` | `table` on desktop, `list` on tablet and mobile, `tv` on tv |
-| `columns` | table | ordered subset of `title album artist albumArtist track disc genre year duration bitrate offline source` | `title album artist track genre year duration bitrate offline` |
-| `sortBy` | table | one of `columns` | `title` |
-| `sortDirection` | table | `ascending` · `descending` | `ascending` |
-| `columnMenu` | table | Boolean: header right-click menu with column checkboxes and Reset | `true` |
-| `reorderColumns`, `resizeColumns` | table | Boolean | `true` |
-| `scrubber` | table, list | Boolean: the alphabet scrubber along the end edge | `true` (table), `false` (list) |
+| `variant` | | `table` · `albums` · `list` · `tv` | `table` on desktop, `list` on tablet and mobile, `tv` on tv |
+| `columns` | table, albums | ordered subset of `title album artist albumArtist track disc genre year duration bitrate offline source` | `title album artist track genre year duration bitrate offline` |
+| `sortBy` | table, albums | one of `columns` | `title` (table), `album` (albums) |
+| `sortDirection` | table, albums | `ascending` · `descending` | `ascending` |
+| `columnMenu` | table, albums | Boolean: header right-click menu with column checkboxes and Reset | `true` |
+| `reorderColumns`, `resizeColumns` | table, albums | Boolean | `true` |
+| `scrubber` | table, albums, list | Boolean: the alphabet scrubber along the end edge | `true` (table), `false` (list) |
 | `fields` | list, tv | ordered subset of `artwork explicit artist album duration favorite` | list: `artwork explicit artist album duration favorite`; tv: `artwork artist album duration` |
-| `alternateRows` | table, tv | Boolean | `true` |
-| `showHeader` | table | Boolean | `true` |
+| `alternateRows` | table, albums, tv | Boolean | `true` |
+| `showHeader` | table, albums | Boolean | `true` |
 
 Style slots: `rowText`, `headerText`, `alternateBrush` (as before), plus `playingText` (the
-now-playing row; default `accent`). Min size: table 240×120, list 200×120, tv 480×200. One per
-page.
+now-playing row; default `accent`). Min size: table 240×120, albums 360×160, list 200×120,
+tv 480×200. One per page.
+
+`albums` groups the rows by album while the table is sorted by Album, which is this variant's
+default sort. Each album gets a header line with its artist, then a left column showing the cover,
+album, album artist, genre and year beside that album's tracks, so the `album` column is redundant
+there and is dropped if listed. Rows are ordered by album artist, then album, with the unknown
+artist and album last, and each album's songs run in disc and track order. Sorting by any other
+column shows a flat table instead, with an `album` column added first when the theme did not list
+one, so every column sorts the way the `table` variant does. Clicking the Album header returns to
+the grouped view.
 
 `density` sets the row height: `compact` 28 px (today's table), `comfortable` 44 px (today's
 list), and tv is always 72 px.
 
+**Header sorting.** Clicking anywhere in a column header cell sorts by that column, not only its
+label: the sort button fills the cell, so the whole header is the target, and the resize handle on
+its end edge never sorts. Clicking the sorted column again reverses it.
+
+**Column order.** `reorderColumns="true"` makes the headers draggable. Pressing a header and
+moving more than 4 px sideways starts a drag: the dragged header dims, a 2 px rule marks the edge
+the column lands on, and releasing moves it there. Alt+Left and Alt+Right on a focused header move
+it one slot. The order persists per theme, page and variant beside the widths, and the column
+menu's Reset returns to the theme's order. In the grouped albums form the album cell stays first
+and is not reorderable.
+
+**Album cell filters.** In the grouped albums form the album, album artist, genre and year beside
+the cover are buttons that filter the page by that value: album, artist and genre through their
+own selections, and year through a `year` selection that keeps the songs whose year matches. The
+unknown-artist and unknown-album stand-ins stay plain text.
+
+When the page's `LibraryBrowser` tree has a view selected (Artists, Albums, Genres or Playlists),
+the `TrackList` shows that view's entries as a grid of cover tiles instead of songs: a square
+cover that fills the tile's width, the entry's label and its song count, with the search box still narrowing the entries. A
+double click or Enter on a tile opens it, which selects that artist, album, genre or playlist and
+shows its songs. Library and Songs keep showing every song.
+
+**Playlist tracks.** When the page's selection is a playlist, the `TrackList` starts in the
+playlist's own order: no column is sorted, so the rows run in the order the playlist stores. A
+header click sorts ascending, the next click descending, and the third click on the same column
+returns to the playlist order. In that order each row carries a drag handle: dragging it shows a
+2 px `primary` rule where the row lands, and dropping moves the song there through
+`moveSongInPlaylist`. Alt+Up and Alt+Down on a focused row move it one slot. The row context menu
+gains "Remove from playlist", and Delete removes the picked rows without asking. A playlist its
+source keeps read-only shows no handle, no remove action and no Delete.
+
+**Context menus.** Right-clicking a row opens the song menu for the songs that row holds: an
+artist, album or genre value row and the Artists, Albums, Genres, Songs and Library view rows act
+on every song they list, an album group's cover cell acts on that album's songs, and a `TrackList`
+row acts on that row. Playlist rows, tiles and the `Playlist` widget open the playlist menu
+instead: play, rename and delete, with rename and delete disabled for a read-only playlist and
+delete asking first.
+
+**Create playlist row.** The first row under Playlists is an action row, "New playlist", in
+italics with a list-plus icon. It is never selected: clicking it or pressing Enter opens the
+new-playlist dialog, and the playlist it creates becomes the page's selection.
+
 **Host-owned behavior.** Not themable, listed so authors know what the widget does:
 
 - **Columns** (table). `title` 240, `album` 240, `artist` 240, `track` 70, `duration` 90,
-  `bitrate` 100, `offline` 80 px initial widths; the rest size to content. Every column sorts;
-  clicking the sorted header again reverses it. Sort isn't persisted.
+  `bitrate` 100, `offline` 80 px initial widths; the rest size to content. Every column sorts from
+  anywhere in its header cell; clicking the sorted header again reverses it. Sort isn't persisted.
 - **Column state.** `columns` is the theme's default set and order. The user's visibility, order
   and widths persist per theme, layout and page, and the column menu's Reset returns to the
   theme's default. Switching themes never carries column state across.
@@ -138,7 +189,14 @@ page (`E6205`).
 
 `MetadataEditor`, `Playlist` and `SyncQueue` keep their contracts from
 [03](../03-layouts.md#widgets). `MetadataEditor mode="full"` is today's docked editor;
-`quick` is the quick-edit dialog content.
+`quick` is the quick-edit dialog content. With no songs selected, `full` renders nothing, so
+a docked editor takes no space until a selection exists.
+
+`Playlist` gains `editable` (Boolean, default `true`). With it the widget adds a new-playlist
+button above the list, gives each row the playlist context menu, renames the focused row in place
+on F2 and asks before deleting it on Delete. `editable="false"` leaves the list read-only, for a
+layout that only browses playlists. Rows from a source that cannot write playlists stay
+read-only whatever the attribute says.
 
 ## 4. Page and layout rules
 
@@ -222,6 +280,7 @@ Keys to add (hard-coded literals today, mostly on TV):
 | `library.nothingToBrowse` | Nothing to browse here | TV empty state |
 | `library.album` / `library.artist` / `library.playlist` | Album / Artist / Playlist | TV detail kicker |
 | `library.durationMinutes` | {0} min *(template)* | `CollectionSummary` |
+| `library.showAllFrom` | Show all from {0} *(template)* | Album cell filter buttons |
 | `metadata.bitrateValue` | {0} kbps *(template)* | Table bitrate cell |
 | `navigation.editMode` | Edit mode | Accessible name of `toggleEditMode` while `active` |
 
@@ -310,8 +369,9 @@ The TV home page (tiles) is out of scope here and gets its own page spec.
 | `E6205` | error | `CollectionSummary` or a `wmm.playback.playAll` button on a page with no `TrackList` |
 | `E6206` | error | `sourceFilter` or `resultCount` on a `SearchBox` with `scope="sync"` |
 | `W6207` | warning | A `Panel collapsible="true"` with no reachable `togglePanel` button (it can never open) |
-| `W6208` | warning | `TrackList variant="table"` in `mobile.xml` or `tv.xml` (needs a pointer), or `variant="tv"` outside `tv.xml` |
+| `W6208` | warning | `TrackList variant="table"` or `variant="albums"` in `mobile.xml` or `tv.xml` (needs a pointer), or `variant="tv"` outside `tv.xml` |
 | `W6209` | warning | A `toggleEditMode` button but no `MetadataEditor` with `libraryMode="edit"` |
+| `W6210` | warning | A `Panel resizable="true"` docked to neither `start` nor `end` (nothing to drag) |
 
 ## 10. App changes this page depends on (to do)
 

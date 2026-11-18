@@ -4,6 +4,7 @@ import type { WmmMusicDb } from "./WmmMusicDb";
 import type { DataChangedCallback } from "..";
 import type { UpdateSpec } from "dexie";
 import type { QueryOptions } from "../QueryOptions";
+import { sortTieBreaker } from "../QueryOptions";
 import type { DataSourceResult } from "../DataSourceResult";
 
 export class DexieMetadataStore implements IMetadataStore {
@@ -72,6 +73,7 @@ export class DexieMetadataStore implements IMetadataStore {
 
     if (sort) {
       const { selector, desc } = sort;
+      const tieBreaker = sortTieBreaker(selector);
 
       if (typeof selector === "string") {
         array.sort((a, b) => {
@@ -83,7 +85,8 @@ export class DexieMetadataStore implements IMetadataStore {
             }
           );
 
-          return desc ? -av : av;
+          if (av !== 0) return desc ? -av : av;
+          return tieBreaker?.(a, b) ?? 0;
         });
       } else {
         array.sort((a, b) => {
@@ -95,7 +98,8 @@ export class DexieMetadataStore implements IMetadataStore {
             }
           );
 
-          return desc ? -av : av;
+          if (av !== 0) return desc ? -av : av;
+          return tieBreaker?.(a, b) ?? 0;
         });
       }
     }

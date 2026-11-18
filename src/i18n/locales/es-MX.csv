@@ -72,6 +72,7 @@ playback.playlistHeadingMany,Lista de reproducción - {0} canciones
 playback.playlistHeadingOther,Lista de reproducción - {0} canciones
 library.artists,Artistas
 library.albums,Álbumes
+library.genres,Géneros
 library.songs,Canciones
 library.sources,Fuentes
 library.noSongsFound,No se encontraron canciones
@@ -90,9 +91,14 @@ library.albumCountOther,{0} álbumes
 library.songCountOne,{0} canción
 library.songCountMany,{0} canciones
 library.songCountOther,{0} canciones
+library.totalMinutesOne,{0} min
+library.totalMinutesMany,{0} min
+library.totalMinutesOther,{0} min
 library.toggleSortOrder,Alternar A-Z / Z-A
 library.backToArtists,Volver a los artistas
 library.deselectAll,Quitar toda la selección
+library.resizeColumn,Ajustar el ancho de la columna {0}
+library.showAllFrom,Mostrar todo de {0}
 library.deselectAllSongs,Quitar la selección de todas las canciones
 library.deselectCount,Quitar selección de {0}
 library.editAlbum,Editar álbum
@@ -101,6 +107,7 @@ library.scrollAlbums,Desplazar álbumes
 library.noArtwork,Sin portada
 library.noCoverArt,Sin portada
 library.quickEdit,Edición rápida
+library.noSelection,Selecciona una canción para editarla.
 library.quickEditSelected,Edición rápida ({0} seleccionadas)
 library.advancedEdit,Edición avanzada
 library.applyToCount,Aplicar a {0} canciones
@@ -177,6 +184,8 @@ playlist.section,Lista
 sync.title,Sincronización
 sync.queue,Cola de sincronización
 sync.devices,Dispositivos
+sync.noDevices,No hay dispositivos de sincronización
+sync.addDevice,Agregar dispositivo
 sync.start,Iniciar sincronización
 sync.cancel,Cancelar sincronización
 sync.addToQueue,Agregar a la cola de sincronización
@@ -263,6 +272,7 @@ metadata.duration,Duración
 metadata.genre,Género
 metadata.year,Año
 metadata.albumArtist,Artista del álbum
+metadata.source,Fuente
 metadata.albumArt,Portada
 metadata.trackPosition,Posición de la pista
 metadata.credits,Créditos
@@ -297,6 +307,7 @@ settings.languageAuto,Automático ({0})
 settings.saved,Configuración guardada
 settings.save,Guardar configuración
 settings.shortcutOpenShortcuts,Abrir los atajos de teclado
+settings.shortcutOpenSettings,Abrir la configuración
 settings.shortcutNext,Canción siguiente / álbum siguiente
 settings.shortcutPrev,Canción anterior / álbum anterior
 settings.shortcutPlayPause,Reproducir / Pausar
@@ -340,6 +351,7 @@ settings.themeActionReinstall,Reinstalar
 settings.themeActionDowngrade,Volver a la anterior
 settings.themeInstalled,Se instaló {0}
 settings.themeApplyFailed,No se pudo aplicar el tema
+settings.themeCrashReverted,El tema dejó de funcionar y se desactivó.
 navigation.library,Biblioteca
 navigation.songs,Canciones
 navigation.albums,Álbumes
@@ -350,6 +362,7 @@ navigation.sync,Sincronización
 navigation.sidebar,Barra lateral de listas y sincronización
 navigation.closeSidebar,Cerrar la barra lateral
 navigation.sidebarBlocked,Esta vista ya está abierta en pantalla completa
+layout.resizePanel,Cambiar tamaño del panel
 search.label,Buscar
 search.placeholder,Buscar...
 search.clear,Borrar búsqueda

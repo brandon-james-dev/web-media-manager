@@ -1,5 +1,37 @@
 import { describe, expect, it, vi } from "vitest";
-import { THEME_TRIAL_SECONDS, ThemeTrial } from "./themeTrial";
+import {
+  THEME_TRIAL_SECONDS,
+  ThemeTrial,
+  shouldStartThemeTrial,
+} from "./themeTrial";
+
+describe("shouldStartThemeTrial", () => {
+  it("skips the trial when the built-in theme is picked and nothing else is installed", () => {
+    expect(shouldStartThemeTrial(undefined, undefined, [])).toBe(false);
+  });
+
+  it("skips the trial when the previous theme was uninstalled", () => {
+    expect(shouldStartThemeTrial("classic-blue", undefined, [])).toBe(false);
+    expect(
+      shouldStartThemeTrial("gone", "classic-blue", ["classic-blue"])
+    ).toBe(false);
+  });
+
+  it("skips the trial when the pick matches the previous theme", () => {
+    expect(
+      shouldStartThemeTrial("classic-blue", "classic-blue", ["classic-blue"])
+    ).toBe(false);
+  });
+
+  it("starts the trial when the previous theme can be restored", () => {
+    expect(
+      shouldStartThemeTrial(undefined, "classic-blue", ["classic-blue"])
+    ).toBe(true);
+    expect(
+      shouldStartThemeTrial("classic-blue", undefined, ["classic-blue"])
+    ).toBe(true);
+  });
+});
 
 function fakeTimers() {
   let callback: (() => void) | undefined;

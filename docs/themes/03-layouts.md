@@ -73,6 +73,18 @@ create a one-off style for every spacing tweak.
 `wmm.ui.togglePanel`. Requires an `id`. Defined in
 [pages/songs.md § 4.3](pages/songs.md#43-collapsible-panels).
 
+`resizable` (Boolean, default `false`): a panel docked to `start` or `end` gets a 6px drag
+handle on its inner edge. Drag it, or focus it and press the arrow keys (16px a step), to change
+the panel width; a double-click resets it to the layout width. The width is remembered per theme,
+form factor and panel `id`. The range comes from the panel's `minWidth` and `maxWidth`, otherwise
+120–600. A `resizable` panel docked anywhere else warns (`W6210`).
+
+`hideInFullscreen` (Boolean, default `false`): the panel steps aside about three seconds after the
+document enters full screen, fading out over a moment and then leaving the layout, so a tab strip
+or a transport bar can step aside and leave the page to fill the window. The browser's own Esc key
+leaves full screen, and the panel comes back at once; pointer or key activity also brings it back,
+and it steps aside again after the delay.
+
 ### Stack
 
 Arranges children in a line.
@@ -84,6 +96,10 @@ Arranges children in a line.
 `orientation`: `horizontal` · `vertical` (default). `gap`: Length. `align` (cross axis):
 `stretch` · `start` · `center` · `end`. `justify` (main axis): `start` · `center` · `end` ·
 `spaceBetween`. `overflow`: `clip` · `scroll`. `wrap`: Boolean (horizontal only).
+
+A child's cross-axis alignment, `hAlign` in a vertical stack and `vAlign` in a horizontal one,
+overrides `align` for that child. The default `stretch` leaves the stack's `align` in charge. A
+child aligned this way never grows past the stack's cross size.
 
 ### DockPanel
 
@@ -186,6 +202,12 @@ swaps on `active`. The set grows additively.
 
 A fifth primitive, approved during the playback page review. It is defined in [pages/playback.md § 4.4](pages/playback.md#44-tabs-new-primitive).
 
+`hideInFullscreen` (Boolean, default `false`): the tab strip steps aside the same way as a
+`hideInFullscreen` panel, while the selected tab's content stays on screen, and returns on pointer
+or key activity. The strip's start holds the controls the selected tab's widget places there, such
+as a `Visualizer`'s picker and settings, and a `TabStripEnd` stays visible in full screen while the
+tabs step aside.
+
 ## Widgets
 
 Widgets are app-implemented components with **fixed contracts**. A theme places and sizes
@@ -198,18 +220,22 @@ outer chrome) and `density` (`compact` · `comfortable`, default from form facto
 
 | Widget | Purpose | Options | Style slots | Min size | Cardinality |
 |--------|---------|---------|-------------|----------|-------------|
-| `LibraryBrowser` | Navigate artists, albums, genres and playlists. Selection drives `TrackList`. | `views` (ordered subset of `artists albums genres playlists songs`), `initialView`, `display` (`list` · `grid`), `artwork` (Boolean) | `itemText`, `headerText` (`@text/`) | 160×160 | 1 per page |
-| `TrackList` | Songs for the current selection on the same page: the `LibraryBrowser` selection, or the playlist picked in a `Playlist`. With neither on the page, all songs. | `variant` (`table` · `list` · `tv`) and per-variant options, defined in [pages/songs.md § 3.1](pages/songs.md#31-tracklist) | `rowText`, `headerText`, `alternateBrush` (`@brush/`), `playingText` | per variant | 1 per page |
+| `LibraryBrowser` | Navigate artists, albums, genres and playlists. Selection drives `TrackList`. | `views` (ordered subset of `artists albums genres playlists songs`), `initialView`, `display` (`list` · `grid` · `tree`), `artwork` (Boolean) | `itemText`, `headerText` (`@text/`) | 160×160 | 1 per page |
+| `TrackList` | Songs for the current selection on the same page: the `LibraryBrowser` selection, or the playlist picked in a `Playlist`. With neither on the page, all songs. | `variant` (`table` · `albums` · `list` · `tv`) and per-variant options, defined in [pages/songs.md § 3.1](pages/songs.md#31-tracklist) | `rowText`, `headerText`, `alternateBrush` (`@brush/`), `playingText` | per variant | 1 per page |
 | `CollectionSummary` | Summary of the page's `TrackList` collection. | Defined in [pages/songs.md § 3.3](pages/songs.md#33-collectionsummary-new) | `titleText`, `detailText` | 160×40 | 1 per page |
 | `Playlist` | The playlists list. (The play queue is `PlayQueue`, a playback widget.) | `artwork` | `rowText` | 160×120 | 1 per page |
 | Playback widgets | `NowPlaying`, `Artwork`, `TrackInfo`, `SeekBar`, `PlaybackTime`, `VolumeControl`, `PlayQueue`, `Lyrics`, `Visualizer` | Defined in [pages/playback.md](pages/playback.md#3-widgets) | | | |
 | `MetadataEditor` | Edit the selected songs' tags. | `mode` (`quick` · `full`) | `labelText` | 240×200 | 1 per layout |
-| `SyncQueue` | Songs queued for device sync. | `summary` (Boolean) | `rowText` | 200×120 | 1 per page |
+| `SyncQueue` | Songs queued for device sync. While a sync runs it shows a progress readout that cancels the run when activated, and synced rows show a tick. | `summary` (Boolean) | `rowText` | 200×120 | 1 per page |
 | `DevicePanel` | Connected devices and storage. | `storage`, `allowAdd` (Booleans) | `titleText` | 200×80 | 1 per page |
 | `SearchBox` | Library search input. | `scope` (`library` · `sync`), `placeholderKey` (resource key), plus `sourceFilter`, `resultCount`, `presentation` from [pages/songs.md § 3.2](pages/songs.md#32-searchbox) | n/a | 120×32 | 1 per scope per page |
 
 Rules:
 
+- `LibraryBrowser display="tree"` renders a vertical navigation tree instead of the wrap of
+  view buttons: a playlists node and a library node whose children are the other views in
+  `views` order, each expandable into its values. Arrow keys move between rows, ArrowRight and
+  ArrowLeft open and close a node, and Enter or Space picks one.
 - Widgets have **no children** (`E6070`).
 - Unknown widget options are errors, not warnings. Options are a typed contract, and a typo
   that silently does nothing is worse for authors.

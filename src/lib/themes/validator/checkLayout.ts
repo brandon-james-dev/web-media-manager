@@ -72,7 +72,8 @@ const TRACK_LIST_DEFAULT_VARIANT: Readonly<Record<string, string>> = {
  * `libraryMode="edit"`, on itself or an ancestor (`W6209`), and a
  * VolumeControl in the tv layout (`W6108`), and a Now Playing page with no
  * play/pause control (`W6109`), and an edge SeekBar whose parent is not a
- * Panel or Grid (`W6110`).
+ * Panel or Grid (`W6110`), and a `resizable` Panel docked to neither `start`
+ * nor `end` (`W6210`).
  * Elements whose prefix the root lists in `ignorable` are skipped.
  *
  * @example
@@ -222,6 +223,7 @@ export function checkLayout(root: ThemeNode, file: string): ThemeIssue[] {
 
   const collapsibleIds = new Set<string>();
   const collapsiblePanels: ThemeNode[] = [];
+  const resizablePanels: ThemeNode[] = [];
   const toggleTargets: { target: string; node: ThemeNode }[] = [];
   const collectPanels = (node: ThemeNode): void => {
     const id = node.attributes.id?.value;
@@ -232,6 +234,14 @@ export function checkLayout(root: ThemeNode, file: string): ThemeIssue[] {
     ) {
       collapsibleIds.add(id);
       collapsiblePanels.push(node);
+    }
+    if (
+      node.local === "Panel" &&
+      node.attributes.resizable?.value === "true" &&
+      node.attributes.dock?.value !== "start" &&
+      node.attributes.dock?.value !== "end"
+    ) {
+      resizablePanels.push(node);
     }
     const target = node.attributes.commandParameter?.value;
     if (
@@ -307,7 +317,8 @@ export function checkLayout(root: ThemeNode, file: string): ThemeIssue[] {
   };
 
   const checkColumns = (node: ThemeNode): void => {
-    if (node.local !== "TrackList" || variantOf(node) !== "table") return;
+    const variant = variantOf(node);
+    if (node.local !== "TrackList" || !isTableLike(variant)) return;
     const columns = (
       node.attributes.columns?.value ??
       LAYOUT_ELEMENTS.TrackList.attributes.columns.default ??
@@ -330,13 +341,13 @@ export function checkLayout(root: ThemeNode, file: string): ThemeIssue[] {
     const variant = node.attributes.variant?.value;
     const target = formFactor ?? expected;
     const tableWithoutPointer =
-      variant === "table" && (target === "mobile" || target === "tv");
+      isTableLike(variant) && (target === "mobile" || target === "tv");
     const tvOutsideTv = variant === "tv" && target !== "tv";
     if (!tableWithoutPointer && !tvOutsideTv) return;
     report(
       "W6208",
       tableWithoutPointer
-        ? `variant="table" needs a pointer; the ${target} layout should use list or tv.`
+        ? `variant="${variant}" needs a pointer; the ${target} layout should use list or tv.`
         : `variant="tv" is meant for tv.xml; this is the ${target} layout.`,
       node,
       IssueSeverity.Warning
@@ -567,5 +578,18 @@ export function checkLayout(root: ThemeNode, file: string): ThemeIssue[] {
       IssueSeverity.Warning
     );
   }
+  for (const panel of resizablePanels) {
+    report(
+      "W6210",
+      `<${panel.name} resizable="true"> only resizes when it is docked to start or end.`,
+      panel,
+      IssueSeverity.Warning
+    );
+  }
   return issues;
+}
+
+/** Whether a `TrackList` variant lays its songs out in columns. */
+function isTableLike(variant: string | undefined): boolean {
+  return variant === "table" || variant === "albums";
 }

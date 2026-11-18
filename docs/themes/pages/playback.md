@@ -31,7 +31,7 @@ came from an audit of the current code (`PlayerControls.tsx`, `NowPlayingView.ts
 | `wmm.playback.toggleMute` | yes | none | `active` while muted | never | Mute is owned by the playback provider, so every mute button agrees. Muting never changes the stored volume; setting a volume above 0 unmutes. |
 | `wmm.ui.openNowPlaying` | yes | none | `selected` while the Now Playing page is visible | never | Opens the `nowPlaying`-role page, or the host's built-in Now Playing view if the layout has none. |
 | `wmm.ui.closeNowPlaying` | yes | none | none | when the Now Playing page isn't visible | Returns to the page underneath (overlay) or the previous page. |
-| `wmm.ui.toggleFullscreen` | yes | none | `active` while fullscreen | where the Fullscreen API is missing, in hosted TV shells, and on `mobile` | Replaces the view-local fullscreen toggle and the `f` key handler. |
+| `wmm.ui.toggleFullscreen` | yes | none | `active` while fullscreen; `disabled` unless the Now Playing page is showing, except while fullscreen so it can exit | where the Fullscreen API is missing, in hosted TV shells, and on `mobile` | Replaces the view-local fullscreen toggle and the `f` key handler. |
 | `wmm.ui.toggleDarkRoom` | yes | none | `active` while dark room is on | when the Now Playing page isn't visible | Replaces the view-local dark room toggle. Effect: see [4.3](#43-dark-room). |
 | `wmm.visualizer.openSettings` | yes | none | `disabled` when no visualizer is active or it has no settings | when the layout has no `Visualizer` widget | Opens the host's settings dialog for the active plugin. |
 
@@ -87,13 +87,13 @@ Text style slots take `@text/...`, and slider slots take `@slider/...` (new styl
 | Widget | Shows | Options | Style slots | Min size | Per page |
 |--------|-------|---------|-------------|----------|----------|
 | `Artwork` | Current track's cover. A disc icon when there's none. | `fit` (`cover` · `contain`), `action` (`none` · `openNowPlaying`), `cornerRadius` | none | 24×24 | unlimited |
-| `TrackInfo` | Title and details of the current track. Shows `playback.nothingPlaying` when idle. | `fields`: ordered subset of `title explicit artist album favorite`. `arrangement` (`stacked` · `inline`) | `titleText`, `detailText` | 80×16 | unlimited |
+| `TrackInfo` | Title and details of the current track. Shows `playback.nothingPlaying` when idle, with any trailing time field still drawn as `--:--` (`--:-- / --:--` for `elapsedAndTotal`) so the time slot never moves. | `fields`: ordered subset of `title explicit favorite artist album albumArtist genre year track disc bitrate elapsed total remaining elapsedAndTotal`. `trailing`: the same values, drawn right after the title (on the title line when `stacked`). A `hAlign="center"` centers `stacked` text. `arrangement` (`stacked` · `inline`) | `titleText`, `detailText` | 80×16 | unlimited |
 | `PlaybackTime` | A time readout. Shows `--:--` while the duration is unknown. | `format` (`elapsed` · `total` · `remaining` · `elapsedAndTotal`) | `text` | 32×12 | unlimited |
 | `SeekBar` | Seek slider with buffering indicator. Seeking sends `wmm.playback.seek`. | `variant` (`bar` · `edge`: a thin rule along the parent's top edge with an enlarged touch hit area), `buffering` (Boolean, default `true`, never shown for offline tracks) | `slider` | bar 80×16 · edge 80×2 | 2 |
 | `VolumeControl` | Volume slider, 0–1 in 0.01 steps, plus an optional mute button. | `orientation` (`horizontal` · `vertical`), `muteButton` (Boolean) | `slider`, `button` (`@button/`) | 80×16 (vertical 16×80) | 2 |
 | `PlayQueue` | The play queue (current and upcoming). When the queue is empty and shuffle is off, the next song in the current collection under `playback.upNext`. | `presentation` (`inline` · `popover`: a button that opens the queue in a host popover, disabled when empty), `artwork` (Boolean, otherwise track numbers), `clearButton` (Boolean), `upNext` (Boolean) | `rowText`, `detailText`, `headerText`, `button` (popover trigger) | inline 160×120 · popover 28×28 | 1 |
 | `Lyrics` | The current song's lyrics, or `playback.noLyrics`. | `align` (`start` · `center`) | `text` | 160×80 | 1 |
-| `Visualizer` | The active visualizer plugin. | `selector` (Boolean), `settingsButton` (Boolean), `trackInfo` (Boolean: a title and artist overlay), `fallback` (`artwork` · `none`) | `titleText`, `detailText` | 120×80 | **1 per layout** |
+| `Visualizer` | The active visualizer plugin. `selector` and `settingsButton` add the plugin picker and its settings, placed at the start of the tab strip when the widget sits in a `Tabs` panel, otherwise at the top start of the frame. | `selector` (Boolean), `settingsButton` (Boolean), `trackInfo` (Boolean: a title and artist overlay), `fallback` (`artwork` · `none`) | `titleText`, `detailText` | 120×80 | **1 per layout** |
 | `Backdrop` | The animated, artwork-derived background (seeded gradient, dots, circles, notes). Static when reduced motion is on. | `source` (`artwork` · `palette`: derived from `@slot/accent`) | none | none | 1 |
 | `NowPlaying` | Composite shortcut. Renders the built-in arrangement. | `variant` (`bar` · `compact` · `indicator` · `full`), `artwork`, `transport`, `seek`, `volume`, `queue` (Booleans; ignored by `indicator`) | `titleText`, `detailText`, `transportButton` (`@button/`), `slider` | bar 320×56 · compact 240×56 · indicator 160×40 · full 320×320 | 1 |
 
@@ -192,6 +192,8 @@ too) and holds no app data. *Open for review: it extends the primitive list you 
 `@button/...`, where the host applies `selected` to the current tab. `display` is the same as on
 Button. 2–8 tabs. The host remembers the selected tab per layout. Tab panels that aren't shown
 stay unmounted, except a `Visualizer`, which is paused instead so its GPU context survives.
+`hideInFullscreen` (Boolean, default `false`) hides the strip the same way as a panel, while the
+selected tab's content stays, and returns on pointer or key activity.
 
 ## 5. Remote and keyboard input
 

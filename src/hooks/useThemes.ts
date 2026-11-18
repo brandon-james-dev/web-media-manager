@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { getThemeStore } from "@/core/ports";
 import type { InstalledTheme } from "@/core/ports";
-import { themeTrial } from "@/core/themes";
+import { shouldStartThemeTrial, themeTrial } from "@/core/themes";
 import type { PendingThemeInstall } from "@/core/themes";
 import {
   getThemeManager,
@@ -121,7 +121,8 @@ export function useCommitTheme() {
 
 /**
  * Deletes an installed theme and its files. The store clears the active id
- * when the removed theme was active.
+ * when the removed theme was active, and a running trial that names the
+ * theme ends without reverting.
  *
  * @example
  * ```xml
@@ -137,7 +138,13 @@ export function useRemoveTheme() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (themeId: string) => getThemeManager().uninstallTheme(themeId),
+    mutationFn: async (themeId: string) => {
+      const trial = themeTrial.getSnapshot();
+      if (trial?.themeId === themeId || trial?.previousId === themeId) {
+        themeTrial.keep();
+      }
+      await getThemeManager().uninstallTheme(themeId);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: themeKeys.all });
       void reloadActiveTheme();
@@ -171,6 +178,17 @@ export function useApplyTheme() {
       await manager.setActiveThemeId(nextId);
       await queryClient.invalidateQueries({ queryKey: themeKeys.all });
       await reloadActiveTheme();
+      const installed = await manager.listThemes();
+      if (
+        !shouldStartThemeTrial(
+          previous,
+          nextId,
+          installed.map((theme) => theme.id)
+        )
+      ) {
+        themeTrial.keep();
+        return;
+      }
       themeTrial.start(nextId, previous, async (previousId) => {
         try {
           await manager.setActiveThemeId(previousId);

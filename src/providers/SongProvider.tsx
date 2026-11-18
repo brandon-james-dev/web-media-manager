@@ -10,7 +10,7 @@ import { getPersistedRootDirectories } from "@/lib/persistence/dexie";
 import type { QueryOptions } from "@/lib/persistence";
 import type { Song, LocalMusicSource } from "@/models";
 import { SongContext } from "@/hooks";
-import { wmmBus } from "@/events";
+import { commandDispatcher, wmmBus } from "@/events";
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
   //#region State
@@ -212,6 +212,21 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
       offCompleted();
     };
   }, []);
+
+  const filteredSongsRef = useRef<Song[]>(filteredSongs);
+  filteredSongsRef.current = filteredSongs;
+
+  useEffect(
+    () =>
+      commandDispatcher.register("wmm.playback.playAll", () => {
+        const list = filteredSongsRef.current;
+        if (!list.length) return;
+        wmmBus.invoke("wmm.playback.playCollection", {
+          songIds: list.map((song) => song.id),
+        });
+      }),
+    []
+  );
 
   useEffect(() => {
     const store = getStore();

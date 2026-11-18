@@ -45,6 +45,7 @@ export const WMM_RESOURCE_NAMESPACES = [
   "metadata",
   "settings",
   "navigation",
+  "layout",
   "search",
   "source",
   "notification",
@@ -211,6 +212,7 @@ export const WMM_RESOURCES = {
   // library
   "library.artists": text("Artists in the library."),
   "library.albums": text("Albums in the library."),
+  "library.genres": text("Genres in the library."),
   "library.songs": text("Songs in the library."),
   "library.sources": text("Music sources feeding the library."),
   "library.noSongsFound": text("Shown when a song list has nothing to display."),
@@ -227,9 +229,21 @@ export const WMM_RESOURCES = {
   "library.artistCount": plural("Artist count in a list.", ["count"]),
   "library.albumCount": plural("Album count in a list.", ["count"]),
   "library.songCount": plural("Song count in a list.", ["count"]),
+  "library.totalMinutes": plural(
+    "Total length of a collection, in whole minutes.",
+    ["minutes"]
+  ),
   "library.toggleSortOrder": text("Switches the list between A-Z and Z-A."),
   "library.backToArtists": text("Returns from an artist to the artist list."),
   "library.deselectAll": text("Clears the current multi-selection."),
+  "library.resizeColumn": template(
+    "Accessible name of a column's resize handle.",
+    ["column"]
+  ),
+  "library.showAllFrom": template(
+    "Accessible name of an album cell value that filters the page by it.",
+    ["value"]
+  ),
   "library.deselectAllSongs": text(
     "Clears the current multi-selection of songs."
   ),
@@ -243,6 +257,9 @@ export const WMM_RESOURCES = {
   "library.noArtwork": text("Shown when a song has no embedded artwork."),
   "library.noCoverArt": text("Shown when an album has no cover image."),
   "library.quickEdit": text("Compact form for editing a song's basic tags."),
+  "library.noSelection": text(
+    "Shown in the metadata editor when no song is picked."
+  ),
   "library.quickEditSelected": template(
     "Heading of the compact form while several songs are selected.",
     ["count"]
@@ -379,6 +396,8 @@ export const WMM_RESOURCES = {
   "sync.title": text("The device sync area."),
   "sync.queue": text("Songs waiting to be copied to a device."),
   "sync.devices": text("Devices available for sync."),
+  "sync.noDevices": text("Shown when no sync device is configured."),
+  "sync.addDevice": text("Starts adding a sync device."),
   "sync.start": text("Starts copying queued songs to a device."),
   "sync.cancel": text("Cancels a running sync."),
   "sync.addToQueue": text("Queues the selected songs for the next device sync."),
@@ -567,6 +586,7 @@ export const WMM_RESOURCES = {
   "metadata.genre": text("Genre field."),
   "metadata.year": text("Release year field."),
   "metadata.albumArtist": text("Album artist field."),
+  "metadata.source": text("Music source a song was imported from."),
   "metadata.albumArt": text("Cover image field."),
   "metadata.trackPosition": text(
     "Heading of the track and disc number fields."
@@ -615,6 +635,9 @@ export const WMM_RESOURCES = {
   "settings.save": text("Saves the settings form."),
   "settings.shortcutOpenShortcuts": text(
     "Keyboard shortcut that opens the shortcuts reference."
+  ),
+  "settings.shortcutOpenSettings": text(
+    "Keyboard shortcut that opens the settings screen."
   ),
   "settings.shortcutNext": text(
     "Keyboard shortcut that moves to the next song or album."
@@ -726,6 +749,9 @@ export const WMM_RESOURCES = {
   "settings.themeApplyFailed": text(
     "Toast shown when the chosen theme could not be applied."
   ),
+  "settings.themeCrashReverted": text(
+    "Toast shown when a theme layout crashed and the theme was turned off."
+  ),
 
   // navigation
   "navigation.library": text("Navigates to the library."),
@@ -739,6 +765,11 @@ export const WMM_RESOURCES = {
   "navigation.closeSidebar": text("Closes the playlists and sync sidebar."),
   "navigation.sidebarBlocked": text(
     "Tooltip shown when the sidebar view is already open full screen."
+  ),
+
+  // layout
+  "layout.resizePanel": text(
+    "Names the drag handle that resizes a docked theme panel."
   ),
 
   // search

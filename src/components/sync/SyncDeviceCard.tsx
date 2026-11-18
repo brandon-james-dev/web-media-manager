@@ -34,7 +34,7 @@ import { useSync } from "@/hooks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useCallback, useMemo, useState } from "react";
 import { Item, ItemContent, ItemDescription, ItemTitle } from "../ui/item";
-import { ScrollArea } from "../ui/scroll-area";
+import { ScrollArea, ScrollBar } from "../ui/scroll-area";
 import { SyncStat } from "./SyncStat";
 
 type DeviceView = "songs" | "albums" | "artists" | "genres" | "playlists";
@@ -79,6 +79,17 @@ export function SyncDeviceCard({
   }, []);
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
+
+  const manageTitle = isSyncing
+    ? "Management is unavailable while a sync is running"
+    : isEditing
+      ? "Stop managing tracks on this device"
+      : "Manage tracks on this device";
+
+  function toggleManage() {
+    setIsEditing((current) => !current);
+    clearSelection();
+  }
 
   const { usedBytes, capacityBytes } = device.storage ?? {};
 
@@ -242,7 +253,7 @@ export function SyncDeviceCard({
           <HardDrive className="absolute -right-3 bottom-0 size-16 -rotate-12" />
         </div>
 
-        <div className="relative flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="relative flex flex-col gap-3 @xl/card-header:flex-row @xl/card-header:items-start @xl/card-header:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <div
               className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent ring-1 ring-accent/20"
@@ -265,39 +276,27 @@ export function SyncDeviceCard({
               </div>
 
               <div className="flex flex-wrap items-center gap-1.5">
-                <Badge
-                  variant="secondary"
-                  className="gap-1 text-foreground"
-                >
+                <Badge variant="secondary" className="gap-1 text-foreground">
                   <ArrowDownToLine className="size-3" />
                   Sync
                 </Badge>
 
                 {device.capabilities.database && (
-                  <Badge
-                    variant="secondary"
-                    className="gap-1 text-foreground"
-                  >
+                  <Badge variant="secondary" className="gap-1 text-foreground">
                     <Database className="size-3" />
                     Database
                   </Badge>
                 )}
 
                 {device.capabilities.artwork && (
-                  <Badge
-                    variant="secondary"
-                    className="gap-1 text-foreground"
-                  >
+                  <Badge variant="secondary" className="gap-1 text-foreground">
                     <Image className="size-3" />
                     Artwork
                   </Badge>
                 )}
 
                 {device.capabilities.playlists && (
-                  <Badge
-                    variant="secondary"
-                    className="gap-1 text-foreground"
-                  >
+                  <Badge variant="secondary" className="gap-1 text-foreground">
                     <ListMusic className="size-3" />
                     Playlists
                   </Badge>
@@ -306,15 +305,13 @@ export function SyncDeviceCard({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <div className="flex flex-col gap-1.5 md:items-end">
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex flex-col gap-1.5 @xl/card-header:items-end">
               <Badge variant="outline" className="gap-1.5 bg-background">
                 <span
                   className={cn(
                     "size-1.5 rounded-full",
-                    device.connected
-                      ? "bg-primary"
-                      : "bg-muted-foreground/40"
+                    device.connected ? "bg-primary" : "bg-muted-foreground/40"
                   )}
                   aria-hidden="true"
                 />
@@ -328,20 +325,37 @@ export function SyncDeviceCard({
               )}
             </div>
 
-            <Button
-              variant="outline"
-              className="size-10 shrink-0 rounded-lg p-0"
-              disabled={isSyncing}
-              title={
-                isSyncing
-                  ? "Rescanning is unavailable while a sync is running"
-                  : "Rescan for connected devices"
-              }
-              aria-label="Rescan for connected devices"
-              onClick={() => void refreshDevices()}
-            >
-              <RotateCw className="size-4" />
-            </Button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                variant={isEditing ? "secondary" : "outline"}
+                className="size-10 shrink-0 rounded-lg p-0 @xl/card-header:hidden"
+                aria-pressed={isEditing}
+                aria-label={manageTitle}
+                disabled={isSyncing}
+                title={manageTitle}
+                onClick={toggleManage}
+              >
+                {isEditing ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Pencil className="size-4" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="size-10 shrink-0 rounded-lg p-0"
+                disabled={isSyncing}
+                title={
+                  isSyncing
+                    ? "Rescanning is unavailable while a sync is running"
+                    : "Rescan for connected devices"
+                }
+                aria-label="Rescan for connected devices"
+                onClick={() => void refreshDevices()}
+              >
+                <RotateCw className="size-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -411,9 +425,9 @@ export function SyncDeviceCard({
             clearSelection();
           }}
           className={cn(
-            "flex min-h-0 flex-1 flex-col",
+            "@container/device-tabs flex min-h-0 flex-1 flex-col",
             !isEditing &&
-            "**:data-[slot=checkbox]:hidden [&_button[aria-label^='Remove']]:hidden"
+              "**:data-[slot=checkbox]:hidden [&_button[aria-label^='Remove']]:hidden"
           )}
         >
           <div className="flex items-center gap-2">
@@ -438,8 +452,9 @@ export function SyncDeviceCard({
                     disabled={!device.connected || isRemoving || isSyncing}
                     onClick={() =>
                       setPendingRemove({
-                        label: `${selected.size} selected track${selected.size === 1 ? "" : "s"
-                          }`,
+                        label: `${selected.size} selected track${
+                          selected.size === 1 ? "" : "s"
+                        }`,
                         trackIds: [...selected],
                       })
                     }
@@ -457,20 +472,11 @@ export function SyncDeviceCard({
               <Button
                 size="sm"
                 variant={isEditing ? "secondary" : "outline"}
-                className="shrink-0"
+                className="hidden shrink-0 @xl/device-tabs:inline-flex"
                 aria-pressed={isEditing}
                 disabled={isSyncing}
-                title={
-                  isSyncing
-                    ? "Management is unavailable while a sync is running"
-                    : isEditing
-                      ? "Stop managing tracks on this device"
-                      : "Manage tracks on this device"
-                }
-                onClick={() => {
-                  setIsEditing((current) => !current);
-                  clearSelection();
-                }}
+                title={manageTitle}
+                onClick={toggleManage}
               >
                 {isEditing ? <Check /> : <Pencil />}
                 Manage
@@ -479,7 +485,7 @@ export function SyncDeviceCard({
           </div>
           <TabsContent className="flex min-h-0 flex-1 flex-col" value="songs">
             <ScrollArea className="min-h-0 flex-1 rounded-md border py-0.5 px-1.5 overflow-y-auto">
-              <div className="divide-y">
+              <div className="w-max min-w-full divide-y">
                 {device.media?.tracks.map((track) => (
                   <div key={track.id}>
                     <Item className="p-0.5">
@@ -515,11 +521,12 @@ export function SyncDeviceCard({
                 ))}
                 {device.media.tracks.length == 0 && <>No tracks</>}
               </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </TabsContent>
           <TabsContent className="flex min-h-0 flex-1 flex-col" value="albums">
             <ScrollArea className="min-h-0 flex-1 rounded-md border py-0.5 px-1.5 overflow-y-auto">
-              <div className="divide-y">
+              <div className="w-max min-w-full divide-y">
                 {albums.map((album) => (
                   <div key={`${album.artist}-${album.album}`}>
                     <Item className="p-0.5">
@@ -531,9 +538,7 @@ export function SyncDeviceCard({
                       />
 
                       <ItemContent className="flex flex-row gap-2">
-                        <ItemTitle>
-                          {album.album || "Unknown Album"}
-                        </ItemTitle>
+                        <ItemTitle>{album.album || "Unknown Album"}</ItemTitle>
                         <ItemDescription>
                           {album.artist}
                           {" · "}
@@ -563,16 +568,19 @@ export function SyncDeviceCard({
                 ))}
                 {albums.length == 0 && <>No albums</>}
               </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </TabsContent>
           <TabsContent className="flex min-h-0 flex-1 flex-col" value="artists">
             <ScrollArea className="min-h-0 flex-1 rounded-md border py-0.5 px-1.5 overflow-y-auto">
-              <div className="divide-y">
+              <div className="w-max min-w-full divide-y">
                 {artists.map((artist) => (
                   <div key={artist.artist}>
                     <Item className="p-0.5">
                       <Checkbox
-                        checked={artist.trackIds.every((id) => selected.has(id))}
+                        checked={artist.trackIds.every((id) =>
+                          selected.has(id)
+                        )}
                         disabled={!device.connected || isSyncing}
                         aria-label={`Select ${artist.artist}`}
                         onCheckedChange={() => toggleIds(artist.trackIds)}
@@ -607,11 +615,12 @@ export function SyncDeviceCard({
                 ))}
                 {artists.length == 0 && <>No artists</>}
               </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </TabsContent>
           <TabsContent className="flex min-h-0 flex-1 flex-col" value="genres">
             <ScrollArea className="min-h-0 flex-1 rounded-md border py-0.5 px-1.5 overflow-y-auto">
-              <div className="divide-y">
+              <div className="w-max min-w-full divide-y">
                 {genres.map((genre) => (
                   <div key={genre.genre}>
                     <Item className="p-0.5">
@@ -651,11 +660,15 @@ export function SyncDeviceCard({
                 ))}
                 {genres.length == 0 && <>No genres</>}
               </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </TabsContent>
-          <TabsContent className="flex min-h-0 flex-1 flex-col" value="playlists">
+          <TabsContent
+            className="flex min-h-0 flex-1 flex-col"
+            value="playlists"
+          >
             <ScrollArea className="min-h-0 flex-1 rounded-md border py-0.5 px-1.5 overflow-y-auto">
-              <div className="divide-y">
+              <div className="w-max min-w-full divide-y">
                 {device.media?.playlists.map((playlist) => (
                   <div key={playlist.id}>
                     <Item className="p-0.5">
@@ -697,6 +710,7 @@ export function SyncDeviceCard({
                 ))}
                 {device.media.playlists.length == 0 && <>No playlists</>}
               </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </TabsContent>
         </Tabs>

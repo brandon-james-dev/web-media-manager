@@ -218,6 +218,19 @@ describe("checkLayout", () => {
     ).toEqual(["E6202"]);
   });
 
+  it("treats the albums variant like table for its options", () => {
+    expect(
+      codes(
+        layout(
+          `<TrackList variant="albums" columns="track title duration" sortBy="title" />`
+        )
+      )
+    ).toEqual([]);
+    expect(
+      codes(layout(`<TrackList variant="albums" fields="artwork artist" />`))
+    ).toEqual(["E6202"]);
+  });
+
   it("uses the form factor's default TrackList variant for E6202", () => {
     expect(codes(layout(`<TrackList fields="artwork artist" />`))).toEqual([
       "E6202",
@@ -314,6 +327,7 @@ describe("checkLayout", () => {
       );
     expect(list("table", "desktop")).toEqual([]);
     expect(list("table", "tablet")).toEqual([]);
+    expect(list("albums", "mobile")).toEqual(["W6208"]);
     expect(list("list", "mobile")).toEqual([]);
     expect(list("tv", "tv")).toEqual([]);
     expect(list("table", "mobile")).toEqual(["W6208"]);
@@ -356,6 +370,22 @@ describe("checkLayout", () => {
         code: "W6209",
         severity: "warning",
         path: "/Layout/Shell/Stack/Button",
+      }),
+    ]);
+  });
+
+  it("warns W6210 for a resizable Panel docked to neither start nor end", () => {
+    const panel = (dock: string): string =>
+      `<Panel id="nav" dock="${dock}" resizable="true"><TrackList /></Panel>`;
+    const body = (dock: string): string =>
+      `<DockPanel>${panel(dock)}<PageHost dock="fill" /></DockPanel>`;
+    expect(codes(layout(body("start")))).toEqual([]);
+    expect(codes(layout(body("end")))).toEqual([]);
+    expect(check(layout(body("top")))).toEqual([
+      expect.objectContaining({
+        code: "W6210",
+        severity: "warning",
+        path: "/Layout/Shell/DockPanel/Panel",
       }),
     ]);
   });
@@ -539,5 +569,25 @@ describe("checkLayout", () => {
       `<Grid columns="1*"><TrackList><v1_2:Badge /></TrackList><v1_2:Meter column="5" /></Grid>`
     );
     expect(codes(xml)).toEqual([]);
+  });
+
+  it("accepts the TrackInfo fields and trailing values", () => {
+    const xml = layout(
+      `<TrackInfo fields="title genre year" trailing="elapsedAndTotal" />`
+    );
+    expect(codes(xml)).toEqual([]);
+  });
+
+  it("reports E4005 for a trailing value outside the field list", () => {
+    const xml = layout(`<TrackInfo trailing="bogus" />`);
+    const { root, issues } = parseThemeXml(xml, {
+      file: "layouts/desktop.xml",
+      root: "Layout",
+      spec: "1.0",
+    });
+    expect(issues).toEqual([]);
+    expect(
+      walkElements(root!, "layouts/desktop.xml").map((issue) => issue.code)
+    ).toEqual(["E4005"]);
   });
 });

@@ -254,7 +254,10 @@ Properties: `basedOn` (`@button/…`), `background` (Brush), `foreground` (Color
 icons), `border` (Color), `borderWidth` (Thickness), `cornerRadius`, `padding` (Thickness),
 `minWidth`, `minHeight` (Length), `iconSize` (12–64), `textStyle` (`@text/…`), `shadow`,
 `opacity` (0.2–1), `image` (`@image/…`; when set, the image is the whole face, drawn at its
-natural size with `background`/`border` ignored), `iconVisible`, `labelVisible` (Boolean).
+natural size with `background`, `border` and `borderWidth` ignored, while `foreground` still
+colors the icon), `iconVisible`, `iconFill`, `labelVisible` (Boolean). `iconFill` fills the icon glyph with the
+foreground colour instead of drawing its outline, which is how a solid play or pause triangle is
+drawn.
 
 **States:** `hover` · `pressed` · `focused` · `disabled` · `selected` · `active`. A `<State>` may
 override any property except `basedOn`, `minWidth` and `minHeight`. These are **static

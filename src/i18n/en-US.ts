@@ -91,6 +91,7 @@ export const enUS = {
     // library
     "library.artists": "Artists",
     "library.albums": "Albums",
+    "library.genres": "Genres",
     "library.songs": "Songs",
     "library.sources": "Sources",
     "library.noSongsFound": "No songs found",
@@ -106,9 +107,13 @@ export const enUS = {
     "library.albumCountOther": "{0} albums",
     "library.songCountOne": "{0} song",
     "library.songCountOther": "{0} songs",
+    "library.totalMinutesOne": "{0} min",
+    "library.totalMinutesOther": "{0} min",
     "library.toggleSortOrder": "Toggle A-Z / Z-A",
     "library.backToArtists": "Back to artists",
     "library.deselectAll": "Deselect all",
+    "library.resizeColumn": "Resize {0} column",
+    "library.showAllFrom": "Show all from {0}",
     "library.deselectAllSongs": "Deselect all songs",
     "library.deselectCount": "Deselect {0}",
     "library.editAlbum": "Edit album",
@@ -117,6 +122,7 @@ export const enUS = {
     "library.noArtwork": "No artwork",
     "library.noCoverArt": "No cover art",
     "library.quickEdit": "Quick Edit",
+    "library.noSelection": "Select a song to edit.",
     "library.quickEditSelected": "Quick Edit ({0} selected)",
     "library.advancedEdit": "Advanced Edit",
     "library.applyToCount": "Apply to {0} songs",
@@ -193,6 +199,8 @@ export const enUS = {
     "sync.title": "Sync",
     "sync.queue": "Sync queue",
     "sync.devices": "Devices",
+    "sync.noDevices": "No sync devices",
+    "sync.addDevice": "Add device",
     "sync.start": "Start sync",
     "sync.cancel": "Cancel sync",
     "sync.addToQueue": "Add To Sync Queue",
@@ -280,6 +288,7 @@ export const enUS = {
     "metadata.genre": "Genre",
     "metadata.year": "Year",
     "metadata.albumArtist": "Album Artist",
+    "metadata.source": "Source",
     "metadata.albumArt": "Album Art",
     "metadata.trackPosition": "Track Position",
     "metadata.credits": "Credits",
@@ -316,6 +325,7 @@ export const enUS = {
     "settings.saved": "Settings saved",
     "settings.save": "Save Settings",
     "settings.shortcutOpenShortcuts": "Open keyboard shortcuts",
+    "settings.shortcutOpenSettings": "Open settings",
     "settings.shortcutNext": "Next song / next album",
     "settings.shortcutPrev": "Previous song / previous album",
     "settings.shortcutPlayPause": "Play / Pause",
@@ -340,7 +350,7 @@ export const enUS = {
     "settings.themes": "Custom themes",
     "settings.themesDescription": "Install theme packages and choose the one to use",
     "settings.themeBuiltIn": "Built-in",
-    "settings.themeBuiltInDescription": "The theme that ships with the app",
+    "settings.themeBuiltInDescription": "The default theme",
     "settings.themeInstall": "Install theme",
     "settings.themeReset": "Reset to default theme",
     "settings.themeResetDone": "Default theme restored",
@@ -359,6 +369,7 @@ export const enUS = {
     "settings.themeActionDowngrade": "Downgrade",
     "settings.themeInstalled": "{0} installed",
     "settings.themeApplyFailed": "The theme couldn't be applied",
+    "settings.themeCrashReverted": "The theme stopped working and was turned off.",
 
     // navigation
     "navigation.library": "Library",
@@ -371,6 +382,9 @@ export const enUS = {
     "navigation.sidebar": "Playlists and sync sidebar",
     "navigation.closeSidebar": "Close sidebar",
     "navigation.sidebarBlocked": "This view is already open full screen",
+
+    // layout
+    "layout.resizePanel": "Resize panel",
 
     // search
     "search.label": "Search",

@@ -13,3 +13,4 @@ export * from "./useSourceKinds";
 export * from "./useVisualizer";
 export * from "./useVisualizerPlugins";
 export * from "./useAnalysisFrame";
+export * from "./useNowPlayingUi";

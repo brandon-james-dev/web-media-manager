@@ -26,11 +26,28 @@ export type {
 } from "./ThemeManager";
 export { ActiveTheme, activeTheme } from "./activeTheme";
 export type { ActiveThemeSnapshot } from "./activeTheme";
-export { THEME_TRIAL_SECONDS, ThemeTrial, themeTrial } from "./themeTrial";
+export {
+  THEME_TRIAL_SECONDS,
+  ThemeTrial,
+  shouldStartThemeTrial,
+  themeTrial,
+} from "./themeTrial";
 export type {
   ThemeTrialRevert,
   ThemeTrialState,
   ThemeTrialTimers,
 } from "./themeTrial";
+export {
+  THEME_CRASH_STORAGE_KEY,
+  THEME_CRASH_WINDOW_MS,
+  ThemeCrashGuard,
+  themeCrashGuard,
+} from "./themeCrashGuard";
+export type { ThemeCrashStorage } from "./themeCrashGuard";
+export {
+  getThemeNavigationHandler,
+  setThemeNavigationHandler,
+} from "./themeNavigation";
+export type { ThemeNavigationHandler } from "./themeNavigation";
 export type { InstalledTheme } from "@/core/ports/themes";
 export type { ThemeIssue } from "@/lib/themes/issues";

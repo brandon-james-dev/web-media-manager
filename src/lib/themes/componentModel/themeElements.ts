@@ -54,6 +54,7 @@ const BUTTON_STYLE_PROPERTIES: Readonly<Record<string, AttributeDef>> = {
   opacity: { type: ValueType.Number, min: 0.2, max: 1 },
   image: { type: ValueType.Reference, refKinds: [ReferenceKind.Image] },
   iconVisible: { type: ValueType.Boolean },
+  iconFill: { type: ValueType.Boolean },
   labelVisible: { type: ValueType.Boolean },
 };
 

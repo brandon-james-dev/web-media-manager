@@ -13,6 +13,31 @@
 export const THEME_TRIAL_SECONDS = 15;
 
 /**
+ * Decides whether a theme pick needs the "Keep this theme?" trial. There is
+ * nothing to revert to when the pick matches the previous theme, or when the
+ * previous theme is no longer installed, so no trial runs. `undefined` ids
+ * mean the built-in theme, which is always available.
+ *
+ * @example
+ * ```xml
+ * <Theme xmlns="urn:wmm:theme:1" spec="1.0" />
+ * ```
+ * @example
+ * ```ts
+ * shouldStartThemeTrial(undefined, "classic-blue", ["classic-blue"]); // true
+ * shouldStartThemeTrial("deleted", undefined, []); // false
+ * ```
+ */
+export function shouldStartThemeTrial(
+  previousId: string | undefined,
+  nextId: string | undefined,
+  installedIds: readonly string[]
+): boolean {
+  if (previousId === nextId) return false;
+  return previousId === undefined || installedIds.includes(previousId);
+}
+
+/**
  * A running theme trial. `undefined` ids mean the built-in theme.
  *
  * @example

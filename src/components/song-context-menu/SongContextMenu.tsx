@@ -25,12 +25,14 @@ import { useSongMenu, type SongMenuAction } from "./songMenuItems";
 
 export function SongContextMenu({
   songs,
+  playlistId,
   children,
 }: {
   songs: Song[];
+  playlistId?: string;
   children: ReactElement;
 }) {
-  const menu = useSongMenu(songs);
+  const menu = useSongMenu(songs, playlistId);
   const isMobile = useIsMobile();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -51,8 +53,6 @@ export function SongContextMenu({
 
   return (
     <>
-      {/* The trigger owns long-press detection on touch, so the drawer is
-          driven by the same open state the context menu uses. */}
       <ContextMenu onOpenChange={handleOpenChange}>
         <ContextMenuTrigger render={children} />
 

@@ -4,7 +4,7 @@
   "id": "classic-blue",
   "name": "Classic Blue",
   "version": "1.0.0",
-  "description": "A glossy blue desktop player look with a navy palette and an ice-blue accent.",
+  "description": "A flat slate desktop layout with a blue accent, rounded cards and quiet borders.",
   "author": { "name": "Web Media Manager" },
   "license": "MIT",
   "formFactors": ["desktop"],
@@ -12,5 +12,5 @@
   "honorsUserAccent": false,
   "previews": ["previews/thumbnail.png"],
   "thumbnail": "previews/thumbnail.png",
-  "tags": ["classic", "blue"]
+  "tags": ["flat", "blue"]
 }

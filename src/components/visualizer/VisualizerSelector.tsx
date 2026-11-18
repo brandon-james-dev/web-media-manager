@@ -58,6 +58,7 @@ function PluginThumbnail({
  */
 export function VisualizerSelector({
   className,
+  triggerClassName,
   variant = "list",
   onSelect,
   onConfigure,
@@ -86,7 +87,7 @@ export function VisualizerSelector({
         }}
       >
         <SelectTrigger
-          className={cn("h-8 w-full min-w-0", className)}
+          className={cn("h-8 w-full min-w-0", className, triggerClassName)}
           aria-label={t("visualizer.title")}
         >
           <SelectValue />

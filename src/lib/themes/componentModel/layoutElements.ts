@@ -17,6 +17,41 @@ import { ValueType } from "./valueType";
 import { WIDGET_ATTRIBUTES } from "./widgetAttributes";
 
 /**
+ * The song fields a `TrackInfo` can show. These are the allowed values of its
+ * `fields` and `trailing` attributes (ordered, space-separated subsets; a
+ * field listed twice is `E4004`, an unknown field is `E4005`). The time
+ * fields `elapsed`, `total`, `remaining` and `elapsedAndTotal` read the
+ * playback clock and show `--:--` while the duration is unknown.
+ *
+ * @example
+ * ```xml
+ * <TrackInfo fields="title artist" trailing="elapsedAndTotal" />
+ * ```
+ * @example
+ * ```ts
+ * const values: readonly string[] = TRACK_INFO_FIELDS;
+ * const timed = values.includes("elapsedAndTotal");
+ * ```
+ */
+export const TRACK_INFO_FIELDS = [
+  "title",
+  "explicit",
+  "favorite",
+  "artist",
+  "album",
+  "albumArtist",
+  "genre",
+  "year",
+  "track",
+  "disc",
+  "bitrate",
+  "elapsed",
+  "total",
+  "remaining",
+  "elapsedAndTotal",
+] as const;
+
+/**
  * Every element a v1 layout file may contain, keyed by its exact XML element
  * name. The validator reads each definition to check category, attributes,
  * children, parents, minimum size and per-page cardinality. A name missing
@@ -189,7 +224,9 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
    * `@panel/` style, and the inline attributes override single properties of
    * it. A `collapsible` panel starts closed, needs an `id`, and opens with
    * `wmm.ui.togglePanel` (`E6204` when the target is not a collapsible
-   * Panel).
+   * Panel). A `resizable` panel docked to `start` or `end` gets a drag handle
+   * on its inner edge. A `hideInFullscreen` panel renders nothing while the
+   * document is in full screen.
    *
    * @example
    * ```xml
@@ -202,6 +239,8 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
    * const panel = LAYOUT_ELEMENTS.Panel;
    * panel.attributes.style.refKinds; // [ReferenceKind.Panel]
    * panel.attributes.collapsible.default; // "false"
+   * panel.attributes.resizable.default; // "false"
+   * panel.attributes.hideInFullscreen.default; // "false"
    * ```
    */
   Panel: {
@@ -227,6 +266,12 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
       padding: { type: ValueType.Thickness },
       shadow: { type: ValueType.Reference, refKinds: [ReferenceKind.Shadow] },
       collapsible: { type: ValueType.Boolean, default: "false" },
+      resizable: { type: ValueType.Boolean, default: "false" },
+      /**
+       * Whether the panel is left out while the document is in full screen,
+       * so chrome such as a tab strip or a transport bar can step aside.
+       */
+      hideInFullscreen: { type: ValueType.Boolean, default: "false" },
     },
     children: OPTIONAL_LAYOUT,
     since: THEME_SPEC_VERSION,
@@ -337,6 +382,10 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
    * `TabStripEnd` drawn at the end of the strip. `tabStyle` names a
    * `@button/` style, and the host applies `selected` to the current tab.
    * Hidden panels stay unmounted, except a `Visualizer`, which is paused.
+   * The strip's start holds the controls the selected tab's widget places
+   * there, such as a `Visualizer`'s picker and settings. A `hideInFullscreen`
+   * strip steps aside in full screen while the selected tab's content stays,
+   * and a `TabStripEnd` stays visible while the tabs step aside.
    *
    * @example
    * ```xml
@@ -373,6 +422,11 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
         values: DISPLAY_VALUES,
         default: "iconAndLabel",
       },
+      /**
+       * Whether the tab strip is left out while the document is in full
+       * screen, so the selected tab's content keeps the whole window.
+       */
+      hideInFullscreen: { type: ValueType.Boolean, default: "false" },
     },
     children: { min: 2, max: 9, allowed: ["Tab", "TabStripEnd"] },
     since: THEME_SPEC_VERSION,
@@ -567,7 +621,10 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
   /**
    * Navigates artists, albums, genres, playlists and songs. Its selection
    * drives the `TrackList` on the same page. `views` is an ordered subset of
-   * the five views. Minimum 160×160, one per page.
+   * the five views. `display` is `list`, `grid` or `tree`: `tree` renders a
+   * vertical navigation tree with a playlists node and a library node whose
+   * children are the other views, each expandable into its values. Minimum
+   * 160×160, one per page.
    *
    * @example
    * ```xml
@@ -578,6 +635,7 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
    *   artwork="true"
    *   panel="@panel/inset"
    * />
+   * <LibraryBrowser views="playlists artists albums songs" display="tree" />
    * ```
    * @example
    * ```ts
@@ -602,7 +660,7 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
         type: ValueType.Enum,
         values: ["artists", "albums", "genres", "playlists", "songs"],
       },
-      display: { type: ValueType.Enum, values: ["list", "grid"] },
+      display: { type: ValueType.Enum, values: ["list", "grid", "tree"] },
       artwork: { type: ValueType.Boolean },
       itemText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
       headerText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
@@ -615,11 +673,14 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
   /**
    * Songs for the current selection on the page: the `LibraryBrowser`
    * selection, the playlist picked in a `Playlist`, or all songs. `variant`
-   * is `table`, `list` or `tv`, and each option lists the variants that
-   * accept it (`E6202`). `sortBy` must be one of `columns` (`E6203`); a
-   * repeated column is `E4004`. `density` sets the row height: `compact` 28 px,
-   * `comfortable` 44 px; `tv` is always 72 px. Minimum size depends on the
-   * variant. One per page.
+   * is `table`, `albums`, `list` or `tv`, and each option lists the variants
+   * that accept it (`E6202`). `albums` groups the rows by album: a header row
+   * per album carries the album artist, and a left column shows the cover,
+   * album, album artist, genre and year beside that album's tracks, so the
+   * `album` column is redundant there and is dropped if listed. `sortBy` must
+   * be one of `columns` (`E6203`); a repeated column is `E4004`. `density`
+   * sets the row height: `compact` 28 px, `comfortable` 44 px; `tv` is always
+   * 72 px. Minimum size depends on the variant. One per page.
    *
    * @example
    * ```xml
@@ -630,6 +691,7 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
    *   density="compact"
    *   playingText="@text/accent"
    * />
+   * <TrackList variant="albums" columns="track title duration" resizeColumns="true" />
    * <TrackList variant="list" fields="artwork artist duration" scrubber="true" />
    * ```
    * @example
@@ -651,44 +713,44 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
       ...WIDGET_ATTRIBUTES,
       variant: {
         type: ValueType.Enum,
-        values: ["table", "list", "tv"],
+        values: ["table", "albums", "list", "tv"],
       },
       columns: {
         type: ValueType.EnumList,
         values: TRACK_COLUMN_VALUES,
         default: "title album artist track genre year duration bitrate offline",
-        variants: ["table"],
+        variants: ["table", "albums"],
       },
       sortBy: {
         type: ValueType.Enum,
         values: TRACK_COLUMN_VALUES,
         default: "title",
-        variants: ["table"],
+        variants: ["table", "albums"],
       },
       sortDirection: {
         type: ValueType.Enum,
         values: ["ascending", "descending"],
         default: "ascending",
-        variants: ["table"],
+        variants: ["table", "albums"],
       },
       columnMenu: {
         type: ValueType.Boolean,
         default: "true",
-        variants: ["table"],
+        variants: ["table", "albums"],
       },
       reorderColumns: {
         type: ValueType.Boolean,
         default: "true",
-        variants: ["table"],
+        variants: ["table", "albums"],
       },
       resizeColumns: {
         type: ValueType.Boolean,
         default: "true",
-        variants: ["table"],
+        variants: ["table", "albums"],
       },
       scrubber: {
         type: ValueType.Boolean,
-        variants: ["table", "list"],
+        variants: ["table", "albums", "list"],
       },
       fields: {
         type: ValueType.EnumList,
@@ -704,12 +766,12 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
       },
       alternateRows: {
         type: ValueType.Boolean,
-        variants: ["table", "tv"],
+        variants: ["table", "albums", "tv"],
       },
       showHeader: {
         type: ValueType.Boolean,
         default: "true",
-        variants: ["table"],
+        variants: ["table", "albums"],
       },
       rowText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
       headerText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
@@ -725,6 +787,7 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
     children: NO_CHILDREN,
     minSize: {
       table: { width: 240, height: 120 },
+      albums: { width: 360, height: 160 },
       list: { width: 200, height: 120 },
       tv: { width: 480, height: 200 },
     },
@@ -773,14 +836,18 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
   },
   /**
    * The playlists list. Picking one fills the page's `TrackList`, and rows
-   * from a `TrackList` can be dragged onto it. The play queue is `PlayQueue`.
-   * Minimum 160×120, one per page.
+   * from a `TrackList` can be dragged onto it. `editable` adds a
+   * new-playlist button and gives each row a context menu with play, rename
+   * and delete, F2 to rename the focused row and Delete to ask before
+   * deleting it; `editable="false"` leaves the list read-only. The play queue
+   * is `PlayQueue`. Minimum 160×120, one per page.
    *
    * @example
    * ```xml
    * <Tab id="playlists" titleKey="navigation.playlists" icon="@icon/playlists">
    *   <Playlist artwork="true" rowText="@text/body" />
    * </Tab>
+   * <Playlist artwork="false" editable="false" />
    * ```
    * @example
    * ```ts
@@ -797,6 +864,7 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
       ...COMMON_ATTRIBUTES,
       ...WIDGET_ATTRIBUTES,
       artwork: { type: ValueType.Boolean },
+      editable: { type: ValueType.Boolean, default: "true" },
       rowText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
     },
     children: NO_CHILDREN,
@@ -1003,14 +1071,19 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
   },
   /**
    * Title and details of the current track, or `playback.nothingPlaying`
-   * when idle. `fields` is an ordered subset of
-   * `title explicit artist album favorite`; `favorite` is a button that
-   * toggles the current song's favorite. Minimum 80×16, unlimited per page.
+   * when idle. `fields` is an ordered subset of {@link TRACK_INFO_FIELDS};
+   * `favorite` is a button that toggles the current song's favorite.
+   * `trailing` takes the same values and draws them right after the title,
+   * on the title line when `stacked`. A centered `hAlign` centers stacked
+   * text. The time
+   * fields show `--:--` while the duration is unknown, and
+   * `elapsedAndTotal` reads `01:07 / 08:57`. Minimum 80×16, unlimited per
+   * page.
    *
    * @example
    * ```xml
    * <TrackInfo fields="title explicit artist favorite" />
-   * <TrackInfo fields="title artist" arrangement="inline" />
+   * <TrackInfo fields="title" trailing="elapsedAndTotal" arrangement="inline" />
    * ```
    * @example
    * ```ts
@@ -1029,7 +1102,11 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
       ...WIDGET_ATTRIBUTES,
       fields: {
         type: ValueType.EnumList,
-        values: ["title", "explicit", "artist", "album", "favorite"],
+        values: TRACK_INFO_FIELDS,
+      },
+      trailing: {
+        type: ValueType.EnumList,
+        values: TRACK_INFO_FIELDS,
       },
       arrangement: {
         type: ValueType.Enum,

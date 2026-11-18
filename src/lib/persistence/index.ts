@@ -1,6 +1,8 @@
 import type { DataChangedCallback, IRepository } from "./IRepository";
 import {
+  compareDiscThenTrack,
   selectors,
+  sortTieBreaker,
   type QueryOptions,
   type SortableColumn,
 } from "./QueryOptions";
@@ -15,7 +17,9 @@ export {
   type DataChangedCallback,
   type QueryOptions,
   type SortableColumn,
+  compareDiscThenTrack,
   selectors,
+  sortTieBreaker,
   MemoryStore,
   addPersistedStoreDirectory,
   initMetadataStore,
