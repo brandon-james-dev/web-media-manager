@@ -277,17 +277,7 @@ Widgets built only on the src/core/themes public API (guard test enforced)
 Example themes: Classic Blue (desktop), Tonal (desktop + mobile), Sage (palette only)
 ```
 
-### Sync and Playback Fixes On This Branch
-
-```text
-Add-device flow hosted by the shell (AddDeviceHost)
-Start sync disabled while a sync runs
-Themed metadata editor seeded from the current selection
-Panel widths saved per component id
-Seek takes seconds, mute is app-wide, playback events are published
-New UI commands: navigate, openSettings, toggleFullscreen, toggleDarkRoom
-Phone-width screens no longer switch to the TV shell from a stored override
-```
+````
 
 ### Performance
 
@@ -297,7 +287,7 @@ Parent-controlled state
 Virtualization-ready architecture
 Stable object identity optimization
 React render reduction
-```
+````
 
 ## Persistence
 
@@ -434,7 +424,6 @@ This configuration is helpful for starting the app in debug mode
     }
   ]
 }
-
 ```
 
 ### tasks.json
@@ -468,5 +457,4 @@ This configuration is helpful for starting the app in debug mode
     }
   ]
 }
-
 ```
