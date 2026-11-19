@@ -100,7 +100,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     }
 
     refreshTimeout.current = window.setTimeout(() => {
-      refreshSongs();
+      refreshSongsRef.current();
     }, delay);
   });
 
@@ -158,6 +158,12 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
     setPage(result.page);
     setSkip(result.skip);
   };
+
+  // `scheduleRefresh` is created once, so it must not close over the first
+  // render's `refreshSongs`: that closure holds the initial query, and every
+  // store update would re-filter with it, silently dropping the user's filter.
+  const refreshSongsRef = useRef(refreshSongs);
+  refreshSongsRef.current = refreshSongs;
 
   // Initializer
   useEffect(() => {

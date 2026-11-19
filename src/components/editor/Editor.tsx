@@ -112,6 +112,9 @@ export function Editor({
 
     getJobService().enqueue({
       type: "Thumbnail Generation",
+      // The edit already reported itself; a second toast for the artwork
+      // regeneration is noise.
+      silent: true,
       payload: {
         song: {
           ...selectedSong,
@@ -321,6 +324,9 @@ export function Editor({
         wmmBus.publish("wmm.library.song.updated", { songId: currentSong.id });
         getJobService().enqueue({
           type: "Thumbnail Generation",
+          // The album save already reported itself; the artwork regeneration
+          // toast would be a second notification for the same action.
+          silent: true,
           payload: {
             song: {
               ...currentSong,
