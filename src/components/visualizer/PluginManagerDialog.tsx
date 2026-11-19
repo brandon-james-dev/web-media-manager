@@ -139,12 +139,12 @@ export function PluginManagerDialog({
       error instanceof PluginInstallError
         ? error.issues
         : [
-            {
-              code: "archive-invalid",
-              severity: "error",
-              message: error.message,
-            },
-          ]
+          {
+            code: "archive-invalid",
+            severity: "error",
+            message: error.message,
+          },
+        ]
     );
   }
 
@@ -373,16 +373,6 @@ export function PluginManagerDialog({
                     {examplePending
                       ? t("visualizer.loadingExample")
                       : t("visualizer.installExample")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={examplePending || install.isPending}
-                    onClick={() => void handleInstallExample()}
-                  >
-                    <Sparkles />
-                    {examplePending
-                      ? "Loading example…"
-                      : "Install aurora example"}
                   </Button>
                   {file && (
                     <span className="truncate text-xs text-muted-foreground">

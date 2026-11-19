@@ -21,8 +21,7 @@ const TV_QUERY = "(pointer: none) and (min-width: 960px)";
 
 export function isTvUserAgent(userAgent?: string): boolean {
   const ua =
-    userAgent ??
-    (typeof navigator === "undefined" ? "" : navigator.userAgent);
+    userAgent ?? (typeof navigator === "undefined" ? "" : navigator.userAgent);
   return TV_USER_AGENT.test(ua);
 }
 
@@ -41,7 +40,9 @@ export function isTvViewport(): boolean {
  *
  * The flag is remembered, because a television has no address bar: the user
  * cannot re-add `?tv=1` after the first navigation, and a reload would
- * otherwise drop back to the desktop layout.
+ * otherwise drop back to the desktop layout. It only applies where a
+ * television is plausible: not on a device with a fine pointer, and not on a
+ * phone-width viewport, which reports no fine pointer either.
  */
 const TV_OVERRIDE_KEY = "wmm.tv-override";
 
@@ -72,6 +73,14 @@ function hasFinePointer(): boolean {
   );
 }
 
+/** Tailwind's `sm` breakpoint: below this width the viewport is a phone. */
+const PHONE_MAX_WIDTH = 640;
+
+/** A viewport too narrow to be a television, whatever was remembered. */
+function isPhoneWidth(): boolean {
+  return typeof window !== "undefined" && window.innerWidth < PHONE_MAX_WIDTH;
+}
+
 export function isTvOverride(): boolean {
   if (typeof window === "undefined") {
     return false;
@@ -87,8 +96,13 @@ export function isTvOverride(): boolean {
     return false;
   }
   // The remembered flag must not follow the user to a computer: a laptop with
-  // a mouse and a TV user agent absent is never a television, whatever was
-  // stored earlier.
+  // a mouse and no TV user agent is never a television, whatever was stored
+  // earlier. A phone-width viewport is never a television either: a touch
+  // device reports no fine pointer, so the flag alone would turn a phone into
+  // a television.
+  if (isPhoneWidth()) {
+    return false;
+  }
   return stored && (!hasFinePointer() || isTvUserAgent());
 }
 

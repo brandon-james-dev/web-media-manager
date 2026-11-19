@@ -32,7 +32,6 @@ export type {
 export type {
   InstalledVisualizerPlugin,
   LoadedVisualizerPlugin,
-  PluginFileRecord,
   PluginSettingsRecord,
 } from "./InstalledPlugin";
 export type {

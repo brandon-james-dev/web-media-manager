@@ -598,61 +598,49 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    const unregisterAddDevice = commandDispatcher.register(
-      "wmm.sync.addDevice",
-      async () => {
-        try {
-          const device = await addDevice();
-          wmmBus.publish("wmm.sync.deviceAdded", { deviceId: device.id });
-        } catch (error) {
+    const startSync = (deviceId: string) =>
+      startDeviceSync(deviceId, {
+        findDevice: (id) => devices.find((d) => d.id === id),
+        syncQueue,
+        onStarted: (device) => {
+          wmmBus.publish("wmm.sync.syncCompleted", { deviceId: device.id });
+        },
+        onMissingDevice: (id) => {
           notification$.next({
             id: uuidv7(),
             kind: "Sync Device Error",
             state: "error",
-            title: i18n.t("notification.addDeviceError"),
-            detail: String(error),
+            title: i18n.t("notification.deviceNotAvailable"),
+            detail: i18n.t("notification.deviceNotAvailableDetail", [id]),
           });
-        }
-      }
-    );
+        },
+        onFailed: (_id, error) => {
+          // The run never started, so clear the flag it may have raised and
+          // say why instead of leaving an unhandled rejection.
+          setIsSyncing(false);
+          setSyncProgress(null);
+          notification$.next({
+            id: uuidv7(),
+            kind: "Sync Device Error",
+            state: "error",
+            title: i18n.t("notification.syncStartError"),
+            detail:
+              error instanceof Error ? error.message : String(error),
+          });
+        },
+      });
 
     const unregisterSync = commandDispatcher.register(
       "wmm.sync.sync",
       (payload?: { deviceId: string }) => {
-        const deviceId = payload?.deviceId ?? "";
-
-        startDeviceSync(deviceId, {
-          findDevice: (id) => devices.find((d) => d.id === id),
-          syncQueue,
-          onStarted: (device) => {
-            wmmBus.publish("wmm.sync.syncCompleted", { deviceId: device.id });
-          },
-          onMissingDevice: (id) => {
-            notification$.next({
-              id: uuidv7(),
-              kind: "Sync Device Error",
-              state: "error",
-              title: i18n.t("notification.deviceNotAvailable"),
-              detail: i18n.t("notification.deviceNotAvailableDetail", [id]),
-            });
-          },
-          onFailed: (_id, error) => {
-            // The run never started, so clear the flag it may have raised and
-            // say why instead of leaving an unhandled rejection.
-            setIsSyncing(false);
-            setSyncProgress(null);
-            notification$.next({
-              id: uuidv7(),
-              kind: "Sync Device Error",
-              state: "error",
-              title: i18n.t("notification.syncStartError"),
-              detail:
-                error instanceof Error ? error.message : String(error),
-            });
-          },
-        });
+        startSync(payload?.deviceId ?? "");
       }
     );
+
+    const unregisterStart = commandDispatcher.register("wmm.sync.start", () => {
+      const device = devices.find((candidate) => candidate.connected);
+      startSync(device?.id ?? "");
+    });
 
     const unregisterClearQueue = commandDispatcher.register(
       "wmm.sync.clearQueue",
@@ -673,12 +661,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     return () => {
       unregisterQueueSongs();
       unregisterDequeueSongs();
-      unregisterAddDevice();
       unregisterSync();
+      unregisterStart();
       unregisterClearQueue();
       unregisterRemoveTracks();
     };
-  }, [queueSongs, addDevice, syncQueue, clearQueue, removeTracksFromDevice, devices]);
+  }, [queueSongs, syncQueue, clearQueue, removeTracksFromDevice, devices]);
   //#endregion
 
   //#region Value

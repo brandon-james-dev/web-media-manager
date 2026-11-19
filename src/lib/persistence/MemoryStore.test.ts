@@ -1,12 +1,33 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { Song } from "@/models";
 import { MemoryStore } from "@/lib/persistence/MemoryStore";
+import { selectors } from "@/lib/persistence/QueryOptions";
 
 interface Item {
   id: string;
   name: string;
   group: string;
   order: number;
+}
+
+function makeSong(overrides: Partial<Song> = {}): Song {
+  return {
+    id: "song-1",
+    sourceId: "src-1",
+    relativePath: "/music/a.mp3",
+    filename: "a.mp3",
+    filesize: 1024,
+    title: "Title",
+    artist: "Artist",
+    album: "Album",
+    genre: "Pop",
+    year: 2021,
+    track: 1,
+    discNumber: 1,
+    duration: 180,
+    ...overrides,
+  };
 }
 
 function makeItem(id: string, order: number, name?: string): Item {
@@ -128,6 +149,28 @@ describe("MemoryStore (IRepository contract)", () => {
       sort: { selector: "name" as never, desc: false },
     });
     expect(res.data.map((i) => i.id)).toEqual(["b", "a"]);
+  });
+
+  it("keeps one album's songs in track order when sorting by album", async () => {
+    const store = new MemoryStore<Song>();
+    const songs = [
+      makeSong({ id: "a3", album: "Alpha", track: 3 }),
+      makeSong({ id: "a1", album: "Alpha", track: 1 }),
+      makeSong({ id: "b2", album: "Beta", track: 2 }),
+      makeSong({ id: "a2", album: "Alpha", track: 2 }),
+      makeSong({ id: "b1", album: "Beta", track: 1 }),
+    ];
+    for (const song of songs) await store.save(song.id, song);
+
+    const asc = await store.filter({
+      sort: { selector: selectors.album, desc: false },
+    });
+    expect(asc.data.map((s) => s.id)).toEqual(["a1", "a2", "a3", "b1", "b2"]);
+
+    const desc = await store.filter({
+      sort: { selector: selectors.album, desc: true },
+    });
+    expect(desc.data.map((s) => s.id)).toEqual(["b1", "b2", "a1", "a2", "a3"]);
   });
 
   it("batchUpdate and batchDelete without events", async () => {

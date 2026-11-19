@@ -34,15 +34,23 @@ import { uuidv7 } from "uuidv7";
 
 export function Editor({
   mode,
+  initialSongIds,
 }: {
   mode: "songs" | "albums" | "artists" | "playlists";
+  initialSongIds?: string[];
 }) {
   //#region Songs
   //#region State
   const { t } = useTranslation();
   const { filteredSongs } = useSongs();
-  const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
-  const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
+  const [selectedSongs, setSelectedSongs] = useState<Song[]>(() =>
+    initialSongIds
+      ? filteredSongs.filter((s) => initialSongIds.includes(s.id))
+      : []
+  );
+  const [selectedSongIds, setSelectedSongIds] = useState<string[]>(
+    () => initialSongIds ?? []
+  );
   const [isAdvancedEdit, setIsAdvancedEdit] = useState<boolean>(false);
   // Which advanced dialog `isAdvancedEdit` refers to. The song drawer and the
   // album dialog share one open flag, so the artist view (which can open

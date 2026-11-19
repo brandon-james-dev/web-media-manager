@@ -22,6 +22,7 @@ common.reset,Restablecer
 common.moreActions,Más acciones
 common.moreOptions,Más opciones
 common.clickToSelect,Haz clic para elegir
+common.fullScreen,Pantalla completa
 common.exitFullScreen,Salir de pantalla completa
 common.unknownArtist,Artista desconocido
 common.back,Atrás
@@ -57,8 +58,21 @@ playback.addToQueue,Agregar a la cola
 playback.playPreview,Reproducir vista previa
 playback.pausePreview,Pausar vista previa
 playback.section,Reproducción
+playback.lyrics,Letra
+playback.hidePanel,Ocultar {0}
+playback.darkRoom,Cuarto oscuro
+playback.lightsOn,Encender las luces
+playback.noLyrics,Esta canción no tiene letra.
+playback.queueHeadingOne,Cola — {0} canción
+playback.queueHeadingMany,Cola — {0} canciones
+playback.queueHeadingOther,Cola — {0} canciones
+playback.playlist,Lista de reproducción
+playback.playlistHeadingOne,Lista de reproducción - {0} canción
+playback.playlistHeadingMany,Lista de reproducción - {0} canciones
+playback.playlistHeadingOther,Lista de reproducción - {0} canciones
 library.artists,Artistas
 library.albums,Álbumes
+library.genres,Géneros
 library.songs,Canciones
 library.sources,Fuentes
 library.noSongsFound,No se encontraron canciones
@@ -77,9 +91,14 @@ library.albumCountOther,{0} álbumes
 library.songCountOne,{0} canción
 library.songCountMany,{0} canciones
 library.songCountOther,{0} canciones
+library.totalMinutesOne,{0} min
+library.totalMinutesMany,{0} min
+library.totalMinutesOther,{0} min
 library.toggleSortOrder,Alternar A-Z / Z-A
 library.backToArtists,Volver a los artistas
 library.deselectAll,Quitar toda la selección
+library.resizeColumn,Ajustar el ancho de la columna {0}
+library.showAllFrom,Mostrar todo de {0}
 library.deselectAllSongs,Quitar la selección de todas las canciones
 library.deselectCount,Quitar selección de {0}
 library.editAlbum,Editar álbum
@@ -88,6 +107,7 @@ library.scrollAlbums,Desplazar álbumes
 library.noArtwork,Sin portada
 library.noCoverArt,Sin portada
 library.quickEdit,Edición rápida
+library.noSelection,Selecciona una canción para editarla.
 library.quickEditSelected,Edición rápida ({0} seleccionadas)
 library.advancedEdit,Edición avanzada
 library.applyToCount,Aplicar a {0} canciones
@@ -164,6 +184,8 @@ playlist.section,Lista
 sync.title,Sincronización
 sync.queue,Cola de sincronización
 sync.devices,Dispositivos
+sync.noDevices,No hay dispositivos de sincronización
+sync.addDevice,Agregar dispositivo
 sync.start,Iniciar sincronización
 sync.cancel,Cancelar sincronización
 sync.addToQueue,Agregar a la cola de sincronización
@@ -200,10 +222,11 @@ sync.nothingSynced,Todavía no hay nada sincronizado
 visualizer.title,Visualizador
 visualizer.select,Seleccionar visualizador
 visualizer.settings,Configuración del visualizador
-visualizer.search,Buscar visualizadores
 visualizer.loadingPlugins,Cargando complementos...
-visualizer.noMatches,Ningún visualizador coincide con esta búsqueda.
 visualizer.noneInstalled,Aún no hay visualizadores instalados.
+visualizer.noVisualizerInstalled,No hay ningún visualizador instalado.
+visualizer.installVisualizer,Instalar un visualizador
+visualizer.loadingVisualizer,Cargando visualizador…
 visualizer.unknownAuthor,Autor desconocido
 visualizer.configureNamed,Configurar {0}
 visualizer.pluginsTitle,Complementos de visualizadores
@@ -249,6 +272,7 @@ metadata.duration,Duración
 metadata.genre,Género
 metadata.year,Año
 metadata.albumArtist,Artista del álbum
+metadata.source,Fuente
 metadata.albumArt,Portada
 metadata.trackPosition,Posición de la pista
 metadata.credits,Créditos
@@ -271,16 +295,19 @@ settings.title,Configuración
 settings.pageTitle,Configuración y datos
 settings.description,Administra las preferencias de la aplicación
 settings.shortcuts,Atajos de teclado
-settings.theme,Tema
+settings.display,Pantalla
+settings.displayLockedByTheme,Lo define el tema personalizado activo
 settings.themeLight,Claro
 settings.themeDark,Oscuro
 settings.themeSystem,Sistema
 settings.accentColor,Color de acento
+settings.accentLockedByTheme,El tema personalizado activo usa su propio color de acento
 settings.language,Idioma
 settings.languageAuto,Automático ({0})
 settings.saved,Configuración guardada
 settings.save,Guardar configuración
 settings.shortcutOpenShortcuts,Abrir los atajos de teclado
+settings.shortcutOpenSettings,Abrir la configuración
 settings.shortcutNext,Canción siguiente / álbum siguiente
 settings.shortcutPrev,Canción anterior / álbum anterior
 settings.shortcutPlayPause,Reproducir / Pausar
@@ -288,6 +315,8 @@ settings.shortcutQueue,Poner en cola la canción seleccionada
 settings.shortcutEdit,Abrir la edición avanzada
 settings.shortcutFullscreen,Alternar pantalla completa (reproduciendo ahora)
 settings.shortcutClose,Cerrar el editor
+settings.extensibility,Extensibilidad
+settings.extensibilityDescription,Temas personalizados y complementos de visualizador
 settings.visualizers,Visualizadores
 settings.visualizersDescription,Instala complementos de visualizador y configura el activo
 settings.installPlugins,Instalar o administrar complementos
@@ -297,6 +326,32 @@ settings.clearDatabase,Borrar la base de datos de canciones
 settings.clearDatabaseTitle,¿Estás completamente seguro?
 settings.clearDatabaseDescription,Esta acción no se puede deshacer. Se eliminarán todos los datos de canciones administrados por Web Media Manager.
 settings.songsCleared,Se borraron todas las canciones de la base de datos
+settings.themeTrialPrompt,¿Conservar este tema? Se revierte en {0} s
+settings.themeTrialKeep,Conservar
+settings.themeTrialRevert,Revertir
+settings.themes,Temas personalizados
+settings.themesDescription,Instala paquetes de temas y elige el que quieres usar
+settings.themeBuiltIn,Integrado
+settings.themeBuiltInDescription,El tema incluido con la app
+settings.themeInstall,Instalar tema
+settings.themeReset,Restablecer el tema predeterminado
+settings.themeResetDone,Se restableció el tema predeterminado
+settings.themeRemoveNamed,Quitar {0}
+settings.themeRemoveTitle,¿Quitar el tema?
+settings.themeRemoveDescription,Se eliminarán {0} y sus archivos. Si está activo se usará el tema integrado.
+settings.themeInstallFailed,No se puede instalar este tema
+settings.themeByAuthor,de {0}
+settings.themeVersion,Versión {0}
+settings.themeChangeUpdate,Actualiza la versión {0} a la {1}.
+settings.themeChangeReinstall,La versión {0} ya está instalada. ¿Quieres reinstalarla?
+settings.themeChangeDowngrade,La versión instalada {0} es más reciente que la {1}. ¿Quieres volver a la anterior de todos modos?
+settings.themeActionInstall,Instalar
+settings.themeActionUpdate,Actualizar
+settings.themeActionReinstall,Reinstalar
+settings.themeActionDowngrade,Volver a la anterior
+settings.themeInstalled,Se instaló {0}
+settings.themeApplyFailed,No se pudo aplicar el tema
+settings.themeCrashReverted,El tema dejó de funcionar y se desactivó.
 navigation.library,Biblioteca
 navigation.songs,Canciones
 navigation.albums,Álbumes
@@ -307,6 +362,7 @@ navigation.sync,Sincronización
 navigation.sidebar,Barra lateral de listas y sincronización
 navigation.closeSidebar,Cerrar la barra lateral
 navigation.sidebarBlocked,Esta vista ya está abierta en pantalla completa
+layout.resizePanel,Cambiar tamaño del panel
 search.label,Buscar
 search.placeholder,Buscar...
 search.clear,Borrar búsqueda

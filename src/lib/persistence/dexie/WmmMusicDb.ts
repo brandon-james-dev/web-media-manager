@@ -1,9 +1,10 @@
 import Dexie, { type Table } from "dexie";
 
 import type { PersistedJob } from "@/core/jobs";
+import type { PackageFileRecord } from "@/core/ports/packageFiles";
+import type { InstalledTheme } from "@/core/ports/themes";
 import type {
   InstalledVisualizerPlugin,
-  PluginFileRecord,
   PluginSettingsRecord,
 } from "@/core/visualizers/contracts";
 import type { OfflineAudioRecord } from "@/lib/offline/offlineAudioStore";
@@ -34,9 +35,12 @@ export class WmmMusicDb extends Dexie {
   jobs!: Table<PersistedJob, string>;
   playHistory!: Table<PlayHistoryEntry, string>;
   plugins!: Table<InstalledVisualizerPlugin, string>;
-  pluginFiles!: Table<PluginFileRecord, number>;
+  pluginFiles!: Table<PackageFileRecord, number>;
   pluginSettings!: Table<PluginSettingsRecord, string>;
   offlineAudio!: Table<OfflineAudioRecord, string>;
+  themes!: Table<InstalledTheme, string>;
+  themeFiles!: Table<PackageFileRecord, number>;
+  themeSettings!: Table<{ key: string; value: string }, string>;
 
   constructor() {
     super("wmm.music");
@@ -95,8 +99,8 @@ export class WmmMusicDb extends Dexie {
 
       pluginFiles: `
         ++id,
-        pluginId,
-        [pluginId+path],
+        ownerId,
+        [ownerId+path],
         path
       `,
 
@@ -109,6 +113,23 @@ export class WmmMusicDb extends Dexie {
         songId,
         sourceId,
         cachedAt
+      `,
+
+      themes: `
+        id,
+        name,
+        installedAt
+      `,
+
+      themeFiles: `
+        ++id,
+        ownerId,
+        [ownerId+path],
+        path
+      `,
+
+      themeSettings: `
+        key
       `,
     });
   }

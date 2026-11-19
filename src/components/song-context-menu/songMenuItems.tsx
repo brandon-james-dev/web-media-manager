@@ -39,6 +39,7 @@ import { getPlaylistStore, getSourcesStore } from "@/core/ports";
 import {
   addSongsToPlaylist,
   isPlaylistReadOnly,
+  removeSongsFromPlaylist,
   savePlaylist,
 } from "@/core/playlists";
 import type { MusicSource, Playlist, Song } from "@/models";
@@ -92,9 +93,11 @@ export interface SongMenu {
  * The song actions, defined once for every surface that offers them.
  *
  * The desktop context menu and the mobile drawer render the same groups, so
- * an action added here appears in both without touching either surface.
+ * an action added here appears in both without touching either surface. A
+ * `playlistId` adds the "remove from playlist" action for that playlist,
+ * disabled while its source keeps it read-only.
  */
-export function useSongMenu(songs: Song[]): SongMenu {
+export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
   const { mode } = useParams();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -107,11 +110,13 @@ export function useSongMenu(songs: Song[]): SongMenu {
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [newPlaylistOpen, setNewPlaylistOpen] = useState(false);
-  // Read when the surface opens (a page mounts many menus, so not per row).
+  /** Read when the surface opens: a page mounts many menus, not one per row. */
   const [sources, setSources] = useState<MusicSource[]>([]);
-  // The page's current multi-selection, resolved to songs. The row only
-  // hands the menu the one right-clicked song, so the selection event is
-  // the only channel that knows about a multi-select.
+  /**
+   * The page's current multi-selection, resolved to songs. The row only hands
+   * the menu the one right-clicked song, so the selection event is the only
+   * channel that knows about a multi-select.
+   */
   const [selectedSongs, setSelectedSongs] = useState<Song[]>([]);
 
   const song = songs[0];
@@ -159,8 +164,10 @@ export function useSongMenu(songs: Song[]): SongMenu {
     }
   }
 
-  // The menu acts on the whole selection when the opened song is part of it;
-  // opening outside the selection acts on that song alone.
+  /**
+   * The menu acts on the whole selection when the opened song is part of it;
+   * opening outside the selection acts on that song alone.
+   */
   const target = useMemo(() => {
     if (
       selectedSongs.length > 1 &&
@@ -172,8 +179,10 @@ export function useSongMenu(songs: Song[]): SongMenu {
     return songs;
   }, [selectedSongs, songs, song]);
 
-  // Playlists synced from a read-only source can't take new songs, and the
-  // reserved favorites playlist is already covered by the favorites action.
+  /**
+   * Playlists synced from a read-only source can't take new songs, and the
+   * reserved favorites playlist is already covered by the favorites action.
+   */
   const editablePlaylists = useMemo(
     () =>
       playlists.filter(
@@ -182,8 +191,10 @@ export function useSongMenu(songs: Song[]): SongMenu {
     [playlists, sources]
   );
 
-  // Playlists for the "Add to playlist" list, kept live while the surface is
-  // mounted so a playlist created elsewhere shows up without a reload.
+  /**
+   * Playlists for the "Add to playlist" list, kept live while the surface is
+   * mounted so a playlist created elsewhere shows up without a reload.
+   */
   useEffect(() => {
     let cancelled = false;
     const store = (() => {
@@ -227,6 +238,18 @@ export function useSongMenu(songs: Song[]): SongMenu {
       offCleared();
     };
   }, []);
+
+  /**
+   * The playlist the surface was opened from, when it names one, so the menu
+   * can take songs back out of it.
+   */
+  const currentPlaylist = useMemo(
+    () => playlists.find((playlist) => playlist.id === playlistId),
+    [playlists, playlistId]
+  );
+  const playlistReadOnly =
+    currentPlaylist !== undefined &&
+    isPlaylistReadOnly(currentPlaylist, sources);
 
   const isQueued = useMemo(() => {
     const queuedIds = new Set(queuedSongs.map((x) => x.id));
@@ -306,9 +329,11 @@ export function useSongMenu(songs: Song[]): SongMenu {
     let cached = 0;
     const failed: string[] = [];
 
-    // Cache the selection as one worker batch. A selection drawn from a single
-    // album reports under that album's id, so its card fills in; a mixed
-    // selection gets its own batch id and leaves the album cards alone.
+    /**
+     * Cache the selection as one worker batch. A selection drawn from a single
+     * album reports under that album's id, so its card fills in; a mixed
+     * selection gets its own batch id and leaves the album cards alone.
+     */
     const albums = new Set(target.map((s) => `${s.album}\u0000${s.artist}`));
     const batchId =
       albums.size === 1
@@ -419,6 +444,20 @@ export function useSongMenu(songs: Song[]): SongMenu {
             icon: <Heart />,
             onSelect: () => void toggleFavorites(),
           },
+          {
+            id: "remove-from-playlist",
+            label: t("playlist.removeTrack"),
+            icon: <MinusCircle />,
+            hidden: playlistId === undefined,
+            disabled: playlistReadOnly,
+            onSelect: () => {
+              if (playlistId === undefined) return;
+              void removeSongsFromPlaylist(
+                playlistId,
+                target.map((s) => s.id)
+              );
+            },
+          },
         ],
         submenu: {
           id: "add-to-playlist",
@@ -486,8 +525,10 @@ export function useSongMenu(songs: Song[]): SongMenu {
       {
         id: "offline",
         label: t("library.offline"),
-        // A local folder and a sync device already hold their own audio, so
-        // there is nothing to download and nothing to remove.
+        /**
+         * A local folder and a sync device already hold their own audio, so
+         * there is nothing to download and nothing to remove.
+         */
         hidden: target.every((s) =>
           isAlwaysOfflineKind(sourceKinds.get(s.sourceId))
         ),
@@ -505,16 +546,20 @@ export function useSongMenu(songs: Song[]): SongMenu {
       {
         id: "sync",
         label: t("sync.title"),
-        // Shown whenever a device is connected: queueing is the common case,
-        // and removing only appears once the songs are actually queued.
+        /**
+         * Shown whenever a device is connected: queueing is the common case,
+         * and removing only appears once the songs are actually queued.
+         */
         hidden: !hasConnectedDevices,
         actions: [
           {
             id: "queue-sync",
             label: t("sync.addToQueue"),
             icon: <PlusCircle />,
-            // Only downloaded audio can be written to a device, so the action
-            // stays visible but disabled for songs that are not cached.
+            /**
+             * Only downloaded audio can be written to a device, so the action
+             * stays visible but disabled for songs that are not cached.
+             */
             hidden: isQueued,
             disabled: !allOffline,
             onSelect: () =>
@@ -549,6 +594,8 @@ export function useSongMenu(songs: Song[]): SongMenu {
     isQueued,
     notify,
     offlineSongIds,
+    playlistId,
+    playlistReadOnly,
     sourceKinds,
     selectionLabel,
     song,

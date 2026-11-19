@@ -45,6 +45,7 @@ export const WMM_RESOURCE_NAMESPACES = [
   "metadata",
   "settings",
   "navigation",
+  "layout",
   "search",
   "source",
   "notification",
@@ -152,6 +153,7 @@ export const WMM_RESOURCES = {
   "common.moreActions": text("Opens a menu of further actions for a row."),
   "common.moreOptions": text("Opens a menu of alternative options for a button."),
   "common.clickToSelect": text("Invites the user to pick a file."),
+  "common.fullScreen": text("Enters the full screen view."),
   "common.exitFullScreen": text("Leaves the full screen view."),
   "common.unknownArtist": text("Stand-in artist name for a track with no artist tag."),
   "common.back": text("Returns to the previous step of a flow."),
@@ -192,10 +194,25 @@ export const WMM_RESOURCES = {
   "playback.playPreview": text("Starts the short preview of the edited song."),
   "playback.pausePreview": text("Pauses the short preview of the edited song."),
   "playback.section": text("Heading of the playback actions in the song menu."),
+  "playback.lyrics": text("Lyrics panel of the now playing view."),
+  "playback.hidePanel": template("Hides the named now playing panel.", ["panel"]),
+  "playback.darkRoom": text("Dark room mode of the now playing view."),
+  "playback.lightsOn": text("Leaves dark room mode."),
+  "playback.noLyrics": text("Shown when the current song has no lyrics."),
+  "playback.queueHeading": plural(
+    "Heading of the now playing queue, naming how many songs it holds.",
+    ["count"]
+  ),
+  "playback.playlist": text("The playback queue popover."),
+  "playback.playlistHeading": plural(
+    "Heading of the queue popover, naming how many songs it holds.",
+    ["count"]
+  ),
 
   // library
   "library.artists": text("Artists in the library."),
   "library.albums": text("Albums in the library."),
+  "library.genres": text("Genres in the library."),
   "library.songs": text("Songs in the library."),
   "library.sources": text("Music sources feeding the library."),
   "library.noSongsFound": text("Shown when a song list has nothing to display."),
@@ -212,9 +229,21 @@ export const WMM_RESOURCES = {
   "library.artistCount": plural("Artist count in a list.", ["count"]),
   "library.albumCount": plural("Album count in a list.", ["count"]),
   "library.songCount": plural("Song count in a list.", ["count"]),
+  "library.totalMinutes": plural(
+    "Total length of a collection, in whole minutes.",
+    ["minutes"]
+  ),
   "library.toggleSortOrder": text("Switches the list between A-Z and Z-A."),
   "library.backToArtists": text("Returns from an artist to the artist list."),
   "library.deselectAll": text("Clears the current multi-selection."),
+  "library.resizeColumn": template(
+    "Accessible name of a column's resize handle.",
+    ["column"]
+  ),
+  "library.showAllFrom": template(
+    "Accessible name of an album cell value that filters the page by it.",
+    ["value"]
+  ),
   "library.deselectAllSongs": text(
     "Clears the current multi-selection of songs."
   ),
@@ -228,6 +257,9 @@ export const WMM_RESOURCES = {
   "library.noArtwork": text("Shown when a song has no embedded artwork."),
   "library.noCoverArt": text("Shown when an album has no cover image."),
   "library.quickEdit": text("Compact form for editing a song's basic tags."),
+  "library.noSelection": text(
+    "Shown in the metadata editor when no song is picked."
+  ),
   "library.quickEditSelected": template(
     "Heading of the compact form while several songs are selected.",
     ["count"]
@@ -364,6 +396,8 @@ export const WMM_RESOURCES = {
   "sync.title": text("The device sync area."),
   "sync.queue": text("Songs waiting to be copied to a device."),
   "sync.devices": text("Devices available for sync."),
+  "sync.noDevices": text("Shown when no sync device is configured."),
+  "sync.addDevice": text("Starts adding a sync device."),
   "sync.start": text("Starts copying queued songs to a device."),
   "sync.cancel": text("Cancels a running sync."),
   "sync.addToQueue": text("Queues the selected songs for the next device sync."),
@@ -437,15 +471,20 @@ export const WMM_RESOURCES = {
   "visualizer.title": text("The audio visualizer."),
   "visualizer.select": text("Chooses which visualizer to show."),
   "visualizer.settings": text("Opens settings for the active visualizer."),
-  "visualizer.search": text("Field that narrows the installed visualizers."),
   "visualizer.loadingPlugins": text(
     "Shown while the installed plugins are read."
   ),
-  "visualizer.noMatches": text(
-    "Shown when the visualizer search matches nothing."
-  ),
   "visualizer.noneInstalled": text(
     "Shown when no visualizer plugin is installed."
+  ),
+  "visualizer.noVisualizerInstalled": text(
+    "Shown in the visualizer host when no plugin is installed."
+  ),
+  "visualizer.installVisualizer": text(
+    "Opens the plugin manager to install a visualizer."
+  ),
+  "visualizer.loadingVisualizer": text(
+    "Shown while the visualizer plugin is loading."
   ),
   "visualizer.unknownAuthor": text(
     "Stand-in author name for a plugin without one."
@@ -547,6 +586,7 @@ export const WMM_RESOURCES = {
   "metadata.genre": text("Genre field."),
   "metadata.year": text("Release year field."),
   "metadata.albumArtist": text("Album artist field."),
+  "metadata.source": text("Music source a song was imported from."),
   "metadata.albumArt": text("Cover image field."),
   "metadata.trackPosition": text(
     "Heading of the track and disc number fields."
@@ -575,11 +615,17 @@ export const WMM_RESOURCES = {
   "settings.pageTitle": text("Heading of the settings and data screen."),
   "settings.description": text("Summary under the settings heading."),
   "settings.shortcuts": text("The keyboard shortcuts reference."),
-  "settings.theme": text("Colour theme preference."),
+  "settings.display": text("Light, dark or system display preference."),
+  "settings.displayLockedByTheme": text(
+    "Note that the active custom theme fixes the display preference."
+  ),
   "settings.themeLight": text("Light colour theme."),
   "settings.themeDark": text("Dark colour theme."),
   "settings.themeSystem": text("Follow the operating system colour theme."),
   "settings.accentColor": text("Accent colour preference."),
+  "settings.accentLockedByTheme": text(
+    "Note that the active custom theme supplies its own accent colour."
+  ),
   "settings.language": text("Display language preference."),
   "settings.languageAuto": template(
     "Language option that follows the browser, naming the detected language.",
@@ -589,6 +635,9 @@ export const WMM_RESOURCES = {
   "settings.save": text("Saves the settings form."),
   "settings.shortcutOpenShortcuts": text(
     "Keyboard shortcut that opens the shortcuts reference."
+  ),
+  "settings.shortcutOpenSettings": text(
+    "Keyboard shortcut that opens the settings screen."
   ),
   "settings.shortcutNext": text(
     "Keyboard shortcut that moves to the next song or album."
@@ -611,7 +660,13 @@ export const WMM_RESOURCES = {
   "settings.shortcutClose": text(
     "Keyboard shortcut that closes the editor."
   ),
-  "settings.visualizers": text("Heading of the visualizer plugins card."),
+  "settings.extensibility": text(
+    "Heading of the settings card grouping custom themes and visualizer plugins."
+  ),
+  "settings.extensibilityDescription": text(
+    "Explains what the extensibility card contains."
+  ),
+  "settings.visualizers": text("Heading of the visualizer plugins section."),
   "settings.visualizersDescription": text(
     "Summary under the visualizer plugins heading."
   ),
@@ -630,6 +685,73 @@ export const WMM_RESOURCES = {
   "settings.songsCleared": text(
     "Toast shown after every song is cleared from the database."
   ),
+  "settings.themeTrialPrompt": template(
+    "Bar shown after a theme is applied, counting down the seconds until it reverts.",
+    ["seconds"]
+  ),
+  "settings.themeTrialKeep": text(
+    "Keeps the newly applied theme and dismisses the trial bar."
+  ),
+  "settings.themeTrialRevert": text(
+    "Restores the previous theme from the trial bar."
+  ),
+  "settings.themes": text("Heading of the custom theme packages section."),
+  "settings.themesDescription": text(
+    "Explains the custom themes section of the extensibility card."
+  ),
+  "settings.themeBuiltIn": text("Selects the theme the app ships with."),
+  "settings.themeBuiltInDescription": text(
+    "Second line of the built-in theme row in the custom themes list."
+  ),
+  "settings.themeInstall": text("Opens the file picker for a theme ZIP."),
+  "settings.themeReset": text("Returns to the built-in theme."),
+  "settings.themeResetDone": text(
+    "Toast shown after the built-in theme is restored."
+  ),
+  "settings.themeRemoveNamed": template(
+    "Removes the named theme, as the button's accessible label.",
+    ["name"]
+  ),
+  "settings.themeRemoveTitle": text(
+    "Title of the dialog that confirms removing a theme."
+  ),
+  "settings.themeRemoveDescription": template(
+    "Explains that the named theme and its files are deleted.",
+    ["name"]
+  ),
+  "settings.themeInstallFailed": text(
+    "Title shown when a theme package has errors and cannot be installed."
+  ),
+  "settings.themeByAuthor": template("Names the theme's author.", ["author"]),
+  "settings.themeVersion": template("Names the theme's version.", ["version"]),
+  "settings.themeChangeUpdate": template(
+    "Says the package updates the installed version.",
+    ["from", "to"]
+  ),
+  "settings.themeChangeReinstall": template(
+    "Asks whether to reinstall a version that is already installed.",
+    ["version"]
+  ),
+  "settings.themeChangeDowngrade": template(
+    "Warns that the package is older than the installed version.",
+    ["installed", "incoming"]
+  ),
+  "settings.themeActionInstall": text("Installs the reviewed theme."),
+  "settings.themeActionUpdate": text("Updates the installed theme."),
+  "settings.themeActionReinstall": text("Reinstalls the installed theme."),
+  "settings.themeActionDowngrade": text(
+    "Installs the older package after the warning."
+  ),
+  "settings.themeInstalled": template(
+    "Toast shown after the named theme is installed.",
+    ["name"]
+  ),
+  "settings.themeApplyFailed": text(
+    "Toast shown when the chosen theme could not be applied."
+  ),
+  "settings.themeCrashReverted": text(
+    "Toast shown when a theme layout crashed and the theme was turned off."
+  ),
 
   // navigation
   "navigation.library": text("Navigates to the library."),
@@ -643,6 +765,11 @@ export const WMM_RESOURCES = {
   "navigation.closeSidebar": text("Closes the playlists and sync sidebar."),
   "navigation.sidebarBlocked": text(
     "Tooltip shown when the sidebar view is already open full screen."
+  ),
+
+  // layout
+  "layout.resizePanel": text(
+    "Names the drag handle that resizes a docked theme panel."
   ),
 
   // search

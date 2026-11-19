@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   PlaybackContext,
-  type ShuffleState,
-  type RepeatState,
-  shuffleState,
-  repeatState,
+  ShuffleState,
+  RepeatState,
 } from "@/hooks/usePlayback";
 import { ThumbnailSize } from "@/lib";
 import { getPictureOfType } from "@/core/media";
@@ -22,11 +20,12 @@ import { safeStorageGet, safeStorageSet } from "@/lib/safeStorage";
 export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#region State
   const [playlist, setPlaylist] = useState<Song[]>([]);
-  const [shuffle, setShuffle] = useState<ShuffleState>(shuffleState.Off);
-  const [repeat, setRepeat] = useState<RepeatState>(repeatState.Off);
+  const [shuffle, setShuffle] = useState<ShuffleState>(ShuffleState.Off);
+  const [repeat, setRepeat] = useState<RepeatState>(RepeatState.Off);
   const [volume, setVolume] = useState<number>(() =>
     restoreVolume(safeStorageGet(VOLUME_STORAGE_KEY))
   );
+  const [muted, setMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   // True while the current track's bytes are being fetched and decoded.
   const [isBuffering, setIsBuffering] = useState(false);
@@ -49,8 +48,8 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
    * sort/filter order. Live — updated on every sort/filter change. */
   const collectionIdsRef = useRef<string[]>([]);
   const playlistRef = useRef<Song[]>([]);
-  const shuffleRef = useRef<ShuffleState>(shuffleState.Off);
-  const repeatRef = useRef<RepeatState>(repeatState.Off);
+  const shuffleRef = useRef<ShuffleState>(ShuffleState.Off);
+  const repeatRef = useRef<RepeatState>(RepeatState.Off);
   const playedSongIdsRef = useRef<string[]>([]);
   const isPlayingRef = useRef(false);
   /** Set true when the user asks to play a specific song (playSong) so the
@@ -63,6 +62,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const currentTimeRef = useRef(0);
   const scrobbleRef = useRef(new ScrobbleTracker());
   const volumeRef = useRef(0.75);
+  const mutedRef = useRef(false);
   //#endregion
 
   //#region Audio Engine Refs
@@ -101,15 +101,16 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     volumeRef.current = volume;
+    mutedRef.current = muted;
 
     if (gainRef.current) {
-      gainRef.current.gain.value = volume;
+      gainRef.current.gain.value = muted ? 0 : volume;
     }
 
     // Persist the volume slider so the initial state can be restored on a
     // later load (see the useState initializer above).
     safeStorageSet(VOLUME_STORAGE_KEY, String(volume));
-  }, [volume]);
+  }, [volume, muted]);
 
   //#endregion
 
@@ -183,6 +184,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         setIsPlaying(false);
         navigator.mediaSession.playbackState = "paused";
         endedNaturallyRef.current = true;
+        if (nowPlayingRef.current) {
+          wmmBus.publish("wmm.playback.completed", {
+            songId: nowPlayingRef.current.id,
+          });
+        }
         nextTrack.current();
         endedNaturallyRef.current = false;
       }
@@ -240,7 +246,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         audioCtxRef.current = new AudioCtx();
 
         gainRef.current = audioCtxRef.current.createGain();
-        gainRef.current.gain.value = volumeRef.current;
+        gainRef.current.gain.value = mutedRef.current ? 0 : volumeRef.current;
 
         // Visualizers read this analyser. It sits ahead of the gain node, so
         // analysis is independent of the volume the user hears.
@@ -356,10 +362,62 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (gainRef.current) {
-      gainRef.current.gain.value = volume;
+      gainRef.current.gain.value = muted ? 0 : volume;
     }
     volumeRef.current = volume;
+    mutedRef.current = muted;
+  }, [volume, muted]);
+
+  const shuffleChangedMountedRef = useRef(false);
+  useEffect(() => {
+    if (!shuffleChangedMountedRef.current) {
+      shuffleChangedMountedRef.current = true;
+      return;
+    }
+    wmmBus.publish("wmm.playback.shuffleChanged", {
+      enabled: shuffle === ShuffleState.On,
+    });
+  }, [shuffle]);
+
+  const repeatChangedMountedRef = useRef(false);
+  useEffect(() => {
+    if (!repeatChangedMountedRef.current) {
+      repeatChangedMountedRef.current = true;
+      return;
+    }
+    wmmBus.publish("wmm.playback.repeatChanged", { state: repeat });
+  }, [repeat]);
+
+  const volumeChangedMountedRef = useRef(false);
+  useEffect(() => {
+    if (!volumeChangedMountedRef.current) {
+      volumeChangedMountedRef.current = true;
+      return;
+    }
+    wmmBus.publish("wmm.playback.volumeChanged", { volume });
   }, [volume]);
+
+  const muteChangedMountedRef = useRef(false);
+  useEffect(() => {
+    if (!muteChangedMountedRef.current) {
+      muteChangedMountedRef.current = true;
+      return;
+    }
+    wmmBus.publish("wmm.playback.muteChanged", { muted });
+  }, [muted]);
+
+  const currentSongId = nowPlaying?.id;
+  useEffect(() => {
+    if (!isPlaying || !currentSongId) return;
+
+    const id = setInterval(() => {
+      wmmBus.publish("wmm.playback.positionChanged", {
+        songId: currentSongId,
+        positionSeconds: currentTimeRef.current,
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isPlaying, currentSongId]);
 
   // Media Session action handlers
   useEffect(() => {
@@ -383,11 +441,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
     navigator.mediaSession.setActionHandler("seekto", (details) => {
       if (details.seekTime != null) {
-        const buffer = bufferRef.current;
-        if (!buffer) return;
+        if (!bufferRef.current) return;
 
-        const pct = (details.seekTime / buffer.duration) * 100;
-        seek.current(pct);
+        seek.current(details.seekTime);
       }
     });
   }, []);
@@ -407,6 +463,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       setIsPlaying(false);
 
       navigator.mediaSession.playbackState = "paused";
+      if (nowPlayingRef.current) {
+        wmmBus.publish("wmm.playback.paused", {
+          songId: nowPlayingRef.current.id,
+        });
+      }
     } else {
       const ctx = audioCtxRef.current;
 
@@ -431,18 +492,20 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       isPlayingRef.current = true;
       setIsPlaying(true);
       navigator.mediaSession.playbackState = "playing";
+      if (nowPlayingRef.current) {
+        wmmBus.publish("wmm.playback.started", {
+          songId: nowPlayingRef.current.id,
+          positionSeconds: currentTimeRef.current,
+        });
+      }
     }
   });
 
-  const seek = useRef((v: number) => {
-    if (!nowPlayingRef.current?.duration) return;
+  const seek = useRef((seconds: number) => {
+    const duration = nowPlayingRef.current?.duration;
+    if (!duration) return;
 
-    const pct = Number(v);
-    let newTime = (pct / 100) * nowPlayingRef.current.duration;
-
-    if (newTime >= nowPlayingRef.current.duration) {
-      newTime = nowPlayingRef.current.duration - 0.001;
-    }
+    const newTime = Math.max(0, Math.min(Number(seconds), duration - 0.001));
 
     if (isPlayingRef.current) {
       startPlaybackAt.current(newTime);
@@ -455,10 +518,16 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       isPlayingRef.current = false;
     }
     navigator.mediaSession.setPositionState?.({
-      duration: nowPlayingRef.current.duration,
+      duration,
       playbackRate: 1,
       position: newTime,
     });
+    if (nowPlayingRef.current) {
+      wmmBus.publish("wmm.playback.positionChanged", {
+        songId: nowPlayingRef.current.id,
+        positionSeconds: newTime,
+      });
+    }
   });
 
   /**
@@ -496,17 +565,17 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (repeatRef.current === repeatState.One) {
+    if (repeatRef.current === RepeatState.One) {
       startPlaybackAt.current(0);
       return;
     }
 
     const pool = shufflePoolIds();
-    if (shuffleRef.current === shuffleState.On && pool.length) {
+    if (shuffleRef.current === ShuffleState.On && pool.length) {
       // History is newest-first and excludes the current song, so the
       // previous song is its head.
       if (playedSongIds.length < 1) {
-        if (repeatRef.current === repeatState.All) {
+        if (repeatRef.current === RepeatState.All) {
           playById(pool[pool.length - 1]);
         }
         return;
@@ -541,7 +610,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       const prevIdx = currentIdx - 1;
       if (prevIdx < 0) {
         // Start of the collection: repeat-All wraps to the last; otherwise stop.
-        if (repeatRef.current === repeatState.All) {
+        if (repeatRef.current === RepeatState.All) {
           getStore()
             .get(coll[coll.length - 1])
             .then((song) => {
@@ -558,13 +627,13 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (repeatRef.current === repeatState.Off) {
+    if (repeatRef.current === RepeatState.Off) {
       if (prevIndex < 0) return;
       setNowPlaying(pl[prevIndex]);
       return;
     }
 
-    if (repeatRef.current === repeatState.All) {
+    if (repeatRef.current === RepeatState.All) {
       const wrappedIndex = prevIndex < 0 ? pl.length - 1 : prevIndex;
       setNowPlaying(pl[wrappedIndex]);
       return;
@@ -588,14 +657,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       setNowPlaying(song);
     };
 
-    if (repeatMode === repeatState.One) {
+    if (repeatMode === RepeatState.One) {
       startPlaybackAt.current(0);
 
       return;
     }
 
     const pool = shufflePoolIds();
-    if (shuffleRef.current === shuffleState.On && pool.length) {
+    if (shuffleRef.current === ShuffleState.On && pool.length) {
       const updated = [nowPlayingRef.current.id, ...playedSongIdsRef.current];
       const unplayed = pool.filter((id) => !updated.includes(id));
 
@@ -632,7 +701,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       const nextIdx = currentIdx + 1;
       if (nextIdx >= coll.length) {
         // End of the collection: repeat-All wraps to the first; otherwise stop.
-        if (repeatMode === repeatState.All) {
+        if (repeatMode === RepeatState.All) {
           getStore()
             .get(coll[0])
             .then((song) => {
@@ -649,13 +718,13 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (repeatMode === repeatState.Off) {
+    if (repeatMode === RepeatState.Off) {
       if (nextIndex >= pl.length) return;
       advanceTo(playlistRef.current[nextIndex]);
       return;
     }
 
-    if (repeatMode === repeatState.All) {
+    if (repeatMode === RepeatState.All) {
       const wrappedIndex = nextIndex % pl.length;
       advanceTo(pl[wrappedIndex]);
       return;
@@ -694,12 +763,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         const delta = payload?.deltaSeconds;
         const duration = nowPlayingRef.current?.duration ?? 0;
         if (!delta || duration <= 0) return;
-        // `seek` takes a percentage, so convert the absolute target back.
         const target = Math.max(
           0,
           Math.min(duration - 0.001, currentTimeRef.current + delta)
         );
-        seek.current((target / duration) * 100);
+        seek.current(target);
       }
     );
     const unregisterVolume = commandDispatcher.register(
@@ -707,14 +775,19 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       (payload?: { volume?: number }) => {
         if (payload?.volume !== undefined) {
           setVolume(payload.volume);
+          if (payload.volume > 0) setMuted(false);
         }
       }
+    );
+    const unregisterMute = commandDispatcher.register(
+      "wmm.playback.toggleMute",
+      () => setMuted((prev) => !prev)
     );
     const unregisterShuffle = commandDispatcher.register(
       "wmm.playback.toggleShuffle",
       () =>
         setShuffle((prev) =>
-          prev === shuffleState.On ? shuffleState.Off : shuffleState.On
+          prev === ShuffleState.On ? ShuffleState.Off : ShuffleState.On
         )
     );
     const unregisterRepeat = commandDispatcher.register(
@@ -722,9 +795,9 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       () =>
         setRepeat((prev) => {
           // Cycle: Off -> One -> All -> Off
-          if (prev === repeatState.Off) return repeatState.One;
-          if (prev === repeatState.One) return repeatState.All;
-          return repeatState.Off;
+          if (prev === RepeatState.Off) return RepeatState.One;
+          if (prev === RepeatState.One) return RepeatState.All;
+          return RepeatState.Off;
         })
     );
     // Queue commands resolve song ids via the store, so payloads carry ids
@@ -875,6 +948,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       unregisterSeek();
       unregisterSeekBy();
       unregisterVolume();
+      unregisterMute();
       unregisterShuffle();
       unregisterRepeat();
       unregisterPlaySong();
@@ -899,6 +973,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
         shuffle,
         repeat,
         volume,
+        muted,
         getCurrentTime,
         getCollectionIds: () => collectionIdsRef.current,
         getAnalyser,

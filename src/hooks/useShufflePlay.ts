@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { wmmBus } from "@/events";
-import { shuffleState, usePlayback } from "./usePlayback";
+import { ShuffleState, usePlayback } from "./usePlayback";
 
 /**
  * Returns a function that plays the given songs shuffled: turns shuffle on
@@ -13,7 +13,7 @@ export function useShufflePlay(): (songIds: string[]) => void {
   return useCallback(
     (songIds: string[]) => {
       if (!songIds.length) return;
-      if (shuffle !== shuffleState.On) {
+      if (shuffle !== ShuffleState.On) {
         wmmBus.invoke("wmm.playback.toggleShuffle");
       }
       wmmBus.invoke("wmm.playback.playQueue", { songIds });

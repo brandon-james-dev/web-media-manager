@@ -1,3 +1,4 @@
+import { wmmBus } from "@/events";
 import { keyShortcut$ } from "@/events/keyboard-events";
 import { registerShortcut } from "./keyboardShortcuts";
 
@@ -7,6 +8,13 @@ export function registerDefaultShortcuts() {
     description: "Open keyboard shortcuts",
     combo: { key: "/", ctrl: true },
     action: () => keyShortcut$.next("openShortcuts"),
+  });
+
+  registerShortcut({
+    id: "openSettings",
+    description: "Open settings",
+    combo: { key: ",", ctrl: true },
+    action: () => wmmBus.invoke("wmm.ui.openSettings"),
   });
 
   registerShortcut({

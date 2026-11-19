@@ -19,8 +19,35 @@ const { fakeItdb, fakeStore, fakeFs } = vi.hoisted(() => {
       album: string;
       artist: string;
       path?: string;
+      mhiiLink?: number;
     }[],
-    playlists: [] as unknown[],
+    playlists: [] as {
+      playlistId: bigint;
+      name?: string;
+      isMaster?: boolean;
+      mhsdIndex?: number;
+      items: { trackId: number }[];
+      dataObjects: { type: number; stringValue?: string }[];
+    }[],
+    setArtwork: vi.fn(async () => ({})),
+    addPlaylist: vi.fn((name: string) => {
+      const playlist = {
+        playlistId: BigInt(fakeItdb.playlists.length + 100),
+        name,
+        isMaster: false,
+        items: [],
+        dataObjects: [],
+      };
+      fakeItdb.playlists.push(playlist);
+      return playlist;
+    }),
+    removePlaylist: vi.fn((id: bigint) => {
+      fakeItdb.playlists = fakeItdb.playlists.filter(
+        (p) => p.playlistId !== id
+      );
+    }),
+    removeTrackFromPlaylist: vi.fn(),
+    addTrackToPlaylist: vi.fn(),
     // The device's cover-art formats. Empty means it cannot store artwork, so
     // the strategy must not pass any.
     artworkFormats: [] as { formatId: number }[],
@@ -29,17 +56,19 @@ const { fakeItdb, fakeStore, fakeFs } = vi.hoisted(() => {
     // location is colon-separated and rooted, exactly as itunesdb-ts stores it
     // — a slash-separated fake here hid the fact that the strategy was handing
     // that location straight to a `/`-based filesystem port.
-    addTrack: vi.fn(async (meta: { title: string; album?: string; artist?: string }) => {
-      const track = {
-        trackId: fakeItdb.tracks.length + 1,
-        title: meta.title,
-        album: meta.album ?? "",
-        artist: meta.artist ?? "",
-        path: `:iPod_Control:Music:F00:${meta.title}.mp3`,
-      };
-      fakeItdb.tracks.push(track);
-      return track;
-    }),
+    addTrack: vi.fn(
+      async (meta: { title: string; album?: string; artist?: string }) => {
+        const track = {
+          trackId: fakeItdb.tracks.length + 1,
+          title: meta.title,
+          album: meta.album ?? "",
+          artist: meta.artist ?? "",
+          path: `:iPod_Control:Music:F00:${meta.title}.mp3`,
+        };
+        fakeItdb.tracks.push(track);
+        return track;
+      }
+    ),
     save: vi.fn(async () => undefined),
     [Symbol.dispose]: () => undefined,
   };
@@ -47,7 +76,9 @@ const { fakeItdb, fakeStore, fakeFs } = vi.hoisted(() => {
   const fakeStore = {
     getFileSystem: () => ({
       getFileHandle: async (id: string) =>
-        id === "missing" ? null : { getFile: async () => new File([], "a.mp3") },
+        id === "missing"
+          ? null
+          : { getFile: async () => new File([], "a.mp3") },
     }),
   };
 
@@ -319,5 +350,120 @@ describe("IpodSyncStrategy verification", () => {
     expect(summary.skipped).toEqual(["missing"]);
     expect(summary.added).toEqual([]);
     expect(summary.unverified).toEqual([]);
+  });
+});
+
+describe("IpodSyncStrategy cover art backfill", () => {
+  it("adds cover art to a track already on the device that has none", async () => {
+    fakeItdb.tracks = [
+      {
+        trackId: 7,
+        title: "One",
+        album: "Album",
+        artist: "Artist",
+        mhiiLink: 0,
+      },
+    ];
+    fakeItdb.artworkFormats = [{ formatId: 1 }];
+    fakeItdb.setArtwork.mockClear();
+    const art = new Uint8Array([9]);
+
+    await new IpodSyncStrategy(undefined, async () => art).sync(
+      device,
+      [song("a", "One")],
+      []
+    );
+
+    expect(fakeItdb.setArtwork).toHaveBeenCalledWith(7, art);
+    fakeItdb.artworkFormats = [];
+  });
+
+  it("leaves a track that already has cover art alone", async () => {
+    fakeItdb.tracks = [
+      {
+        trackId: 7,
+        title: "One",
+        album: "Album",
+        artist: "Artist",
+        mhiiLink: 3,
+      },
+    ];
+    fakeItdb.artworkFormats = [{ formatId: 1 }];
+    fakeItdb.setArtwork.mockClear();
+
+    await new IpodSyncStrategy(undefined, async () => new Uint8Array([9])).sync(
+      device,
+      [song("a", "One")],
+      []
+    );
+
+    expect(fakeItdb.setArtwork).not.toHaveBeenCalled();
+    fakeItdb.artworkFormats = [];
+  });
+});
+
+describe("IpodSyncStrategy playlists", () => {
+  const playlist = (name: unknown) =>
+    ({
+      id: String(name),
+      name,
+      songs: [],
+      createdAt: 0,
+      updatedAt: 0,
+    }) as never;
+
+  it("writes the playlist name as a title data object", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.playlists = [];
+
+    await new IpodSyncStrategy().sync(device, [], [playlist("Road Trip")]);
+
+    expect(fakeItdb.playlists).toHaveLength(1);
+    expect(fakeItdb.playlists[0].dataObjects).toEqual([
+      { type: 1, stringValue: "Road Trip" },
+    ]);
+  });
+
+  it("reuses a named playlist instead of adding another", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.playlists = [];
+    const strategy = new IpodSyncStrategy();
+
+    await strategy.sync(device, [], [playlist("Road Trip")]);
+    await strategy.sync(device, [], [playlist("Road Trip")]);
+
+    expect(fakeItdb.playlists).toHaveLength(1);
+  });
+
+  it("removes nameless playlists left by earlier syncs", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.playlists = [
+      {
+        playlistId: 1n,
+        name: "iPod",
+        isMaster: true,
+        items: [],
+        dataObjects: [],
+      },
+      { playlistId: 2n, isMaster: false, items: [], dataObjects: [] },
+    ];
+
+    await new IpodSyncStrategy().sync(device, [], []);
+
+    expect(fakeItdb.playlists.map((p) => p.name)).toEqual(["iPod"]);
+  });
+
+  it("skips a playlist with no name", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.playlists = [];
+    fakeItdb.addPlaylist.mockClear();
+
+    await new IpodSyncStrategy().sync(
+      device,
+      [],
+      [playlist(undefined), playlist("  ")]
+    );
+
+    expect(fakeItdb.addPlaylist).not.toHaveBeenCalled();
   });
 });

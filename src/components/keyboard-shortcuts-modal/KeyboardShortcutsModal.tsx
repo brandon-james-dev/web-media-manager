@@ -23,6 +23,7 @@ import {
 /** Resource key for each registered shortcut, by shortcut id. */
 const SHORTCUT_LABEL_KEYS: Record<string, WmmResourceKey> = {
   openShortcuts: "settings.shortcutOpenShortcuts",
+  openSettings: "settings.shortcutOpenSettings",
   next: "settings.shortcutNext",
   prev: "settings.shortcutPrev",
   playpause: "settings.shortcutPlayPause",

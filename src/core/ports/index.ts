@@ -25,3 +25,10 @@ export {
   setVisualizerPluginStoreProvider,
 } from "./visualizers";
 export type { VisualizerPluginStore } from "./visualizers";
+export type { PackageFileRecord, PackageFileStore } from "./packageFiles";
+export { getThemeStore, setThemeStoreProvider } from "./themes";
+export type {
+  InstalledTheme,
+  PackageFileRecordInput,
+  ThemeStore,
+} from "./themes";

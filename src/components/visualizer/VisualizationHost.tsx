@@ -19,6 +19,7 @@ import {
 } from "@/lib/visualizers";
 import { Button } from "@/components/ui/button";
 import { useIsTv } from "@/lib/hooks/useIsMobile";
+import { useTranslation } from "@/i18n";
 import type { VisualizationHostProps } from "./VisualizationHostProps";
 import {
   adaptRenderScale,
@@ -64,6 +65,7 @@ export function VisualizationHost({
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isTv = useIsTv();
+  const { t } = useTranslation();
 
   useEffect(() => {
     readFrameRef.current = readFrame;
@@ -314,20 +316,22 @@ export function VisualizationHost({
       {!resolvedPluginId && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center">
           <Sparkles className="size-6 text-white/70" />
-          <p className="text-sm text-white/80">No visualizer installed.</p>
+          <p className="text-sm text-white/80">
+            {t("visualizer.noVisualizerInstalled")}
+          </p>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => setManagerOpen(true)}
           >
-            Install a visualizer
+            {t("visualizer.installVisualizer")}
           </Button>
         </div>
       )}
 
       {resolvedPluginId && !loaded && !message && (
         <p className="absolute inset-0 flex items-center justify-center p-4 text-sm text-white/70">
-          Loading visualizer…
+          {t("visualizer.loadingVisualizer")}
         </p>
       )}
 
@@ -345,8 +349,12 @@ export function VisualizationHost({
           size="icon-sm"
           variant="secondary"
           className="absolute top-2 right-2"
-          title={isFullscreen ? "Exit full screen" : "Full screen"}
-          aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
+          title={
+            isFullscreen ? t("common.exitFullScreen") : t("common.fullScreen")
+          }
+          aria-label={
+            isFullscreen ? t("common.exitFullScreen") : t("common.fullScreen")
+          }
           onClick={toggleFullscreen}
         >
           {isFullscreen ? <Minimize /> : <Maximize />}

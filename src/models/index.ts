@@ -11,3 +11,4 @@ export * from "./SyncDevice";
 export * from "./SyncLibrary";
 export * from "./SyncPlaylist";
 export * from "./SyncTrack";
+export * from "./PlaybackModes";

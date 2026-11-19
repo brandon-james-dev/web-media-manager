@@ -32,3 +32,45 @@ export const selectors = {
 } as const;
 
 export type SortableColumn = keyof typeof selectors;
+
+/**
+ * Orders two songs by disc, then track, with a missing number last, so one
+ * album's songs stay in the order the album lists them.
+ *
+ * @example
+ * ```ts
+ * songs.sort(compareDiscThenTrack);
+ * ```
+ */
+export function compareDiscThenTrack(a: Song, b: Song): number {
+  const byDisc = compareNumbersLast(a.discNumber, b.discNumber);
+  if (byDisc !== 0) return byDisc;
+  return compareNumbersLast(a.track, b.track);
+}
+
+/**
+ * The tie-breaker a sort applies when its primary comparison is equal: disc
+ * then track for an album sort, and none for any other column.
+ *
+ * @example
+ * ```ts
+ * sortTieBreaker(selectors.album); // compareDiscThenTrack
+ * sortTieBreaker(selectors.title); // undefined
+ * ```
+ */
+export function sortTieBreaker(
+  selector: unknown
+): ((a: Song, b: Song) => number) | undefined {
+  return selector === selectors.album ? compareDiscThenTrack : undefined;
+}
+
+/** Orders two numbers, with a missing one last. */
+function compareNumbersLast(
+  left: number | undefined,
+  right: number | undefined
+): number {
+  if (left === right) return 0;
+  if (left === undefined) return 1;
+  if (right === undefined) return -1;
+  return left - right;
+}

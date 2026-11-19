@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Theme xmlns="urn:wmm:theme:1" spec="1.0">
+  <Palettes>
+    <Palette scheme="light">
+      <Set slot="background" value="#f6f8f4" />
+      <Set slot="foreground" value="#1f2a1f" />
+      <Set slot="accent" value="#dbe7d6" />
+      <Set slot="accentForeground" value="#1f2a1f" />
+      <Set slot="primary" value="#4f7a4f" />
+      <Set slot="primaryForeground" value="#ffffff" />
+      <Set slot="border" value="#c9d4c3" />
+      <Set slot="card" value="#edf2ea" />
+      <Set slot="cardForeground" value="#1f2a1f" />
+      <Set slot="popover" value="#e6eee1" />
+      <Set slot="popoverForeground" value="#1f2a1f" />
+      <Set slot="secondary" value="#e6eee1" />
+      <Set slot="secondaryForeground" value="#1f2a1f" />
+      <Set slot="muted" value="#dfe8da" />
+      <Set slot="mutedForeground" value="#4a5a48" />
+      <Set slot="input" value="#7d8b79" />
+      <Set slot="ring" value="#4f7a4f" />
+      <Set slot="selection" value="#dbe7d6" />
+      <Set slot="selectionForeground" value="#1f2a1f" />
+      <Set slot="progressTrack" value="#dbe7d6" />
+      <Set slot="progressFill" value="#4f7a4f" />
+    </Palette>
+    <Palette scheme="dark">
+      <Set slot="background" value="#141a14" />
+      <Set slot="foreground" value="#e3eadf" />
+      <Set slot="accent" value="#2c3a2c" />
+      <Set slot="accentForeground" value="#dcebd8" />
+      <Set slot="primary" value="#9cc59a" />
+      <Set slot="primaryForeground" value="#10240f" />
+      <Set slot="border" value="#334033" />
+      <Set slot="card" value="#1c241c" />
+      <Set slot="cardForeground" value="#e3eadf" />
+      <Set slot="popover" value="#222b22" />
+      <Set slot="popoverForeground" value="#e3eadf" />
+      <Set slot="secondary" value="#222b22" />
+      <Set slot="secondaryForeground" value="#e3eadf" />
+      <Set slot="muted" value="#2a352a" />
+      <Set slot="mutedForeground" value="#b3c2ae" />
+      <Set slot="input" value="#7f8f7c" />
+      <Set slot="ring" value="#9cc59a" />
+      <Set slot="selection" value="#2c3a2c" />
+      <Set slot="selectionForeground" value="#dcebd8" />
+      <Set slot="progressTrack" value="#2c3a2c" />
+      <Set slot="progressFill" value="#9cc59a" />
+    </Palette>
+  </Palettes>
+
+  <Fonts>
+    <FontFamily id="ui" fallback="systemUi" />
+  </Fonts>
+
+  <TextStyles>
+    <TextStyle id="body" font="@font/ui" size="16" color="@slot/foreground" />
+  </TextStyles>
+</Theme>

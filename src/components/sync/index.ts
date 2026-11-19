@@ -1,3 +1,4 @@
+export * from "./AddDeviceHost";
 export * from "./DeviceLibraryDialog";
 export * from "./SyncDeviceCard";
 export * from "./SyncDeviceSelector";

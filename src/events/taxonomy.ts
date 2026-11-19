@@ -1,3 +1,5 @@
+import type { RepeatState } from "@/models";
+
 /**
  * WMM event & command taxonomy.
  *
@@ -54,8 +56,10 @@ export const WMM_COMMANDS = {
   "wmm.playback.seekBy": { deltaSeconds: 0 } as { deltaSeconds: number },
   "wmm.playback.stop": undefined,
   "wmm.playback.setVolume": { volume: 0 } as { volume: number },
+  "wmm.playback.toggleMute": undefined,
   "wmm.playback.toggleShuffle": undefined,
   "wmm.playback.toggleRepeat": undefined,
+  "wmm.playback.playAll": undefined,
   "wmm.playback.playSong": {} as { songId: string },
   "wmm.playback.playQueue": {} as { songIds: string[] },
   "wmm.playback.playCollection": {} as {
@@ -103,6 +107,11 @@ export const WMM_COMMANDS = {
   "wmm.ui.close": undefined,
   "wmm.ui.closeNowPlaying": undefined,
   "wmm.ui.openNowPlaying": undefined,
+  "wmm.ui.toggleFullscreen": undefined,
+  "wmm.ui.toggleDarkRoom": undefined,
+  "wmm.ui.navigate": {} as { page: string },
+  "wmm.ui.toggleEditMode": undefined,
+  "wmm.ui.togglePanel": {} as { id: string },
   // visualizer
   "wmm.visualizer.select": {} as { pluginId: string },
   "wmm.visualizer.openManager": undefined,
@@ -129,8 +138,9 @@ export const WMM_EVENTS = {
   "wmm.playback.completed": {} as { songId: string },
   "wmm.playback.queueChanged": {} as { songIds: string[] },
   "wmm.playback.shuffleChanged": {} as { enabled: boolean },
-  "wmm.playback.repeatChanged": {} as { state: "off" | "all" | "one" },
+  "wmm.playback.repeatChanged": {} as { state: RepeatState },
   "wmm.playback.volumeChanged": {} as { volume: number },
+  "wmm.playback.muteChanged": {} as { muted: boolean },
   "wmm.playback.positionChanged": {
     songId: "",
     positionSeconds: 0,
@@ -187,6 +197,9 @@ export const WMM_EVENTS = {
   "wmm.ui.selectionChanged": {} as { songIds: string[] },
   "wmm.ui.viewChanged": {} as { view: string },
   "wmm.ui.editorModeChanged": {} as { mode: "song" | "edit" },
+  "wmm.ui.fullscreenChanged": {} as { fullscreen: boolean },
+  "wmm.ui.darkRoomChanged": {} as { enabled: boolean },
+  "wmm.ui.nowPlayingChanged": {} as { open: boolean },
   // visualizer
   "wmm.visualizer.changed": {} as { pluginId: string },
   "wmm.visualizer.pluginsChanged": undefined,
@@ -198,6 +211,75 @@ export type WmmEventName = keyof typeof WMM_EVENTS;
 /** Payload for an event (derived; `undefined` when the event carries none). */
 export type WmmEventPayload = {
   [N in WmmEventName]: (typeof WMM_EVENTS)[N];
+};
+
+// -------------------------------------------------------- theme commands
+/** Domain of a theme-invokable command's optional parameter. */
+export type WmmThemeParameter =
+  | {
+      kind: "integer";
+      field: string;
+      min: number;
+      max: number;
+      nonZero: boolean;
+    }
+  | { kind: "pageId"; field: string }
+  | { kind: "panelId"; field: string };
+
+/**
+ * A command a theme button may invoke, with its parameter domain if any and
+ * the values its `<State name="active">` may match. A command without
+ * `activeValues` has a single, unvalued active state.
+ *
+ * @example
+ * ```xml
+ * <State name="active" value="one" image="@image/repeat-one" />
+ * ```
+ * @example
+ * ```ts
+ * WMM_THEME_COMMANDS["wmm.playback.toggleRepeat"]?.activeValues; // ["all", "one"]
+ * ```
+ */
+export interface WmmThemeCommand {
+  readonly parameter?: WmmThemeParameter;
+  readonly activeValues?: readonly string[];
+}
+
+/**
+ * The subset of commands a theme button may invoke. Keys must be real
+ * commands; a theme binding is only valid when it appears here, so the set
+ * stays small and each entry states what its parameter may be.
+ */
+export const WMM_THEME_COMMANDS: Readonly<
+  Partial<Record<WmmCommandName, WmmThemeCommand>>
+> = {
+  "wmm.playback.playpause": {},
+  "wmm.playback.next": {},
+  "wmm.playback.prev": {},
+  "wmm.playback.stop": {},
+  "wmm.playback.toggleShuffle": { activeValues: ["on"] },
+  "wmm.playback.toggleRepeat": { activeValues: ["all", "one"] },
+  "wmm.playback.toggleMute": {},
+  "wmm.playback.playAll": {},
+  "wmm.playback.seekBy": {
+    parameter: {
+      kind: "integer",
+      field: "deltaSeconds",
+      min: -300,
+      max: 300,
+      nonZero: true,
+    },
+  },
+  "wmm.ui.openNowPlaying": {},
+  "wmm.ui.closeNowPlaying": {},
+  "wmm.ui.toggleFullscreen": {},
+  "wmm.ui.toggleDarkRoom": {},
+  "wmm.ui.openSettings": {},
+  "wmm.ui.navigate": { parameter: { kind: "pageId", field: "page" } },
+  "wmm.ui.toggleEditMode": {},
+  "wmm.ui.togglePanel": { parameter: { kind: "panelId", field: "id" } },
+  "wmm.visualizer.openSettings": {},
+  "wmm.sync.start": {},
 };
 
 // ------------------------------------------------------------- envelope

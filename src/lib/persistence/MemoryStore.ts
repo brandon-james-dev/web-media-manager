@@ -1,6 +1,8 @@
 import type { DataChangedCallback, IRepository } from ".";
 import type { DataSourceResult } from "./DataSourceResult";
 import type { QueryOptions } from "./QueryOptions";
+import { sortTieBreaker } from "./QueryOptions";
+import type { Song } from "@/models";
 
 export class MemoryStore<T> implements IRepository<T> {
   private store = new Map<string, T>();
@@ -54,6 +56,7 @@ export class MemoryStore<T> implements IRepository<T> {
 
     if (sort) {
       const { selector, desc } = sort;
+      const tieBreaker = sortTieBreaker(selector);
 
       items.sort((a, b) => {
         const av =
@@ -63,7 +66,8 @@ export class MemoryStore<T> implements IRepository<T> {
 
         if (av < bv) return desc ? 1 : -1;
         if (av > bv) return desc ? -1 : 1;
-        return 0;
+        if (tieBreaker === undefined) return 0;
+        return tieBreaker(a as unknown as Song, b as unknown as Song);
       });
     }
 

@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ThumbnailSize } from "@/lib";
 import { Slider } from "@/components/ui/slider";
-import { repeatState, shuffleState, usePlayback } from "@/hooks/usePlayback";
+import { RepeatState, ShuffleState, usePlayback } from "@/hooks/usePlayback";
 import { useOfflineSongs } from "@/hooks/useOfflineSongs";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -110,6 +110,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
     shuffle,
     repeat,
     volume,
+    muted,
     isPlaying,
     isBuffering,
     getCurrentTime,
@@ -202,28 +203,12 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
 
   //#endregion
 
-  //#region Mute (UI-local: remembers the pre-mute volume for restore)
-  const [muted, setMuted] = useState(false);
-  const prevVolume = useRef(0.75);
-
-  function handleMuteToggle() {
-    if (muted) {
-      // Restore the pre-mute volume.
-      wmmBus.invoke("wmm.playback.setVolume", { volume: prevVolume.current });
-      setMuted(false);
-    } else {
-      // Remember the current volume, then mute (volume 0).
-      prevVolume.current = volume;
-      wmmBus.invoke("wmm.playback.setVolume", { volume: 0 });
-      setMuted(true);
-    }
-  }
-  //#endregion
-
   //#region Interactivity handlers
+  function handleMuteToggle() {
+    wmmBus.invoke("wmm.playback.toggleMute");
+  }
+
   function handleVolumeChange(v: number | readonly number[]) {
-    // Adjusting the slider unmutes (explicit volume gesture).
-    setMuted(false);
     wmmBus.invoke("wmm.playback.setVolume", { volume: Number(v) });
   }
 
@@ -240,7 +225,9 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   }
 
   function handleSeek(v: number | readonly number[]) {
-    wmmBus.invoke("wmm.playback.seek", { positionSeconds: Number(v) });
+    wmmBus.invoke("wmm.playback.seek", {
+      positionSeconds: (Number(v) / 100) * (nowPlaying?.duration ?? 0),
+    });
     setTrackPosition(getCurrentTime());
     setElapsedSeconds(getCurrentTime());
   }
@@ -272,13 +259,13 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
       <div className="flex flex-col h-80 gap-2">
         <div className="shrink-0">
           <div className="flex justify-between items-center">
-            <div>{`Playlist - ${playlist.length} ${playlist.length == 1 ? "song" : "songs"}`}</div>
+            <div>{t("playback.playlistHeading", [playlist.length])}</div>
             <Button
               size="sm"
               variant="secondary"
               onClick={() => wmmBus.invoke("wmm.playback.clearQueue")}
             >
-              Clear
+              {t("common.clear")}
             </Button>
           </div>
         </div>
@@ -305,7 +292,8 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                   <ItemActions className="gap-0.5">
                     <Button
                       variant="ghost"
-                      title="Remove"
+                      title={t("common.remove")}
+                      aria-label={t("common.remove")}
                       size="sm"
                       onClick={() => handlePlaylistItemRemove(s)}
                     >
@@ -408,6 +396,15 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
       offOpen();
     };
   }, []);
+
+  const nowPlayingMounted = useRef(false);
+  useEffect(() => {
+    if (!nowPlayingMounted.current) {
+      nowPlayingMounted.current = true;
+      return;
+    }
+    wmmBus.publish("wmm.ui.nowPlayingChanged", { open: isNowPlayingOpen });
+  }, [isNowPlayingOpen]);
 
   const overlayClass = isNowPlayingOpen
     ? cn(
@@ -673,12 +670,12 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       onClick={handleShuffleToggle}
                       title={t("playback.shuffle")}
                       aria-label={t("playback.shuffle")}
-                      aria-pressed={shuffle === shuffleState.On}
+                      aria-pressed={shuffle === ShuffleState.On}
                     >
                       <Shuffle
                         className={cn(
                           "size-6",
-                          shuffle === shuffleState.On
+                          shuffle === ShuffleState.On
                             ? "stroke-accent"
                             : "stroke-foreground"
                         )}
@@ -720,16 +717,16 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       variant="ghost"
                       className="size-12 rounded-full"
                       onClick={handleRepeatToggle}
-                      title={repeat}
-                      aria-label={`Repeat: ${repeat}`}
+                      title={t("playback.repeat")}
+                      aria-label={t("playback.repeat")}
                     >
-                      {repeat === repeatState.Off && (
+                      {repeat === RepeatState.Off && (
                         <RepeatOff className="size-6" />
                       )}
-                      {repeat === repeatState.One && (
+                      {repeat === RepeatState.One && (
                         <Repeat1 className="size-6 stroke-accent" />
                       )}
-                      {repeat === repeatState.All && (
+                      {repeat === RepeatState.All && (
                         <Repeat2 className="size-6 stroke-accent" />
                       )}
                     </Button>
@@ -833,12 +830,14 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
               <Button
                 size="lg"
                 variant="ghost"
-                title={shuffle}
+                title={t("playback.shuffle")}
+                aria-label={t("playback.shuffle")}
+                aria-pressed={shuffle === ShuffleState.On}
                 onClick={handleShuffleToggle}
               >
                 <Shuffle
                   className={
-                    shuffle === shuffleState.On
+                    shuffle === ShuffleState.On
                       ? "stroke-accent"
                       : "stroke-foreground"
                   }
@@ -850,6 +849,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 variant="ghost"
                 onClick={handlePrev}
                 disabled={!nowPlaying}
+                aria-label={t("playback.previous")}
               >
                 <SkipBack className="fill-secondary-foreground" />
               </Button>
@@ -859,6 +859,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 variant="default"
                 className="rounded-full bg-accent border-accent/25 hover:bg-accent/75 text-white"
                 onClick={handlePlayPause}
+                aria-label={isPlaying ? t("playback.pause") : t("playback.play")}
               >
                 {isPlaying ? (
                   <Pause className="fill-secondary-foreground" />
@@ -872,6 +873,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 variant="ghost"
                 onClick={handleNext}
                 disabled={!nowPlaying}
+                aria-label={t("playback.next")}
               >
                 <SkipForward className="fill-secondary-foreground" />
               </Button>
@@ -880,13 +882,14 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 size="lg"
                 variant="ghost"
                 onClick={handleRepeatToggle}
-                title={repeat}
+                title={t("playback.repeat")}
+                aria-label={t("playback.repeat")}
               >
-                {repeat === repeatState.Off && <RepeatOff />}
-                {repeat === repeatState.One && (
+                {repeat === RepeatState.Off && <RepeatOff />}
+                {repeat === RepeatState.One && (
                   <Repeat1 className="stroke-accent" />
                 )}
-                {repeat === repeatState.All && (
+                {repeat === RepeatState.All && (
                   <Repeat2 className="stroke-accent" />
                 )}
               </Button>
@@ -912,6 +915,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                   }
                   onValueChange={handleSeek}
                   className="flex-1"
+                  aria-label={t("playback.seek")}
                 />
                 {showBuffering && (
                   <div
@@ -939,7 +943,8 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 render={
                   <Button
                     variant="ghost"
-                    title="Playlist"
+                    title={t("playback.playlist")}
+                    aria-label={t("playback.playlist")}
                     className={cn("w-6", isNowPlayingOpen && "invisible")}
                     disabled={playlist.length === 0}
                   >
@@ -954,6 +959,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
               variant="ghost"
               onClick={handleMuteToggle}
               title={muted ? t("playback.unmute") : t("playback.mute")}
+              aria-label={muted ? t("playback.unmute") : t("playback.mute")}
             >
               {muted ? (
                 <VolumeX className="fill-secondary-foreground w-6" />
@@ -967,8 +973,9 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
               max={1}
               step={0.01}
               defaultValue={[0.75]}
-              value={[volume]}
+              value={[muted ? 0 : volume]}
               onValueChange={handleVolumeChange}
+              aria-label={t("playback.volume")}
             />
           </div>
         </div>

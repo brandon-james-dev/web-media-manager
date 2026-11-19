@@ -3,6 +3,7 @@ import { ThumbnailSize } from "@/lib";
 import { usePlayback } from "@/hooks";
 import { wmmBus } from "@/events";
 import { cn } from "cn";
+import { useTranslation } from "@/i18n";
 
 /**
  * Now-playing readout for the television top bar.
@@ -14,6 +15,7 @@ import { cn } from "cn";
  */
 export function TvNowPlayingIndicator() {
   const { nowPlaying, isPlaying } = usePlayback();
+  const { t } = useTranslation();
 
   if (!nowPlaying) {
     return null;
@@ -22,7 +24,7 @@ export function TvNowPlayingIndicator() {
   return (
     <button
       type="button"
-      aria-label="Open now playing"
+      aria-label={t("playback.openNowPlaying")}
       onClick={() => wmmBus.invoke("wmm.ui.openNowPlaying")}
       className="flex w-md shrink-0 cursor-default items-center gap-3 rounded-full px-3 py-1 text-left outline-none hover:bg-accent/10"
     >

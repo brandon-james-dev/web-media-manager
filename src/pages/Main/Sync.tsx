@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { uuidv7 } from "uuidv7";
 import {
   Check,
   MonitorSmartphone,
@@ -16,36 +15,24 @@ import { SongSearchPanel } from "@/components/song-search";
 import { formatBytes } from "@/lib/sync/helpers";
 import { songIdentity, trackIdentity } from "@/lib/sync/helpers";
 import { hasConnectedDevice } from "@/lib/sync/helpers/markDeviceDisconnected";
-import { notification$ } from "@/events/notification-events";
 import { wmmBus } from "@/events";
-import { AddDeviceDialog, SyncDeviceCard, SyncStat } from "@/components/sync";
+import { SyncDeviceCard, SyncStat, useAddDevice } from "@/components/sync";
 import { useOfflineSongs, useSongs, useSourceKinds, useSync } from "@/hooks";
 import { useTranslation } from "@/i18n";
-import { DevicePromptOrchestrator } from "@/lib/sync";
 import { usbAvailable } from "@/lib/sync/usbAvailable";
 import type { Song } from "@/models";
 
 export function Sync({ compact = false }: { compact?: boolean } = {}) {
   const { t } = useTranslation();
   //#region State
-  const { devices, addDevice, queuedSongs, syncedSongIds, syncCompleted } =
-    useSync();
+  const { devices, queuedSongs, syncedSongIds, syncCompleted } = useSync();
   const { refreshDevices } = useSync();
   const { songs } = useSongs();
   const { offlineSongIds } = useOfflineSongs();
   const sourceKinds = useSourceKinds();
   const [addQuery, setAddQuery] = useState("");
   const usbSupported = usbAvailable();
-  const [isAddDeviceDialogOpen, setIsAddDeviceDialogOpen] =
-    useState<boolean>(false);
-  // The dialog is shown twice for a mass-storage device (e.g. an iPod):
-  // first the USB picker (one user gesture), then the folder picker (a
-  // second, separate gesture) — both pickers require their own transient
-  // user activation and cannot be chained in a single handler.
-  const [isFolderPromptOpen, setIsFolderPromptOpen] = useState(false);
-  const [orchestrator] = useState(
-    () => new DevicePromptOrchestrator(addDevice)
-  );
+  const { openAddDevice } = useAddDevice();
 
   // The device card a synced track flies onto, and a counter bumped on each
   // landing so the card can splash. The refresh runs once per completed run,
@@ -204,69 +191,6 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
   }
   //#endregion
 
-  //#region Interactivity handlers
-  // Gesture 1: USB picker (from the "USB Device" card click).
-  async function handleUsbSelectedClick() {
-    try {
-      const usbInfo = await orchestrator.requestUsb();
-      if (!usbInfo) return; // cancelled
-      // Mass-storage devices (iPod) also need a directory picker — which
-      // must be its own gesture, so show the folder prompt now.
-      if (orchestrator.needsRoot) {
-        setIsFolderPromptOpen(true);
-        return;
-      }
-      await handleComplete();
-    } catch (error) {
-      handleError(error);
-    }
-  }
-
-  // Gesture 2: directory picker (from the "Folder"/"Select iPod folder"
-  // card click) — a separate click so the transient activation is still
-  // valid for showDirectoryPicker.
-  async function handleFolderSelectedClick() {
-    setIsFolderPromptOpen(false);
-    try {
-      const root = await orchestrator.requestRoot();
-      if (!root) return; // cancelled
-      await handleComplete();
-    } catch (error) {
-      handleError(error);
-    }
-  }
-
-  // No pickers: scan + persist with whatever was collected.
-  async function handleComplete(): Promise<void> {
-    try {
-      const result = await orchestrator.complete();
-      if (result) {
-        notification$.next({
-          id: uuidv7(),
-          title: t("notification.deviceAdded"),
-          detail: t("notification.deviceAddedDetail", [result.name]),
-          kind: "Device added",
-          state: "completed",
-        });
-      }
-    } catch (error) {
-      handleError(error);
-    }
-  }
-
-  function handleError(error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    notification$.next({
-      id: uuidv7(),
-      title: t("notification.deviceAddError"),
-      detail: errorMessage,
-      kind: "Device add error",
-      state: "error",
-    });
-  }
-  //#endregion
-
   return (
     <div
       className={cn(
@@ -293,7 +217,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
                   variant="ghost"
                   className="min-w-0 flex-1 justify-start"
                   aria-label="Add sync device"
-                  onClick={() => setIsAddDeviceDialogOpen(true)}
+                  onClick={() => openAddDevice()}
                   disabled={!usbSupported}
                   title={
                     usbSupported
@@ -344,7 +268,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
                             {Math.round(
                               (device.storage.usedBytes /
                                 device.storage.capacityBytes) *
-                                100
+                              100
                             )}
                             %
                           </>
@@ -419,277 +343,244 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
           </>
         ) : (
           <>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex size-11 shrink-0 items-center justify-center rounded-xl border text-accent"
-              aria-hidden="true"
-            >
-              <MonitorSmartphone className="size-5" />
-            </div>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex size-11 shrink-0 items-center justify-center rounded-xl border text-accent"
+                  aria-hidden="true"
+                >
+                  <MonitorSmartphone className="size-5" />
+                </div>
 
-            <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Sync Devices
-              </h1>
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-semibold tracking-tight">
+                    Sync Devices
+                  </h1>
 
-              <div className="text-sm text-muted-foreground">
-                Connect and manage portable music devices.
+                  <div className="text-sm text-muted-foreground">
+                    Connect and manage portable music devices.
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setIsAddDeviceDialogOpen(true)}
-              hidden={hasConnectedDevice(devices)}
-              disabled={!usbSupported}
-              title={
-                usbSupported
-                  ? undefined
-                  : "WebUSB is not supported in this browser"
+            {devices.length === 0 && (
+              <Card>
+                <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+                  <div
+                    className="flex size-14 items-center justify-center rounded-full border text-accent"
+                    aria-hidden="true"
+                  >
+                    <MonitorSmartphone className="size-6" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="font-medium">No devices configured</div>
+
+                    <div className="text-sm text-muted-foreground">
+                      Connect an iPod, Zune, or supported device to begin.
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => openAddDevice()}
+                    disabled={!usbSupported}
+                    title={
+                      usbSupported
+                        ? undefined
+                        : "WebUSB is not supported in this browser"
+                    }
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Device
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {devices.map((device) => {
+              const onDevice =
+                onDeviceIdentities.get(device.id) ?? new Set<string>();
+
+              // A group's add button is only disabled when every one of its songs
+              // is already on this device.
+              const artistAllOnDevice = new Map<string, boolean>();
+              for (const artist of addArtistResults) {
+                const groupSongs = songs.filter(
+                  (song) => (song.albumArtist || song.artist) === artist.name
+                );
+                artistAllOnDevice.set(
+                  artist.name,
+                  groupSongs.length > 0 &&
+                  groupSongs.every((song) => onDevice.has(songIdentity(song)))
+                );
               }
-            >
-              <Plus className="h-4 w-4" />
-              Add Device
-            </Button>
-          </div>
-        </div>
 
-        {devices.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-              <div
-                className="flex size-14 items-center justify-center rounded-full border text-accent"
-                aria-hidden="true"
-              >
-                <MonitorSmartphone className="size-6" />
-              </div>
+              const albumAllOnDevice = new Map<string, boolean>();
+              for (const album of addAlbumResults) {
+                const groupSongs = songs.filter(
+                  (song) =>
+                    song.album === album.album &&
+                    (song.albumArtist ?? song.artist) === album.artist
+                );
+                albumAllOnDevice.set(
+                  album.album,
+                  groupSongs.length > 0 &&
+                  groupSongs.every((song) => onDevice.has(songIdentity(song)))
+                );
+              }
 
-              <div className="space-y-1">
-                <div className="font-medium">No devices configured</div>
+              const genreAllOnDevice = new Map<string, boolean>();
+              for (const genre of addGenreResults) {
+                const groupSongs = songs.filter((song) => song.genre === genre.name);
+                genreAllOnDevice.set(
+                  genre.name,
+                  groupSongs.length > 0 &&
+                  groupSongs.every((song) => onDevice.has(songIdentity(song)))
+                );
+              }
 
-                <div className="text-sm text-muted-foreground">
-                  Connect an iPod, Zune, or supported device to begin.
+              return (
+                <div
+                  key={device.id}
+                  className="grid min-h-0 flex-1 items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]"
+                >
+                  <div ref={deviceCardRef} className="flex min-h-0 flex-col">
+                    <SyncDeviceCard device={device} splashToken={splashToken} />
+                  </div>
+
+                  <Card className="h-full min-h-0 pt-0">
+                    <CardHeader className="rounded-t-xl border-b bg-muted/50 py-2.5">
+                      <CardTitle>Queue</CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-3">
+                      <div className="grid shrink-0 grid-cols-3 gap-1.5">
+                        <SyncStat
+                          label="Tracks"
+                          value={queuedSongs.length}
+                          className="px-1.5 py-1"
+                        />
+
+                        <SyncStat
+                          label="Size"
+                          value={formatBytes(
+                            queuedSongs.reduce(
+                              (sum, song) => sum + (song.filesize ?? 0),
+                              0
+                            )
+                          )}
+                          className="px-1.5 py-1"
+                        />
+
+                        <SyncStat
+                          label="Synced"
+                          value={
+                            syncCompleted ? (
+                              <span className="flex items-center gap-1">
+                                <Check className="size-3.5" />
+                                {syncedSongIds.length}
+                              </span>
+                            ) : (
+                              syncedSongIds.length
+                            )
+                          }
+                          className="px-1.5 py-1"
+                        />
+                      </div>
+
+                      <SongSearchPanel
+                        className="shrink-0"
+                        query={addQuery}
+                        onQueryChange={setAddQuery}
+                        title="Add to queue"
+                        ariaLabel="Search songs to add to the sync queue"
+                        songs={addResults}
+                        artists={addArtistResults}
+                        albums={addAlbumResults}
+                        genres={addGenreResults}
+                        onAddSong={(song) =>
+                          wmmBus.invoke("wmm.sync.queueSongs", {
+                            songIds: [song.id],
+                          })
+                        }
+                        onAddGenre={(genre) =>
+                          wmmBus.invoke("wmm.sync.queueSongs", {
+                            songIds: songIdsForGenre(genre.name),
+                          })
+                        }
+                        onAddArtist={(artist) =>
+                          wmmBus.invoke("wmm.sync.queueSongs", {
+                            songIds: songIdsForArtist(artist.name),
+                          })
+                        }
+                        onAddAlbum={(album) =>
+                          wmmBus.invoke("wmm.sync.queueSongs", {
+                            songIds: songIdsForAlbum(album.album, album.artist),
+                          })
+                        }
+                        isSongAddDisabled={(song) =>
+                          onDevice.has(songIdentity(song)) || !isAvailable(song)
+                        }
+                        songAddTitle={(song) => {
+                          const title = song.title ?? song.filename;
+                          if (onDevice.has(songIdentity(song))) {
+                            return `${title} is already on the device`;
+                          }
+                          return isAvailable(song)
+                            ? "Add to sync queue"
+                            : `${title} is not available offline`;
+                        }}
+                        renderSongBadges={(song) => {
+                          const isOnDevice = onDevice.has(songIdentity(song));
+
+                          return (
+                            <>
+                              {isOnDevice && (
+                                <span className="shrink-0 rounded-full border px-1.5 text-[10px] text-muted-foreground">
+                                  {t("source.kindLocal")}
+                                </span>
+                              )}
+
+                              {!isOnDevice && !isAvailable(song) && (
+                                <span className="shrink-0 rounded-full border border-amber-500/40 px-1.5 text-[10px] text-amber-500">
+                                  Needs download
+                                </span>
+                              )}
+                            </>
+                          );
+                        }}
+                        renderSongActions={(song) =>
+                          onDevice.has(songIdentity(song)) ? null : (
+                            <OfflineCell song={song} />
+                          )
+                        }
+                        isGroupAddDisabled={({ name }) =>
+                          artistAllOnDevice.get(name) === true ||
+                          albumAllOnDevice.get(name) === true ||
+                          genreAllOnDevice.get(name) === true
+                        }
+                      />
+
+                      <div className="min-h-0 flex-1 overflow-hidden rounded-md border">
+                        <SidebarSyncQueue
+                          deviceId={device.id}
+                          songs={queuedSongs}
+                          showDropHint={false}
+                          flightTarget={() =>
+                            deviceCardRef.current?.getBoundingClientRect() ?? null
+                          }
+                          onFlightArrive={handleFlightArrive}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={() => setIsAddDeviceDialogOpen(true)}
-                disabled={!usbSupported}
-                title={
-                  usbSupported
-                    ? undefined
-                    : "WebUSB is not supported in this browser"
-                }
-              >
-                <Plus className="h-4 w-4" />
-                Add Device
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {devices.map((device) => {
-          const onDevice =
-            onDeviceIdentities.get(device.id) ?? new Set<string>();
-
-          // A group's add button is only disabled when every one of its songs
-          // is already on this device.
-          const artistAllOnDevice = new Map<string, boolean>();
-          for (const artist of addArtistResults) {
-            const groupSongs = songs.filter(
-              (song) => (song.albumArtist || song.artist) === artist.name
-            );
-            artistAllOnDevice.set(
-              artist.name,
-              groupSongs.length > 0 &&
-                groupSongs.every((song) => onDevice.has(songIdentity(song)))
-            );
-          }
-
-          const albumAllOnDevice = new Map<string, boolean>();
-          for (const album of addAlbumResults) {
-            const groupSongs = songs.filter(
-              (song) =>
-                song.album === album.album &&
-                (song.albumArtist ?? song.artist) === album.artist
-            );
-            albumAllOnDevice.set(
-              album.album,
-              groupSongs.length > 0 &&
-                groupSongs.every((song) => onDevice.has(songIdentity(song)))
-            );
-          }
-
-          const genreAllOnDevice = new Map<string, boolean>();
-          for (const genre of addGenreResults) {
-            const groupSongs = songs.filter((song) => song.genre === genre.name);
-            genreAllOnDevice.set(
-              genre.name,
-              groupSongs.length > 0 &&
-                groupSongs.every((song) => onDevice.has(songIdentity(song)))
-            );
-          }
-
-          return (
-          <div
-            key={device.id}
-            className="grid min-h-0 flex-1 items-stretch gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]"
-          >
-            <div ref={deviceCardRef} className="flex min-h-0 flex-col">
-              <SyncDeviceCard device={device} splashToken={splashToken} />
-            </div>
-
-            <Card className="h-full min-h-0 pt-0">
-              <CardHeader className="rounded-t-xl border-b bg-muted/50 py-2.5">
-                <CardTitle>Queue</CardTitle>
-              </CardHeader>
-
-              <CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-3">
-                <div className="grid shrink-0 grid-cols-3 gap-1.5">
-                  <SyncStat
-                    label="Tracks"
-                    value={queuedSongs.length}
-                    className="px-1.5 py-1"
-                  />
-
-                  <SyncStat
-                    label="Size"
-                    value={formatBytes(
-                      queuedSongs.reduce(
-                        (sum, song) => sum + (song.filesize ?? 0),
-                        0
-                      )
-                    )}
-                    className="px-1.5 py-1"
-                  />
-
-                  <SyncStat
-                    label="Synced"
-                    value={
-                      syncCompleted ? (
-                        <span className="flex items-center gap-1">
-                          <Check className="size-3.5" />
-                          {syncedSongIds.length}
-                        </span>
-                      ) : (
-                        syncedSongIds.length
-                      )
-                    }
-                    className="px-1.5 py-1"
-                  />
-                </div>
-
-                <SongSearchPanel
-                  className="shrink-0"
-                  query={addQuery}
-                  onQueryChange={setAddQuery}
-                  title="Add to queue"
-                  ariaLabel="Search songs to add to the sync queue"
-                  songs={addResults}
-                  artists={addArtistResults}
-                  albums={addAlbumResults}
-                  genres={addGenreResults}
-                  onAddSong={(song) =>
-                    wmmBus.invoke("wmm.sync.queueSongs", {
-                      songIds: [song.id],
-                    })
-                  }
-                  onAddGenre={(genre) =>
-                    wmmBus.invoke("wmm.sync.queueSongs", {
-                      songIds: songIdsForGenre(genre.name),
-                    })
-                  }
-                  onAddArtist={(artist) =>
-                    wmmBus.invoke("wmm.sync.queueSongs", {
-                      songIds: songIdsForArtist(artist.name),
-                    })
-                  }
-                  onAddAlbum={(album) =>
-                    wmmBus.invoke("wmm.sync.queueSongs", {
-                      songIds: songIdsForAlbum(album.album, album.artist),
-                    })
-                  }
-                  isSongAddDisabled={(song) =>
-                    onDevice.has(songIdentity(song)) || !isAvailable(song)
-                  }
-                  songAddTitle={(song) => {
-                    const title = song.title ?? song.filename;
-                    if (onDevice.has(songIdentity(song))) {
-                      return `${title} is already on the device`;
-                    }
-                    return isAvailable(song)
-                      ? "Add to sync queue"
-                      : `${title} is not available offline`;
-                  }}
-                  renderSongBadges={(song) => {
-                    const isOnDevice = onDevice.has(songIdentity(song));
-
-                    return (
-                      <>
-                        {isOnDevice && (
-                          <span className="shrink-0 rounded-full border px-1.5 text-[10px] text-muted-foreground">
-                            {t("source.kindLocal")}
-                          </span>
-                        )}
-
-                        {!isOnDevice && !isAvailable(song) && (
-                          <span className="shrink-0 rounded-full border border-amber-500/40 px-1.5 text-[10px] text-amber-500">
-                            Needs download
-                          </span>
-                        )}
-                      </>
-                    );
-                  }}
-                  renderSongActions={(song) =>
-                    onDevice.has(songIdentity(song)) ? null : (
-                      <OfflineCell song={song} />
-                    )
-                  }
-                  isGroupAddDisabled={({ name }) =>
-                    artistAllOnDevice.get(name) === true ||
-                    albumAllOnDevice.get(name) === true ||
-                    genreAllOnDevice.get(name) === true
-                  }
-                />
-
-                <div className="min-h-0 flex-1 overflow-hidden rounded-md border">
-                  <SidebarSyncQueue
-                    deviceId={device.id}
-                    songs={queuedSongs}
-                    showDropHint={false}
-                    flightTarget={() =>
-                      deviceCardRef.current?.getBoundingClientRect() ?? null
-                    }
-                    onFlightArrive={handleFlightArrive}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          );
-        })}
+              );
+            })}
           </>
         )}
-
-        {/* Both views open the same dialogs; the compact view has no room
-            for the page chrome but still needs the pickers. */}
-        <AddDeviceDialog
-          open={isAddDeviceDialogOpen}
-          onOpenChange={setIsAddDeviceDialogOpen}
-          onFolderSelected={() => handleFolderSelectedClick()}
-          onUsbSelected={() => handleUsbSelectedClick()}
-        />
-
-        {/* Second gesture for mass-storage devices: pick the iPod folder. */}
-        <AddDeviceDialog
-          folderOnly
-          open={isFolderPromptOpen}
-          onOpenChange={setIsFolderPromptOpen}
-          onFolderSelected={() => handleFolderSelectedClick()}
-        />
       </div>
     </div>
   );

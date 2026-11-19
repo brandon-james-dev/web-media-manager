@@ -1,16 +1,18 @@
+import type { PackageFileStore } from "@/core/ports/packageFiles";
 import type {
   InstalledVisualizerPlugin,
-  PluginFileRecord,
   PluginSettingsRecord,
 } from "@/core/visualizers/contracts";
 
 /**
  * Visualizer plugin store port.
  *
- * The plugin manager owns install/validate/load logic; this port owns bytes.
- * The browser binding is Dexie (`plugins`, `pluginFiles`, `pluginSettings`);
- * a Tauri or server binding can implement the same interface over SQLite or
- * the filesystem without the manager changing.
+ * The plugin manager owns install/validate/load logic; this port owns the
+ * plugin rows and settings. Plugin bytes go through the shared
+ * {@link PackageFileStore} in `files`, over the `pluginFiles` table, so theme
+ * and plugin files never mix. The browser binding is Dexie (`plugins`,
+ * `pluginFiles`, `pluginSettings`); a Tauri or server binding can implement the
+ * same interface over SQLite or the filesystem without the manager changing.
  */
 export interface VisualizerPluginStore {
   listPlugins(): Promise<InstalledVisualizerPlugin[]>;
@@ -19,13 +21,8 @@ export interface VisualizerPluginStore {
   /** Removes the plugin row, its files and its settings. */
   deletePlugin(id: string): Promise<void>;
 
-  listFiles(pluginId: string): Promise<PluginFileRecord[]>;
-  getFile(
-    pluginId: string,
-    path: string
-  ): Promise<PluginFileRecord | undefined>;
-  putFiles(files: PluginFileRecord[]): Promise<void>;
-  deleteFiles(pluginId: string): Promise<void>;
+  /** The plugin's stored bytes, keyed by the plugin id. */
+  readonly files: PackageFileStore;
 
   getSettings(pluginId: string): Promise<PluginSettingsRecord | undefined>;
   putSettings(settings: PluginSettingsRecord): Promise<void>;

@@ -14,6 +14,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -44,6 +45,7 @@ import { sourceKindBadge } from "@/lib/sources/source-ui";
 import type { MusicSource } from "@/models";
 import { toast } from "@/components/ui/toast";
 import { AccentColorSelector } from "@/components/theme-provider";
+import { ThemesSection } from "@/components/themes";
 import {
   PluginManagerDialog,
   VisualizerSelector,
@@ -60,7 +62,14 @@ export function Settings() {
   //#region State
   const isCompact = useIsCompact();
   const isTv = useIsTv();
-  const { setTheme, theme, accentColor, setAccentColor } = useTheme();
+  const {
+    setTheme,
+    theme,
+    accentColor,
+    setAccentColor,
+    lockedScheme,
+    accentLocked,
+  } = useTheme();
   const { setManagerOpen, setSettingsOpen } = useVisualizer();
   const { t, preference, detectedLanguage, changeLanguage, languages } =
     useTranslation();
@@ -263,13 +272,14 @@ export function Settings() {
 
         <CardContent className="space-y-6">
           <div className="space-y-3">
-            <Label>{t("settings.theme")}</Label>
+            <Label>{t("settings.display")}</Label>
 
             <div className="flex flex-wrap gap-2">
               {THEME_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
                 <Button
                   key={value}
                   variant="outline"
+                  disabled={lockedScheme !== undefined}
                   aria-pressed={settings.theme === value}
                   className={cn(
                     settings.theme === value &&
@@ -282,6 +292,12 @@ export function Settings() {
                 </Button>
               ))}
             </div>
+
+            {lockedScheme !== undefined && (
+              <p className="text-sm text-muted-foreground">
+                {t("settings.displayLockedByTheme")}
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -289,8 +305,15 @@ export function Settings() {
 
             <AccentColorSelector
               value={settings.accentColor}
+              disabled={accentLocked}
               onChange={(color) => handleChange("accentColor", color)}
             />
+
+            {accentLocked && (
+              <p className="text-sm text-muted-foreground">
+                {t("settings.accentLockedByTheme")}
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -332,31 +355,46 @@ export function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("settings.visualizers")}</CardTitle>
+          <CardTitle>{t("settings.extensibility")}</CardTitle>
           <CardDescription>
-            {t("settings.visualizersDescription")}
+            {t("settings.extensibilityDescription")}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-3">
-          <VisualizerSelector
-            variant="list"
-            className="max-h-80"
-            onConfigure={(pluginId) => {
-              setSettingsPluginId(pluginId);
-              setSettingsOpen(true);
-            }}
-          />
+        <CardContent className="space-y-8">
+          <Separator />
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={() => setManagerOpen(true)}>
-              <PackagePlus />
-              {t("settings.installPlugins")}
-            </Button>
+          <ThemesSection />
+
+          <Separator />
+
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>{t("settings.visualizers")}</Label>
+              <p className="text-sm text-muted-foreground">
+                {t("settings.visualizersDescription")}
+              </p>
+            </div>
+
+            <VisualizerSelector
+              variant="list"
+              className="max-h-80"
+              onConfigure={(pluginId) => {
+                setSettingsPluginId(pluginId);
+                setSettingsOpen(true);
+              }}
+            />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" onClick={() => setManagerOpen(true)}>
+                <PackagePlus />
+                {t("settings.installPlugins")}
+              </Button>
+            </div>
+
+            <PluginManagerDialog />
+            <VisualizerSettings pluginId={settingsPluginId} />
           </div>
-
-          <PluginManagerDialog />
-          <VisualizerSettings pluginId={settingsPluginId} />
         </CardContent>
       </Card>
 

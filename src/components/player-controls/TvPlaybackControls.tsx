@@ -69,7 +69,9 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
   function handleScrub(value: number | readonly number[]) {
     const next = Number(Array.isArray(value) ? value[0] : value);
     setScrubPct(next);
-    wmmBus.invoke("wmm.playback.seek", { positionSeconds: next });
+    wmmBus.invoke("wmm.playback.seek", {
+      positionSeconds: (next / 100) * duration,
+    });
     if (scrubTimer.current) clearTimeout(scrubTimer.current);
     scrubTimer.current = setTimeout(() => setScrubPct(null), SCRUB_HOLD_MS);
   }

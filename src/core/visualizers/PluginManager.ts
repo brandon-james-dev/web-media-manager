@@ -1,9 +1,9 @@
+import type { PackageFileRecord } from "@/core/ports/packageFiles";
 import type { VisualizerPluginStore } from "@/core/ports/visualizers";
 import {
   PLUGIN_MANIFEST_FILE,
   type InstalledVisualizerPlugin,
   type LoadedVisualizerPlugin,
-  type PluginFileRecord,
   type PluginSettingsValues,
   type VisualizerPluginManifest,
 } from "./contracts";
@@ -13,10 +13,11 @@ import {
   type ManifestIssue,
 } from "./manifest/validateManifest";
 import {
-  PluginArchiveError,
+  PackageArchiveError,
+  mimeTypeOf,
   readZipArchive,
-  type PluginArchiveEntry,
-} from "./zip/readZipArchive";
+  type PackageArchiveEntry,
+} from "@/lib/packages";
 
 /**
  * PluginManager — install, validate, store, list, remove and load visualizer
@@ -37,7 +38,7 @@ export interface PluginManagerOptions {
 export interface InspectedPlugin {
   manifest: VisualizerPluginManifest;
   issues: ManifestIssue[];
-  entries: PluginArchiveEntry[];
+  entries: PackageArchiveEntry[];
   sizeBytes: number;
 }
 
@@ -78,30 +79,6 @@ export class PluginLoadError extends Error {
   }
 }
 
-const MIME_TYPES: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".json": "application/json",
-  ".glsl": "text/plain",
-  ".frag": "text/plain",
-  ".fs": "text/plain",
-  ".vert": "text/plain",
-  ".js": "text/javascript",
-  ".mjs": "text/javascript",
-  ".ts": "text/typescript",
-  ".wasm": "application/wasm",
-};
-
-function guessMimeType(path: string): string {
-  const dot = path.lastIndexOf(".");
-  const extension = dot === -1 ? "" : path.slice(dot).toLowerCase();
-  return MIME_TYPES[extension] ?? "application/octet-stream";
-}
-
 function decodeText(bytes: Uint8Array): string {
   return new TextDecoder().decode(bytes);
 }
@@ -133,7 +110,7 @@ export class PluginManager {
   async inspectZip(
     input: Blob | ArrayBuffer | Uint8Array
   ): Promise<InspectedPlugin> {
-    let entries: PluginArchiveEntry[];
+    let entries: PackageArchiveEntry[];
     try {
       const limits =
         this.maxPluginBytes !== undefined
@@ -141,7 +118,7 @@ export class PluginManager {
           : undefined;
       entries = readZipArchive(await toBytes(input), limits);
     } catch (error) {
-      if (error instanceof PluginArchiveError) {
+      if (error instanceof PackageArchiveError) {
         throw new PluginInstallError([
           {
             code: "archive-invalid",
@@ -226,19 +203,19 @@ export class PluginManager {
       sizeBytes: inspected.sizeBytes,
     };
 
-    const files: PluginFileRecord[] = inspected.entries.map((entry) => ({
-      pluginId: plugin.id,
+    const files: PackageFileRecord[] = inspected.entries.map((entry) => ({
+      ownerId: plugin.id,
       path: entry.path,
       bytes: entry.bytes,
       size: entry.size,
-      mimeType: guessMimeType(entry.path),
+      mimeType: mimeTypeOf(entry.path),
     }));
 
     // Replace is delete-then-write: a plugin's file set can shrink between
     // versions, and stale files must not survive an update.
-    await this.store.deleteFiles(plugin.id);
+    await this.store.files.deleteFiles(plugin.id);
     await this.store.putPlugin(plugin);
-    await this.store.putFiles(files);
+    await this.store.files.putFiles(files);
 
     // Keep the user's settings across an update; seed defaults on first install.
     const storedSettings = await this.store.getSettings(plugin.id);
@@ -277,7 +254,7 @@ export class PluginManager {
       throw new PluginLoadError(id, `Plugin "${id}" is not installed.`);
     }
 
-    const records = await this.store.listFiles(id);
+    const records = await this.store.files.listFiles(id);
     const files = new Map(records.map((record) => [record.path, record.bytes]));
     const entryBytes = files.get(plugin.entryPath);
     if (!entryBytes) {
@@ -306,7 +283,7 @@ export class PluginManager {
       return undefined;
     }
 
-    const file = await this.store.getFile(id, plugin.thumbnailPath);
+    const file = await this.store.files.getFile(id, plugin.thumbnailPath);
     if (!file) {
       return undefined;
     }

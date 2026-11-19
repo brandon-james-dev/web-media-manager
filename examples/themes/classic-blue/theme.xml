@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Theme xmlns="urn:wmm:theme:1" spec="1.0">
+  <Colors>
+    <Color id="slate-950" value="#020617" />
+    <Color id="slate-900" value="#0f172a" />
+    <Color id="slate-800" value="#1e293b" />
+    <Color id="slate-700" value="#334155" />
+    <Color id="slate-400" value="#94a3b8" />
+    <Color id="slate-100" value="#f1f5f9" />
+    <Color id="blue-600" value="#2563eb" />
+    <Color id="blue-500" value="#3b82f6" />
+    <Color id="blue-400" value="#60a5fa" />
+  </Colors>
+
+  <Palettes>
+    <Palette scheme="dark">
+      <Set slot="background" value="@color/slate-900" />
+      <Set slot="foreground" value="@color/slate-100" />
+      <Set slot="accent" value="@color/blue-500" />
+      <Set slot="border" value="@color/slate-700" />
+      <Set slot="card" value="@color/slate-800" />
+      <Set slot="mutedForeground" value="@color/slate-400" />
+      <Set slot="selection" value="#3b82f640" />
+      <Set slot="ring" value="@color/blue-400" />
+      <Set slot="progressTrack" value="@color/slate-700" />
+      <Set slot="progressFill" value="@color/blue-500" />
+    </Palette>
+  </Palettes>
+
+  <Metrics>
+    <Length id="gap-sm" value="4" />
+    <Length id="gap-md" value="8" />
+    <Length id="radius" value="8" />
+    <Length id="pane-width" value="208" />
+    <Length id="title-height" value="52" />
+    <Length id="transport-height" value="76" />
+  </Metrics>
+
+  <Fonts>
+    <FontFamily id="ui" fallback="sansSerif">
+      <Face src="assets/fonts/ui.woff2" weight="400" style="normal" />
+      <Face src="assets/fonts/ui.woff2" weight="700" style="normal" />
+    </FontFamily>
+  </Fonts>
+
+  <TextStyles>
+    <TextStyle id="body" font="@font/ui" size="14" color="@slot/foreground" />
+    <TextStyle id="caption" basedOn="@text/body" size="12" color="@slot/mutedForeground" />
+    <TextStyle id="nav" basedOn="@text/body" weight="400" color="@color/slate-400" />
+    <TextStyle id="pane-header" basedOn="@text/body" size="12" weight="700" color="@color/slate-400" />
+    <TextStyle id="logo" basedOn="@text/body" size="16" weight="700" />
+    <TextStyle id="np-title" basedOn="@text/body" size="18" weight="700" />
+    <TextStyle id="playing" basedOn="@text/body" weight="700" color="@color/blue-400" />
+  </TextStyles>
+
+  <Shadows>
+    <Shadow id="sm" x="0" y="1" blur="2" spread="0" color="#0000004d" />
+    <Shadow id="md" x="0" y="4" blur="6" spread="-1" color="#00000066">
+      <Layer x="0" y="2" blur="4" spread="-2" color="#00000066" />
+    </Shadow>
+    <Shadow id="ring" x="0" y="0" blur="0" spread="2" color="#60a5fa80" />
+  </Shadows>
+
+  <ButtonStyles>
+    <ButtonStyle id="standard" background="transparent" foreground="@slot/foreground"
+                 cornerRadius="6" padding="6" minWidth="32" minHeight="32"
+                 iconSize="16" textStyle="@text/body">
+      <State name="hover" background="@color/slate-800" />
+      <State name="pressed" background="@color/slate-700" />
+      <State name="focused" shadow="@shadow/ring" />
+      <State name="disabled" opacity="0.5" />
+    </ButtonStyle>
+
+    <ButtonStyle id="transport" basedOn="@button/standard" background="@color/slate-800" border="@color/slate-700"
+                 borderWidth="1" shadow="@shadow/sm" padding="6 10">
+      <State name="hover" background="@color/slate-700" />
+      <State name="pressed" background="@color/slate-950" />
+      <State name="focused" shadow="@shadow/ring" />
+      <State name="disabled" opacity="0.5" />
+    </ButtonStyle>
+
+    <ButtonStyle id="play" background="@color/blue-600" foreground="#ffffff" cornerRadius="20"
+                 padding="10" minWidth="40" minHeight="40" iconSize="18" shadow="@shadow/md">
+      <State name="hover" background="@color/blue-500" />
+      <State name="pressed" background="#1d4ed8" />
+      <State name="focused" shadow="@shadow/ring" />
+      <State name="disabled" opacity="0.5" />
+    </ButtonStyle>
+
+    <ButtonStyle id="nav" background="transparent" foreground="@color/slate-400"
+                 cornerRadius="6" padding="8 12" minHeight="36" iconSize="16" textStyle="@text/nav">
+      <State name="hover" background="@color/slate-800" foreground="@color/slate-100" />
+      <State name="selected" background="#3b82f61a" foreground="@color/blue-400" />
+      <State name="pressed" background="@color/slate-700" foreground="@color/slate-100" />
+    </ButtonStyle>
+
+    <ButtonStyle id="toggle" basedOn="@button/standard" foreground="@color/slate-400">
+      <State name="hover" background="@color/slate-800" foreground="@color/slate-100" />
+      <State name="active" foreground="@color/blue-400" />
+      <State name="focused" shadow="@shadow/ring" />
+      <State name="disabled" opacity="0.5" />
+    </ButtonStyle>
+
+    <ButtonStyle id="tab" background="transparent" foreground="@color/slate-400" cornerRadius="6"
+                 padding="6 12" minHeight="32" iconSize="14" textStyle="@text/body">
+      <State name="hover" foreground="@color/slate-100" />
+      <State name="selected" background="@color/slate-800" foreground="@color/slate-100" shadow="@shadow/sm" />
+    </ButtonStyle>
+  </ButtonStyles>
+
+  <SliderStyles>
+    <SliderStyle id="seek" thickness="6" cornerRadius="3" track="@color/slate-700" fill="@color/blue-500"
+                 buffer="#94a3b840" thumb="round" thumbSize="14">
+      <State name="hover" thumbSize="16" />
+      <State name="focused" border="@color/blue-400" />
+      <State name="disabled" opacity="0.5" />
+    </SliderStyle>
+    <SliderStyle id="volume" basedOn="@slider/seek" thickness="4" thumbSize="12" />
+  </SliderStyles>
+
+  <PanelStyles>
+    <PanelStyle id="chrome" background="@color/slate-950" padding="0" />
+    <PanelStyle id="title-strip" background="@color/slate-900" border="@slot/border" borderWidth="0 0 1 0" padding="8 16" />
+    <PanelStyle id="task-pane" background="@color/slate-900" border="@slot/border" borderWidth="0 1 0 0" padding="12 8" />
+    <PanelStyle id="transport-bar" background="@color/slate-900" border="@slot/border" borderWidth="1 0 0 0" padding="8 16" />
+    <PanelStyle id="content" background="@color/slate-950" padding="16" />
+    <PanelStyle id="inset" background="@slot/card" border="@slot/border" borderWidth="1"
+                cornerRadius="@length/radius" padding="@length/gap-md" shadow="@shadow/sm" />
+  </PanelStyles>
+
+  <Defaults button="@button/standard" panel="@panel/content" text="@text/body" />
+</Theme>

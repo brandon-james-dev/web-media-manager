@@ -106,21 +106,46 @@ export class IpodSyncStrategy implements ISyncStrategy {
       let changed = false;
 
       // -- Songs -----------------------------------------------------------
-      const existing = new Set<string>();
+      const existing = new Map<string, (typeof itdb.tracks)[number]>();
       for (const track of itdb.tracks) {
-        existing.add(trackIdentity(track.title, track.album, track.artist));
+        existing.set(
+          trackIdentity(track.title, track.album, track.artist),
+          track
+        );
       }
 
+      const canStoreArtwork = (itdb.artworkFormats?.length ?? 0) > 0;
       let written = 0;
 
       for (const song of songs) {
         const key = trackIdentity(song.title, song.album, song.artist);
+        const present = existing.get(key);
 
-        if (existing.has(key)) {
-          // Already on the device: it still counts as done for the run.
+        if (present) {
+          // Already on the device: it still counts as done for the run. A
+          // track written before cover art was carried, or by another tool,
+          // has no image yet; give it the stored cover now.
+          if (canStoreArtwork && !(present.mhiiLink > 0)) {
+            this.lastSteps = `setArtwork("${song.title ?? song.filename}")`;
+            try {
+              const art = await this.resolveArtwork(song);
+              if (art) {
+                await itdb.setArtwork(present.trackId, art);
+                changed = true;
+              }
+            } catch (err) {
+              console.warn(
+                `[IpodSyncStrategy] could not add cover art to "${song.title ?? song.filename}"`,
+                err
+              );
+            }
+          }
           summary.alreadyPresent.push(song.id);
           written += 1;
-          onProgress?.(written, songs.length, { songId: song.id, status: "present" });
+          onProgress?.(written, songs.length, {
+            songId: song.id,
+            status: "present",
+          });
           continue;
         }
 
@@ -137,7 +162,10 @@ export class IpodSyncStrategy implements ISyncStrategy {
           );
           summary.skipped.push(song.id);
           written += 1;
-          onProgress?.(written, songs.length, { songId: song.id, status: "skipped" });
+          onProgress?.(written, songs.length, {
+            songId: song.id,
+            status: "skipped",
+          });
           continue;
         }
 
@@ -147,7 +175,7 @@ export class IpodSyncStrategy implements ISyncStrategy {
         // passed when the device can store it, and a failure to read the
         // cover must not cost the track.
         let artwork: Uint8Array | undefined;
-        if ((itdb.artworkFormats?.length ?? 0) > 0) {
+        if (canStoreArtwork) {
           try {
             artwork = (await this.resolveArtwork(song)) ?? undefined;
           } catch {
@@ -176,7 +204,7 @@ export class IpodSyncStrategy implements ISyncStrategy {
           : false;
         const verified = recorded && onDisk;
 
-        existing.add(key);
+        existing.set(key, track);
         changed = true;
         written += 1;
 
@@ -196,6 +224,16 @@ export class IpodSyncStrategy implements ISyncStrategy {
       }
 
       // -- Playlists -------------------------------------------------------
+      // The database only stores a playlist's name as a title data object,
+      // and `addPlaylist` does not create one: earlier syncs left a nameless
+      // playlist behind on every run. Drop those leftovers.
+      for (const leftover of itdb.playlists.filter(
+        (p) => !p.isMaster && !p.name && (p.mhsdIndex ?? 2) === 2
+      )) {
+        itdb.removePlaylist(leftover.playlistId);
+        changed = true;
+      }
+
       if (playlists.length > 0) {
         // Map by identity for matching on-device tracks to playlist entries.
         const onDevice = new Map(
@@ -206,11 +244,22 @@ export class IpodSyncStrategy implements ISyncStrategy {
         );
 
         for (const playlist of playlists) {
-          this.lastSteps = `syncPlaylists("${playlist.name}")`;
-          let target = itdb.playlists.find((p) => p.name === playlist.name);
+          const name =
+            typeof playlist.name === "string" ? playlist.name.trim() : "";
+          if (!name) continue;
+
+          this.lastSteps = `syncPlaylists("${name}")`;
+          let target = itdb.playlists.find(
+            (p) => !p.isMaster && p.name === name
+          );
 
           if (!target) {
-            target = itdb.addPlaylist(playlist.name);
+            target = itdb.addPlaylist(name);
+            changed = true;
+          }
+
+          if (!target.dataObjects.some((o) => o.type === 1 && o.stringValue)) {
+            target.dataObjects.push({ type: 1, stringValue: name });
             changed = true;
           }
 
