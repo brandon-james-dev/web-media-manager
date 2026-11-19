@@ -7,7 +7,6 @@ const fsAccessSupported =
     .showDirectoryPicker === "function";
 
 import { addFolder } from "@/core/scanning";
-import { readTags } from "@/core/metadata";
 import { getMetadataReader } from "@/core/ports";
 import { collectFileHandles } from "@/lib/persistence/file";
 import { getJobService } from "@/core/jobs";
@@ -32,6 +31,9 @@ import type {
   SongChanges,
 } from "../IMusicSourceStrategy";
 import type { MusicSourceConfigField } from "../MusicSourceConfigField";
+
+/** Files handed to one batched tag read. */
+const READ_BATCH_SIZE = 32;
 
 /**
  * "On device" source strategy: pick a local folder (browser FS Access),
@@ -208,20 +210,30 @@ export class LocalMusicSourceStrategy implements IMusicSourceStrategy {
   ): Promise<Song[]> {
     const reader = getMetadataReader();
     const songs: Song[] = [];
-    for (let index = 0; index < entries.length; index++) {
+
+    // Read in chunks so cancellation still lands promptly and the batch never
+    // holds every File of a large library in memory at once.
+    for (let index = 0; index < entries.length; index += READ_BATCH_SIZE) {
       if (isCancelled?.()) return songs;
 
-      const { handle: fileHandle, relativePath } = entries[index];
-      const metadata = await readTags(fileHandle, reader);
-      const song: Song = {
-        ...metadata,
-        id: uuidv7(),
-        filename: fileHandle.name,
-        filesize: metadata?.filesize ?? 0,
-        relativePath,
-        sourceId: source.id,
-      };
-      songs.push(song);
+      const chunk = entries.slice(index, index + READ_BATCH_SIZE);
+      const files = await Promise.all(
+        chunk.map((entry) => entry.handle.getFile())
+      );
+      const metadata = await reader.readMetadataMany(files);
+
+      for (let offset = 0; offset < chunk.length; offset++) {
+        const { handle: fileHandle, relativePath } = chunk[offset];
+        const song: Song = {
+          ...metadata[offset],
+          id: uuidv7(),
+          filename: fileHandle.name,
+          filesize: files[offset].size,
+          relativePath,
+          sourceId: source.id,
+        };
+        songs.push(song);
+      }
     }
 
     return songs;

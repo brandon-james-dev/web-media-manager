@@ -1,4 +1,4 @@
-import { isValidAudioFile } from "taglib-wasm";
+import { isValidAudioFile } from "taglib-wasm/simple";
 
 /**
  * Recursively collects file handles and relative paths.

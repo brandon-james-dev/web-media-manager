@@ -1,12 +1,13 @@
 import {
   applyPictures,
   applyTags,
+  getTagLib,
   type Picture,
   type TagInput,
-} from "taglib-wasm";
-import { getTagLib } from "taglib-wasm/simple";
+} from "taglib-wasm/simple";
 import type { Song } from "@/models/Song";
 import type { MetadataRating } from "@/lib/metadata/Metadata";
+import type { ITagData } from "@/lib/contracts/ITagData";
 import type { IMetadataWriter } from "@/lib/contracts/IMedataWriter";
 import { resizeBitmap } from "@/lib/metadata/artwork/resizeBitmap";
 
@@ -18,121 +19,174 @@ function toTaglibRating(rating: MetadataRating): MetadataRating {
     : rating;
 }
 
+/**
+ * Projects the app's flattened tag fields onto taglib-wasm's `TagInput`.
+ *
+ * Typed as `Partial<TagInput>` rather than cast, so a field the library drops
+ * or renames fails the build instead of being silently ignored on write.
+ * Structured fields (pictures, ratings, lyrics) ride their own accessors and
+ * are handled separately.
+ */
+function toTagInput(tags: Partial<ITagData>): Partial<TagInput> {
+  return {
+    title: tags.title,
+    artist: tags.artist,
+    album: tags.album,
+    comment: tags.comment,
+    genre: tags.genre,
+    year: tags.year,
+    date: tags.date,
+    track: tags.track,
+    trackNumber: tags.trackNumber,
+    discNumber: tags.discNumber,
+    totalTracks: tags.totalTracks,
+    totalDiscs: tags.totalDiscs,
+    bpm: tags.bpm,
+    compilation: tags.compilation,
+
+    albumArtist: tags.albumArtist,
+    composer: tags.composer,
+    conductor: tags.conductor,
+    copyright: tags.copyright,
+    encodedBy: tags.encodedBy,
+    isrc: tags.isrc,
+    lyricist: tags.lyricist,
+    label: tags.label,
+    subtitle: tags.subtitle,
+    producer: tags.producer,
+    originalArtist: tags.originalArtist,
+    originalAlbum: tags.originalAlbum,
+    originalDate: tags.originalDate,
+    releaseType: tags.releaseType,
+    releaseCountry: tags.releaseCountry,
+    releaseStatus: tags.releaseStatus,
+
+    titleSort: tags.titleSort,
+    artistSort: tags.artistSort,
+    albumSort: tags.albumSort,
+    albumArtistSort: tags.albumArtistSort,
+    composerSort: tags.composerSort,
+
+    acoustidFingerprint: tags.acoustidFingerprint,
+    acoustidId: tags.acoustidId,
+    musicbrainzTrackId: tags.musicbrainzTrackId,
+    musicbrainzReleaseId: tags.musicbrainzReleaseId,
+    musicbrainzArtistId: tags.musicbrainzArtistId,
+    musicbrainzReleaseGroupId: tags.musicbrainzReleaseGroupId,
+
+    itunesAdvisory: tags.itunesAdvisory,
+    advisory: tags.advisory,
+    appleSoundCheck: tags.appleSoundCheck,
+    appleGaplessInfo: tags.appleGaplessInfo,
+
+    replayGainTrackGain: tags.replayGainTrackGain,
+    replayGainTrackPeak: tags.replayGainTrackPeak,
+    replayGainAlbumGain: tags.replayGainAlbumGain,
+    replayGainAlbumPeak: tags.replayGainAlbumPeak,
+    r128TrackGain: tags.r128TrackGain,
+    r128AlbumGain: tags.r128AlbumGain,
+  };
+}
+
 export class TagLibMetadataWriter implements IMetadataWriter {
-  async writeTags(file: File, tags: Partial<Song>): Promise<Uint8Array> {
-    const taglibPictures: Picture[] = [];
+  async writeTags(file: File, tags: Partial<ITagData>): Promise<Uint8Array> {
+    const pictures = await this.toTaglibPictures(tags.pictures);
 
-    if (tags.pictures && tags.pictures.length > 0) {
-      const seen = new Map<string, Picture>();
+    const textBytes = await applyTags(file, toTagInput(tags));
 
-      for (const pic of tags.pictures) {
-        const type = pic.type === "FrontCover" ? "FrontCover" : "BackCover";
-
-        if (!seen.has(type)) {
-          const sourceBlob = new Blob([pic.data!.slice()], {
-            type: pic.mimeType,
-          });
-
-          const bitmap = await createImageBitmap(sourceBlob);
-
-          try {
-            const resizedBlob = await resizeBitmap(bitmap, 512);
-
-            seen.set(type, {
-              mimeType: resizedBlob.type,
-              data: new Uint8Array(await resizedBlob.arrayBuffer()),
-              type,
-              description: type === "FrontCover" ? "Front Cover" : "Back Cover",
-            });
-          } finally {
-            bitmap.close();
-          }
-        }
-      }
-
-      taglibPictures.push(...seen.values());
-    }
-
-    delete tags.pictures;
-
-    const tagFields: Partial<Song> = {
-      title: tags.title,
-      artist: tags.artist,
-      album: tags.album,
-      albumArtist: tags.albumArtist,
-      genre: tags.genre,
-      comment: tags.comment,
-      composer: tags.composer,
-      year: tags.year,
-      track: tags.track,
-      totalTracks: tags.totalTracks,
-      discNumber: tags.discNumber,
-      lyrics: tags.lyrics,
-      copyright: tags.copyright,
-      encodedBy: tags.encodedBy,
-      bpm: tags.bpm,
-      isrc: tags.isrc,
-      date: tags.date,
-      conductor: tags.conductor,
-      lyricist: tags.lyricist,
-      label: tags.label,
-      subtitle: tags.subtitle,
-      producer: tags.producer,
-      originalArtist: tags.originalArtist,
-      originalAlbum: tags.originalAlbum,
-      originalDate: tags.originalDate,
-      releaseType: tags.releaseType,
-      titleSort: tags.titleSort,
-      artistSort: tags.artistSort,
-      albumSort: tags.albumSort,
-      albumArtistSort: tags.albumArtistSort,
-      composerSort: tags.composerSort,
-      totalDiscs: tags.totalDiscs,
-      compilation: tags.compilation,
-      musicbrainzTrackId: tags.musicbrainzTrackId,
-      musicbrainzReleaseId: tags.musicbrainzReleaseId,
-      musicbrainzArtistId: tags.musicbrainzArtistId,
-      musicbrainzReleaseGroupId: tags.musicbrainzReleaseGroupId,
-    };
-
-    const textUpdatedBytes = await applyTags(
-      file,
-      tagFields as Partial<TagInput>
-    );
-
-    let updatedFile = new File([textUpdatedBytes.slice().buffer], file.name, {
+    let updatedFile = new File([textBytes.slice().buffer], file.name, {
       type: file.type,
     });
 
-    const clearedBytes = await applyPictures(updatedFile, []);
+    // Lyrics and ratings are structured properties: `applyTags` only carries
+    // text fields, so they have to go through their own accessors.
+    if (tags.lyrics !== undefined || tags.ratings !== undefined) {
+      const structuredBytes = await this.writeStructured(updatedFile, {
+        lyrics: tags.lyrics,
+        ratings: tags.ratings,
+      });
 
-    updatedFile = new File([clearedBytes.slice().buffer], file.name, {
-      type: file.type,
-    });
-
-    let finalBytes = clearedBytes;
-
-    if (taglibPictures.length > 0) {
-      finalBytes = await applyPictures(updatedFile, taglibPictures);
+      updatedFile = new File([structuredBytes.slice().buffer], file.name, {
+        type: file.type,
+      });
     }
 
-    return finalBytes;
+    // Replaces the whole picture set, so an empty list clears it.
+    return await applyPictures(updatedFile, pictures);
   }
 
   async writeRatings(
     file: File,
     ratings: MetadataRating[]
   ): Promise<Uint8Array> {
+    return await this.writeStructured(file, { ratings });
+  }
+
+  /**
+   * Writes the properties that ride their own accessors. One open/save pass
+   * covers both, so a save that changes lyrics and ratings rewrites the file
+   * once rather than twice.
+   */
+  private async writeStructured(
+    file: File,
+    updates: { lyrics?: string; ratings?: MetadataRating[] }
+  ): Promise<Uint8Array> {
     const taglib = await getTagLib();
     const audioFile = await taglib.open(file, { partial: false });
 
     try {
       if (!audioFile.isValid()) throw new Error("Unsupported audio file");
-      audioFile.setRatings(ratings.map(toTaglibRating));
-      if (!audioFile.save()) throw new Error("Could not save the rating");
+
+      if (updates.lyrics !== undefined) {
+        audioFile.setLyrics(
+          updates.lyrics ? [{ text: updates.lyrics }] : []
+        );
+      }
+
+      if (updates.ratings !== undefined) {
+        audioFile.setRatings(updates.ratings.map(toTaglibRating));
+      }
+
+      if (!audioFile.save()) throw new Error("Could not save the metadata");
       return audioFile.getFileBuffer();
     } finally {
       audioFile.dispose();
     }
+  }
+
+  /** Resizes the front and back covers to the embedded 512px size. */
+  private async toTaglibPictures(
+    pictures: Song["pictures"]
+  ): Promise<Picture[]> {
+    if (!pictures || pictures.length === 0) return [];
+
+    const seen = new Map<string, Picture>();
+
+    for (const pic of pictures) {
+      const type = pic.type === "FrontCover" ? "FrontCover" : "BackCover";
+
+      if (seen.has(type)) continue;
+
+      const sourceBlob = new Blob([pic.data!.slice()], {
+        type: pic.mimeType,
+      });
+
+      const bitmap = await createImageBitmap(sourceBlob);
+
+      try {
+        const resizedBlob = await resizeBitmap(bitmap, 512);
+
+        seen.set(type, {
+          mimeType: resizedBlob.type,
+          data: new Uint8Array(await resizedBlob.arrayBuffer()),
+          type,
+          description: type === "FrontCover" ? "Front Cover" : "Back Cover",
+        });
+      } finally {
+        bitmap.close();
+      }
+    }
+
+    return [...seen.values()];
   }
 }

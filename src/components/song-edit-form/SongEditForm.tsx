@@ -42,6 +42,16 @@ export function SongEditForm(props: SongEditFormProps) {
     markDirty(name, el?.value != originalValue);
   };
 
+  /** Current value of a form field, or "" when the field is absent. */
+  const getFieldValue = (name: string): string => {
+    if (!formRef.current) return "";
+    const el = formRef.current.elements.namedItem(name) as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | null;
+    return el?.value ?? "";
+  };
+
   function markDirty(name: string, isDirty: boolean) {
     setDirty((prev) => ({ ...prev, [name]: isDirty }));
   }
@@ -111,7 +121,13 @@ export function SongEditForm(props: SongEditFormProps) {
 
     // Text fields
     set("comment", online.comment);
-    set("lyrics", online.lyrics);
+
+    // Lyrics are hand-written or fetched deliberately, so an online result
+    // never replaces text that is already there. Checked against the field
+    // rather than the stored song so an unsaved edit counts as content too.
+    if (getFieldValue("lyrics").trim() === "") {
+      set("lyrics", online.lyrics);
+    }
 
     // Album art: search results carry only the thumbnail `url` — download
     // the full-size (1000x1000) image here, at Apply time, not during search.

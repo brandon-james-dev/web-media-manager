@@ -30,6 +30,8 @@ export class Metadata {
   genre?: string;
   year?: number;
   track?: number;
+  /** Raw TRACKNUMBER, preserving zero-padding and a "/total" suffix. */
+  trackNumber?: string;
   date?: string;
 
   albumArtist?: string;
@@ -46,6 +48,10 @@ export class Metadata {
   originalAlbum?: string;
   originalDate?: string;
   releaseType?: string;
+  /** Release country (ISO 3166-1 code, e.g. "US"). */
+  releaseCountry?: string;
+  /** Release status (official, promotion, bootleg, ...). */
+  releaseStatus?: string;
   lyrics?: string;
 
   titleSort?: string;
@@ -84,6 +90,8 @@ export class Metadata {
 
   /** Duration in seconds. */
   duration?: number;
+  /** Duration in milliseconds, more precise than `duration`. */
+  durationMs?: number;
   bitrate?: number;
   sampleRate?: number;
   channels?: number;
@@ -101,6 +109,7 @@ export class Metadata {
 
 export const AUDIO_PROPERTY_KEYS = [
   "duration",
+  "durationMs",
   "bitrate",
   "sampleRate",
   "channels",

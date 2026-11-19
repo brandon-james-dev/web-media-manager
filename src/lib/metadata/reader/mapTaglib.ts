@@ -6,7 +6,10 @@ function first(value: string[] | string | undefined): string | undefined {
   return Array.isArray(value) ? value.at(0) : value;
 }
 
-export function mapTags(tags: ExtendedTag | undefined, filename: string) {
+export function mapTags(
+  tags: ExtendedTag | undefined,
+  filename: string
+): ITagData {
   return {
     title: first(tags?.title) ?? filename,
     artist: first(tags?.artist),
@@ -15,6 +18,7 @@ export function mapTags(tags: ExtendedTag | undefined, filename: string) {
     genre: first(tags?.genre),
     year: tags?.year,
     track: tags?.track,
+    trackNumber: first(tags?.trackNumber),
     date: first(tags?.date),
 
     albumArtist: first(tags?.albumArtist),
@@ -31,6 +35,8 @@ export function mapTags(tags: ExtendedTag | undefined, filename: string) {
     originalAlbum: first(tags?.originalAlbum),
     originalDate: first(tags?.originalDate),
     releaseType: first(tags?.releaseType),
+    releaseCountry: first(tags?.releaseCountry),
+    releaseStatus: first(tags?.releaseStatus),
     lyrics: tags?.lyrics?.at(0)?.text,
 
     titleSort: first(tags?.titleSort),
@@ -66,12 +72,13 @@ export function mapTags(tags: ExtendedTag | undefined, filename: string) {
 
     pictures: tags?.pictures,
     ratings: tags?.ratings,
-  } as ITagData;
+  };
 }
 
 export function mapProperties(props: AudioProperties): IAudioProperties {
   return {
     duration: props.duration,
+    durationMs: props.durationMs,
     bitrate: props.bitrate,
     sampleRate: props.sampleRate,
     channels: props.channels,

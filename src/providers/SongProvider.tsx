@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { isValidAudioFile } from "taglib-wasm";
+import { isValidAudioFile } from "taglib-wasm/simple";
 import useFileSystemAccess from "use-fs-access";
 import { isApiSupported, type FileOrDirectoryInfo } from "use-fs-access/core";
 import { readTags } from "@/core/metadata";
