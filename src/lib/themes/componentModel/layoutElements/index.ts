@@ -12,24 +12,24 @@ import { TAB_STRIP_END_ELEMENT } from "./TabStripEnd";
 import { BUTTON_ELEMENT } from "./Button";
 import { TEXT_ELEMENT } from "./Text";
 import { IMAGE_ELEMENT } from "./Image";
-import { LIBRARY_BROWSER_ELEMENT } from "./LibraryBrowser";
-import { TRACK_LIST_ELEMENT } from "./TrackList";
-import { COLLECTION_SUMMARY_ELEMENT } from "./CollectionSummary";
-import { PLAYLIST_ELEMENT } from "./Playlist";
-import { METADATA_EDITOR_ELEMENT } from "./MetadataEditor";
-import { SYNC_QUEUE_ELEMENT } from "./SyncQueue";
-import { DEVICE_PANEL_ELEMENT } from "./DevicePanel";
-import { SEARCH_BOX_ELEMENT } from "./SearchBox";
-import { ARTWORK_ELEMENT } from "./Artwork";
-import { TRACK_INFO_ELEMENT } from "./TrackInfo";
-import { PLAYBACK_TIME_ELEMENT } from "./PlaybackTime";
-import { SEEK_BAR_ELEMENT } from "./SeekBar";
-import { VOLUME_CONTROL_ELEMENT } from "./VolumeControl";
-import { PLAY_QUEUE_ELEMENT } from "./PlayQueue";
-import { LYRICS_ELEMENT } from "./Lyrics";
-import { VISUALIZER_ELEMENT } from "./Visualizer";
-import { BACKDROP_ELEMENT } from "./Backdrop";
-import { NOW_PLAYING_ELEMENT } from "./NowPlaying";
+import { LIBRARY_BROWSER_ELEMENT } from "@/components/theme-widgets/library/LibraryBrowser/definition";
+import { TRACK_LIST_ELEMENT } from "@/components/theme-widgets/library/TrackList/definition";
+import { COLLECTION_SUMMARY_ELEMENT } from "@/components/theme-widgets/library/CollectionSummary/definition";
+import { PLAYLIST_ELEMENT } from "@/components/theme-widgets/library/Playlist/definition";
+import { METADATA_EDITOR_ELEMENT } from "@/components/theme-widgets/library/MetadataEditor/definition";
+import { SYNC_QUEUE_ELEMENT } from "@/components/theme-widgets/library/SyncQueue/definition";
+import { DEVICE_PANEL_ELEMENT } from "@/components/theme-widgets/library/DevicePanel/definition";
+import { SEARCH_BOX_ELEMENT } from "@/components/theme-widgets/library/SearchBox/definition";
+import { ARTWORK_ELEMENT } from "@/components/theme-widgets/playback/Artwork/definition";
+import { TRACK_INFO_ELEMENT } from "@/components/theme-widgets/playback/TrackInfo/definition";
+import { PLAYBACK_TIME_ELEMENT } from "@/components/theme-widgets/playback/PlaybackTime/definition";
+import { SEEK_BAR_ELEMENT } from "@/components/theme-widgets/playback/SeekBar/definition";
+import { VOLUME_CONTROL_ELEMENT } from "@/components/theme-widgets/playback/VolumeControl/definition";
+import { PLAY_QUEUE_ELEMENT } from "@/components/theme-widgets/playback/PlayQueue/definition";
+import { LYRICS_ELEMENT } from "@/components/theme-widgets/playback/Lyrics/definition";
+import { VISUALIZER_ELEMENT } from "@/components/theme-widgets/playback/Visualizer/definition";
+import { BACKDROP_ELEMENT } from "@/components/theme-widgets/playback/Backdrop/definition";
+import { NOW_PLAYING_ELEMENT } from "@/components/theme-widgets/playback/NowPlaying/definition";
 import type { ElementDef } from "../types";
 
 /**
@@ -92,4 +92,4 @@ export const LAYOUT_ELEMENTS: Readonly<Record<string, ElementDef>> = {
   NowPlaying: NOW_PLAYING_ELEMENT,
 };
 
-export { TRACK_INFO_FIELDS } from "./TrackInfo";
+export { TRACK_INFO_FIELDS } from "@/components/theme-widgets/playback/TrackInfo/definition";

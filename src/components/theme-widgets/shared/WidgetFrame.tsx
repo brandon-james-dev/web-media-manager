@@ -3,8 +3,11 @@ import type { CSSProperties, ErrorInfo, ReactNode } from "react";
 import { cn } from "cn";
 import { getElementDef } from "@/lib/themes/componentModel";
 import { attrRef, resolveWidgetMinSize } from "@/lib/themes/render";
-import { useThemeRender, type ElementProps } from "@/lib/themes/render/browser";
-import { WidgetPlaceholder } from "@/lib/themes/render/layout/browser/elements/WidgetPlaceholder";
+import {
+  useThemeRender,
+  type ElementProps,
+  WidgetPlaceholder,
+} from "@/lib/themes/render/browser";
 
 /**
  * The outer box of an app widget: the placement the parent resolved, the

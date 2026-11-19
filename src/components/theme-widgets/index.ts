@@ -2,24 +2,24 @@ import {
   registerThemeWidgets,
   type ElementComponent,
 } from "@/lib/themes/render/browser";
-import { ThemeArtwork } from "./playback/Artwork";
-import { ThemeBackdrop } from "./playback/Backdrop";
-import { ThemeLyrics } from "./playback/Lyrics";
-import { ThemeNowPlaying } from "./playback/NowPlaying";
-import { ThemePlaybackTime } from "./playback/PlaybackTime";
-import { ThemePlayQueue } from "./playback/PlayQueue";
-import { ThemeSeekBar } from "./playback/SeekBar";
-import { ThemeTrackInfo } from "./playback/TrackInfo";
-import { ThemeVisualizer } from "./playback/Visualizer";
-import { ThemeVolumeControl } from "./playback/VolumeControl";
-import { ThemeCollectionSummary } from "./library/CollectionSummary";
-import { ThemeDevicePanel } from "./library/DevicePanel";
-import { ThemeLibraryBrowser } from "./library/LibraryBrowser";
-import { ThemeMetadataEditor } from "./library/MetadataEditor";
-import { ThemePlaylist } from "./library/Playlist";
-import { ThemeSearchBox } from "./library/SearchBox";
-import { ThemeSyncQueue } from "./library/SyncQueue";
-import { ThemeTrackList } from "./library/TrackList";
+import { ThemeArtwork } from "./playback/Artwork/Artwork";
+import { ThemeBackdrop } from "./playback/Backdrop/Backdrop";
+import { ThemeLyrics } from "./playback/Lyrics/Lyrics";
+import { ThemeNowPlaying } from "./playback/NowPlaying/NowPlaying";
+import { ThemePlaybackTime } from "./playback/PlaybackTime/PlaybackTime";
+import { ThemePlayQueue } from "./playback/PlayQueue/PlayQueue";
+import { ThemeSeekBar } from "./playback/SeekBar/SeekBar";
+import { ThemeTrackInfo } from "./playback/TrackInfo/TrackInfo";
+import { ThemeVisualizer } from "./playback/Visualizer/Visualizer";
+import { ThemeVolumeControl } from "./playback/VolumeControl/VolumeControl";
+import { ThemeCollectionSummary } from "./library/CollectionSummary/CollectionSummary";
+import { ThemeDevicePanel } from "./library/DevicePanel/DevicePanel";
+import { ThemeLibraryBrowser } from "./library/LibraryBrowser/LibraryBrowser";
+import { ThemeMetadataEditor } from "./library/MetadataEditor/MetadataEditor";
+import { ThemePlaylist } from "./library/Playlist/Playlist";
+import { ThemeSearchBox } from "./library/SearchBox/SearchBox";
+import { ThemeSyncQueue } from "./library/SyncQueue/SyncQueue";
+import { ThemeTrackList } from "./library/TrackList/TrackList";
 
 /**
  * The playback widgets the app renders for a theme layout, keyed by the

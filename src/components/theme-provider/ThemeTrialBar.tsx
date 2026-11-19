@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { themeTrial } from "@/core/themes/themeTrial";
+import { themeTrial } from "@/core/themes";
 import { useTranslation } from "@/i18n";
 
 /**
