@@ -1,3 +1,4 @@
+import type { FormFactor } from "../componentModel";
 import { THEME_IR_VERSION } from "../ir";
 import type { ThemeIR } from "../ir";
 import type { ColorScheme } from "../package";
@@ -42,6 +43,12 @@ export interface ThemeMirror {
   colorSchemes: ColorScheme[];
   honorsUserAccent: boolean;
   tokens: Partial<Record<ColorScheme, ThemeTokens>>;
+  /**
+   * The form factors the theme has a layout for. The host keeps the built-in
+   * UI hidden at startup only on these, so a tokens-only theme never shows a
+   * blank screen while it loads. Older mirrors omit it.
+   */
+  layouts?: FormFactor[];
 }
 
 /**
@@ -91,6 +98,7 @@ export function createThemeMirror(
     colorSchemes: ir.colorSchemes,
     honorsUserAccent: ir.honorsUserAccent,
     tokens,
+    layouts: Object.keys(ir.layouts) as FormFactor[],
   };
 }
 

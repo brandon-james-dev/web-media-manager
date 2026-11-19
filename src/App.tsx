@@ -38,6 +38,7 @@ import { connectCommandDispatch, wmmBus } from "./events";
 import { installTvNavigation } from "./lib/tv";
 import {
   ThemedShellRoute,
+  useThemedLayoutPending,
   useThemedLayoutSelection,
 } from "./lib/themes/render/browser";
 import { registerAppThemeWidgets } from "./components/theme-widgets";
@@ -99,6 +100,8 @@ function HomeRoute() {
 function App() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const themedLayout = useThemedLayoutSelection();
+  const themePending = useThemedLayoutPending();
+  const builtinUi = themedLayout === undefined && !themePending;
 
   useEffect(() => {
     const handleContextMenu = (event: MouseEvent) => {
@@ -196,7 +199,7 @@ function App() {
             <SyncProvider>
               <AddDeviceProvider>
                 <div className="flex flex-col app-viewport">
-                  {themedLayout === undefined ? (
+                  {builtinUi ? (
                     <header className="shrink-0 border-b pt-[env(safe-area-inset-top)]">
                       <NavBar />
                     </header>
@@ -204,7 +207,7 @@ function App() {
 
                   <main className="flex-1 min-h-0 overflow-hidden">
                     <Routes>
-                      {themedLayout === undefined ? (
+                      {builtinUi ? (
                         <Route path="/" element={<MainLayout />}>
                           <Route path="/" element={<HomeRoute />} />
                           <Route path="songs" element={<Songs />} />
@@ -231,7 +234,13 @@ function App() {
                       ) : (
                         <Route
                           path="*"
-                          element={<ThemedShellRoute selection={themedLayout} />}
+                          element={
+                            themedLayout === undefined ? (
+                              <div className="h-full w-full" />
+                            ) : (
+                              <ThemedShellRoute selection={themedLayout} />
+                            )
+                          }
                         />
                       )}
 

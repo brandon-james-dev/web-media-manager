@@ -42,6 +42,7 @@ export { ThemeRenderBoundary } from "../layout/browser/ThemeRenderBoundary";
 export type { ThemeRenderBoundaryProps } from "../layout/browser/ThemeRenderBoundary";
 export { ThemedShellRoute } from "../layout/browser/ThemedShellRoute";
 export { useThemedLayoutSelection } from "../layout/browser/useThemedLayoutSelection";
+export { useThemedLayoutPending } from "../layout/browser/useThemedLayoutPending";
 export { useButtonState } from "../layout/browser/useButtonState";
 export {
   TabStripButtonClassContext,

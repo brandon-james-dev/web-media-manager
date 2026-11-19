@@ -72,6 +72,15 @@ describe("createThemeMirror", () => {
     expect(Object.keys(mirror.tokens).sort()).toEqual(["dark", "light"]);
     expect(mirror.tokens.dark?.scheme).toBe("dark");
   });
+
+  it("records the form factors the theme has a layout for", () => {
+    const node = { element: "Shell", attributes: {}, children: [] };
+    const mirror = createThemeMirror(
+      themeIr({ layouts: { desktop: node, mobile: node } })
+    );
+
+    expect(mirror.layouts?.sort()).toEqual(["desktop", "mobile"]);
+  });
 });
 
 describe("writeThemeMirror and readThemeMirror", () => {

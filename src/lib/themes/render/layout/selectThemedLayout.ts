@@ -54,3 +54,28 @@ export function selectThemedLayout(
   if (theme.ir.layouts[formFactor] === undefined) return undefined;
   return { themeId: theme.id, ir: theme.ir, formFactor };
 }
+
+/**
+ * Whether the app should hold back the built-in UI because a themed layout is
+ * about to mount. True only before the first theme load, when the startup
+ * mirror names a theme with a layout for this form factor; a mirror written
+ * before layouts were recorded counts as having one.
+ *
+ * @example
+ * ```xml
+ * <Layout xmlns="urn:wmm:theme:1" spec="1.0" formFactor="desktop" />
+ * ```
+ * @example
+ * ```ts
+ * const mirror = readThemeMirror(window.localStorage);
+ * isThemedLayoutPending(activeTheme.getSnapshot(), mirror, "desktop"); // true
+ * ```
+ */
+export function isThemedLayoutPending(
+  snapshot: ActiveThemeSnapshot,
+  mirror: { readonly layouts?: readonly FormFactor[] } | undefined,
+  formFactor: FormFactor
+): boolean {
+  if (snapshot.loaded || mirror === undefined) return false;
+  return mirror.layouts?.includes(formFactor) ?? true;
+}

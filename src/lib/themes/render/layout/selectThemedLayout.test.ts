@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { InstalledTheme } from "@/core/ports";
 import type { ThemeIR } from "../../ir";
-import { selectThemedLayout } from "./selectThemedLayout";
+import {
+  isThemedLayoutPending,
+  selectThemedLayout,
+} from "./selectThemedLayout";
 
 const node = { element: "Shell", attributes: {}, children: [] };
 
@@ -45,5 +48,39 @@ describe("selectThemedLayout", () => {
       ir: active.ir,
       formFactor: "desktop",
     });
+  });
+});
+
+describe("isThemedLayoutPending", () => {
+  const loading = { loaded: false, theme: undefined };
+
+  it("holds the built-in UI while a mirrored theme with a layout loads", () => {
+    expect(
+      isThemedLayoutPending(loading, { layouts: ["desktop"] }, "desktop")
+    ).toBe(true);
+  });
+
+  it("shows the built-in UI when no theme is mirrored", () => {
+    expect(isThemedLayoutPending(loading, undefined, "desktop")).toBe(false);
+  });
+
+  it("shows the built-in UI when the mirrored theme has no layout here", () => {
+    expect(
+      isThemedLayoutPending(loading, { layouts: ["desktop"] }, "mobile")
+    ).toBe(false);
+  });
+
+  it("treats an older mirror without layouts as having one", () => {
+    expect(isThemedLayoutPending(loading, {}, "tablet")).toBe(true);
+  });
+
+  it("stops holding once the first load finishes", () => {
+    expect(
+      isThemedLayoutPending(
+        { loaded: true, theme: undefined },
+        { layouts: ["desktop"] },
+        "desktop"
+      )
+    ).toBe(false);
   });
 });
