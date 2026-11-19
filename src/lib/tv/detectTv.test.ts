@@ -46,10 +46,12 @@ function stubWindow(options: {
   search?: string;
   stored?: string | null;
   finePointer?: boolean;
+  width?: number;
 }): void {
   vi.stubGlobal("window", {
     location: { search: options.search ?? "" },
     localStorage: { getItem: () => options.stored ?? null },
+    innerWidth: options.width ?? 1280,
     matchMedia: (query: string) => ({
       matches: query === "(pointer: fine)" ? !!options.finePointer : false,
     }),
@@ -80,6 +82,26 @@ describe("isTvOverride", () => {
   it("honours a stored flag on a TV user agent even with a fine pointer", () => {
     stubWindow({ stored: "1", finePointer: true });
     vi.stubGlobal("navigator", { userAgent: FIRE_TV_SILK });
+    expect(isTvOverride()).toBe(true);
+  });
+
+  it("ignores a stored flag on a phone-width viewport", () => {
+    stubWindow({ stored: "1", finePointer: false, width: 390 });
+    expect(isTvOverride()).toBe(false);
+  });
+
+  it("honours a stored flag from the phone breakpoint up", () => {
+    stubWindow({ stored: "1", finePointer: false, width: 640 });
+    expect(isTvOverride()).toBe(true);
+  });
+
+  it("honours ?tv=1 on a phone-width viewport", () => {
+    stubWindow({
+      search: "?tv=1",
+      stored: "1",
+      finePointer: false,
+      width: 390,
+    });
     expect(isTvOverride()).toBe(true);
   });
 

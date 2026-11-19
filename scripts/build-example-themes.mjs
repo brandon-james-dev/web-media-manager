@@ -12,7 +12,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const examples = join(root, "examples", "themes");
 const output = join(root, "public", "themes");
 
-const THEMES = ["classic-blue"];
+const THEMES = ["classic-blue", "tonal"];
 
 /**
  * Lists every file under `directory` as package paths with `/` separators.

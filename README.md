@@ -71,6 +71,32 @@ Open it directly in your browser — no installation required.
 - Per-plugin settings and file storage
 - Example visualizer seeded on first run
 
+### Custom Themes
+
+- Theme packages are ZIP files with a `manifest.json`, a `theme.xml` and one
+  layout per form factor (`desktop`, `tablet`, `mobile`, `tv`)
+- `theme.xml` declares colors, light and dark palettes, metrics, fonts, text
+  styles, brushes, shadows, and button, slider and panel styles with states
+- Layouts arrange the shell and pages from layout elements (`Grid`, `Stack`,
+  `DockPanel`, `Panel`, `Tabs`, `Button`, `Text`, `Image`, `PageHost`) and
+  18 theme widgets (track list, library browser, playlists, search, play
+  queue, seek bar, volume, artwork, lyrics, visualizer, sync queue, devices,
+  metadata editor and more)
+- Install from Settings → Extensibility; a 15-second keep-or-revert trial
+  bar guards every switch, and `?theme=default` starts in safe mode
+- Every package is validated (archive, manifest, XML, layouts, references,
+  ranges) and compiled to a Theme IR before it is stored
+- Themes paint on first load from a local mirror, without flashing the
+  default UI
+- The form factor is picked from the viewport; phone-width screens always
+  get the mobile layout, even when the TV override is stored
+- Example themes: **Classic Blue** (flat desktop layout) and **Tonal**
+  (tonal light/dark surfaces with a phone layout: top app bar, bottom
+  navigation bar, mini-player card)
+- The theme specification and authoring guides live in
+  [`docs/themes/`](docs/themes/README.md), including a prompt for generating
+  themes with AI and a guide for creating new widgets
+
 ### Metadata
 
 - Track metadata editing
@@ -124,6 +150,13 @@ Web Media Manager
 │   ├── Zune (zunesync-ts)
 │   ├── MTP
 │   └── Sync Engine
+│
+├── Themes
+│   ├── Package validation and IR compiler
+│   ├── Token runtime and first-paint mirror
+│   ├── Layout renderer and stylesheet builder
+│   ├── Theme widgets (src/components/theme-widgets)
+│   └── Public API (src/core/themes)
 │
 ├── Workers
 │   ├── Job pool
@@ -227,6 +260,32 @@ Per-plugin settings and file records
 Example plugin seeded when the plugin is absent
 ```
 
+### Themes
+
+```text
+Theme spec 1.0 (docs/themes)
+Package checks, theme.xml and layout validators, Theme IR compiler
+Dexie theme store, install from ZIP, keep-or-revert trial, safe mode
+Palette, font and color scheme tokens with a localStorage first-paint mirror
+Layout renderer for desktop, tablet, mobile and TV layouts
+Stylesheet builder for button, slider and panel styles and their states
+18 theme widgets, each a definition.ts plus a component
+Widgets built only on the src/core/themes public API (guard test enforced)
+Example themes: Classic Blue (desktop), Tonal (desktop + mobile)
+```
+
+### Sync and Playback Fixes On This Branch
+
+```text
+Add-device flow hosted by the shell (AddDeviceHost)
+Start sync disabled while a sync runs
+Themed metadata editor seeded from the current selection
+Panel widths saved per component id
+Seek takes seconds, mute is app-wide, playback events are published
+New UI commands: navigate, openSettings, toggleFullscreen, toggleDarkRoom
+Phone-width screens no longer switch to the TV shell from a stored override
+```
+
 ### Performance
 
 ```text
@@ -245,7 +304,8 @@ currently at schema version 1:
 ```text
 sources        songs          songArtwork    playlists
 jobs           playHistory    plugins        pluginFiles
-pluginSettings offlineAudio
+pluginSettings offlineAudio   themes         themeFiles
+themeSettings
 ```
 
 The schema is edited in place while the application is unreleased — there
@@ -287,6 +347,25 @@ Lint:
 
 ```bash
 npm run lint
+```
+
+Rebuild the example theme packages in `public/themes/` after editing
+`examples/themes/`:
+
+```bash
+npm run build:themes
+```
+
+Sync translation packs after adding UI strings:
+
+```bash
+npm run i18n:sync
+```
+
+Start in safe mode (built-in UI, custom theme ignored):
+
+```text
+http://localhost:5173/?theme=default
 ```
 
 ## Debugging

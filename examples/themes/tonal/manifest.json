@@ -1,0 +1,16 @@
+{
+  "kind": "theme",
+  "spec": "1.0",
+  "id": "tonal",
+  "name": "Tonal",
+  "version": "1.0.0",
+  "description": "A touch-first phone layout with tonal surfaces, a top app bar, a bottom navigation bar with pill indicators, a mini-player card and a large rounded play button. Ships light and dark palettes.",
+  "author": { "name": "Web Media Manager" },
+  "license": "MIT",
+  "formFactors": ["desktop", "mobile"],
+  "colorSchemes": ["light", "dark"],
+  "honorsUserAccent": false,
+  "previews": ["previews/thumbnail.png", "previews/mobile.png"],
+  "thumbnail": "previews/thumbnail.png",
+  "tags": ["tonal", "flat", "mobile"]
+}

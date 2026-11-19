@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Layout xmlns="urn:wmm:theme:1" spec="1.0" formFactor="mobile">
+  <Shell>
+    <Panel background="@slot/background">
+      <DockPanel>
+        <Panel dock="top" height="@length/app-bar-height" style="@panel/app-bar">
+          <Stack orientation="horizontal" gap="@length/gap-sm" align="center">
+            <Text resourceKey="app.title" style="@text/title-large" grow="1" />
+            <SearchBox presentation="button" scope="library" display="icon" style="@button/icon" />
+            <Button command="wmm.ui.openSettings" labelKey="settings.title" icon="@icon/settings" display="icon" style="@button/icon" />
+          </Stack>
+        </Panel>
+
+        <Panel dock="bottom" height="@length/nav-bar-height" style="@panel/nav-bar">
+          <Stack orientation="horizontal" justify="spaceBetween" margin="0 8" align="center">
+            <Button command="wmm.ui.navigate" commandParameter="songs" labelKey="navigation.library" icon="@icon/library" display="icon" style="@button/nav-item" />
+            <Button command="wmm.ui.navigate" commandParameter="albums" labelKey="navigation.albums" icon="@icon/albums" display="icon" style="@button/nav-item" />
+            <Button command="wmm.ui.navigate" commandParameter="playlists" labelKey="navigation.playlists" icon="@icon/playlists" display="icon" style="@button/nav-item" />
+            <Button command="wmm.ui.navigate" commandParameter="sync" labelKey="navigation.sync" icon="@icon/sync" display="icon" style="@button/nav-item" />
+          </Stack>
+        </Panel>
+
+        <Panel dock="bottom" style="@panel/mini-player" margin="0 8 8 8">
+          <Grid columns="1*" rows="auto auto">
+            <Stack row="0" column="0" orientation="horizontal" gap="@length/gap-lg" align="center" margin="8 8 8 8">
+              <Artwork width="48" height="48" action="openNowPlaying" cornerRadius="8" />
+              <TrackInfo grow="1" fields="title explicit artist" titleText="@text/label" detailText="@text/caption" />
+              <Button command="wmm.playback.playpause" labelKey="playback.playPause" icon="@icon/playPause" display="icon" style="@button/mini-play" />
+              <Button command="wmm.playback.next" labelKey="playback.next" icon="@icon/next" display="icon" style="@button/icon" />
+            </Stack>
+            <SeekBar row="1" column="0" variant="edge" slider="@slider/edge" />
+          </Grid>
+        </Panel>
+
+        <Panel dock="fill" style="@panel/plain">
+          <PageHost />
+        </Panel>
+      </DockPanel>
+    </Panel>
+  </Shell>
+
+  <Page id="songs" role="library" titleKey="navigation.library" default="true">
+    <TrackList variant="list" density="comfortable" fields="artwork explicit artist album duration"
+               rowText="@text/body" playingText="@text/playing" margin="0 8" />
+  </Page>
+
+  <Page id="albums" role="albums" titleKey="navigation.albums">
+    <Grid columns="1*" rows="1* 1*" rowGap="@length/gap-md" margin="0 8">
+      <LibraryBrowser row="0" column="0" views="albums" initialView="albums" display="grid" artwork="true"
+                      itemText="@text/body" headerText="@text/section" />
+      <TrackList row="1" column="0" variant="list" fields="artwork artist duration"
+                 rowText="@text/body" playingText="@text/playing" />
+    </Grid>
+  </Page>
+
+  <Page id="playlists" role="playlists" titleKey="navigation.playlists">
+    <Grid columns="1*" rows="220 1*" rowGap="@length/gap-md" margin="0 8">
+      <Playlist row="0" column="0" artwork="true" panel="@panel/card" rowText="@text/body" />
+      <TrackList row="1" column="0" variant="list" fields="artwork artist album duration"
+                 rowText="@text/body" playingText="@text/playing" />
+    </Grid>
+  </Page>
+
+  <Page id="sync" role="sync" titleKey="navigation.sync">
+    <Grid columns="1*" rows="auto auto 1*" rowGap="@length/gap-lg" margin="@length/edge">
+      <DevicePanel row="0" column="0" storage="true" allowAdd="true" panel="@panel/card" titleText="@text/section" />
+      <Button row="1" column="0" command="wmm.sync.start" labelKey="sync.start" icon="@icon/sync" style="@button/filled" />
+      <SyncQueue row="2" column="0" summary="true" panel="@panel/card" rowText="@text/body" />
+    </Grid>
+  </Page>
+
+  <Page id="now-playing" role="nowPlaying" titleKey="navigation.nowPlaying" presentation="overlay">
+    <Panel background="@slot/background">
+      <DockPanel>
+        <Panel dock="bottom" style="@panel/controls" margin="0 12 16 12" idleHide="true">
+          <Stack gap="@length/gap-md">
+            <SeekBar slider="@slider/seek" />
+            <Stack orientation="horizontal" justify="spaceBetween" align="center">
+              <PlaybackTime format="elapsed" text="@text/caption" />
+              <PlaybackTime format="remaining" text="@text/caption" />
+            </Stack>
+            <Stack orientation="horizontal" justify="spaceBetween" align="center">
+              <Button command="wmm.playback.toggleShuffle" labelKey="playback.shuffle" icon="@icon/shuffle" display="icon" style="@button/icon" />
+              <Button command="wmm.playback.prev" labelKey="playback.previous" icon="@icon/prev" display="icon" style="@button/icon-lg" />
+              <Button command="wmm.playback.playpause" labelKey="playback.playPause" icon="@icon/playPause" display="icon" style="@button/np-play" />
+              <Button command="wmm.playback.next" labelKey="playback.next" icon="@icon/next" display="icon" style="@button/icon-lg" />
+              <Button command="wmm.playback.toggleRepeat" labelKey="playback.repeat" icon="@icon/repeat" display="icon" style="@button/icon" />
+            </Stack>
+          </Stack>
+        </Panel>
+
+        <Tabs dock="fill" strip="top" stripAlign="start" tabStyle="@button/tab" display="icon" margin="8 12 0 12">
+          <Tab id="queue" titleKey="playback.queue" icon="@icon/queue">
+            <Stack gap="@length/gap-lg" align="center" overflow="scroll" margin="16 0 0 0">
+              <Artwork width="300" height="300" cornerRadius="@length/sheet-radius" />
+              <TrackInfo fields="title explicit artist album" titleText="@text/np-title" detailText="@text/np-detail" />
+              <PlayQueue artwork="true" clearButton="true" upNext="true" panel="@panel/card" rowText="@text/body" />
+            </Stack>
+          </Tab>
+          <Tab id="lyrics" titleKey="playback.lyrics" icon="@icon/lyrics">
+            <Lyrics align="center" text="@text/headline" />
+          </Tab>
+          <Tab id="visualizer" titleKey="visualizer.title" icon="@icon/visualizer">
+            <Visualizer selector="true" settingsButton="true" trackInfo="true" fallback="artwork" />
+          </Tab>
+          <TabStripEnd>
+            <Stack orientation="horizontal" gap="@length/gap-sm" idleHide="true">
+              <Button command="wmm.ui.toggleDarkRoom" labelKey="playback.darkRoom" icon="@icon/darkRoom" display="icon" style="@button/icon" />
+              <Button command="wmm.ui.closeNowPlaying" labelKey="playback.closeNowPlaying" icon="@icon/close" display="icon" style="@button/icon" />
+            </Stack>
+          </TabStripEnd>
+        </Tabs>
+      </DockPanel>
+    </Panel>
+  </Page>
+</Layout>

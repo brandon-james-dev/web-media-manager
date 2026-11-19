@@ -123,6 +123,7 @@ describe("gridItemStyle", () => {
     ).toEqual({
       gridRow: "1 / span 2",
       gridColumn: "2 / span 1",
+      position: "relative",
       minWidth: 0,
       minHeight: 0,
       justifySelf: "stretch",
@@ -134,6 +135,7 @@ describe("gridItemStyle", () => {
     expect(gridItemStyle(node("TrackList"))).toEqual({
       gridRow: "1 / span 1",
       gridColumn: "1 / span 1",
+      position: "relative",
       minWidth: 0,
       minHeight: 0,
       justifySelf: "stretch",

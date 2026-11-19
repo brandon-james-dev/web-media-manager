@@ -265,7 +265,10 @@ export function gridStyle(node: IRNode): CSSProperties {
 
 /**
  * The grid cell declarations of a `Grid` child. `row` and `column` are
- * zero-based and default to 0, and both spans default to 1.
+ * zero-based and default to 0, and both spans default to 1. Every child is
+ * positioned, so overlapping children stack in document order: a positioned
+ * sibling with `z-index: auto` paints in DOM order, while a non-positioned one
+ * would paint below any positioned sibling that comes later.
  *
  * @example
  * ```xml
@@ -275,7 +278,7 @@ export function gridStyle(node: IRNode): CSSProperties {
  * ```
  * @example
  * ```ts
- * gridItemStyle(browser); // { gridRow: "1 / span 2", gridColumn: "1 / span 1" }
+ * gridItemStyle(browser); // { gridRow: "1 / span 2", gridColumn: "1 / span 1", position: "relative" }
  * ```
  */
 export function gridItemStyle(node: IRNode): CSSProperties {
@@ -286,6 +289,7 @@ export function gridItemStyle(node: IRNode): CSSProperties {
   const style: CSSProperties = {
     gridRow: `${row + 1} / span ${rowSpan}`,
     gridColumn: `${column + 1} / span ${columnSpan}`,
+    position: "relative",
     minWidth: 0,
     minHeight: 0,
   };
