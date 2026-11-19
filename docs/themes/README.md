@@ -20,6 +20,7 @@ SDK, and the app engineers who implement the host.
 | 07 | [Installation, runtime and SDK](07-installation-runtime-sdk.md) | 11. Install workflow · 12. Runtime architecture · 13. SDK |
 | 08 | [Example: Classic Blue](08-example-classic-blue.md) | 15. A complete theme in the style of a 2000s desktop media player |
 | 09 | [Generating a theme with an AI assistant](09-generating-with-ai.md) | A copy-paste prompt and the install-and-fix loop |
+| 10 | [Creating a theme widget](10-creating-widgets.md) | For app engineers: adding a widget, the guard tests, and a prompt for AI coding agents |
 
 ### Page specifications (reviewed one at a time)
 
