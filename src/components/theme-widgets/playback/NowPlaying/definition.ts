@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * Composite shortcut that renders a built-in player arrangement. The
@@ -40,12 +35,9 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeNowPlaying](./NowPlaying.tsx)
  */
-export const NOW_PLAYING_ELEMENT: ElementDef = {
+export const NOW_PLAYING_ELEMENT = defineWidget({
   name: "NowPlaying",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     variant: {
       type: ValueType.Enum,
       values: ["bar", "compact", "indicator", "full"],
@@ -63,7 +55,6 @@ export const NOW_PLAYING_ELEMENT: ElementDef = {
     },
     slider: { type: ValueType.Reference, refKinds: [ReferenceKind.Slider] },
   },
-  children: NO_CHILDREN,
   minSize: {
     bar: { width: 320, height: 56 },
     compact: { width: 240, height: 56 },
@@ -72,5 +63,4 @@ export const NOW_PLAYING_ELEMENT: ElementDef = {
   },
   minSizeBy: "variant",
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

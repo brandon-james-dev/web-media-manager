@@ -1,14 +1,9 @@
 import {
-  COMMON_ATTRIBUTES,
   DISPLAY_VALUES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * Search input that filters the page's `TrackList` by title, album, artist
@@ -41,12 +36,9 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeSearchBox](./SearchBox.tsx)
  */
-export const SEARCH_BOX_ELEMENT: ElementDef = {
+export const SEARCH_BOX_ELEMENT = defineWidget({
   name: "SearchBox",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     scope: {
       type: ValueType.Enum,
       values: ["library", "sync"],
@@ -63,8 +55,6 @@ export const SEARCH_BOX_ELEMENT: ElementDef = {
     display: { type: ValueType.Enum, values: DISPLAY_VALUES },
     style: { type: ValueType.Reference, refKinds: [ReferenceKind.Button] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 120, height: 32 },
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

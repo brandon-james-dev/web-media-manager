@@ -1,11 +1,11 @@
 import { cn } from "cn";
+import { attrBool, attrRef, attrString } from "@/core/themes";
+import type { IRValue } from "@/core/themes";
 import { wmmBus } from "@/events";
 import { useOfflineSongs, usePlayback } from "@/hooks";
 import { useTranslation } from "@/i18n";
-import { attrBool, attrRef, attrString } from "@/lib/themes/render";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { useThemeRender } from "@/lib/themes/render/browser";
-import type { IRValue } from "@/lib/themes/ir";
 import { ThemeSlider } from "../../shared/ThemeSlider";
 import { usePlaybackClock } from "../../shared/usePlaybackClock";
 import { WidgetFrame } from "../../shared/WidgetFrame";

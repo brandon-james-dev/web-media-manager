@@ -1,6 +1,7 @@
 /**
- * Public theme API: install, list, apply and uninstall theme packages.
- * Lower-level parsing, validation and compilation live in `@/lib/themes`.
+ * Public theme API: install, list, apply and uninstall theme packages, plus
+ * the building blocks a themed component reads a layout node with. Lower-level
+ * parsing, validation and compilation live in `@/lib/themes`.
  *
  * @example
  * ```xml
@@ -8,8 +9,10 @@
  * ```
  * @example
  * ```ts
- * import { ThemeManager } from "@/core/themes";
+ * import { ThemeManager, attrString, getWidgetMinSize } from "@/core/themes";
  * const manager = new ThemeManager({ store: getThemeStore() });
+ * const variant = attrString(node, "variant");
+ * const min = getWidgetMinSize(node);
  * ```
  */
 export {
@@ -50,4 +53,16 @@ export {
 } from "./themeNavigation";
 export type { ThemeNavigationHandler } from "./themeNavigation";
 export type { InstalledTheme } from "@/core/ports/themes";
+export {
+  attrBool,
+  attrList,
+  attrRef,
+  attrString,
+  readAttr,
+} from "@/lib/themes/render/layout/attributes";
+export { derivePalette } from "@/lib/themes/ir";
+export type { IRNode, IRValue } from "@/lib/themes/ir";
+export { IssueSeverity } from "@/lib/themes/issues";
 export type { ThemeIssue } from "@/lib/themes/issues";
+export type { ColorScheme } from "@/lib/themes/package";
+export { getWidgetMinSize } from "./widgetMinSize";

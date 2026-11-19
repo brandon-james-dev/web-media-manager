@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * Summary of the page's `TrackList` collection: a mosaic of the first four
@@ -32,12 +27,9 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeCollectionSummary](./CollectionSummary.tsx)
  */
-export const COLLECTION_SUMMARY_ELEMENT: ElementDef = {
+export const COLLECTION_SUMMARY_ELEMENT = defineWidget({
   name: "CollectionSummary",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     fields: {
       type: ValueType.EnumList,
       values: ["artwork", "title", "count", "duration"],
@@ -45,8 +37,6 @@ export const COLLECTION_SUMMARY_ELEMENT: ElementDef = {
     titleText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
     detailText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 160, height: 40 },
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

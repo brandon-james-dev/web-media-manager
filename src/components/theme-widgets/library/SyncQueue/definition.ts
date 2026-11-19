@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * Songs queued for device sync. `summary` adds the totals line. Rows from
@@ -28,17 +23,12 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeSyncQueue](./SyncQueue.tsx)
  */
-export const SYNC_QUEUE_ELEMENT: ElementDef = {
+export const SYNC_QUEUE_ELEMENT = defineWidget({
   name: "SyncQueue",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     summary: { type: ValueType.Boolean },
     rowText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 200, height: 120 },
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

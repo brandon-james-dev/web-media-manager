@@ -1,14 +1,9 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   TRACK_COLUMN_VALUES,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * Songs for the current selection on the page: the `LibraryBrowser`
@@ -47,12 +42,9 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeTrackList](./TrackList.tsx)
  */
-export const TRACK_LIST_ELEMENT: ElementDef = {
+export const TRACK_LIST_ELEMENT = defineWidget({
   name: "TrackList",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     variant: {
       type: ValueType.Enum,
       values: ["table", "albums", "list", "tv"],
@@ -126,7 +118,6 @@ export const TRACK_LIST_ELEMENT: ElementDef = {
       refKinds: [ReferenceKind.Brush],
     },
   },
-  children: NO_CHILDREN,
   minSize: {
     table: { width: 240, height: 120 },
     albums: { width: 360, height: 160 },
@@ -135,5 +126,4 @@ export const TRACK_LIST_ELEMENT: ElementDef = {
   },
   minSizeBy: "variant",
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

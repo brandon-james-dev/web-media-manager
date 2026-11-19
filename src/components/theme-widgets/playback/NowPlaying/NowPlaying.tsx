@@ -1,9 +1,9 @@
 import type { CSSProperties } from "react";
 import { cn } from "cn";
 import { TvNowPlayingIndicator } from "@/components/tv";
-import { attrBool, attrString } from "@/lib/themes/render";
+import { attrBool, attrString } from "@/core/themes";
+import type { IRNode, IRValue } from "@/core/themes";
 import type { ElementProps } from "@/lib/themes/render/browser";
-import type { IRNode, IRValue } from "@/lib/themes/ir";
 import { WidgetFrame } from "../../shared/WidgetFrame";
 import { ThemeArtwork } from "../Artwork/Artwork";
 import { ThemeSeekBar } from "../SeekBar/SeekBar";

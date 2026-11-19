@@ -2,6 +2,7 @@ import { Check, PackagePlus, RotateCcw, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { cn } from "cn";
 
+import { derivePalette } from "@/core/themes";
 import type { InstalledTheme, ThemeReviewResult } from "@/core/themes";
 import {
   useActiveThemeId,
@@ -13,7 +14,6 @@ import {
   useThemeThumbnail,
 } from "@/hooks";
 import { useTranslation } from "@/i18n";
-import { derivePalette } from "@/lib/themes/ir";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

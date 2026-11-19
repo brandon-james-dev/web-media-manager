@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * Seek slider with a buffering indicator; seeking sends
@@ -32,22 +27,17 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeSeekBar](./SeekBar.tsx)
  */
-export const SEEK_BAR_ELEMENT: ElementDef = {
+export const SEEK_BAR_ELEMENT = defineWidget({
   name: "SeekBar",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     variant: { type: ValueType.Enum, values: ["bar", "edge"] },
     buffering: { type: ValueType.Boolean, default: "true" },
     slider: { type: ValueType.Reference, refKinds: [ReferenceKind.Slider] },
   },
-  children: NO_CHILDREN,
   minSize: {
     bar: { width: 80, height: 16 },
     edge: { width: 80, height: 2 },
   },
   minSizeBy: "variant",
   perPage: 2,
-  since: THEME_SPEC_VERSION,
-};
+});

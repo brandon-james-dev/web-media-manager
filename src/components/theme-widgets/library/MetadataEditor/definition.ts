@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * Edits the selected songs' tags. `mode="full"` is the docked editor and
@@ -35,18 +30,13 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeMetadataEditor](./MetadataEditor.tsx)
  */
-export const METADATA_EDITOR_ELEMENT: ElementDef = {
+export const METADATA_EDITOR_ELEMENT = defineWidget({
   name: "MetadataEditor",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     mode: { type: ValueType.Enum, values: ["quick", "full"] },
     labelText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 240, height: 200 },
   perPage: 1,
   perLayout: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

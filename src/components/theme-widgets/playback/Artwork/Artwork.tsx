@@ -1,13 +1,13 @@
 import { Disc3 } from "lucide-react";
 import { cn } from "cn";
 import { AlbumArtImage } from "@/components/album-art-image";
+import { attrString, readAttr } from "@/core/themes";
+import type { IRValue } from "@/core/themes";
 import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks";
 import { useTranslation } from "@/i18n";
 import { ThumbnailSize } from "@/lib";
-import { attrString, readAttr } from "@/lib/themes/render";
 import type { ElementProps } from "@/lib/themes/render/browser";
-import type { IRValue } from "@/lib/themes/ir";
 import { WidgetFrame } from "../../shared/WidgetFrame";
 
 /**

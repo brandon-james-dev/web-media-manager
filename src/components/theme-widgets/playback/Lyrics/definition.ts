@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * The current song's lyrics, or `playback.noLyrics`. Minimum 160×80, one
@@ -27,17 +22,12 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeLyrics](./Lyrics.tsx)
  */
-export const LYRICS_ELEMENT: ElementDef = {
+export const LYRICS_ELEMENT = defineWidget({
   name: "Lyrics",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     align: { type: ValueType.Enum, values: ["start", "center"] },
     text: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 160, height: 80 },
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

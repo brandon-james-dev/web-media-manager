@@ -9,17 +9,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { getStore } from "@/core/system";
+import { attrBool, attrRef, attrString } from "@/core/themes";
 import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks";
 import { RepeatState, ShuffleState } from "@/hooks/usePlayback";
 import { useTranslation } from "@/i18n";
 import { ThumbnailSize } from "@/lib";
-import {
-  attrBool,
-  attrRef,
-  attrString,
-  THEME_ICONS,
-} from "@/lib/themes/render";
+import { THEME_ICONS } from "@/lib/themes/render/browser";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { useThemeRender } from "@/lib/themes/render/browser";
 import type { Song } from "@/models";

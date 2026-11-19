@@ -1,8 +1,8 @@
 import { AlertTriangle } from "lucide-react";
 import { cn } from "cn";
 
-import { IssueSeverity } from "@/lib/themes/issues";
-import type { ThemeIssue } from "@/lib/themes/issues";
+import { IssueSeverity } from "@/core/themes";
+import type { ThemeIssue } from "@/core/themes";
 
 /**
  * Props for {@link ThemeIssueList}.

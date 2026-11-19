@@ -5,9 +5,9 @@ import {
   useSyncExternalStore,
 } from "react";
 import { activeTheme, isSafeMode } from "@/core/themes";
+import type { ColorScheme } from "@/core/themes";
 import { getThemeStore } from "@/core/ports";
 import { reloadActiveTheme } from "@/lib/themes/getThemeManager";
-import type { ColorScheme } from "@/lib/themes/package";
 import {
   buildThemeTokens,
   createThemeMirror,

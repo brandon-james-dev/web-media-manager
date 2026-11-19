@@ -1,8 +1,7 @@
 import { Component } from "react";
 import type { CSSProperties, ErrorInfo, ReactNode } from "react";
 import { cn } from "cn";
-import { getElementDef } from "@/lib/themes/componentModel";
-import { attrRef, resolveWidgetMinSize } from "@/lib/themes/render";
+import { attrRef, getWidgetMinSize } from "@/core/themes";
 import {
   useThemeRender,
   type ElementProps,
@@ -47,7 +46,7 @@ function WidgetFrameBody({
   children,
 }: ElementProps & { readonly children: ReactNode }) {
   const { stylesheet } = useThemeRender();
-  const minSize = resolveWidgetMinSize(getElementDef(node.element), node);
+  const minSize = getWidgetMinSize(node);
   const panelId = attrRef(node, "panel", "panel");
   const panelClass =
     panelId === undefined ? undefined : stylesheet.classes.panel[panelId];

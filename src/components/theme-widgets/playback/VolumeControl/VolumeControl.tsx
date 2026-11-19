@@ -1,15 +1,10 @@
 import { cn } from "cn";
+import { attrBool, attrRef, attrString } from "@/core/themes";
 import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks";
 import { useTranslation } from "@/i18n";
-import {
-  attrBool,
-  attrRef,
-  attrString,
-  resolveThemeIcon,
-} from "@/lib/themes/render";
 import type { ElementProps } from "@/lib/themes/render/browser";
-import { useThemeRender } from "@/lib/themes/render/browser";
+import { resolveThemeIcon, useThemeRender } from "@/lib/themes/render/browser";
 import { ThemeSlider } from "../../shared/ThemeSlider";
 import { WidgetFrame } from "../../shared/WidgetFrame";
 

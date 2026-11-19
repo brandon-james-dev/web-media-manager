@@ -1,12 +1,11 @@
 import { useTranslation } from "@/i18n";
-import { ThemeInstallChange } from "@/core/themes";
+import { IssueSeverity, ThemeInstallChange } from "@/core/themes";
 import type {
   InstalledTheme,
   PendingThemeInstall,
   ThemeReviewResult,
 } from "@/core/themes";
 import { useCommitTheme } from "@/hooks";
-import { IssueSeverity } from "@/lib/themes/issues";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

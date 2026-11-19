@@ -1,12 +1,4 @@
-import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
-  THEME_SPEC_VERSION,
-  ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+import { ValueType, defineWidget } from "@/core/themes/widgetKit";
 
 /**
  * The animated background behind a page: a seeded gradient with dots,
@@ -27,15 +19,10 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeBackdrop](./Backdrop.tsx)
  */
-export const BACKDROP_ELEMENT: ElementDef = {
+export const BACKDROP_ELEMENT = defineWidget({
   name: "Backdrop",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     source: { type: ValueType.Enum, values: ["artwork", "palette"] },
   },
-  children: NO_CHILDREN,
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

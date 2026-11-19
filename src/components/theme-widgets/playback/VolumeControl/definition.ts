@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * App-wide volume slider, 0–1 in 0.01 steps, with an optional mute
@@ -33,12 +28,9 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeVolumeControl](./VolumeControl.tsx)
  */
-export const VOLUME_CONTROL_ELEMENT: ElementDef = {
+export const VOLUME_CONTROL_ELEMENT = defineWidget({
   name: "VolumeControl",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     orientation: {
       type: ValueType.Enum,
       values: ["horizontal", "vertical"],
@@ -47,12 +39,10 @@ export const VOLUME_CONTROL_ELEMENT: ElementDef = {
     slider: { type: ValueType.Reference, refKinds: [ReferenceKind.Slider] },
     button: { type: ValueType.Reference, refKinds: [ReferenceKind.Button] },
   },
-  children: NO_CHILDREN,
   minSize: {
     horizontal: { width: 80, height: 16 },
     vertical: { width: 16, height: 80 },
   },
   minSizeBy: "orientation",
   perPage: 2,
-  since: THEME_SPEC_VERSION,
-};
+});

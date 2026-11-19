@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * The active visualizer plugin. `selector` and `settingsButton` add the
@@ -36,12 +31,9 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeVisualizer](./Visualizer.tsx)
  */
-export const VISUALIZER_ELEMENT: ElementDef = {
+export const VISUALIZER_ELEMENT = defineWidget({
   name: "Visualizer",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     selector: { type: ValueType.Boolean },
     settingsButton: { type: ValueType.Boolean },
     trackInfo: { type: ValueType.Boolean },
@@ -49,9 +41,7 @@ export const VISUALIZER_ELEMENT: ElementDef = {
     titleText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
     detailText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 120, height: 80 },
   perPage: 1,
   perLayout: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

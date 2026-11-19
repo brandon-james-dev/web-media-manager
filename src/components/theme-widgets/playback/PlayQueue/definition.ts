@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * The play queue: current and upcoming songs. With `upNext`, an empty
@@ -38,12 +33,9 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemePlayQueue](./PlayQueue.tsx)
  */
-export const PLAY_QUEUE_ELEMENT: ElementDef = {
+export const PLAY_QUEUE_ELEMENT = defineWidget({
   name: "PlayQueue",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     presentation: { type: ValueType.Enum, values: ["inline", "popover"] },
     artwork: { type: ValueType.Boolean },
     clearButton: { type: ValueType.Boolean },
@@ -53,12 +45,10 @@ export const PLAY_QUEUE_ELEMENT: ElementDef = {
     headerText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
     button: { type: ValueType.Reference, refKinds: [ReferenceKind.Button] },
   },
-  children: NO_CHILDREN,
   minSize: {
     inline: { width: 160, height: 120 },
     popover: { width: 28, height: 28 },
   },
   minSizeBy: "presentation",
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

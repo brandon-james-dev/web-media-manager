@@ -1,10 +1,11 @@
 import { cn } from "cn";
 import { SyncDeviceCard } from "@/components/sync";
 import { Button } from "@/components/ui/button";
+import { attrBool } from "@/core/themes";
 import { wmmBus } from "@/events";
 import { useSync } from "@/hooks";
 import { useTranslation } from "@/i18n";
-import { THEME_ICONS, attrBool } from "@/lib/themes/render";
+import { THEME_ICONS } from "@/lib/themes/render/browser";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { useThemeTextClass } from "../../shared/themeText";
 import { WidgetFrame } from "../../shared/WidgetFrame";

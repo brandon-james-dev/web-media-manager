@@ -1,7 +1,7 @@
 import { cn } from "cn";
+import { attrString } from "@/core/themes";
 import { usePlayback } from "@/hooks";
 import { formatLength } from "@/lib/formatLength";
-import { attrString } from "@/lib/themes/render";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { usePlaybackClock } from "../../shared/usePlaybackClock";
 import { useThemeTextClass } from "../../shared/themeText";

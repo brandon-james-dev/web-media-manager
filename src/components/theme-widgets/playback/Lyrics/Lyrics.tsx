@@ -1,7 +1,7 @@
 import { cn } from "cn";
+import { attrString } from "@/core/themes";
 import { usePlayback } from "@/hooks";
 import { useTranslation } from "@/i18n";
-import { attrString } from "@/lib/themes/render";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { useThemeTextClass } from "../../shared/themeText";
 import { WidgetFrame } from "../../shared/WidgetFrame";

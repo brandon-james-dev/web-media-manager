@@ -1,6 +1,6 @@
-import { attrRef } from "@/lib/themes/render";
+import { attrRef } from "@/core/themes";
+import type { IRNode } from "@/core/themes";
 import { useThemeRender } from "@/lib/themes/render/browser";
-import type { IRNode } from "@/lib/themes/ir";
 
 /**
  * The class of the text style a widget attribute references, such as

@@ -8,10 +8,10 @@ import {
   VisualizerSelector,
   VisualizerSettings,
 } from "@/components/visualizer";
+import { attrBool, attrString } from "@/core/themes";
 import { usePlayback, useVisualizer } from "@/hooks";
 import { useTranslation } from "@/i18n";
 import { ThumbnailSize } from "@/lib";
-import { attrBool, attrString } from "@/lib/themes/render";
 import {
   useTabStripButtonClass,
   useTabStripStart,

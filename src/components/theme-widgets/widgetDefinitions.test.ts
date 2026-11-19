@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { ElementCategory, LAYOUT_ELEMENTS } from "@/lib/themes/componentModel";
 import registrySource from "./index.ts?raw";
 
-const WIDGET_KIT_SOURCE = readFileSync(
-  new URL("../../lib/themes/widgetKit/index.ts", import.meta.url),
-  "utf8"
-);
+const WIDGET_KIT_SOURCES = [
+  "../../core/themes/widgetKit/index.ts",
+  "../../core/themes/widgetKit/defineWidget.ts",
+].map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));
 
 const DEFINITION_SOURCES = import.meta.glob("./*/*/definition.ts", {
   query: "?raw",
@@ -15,6 +15,21 @@ const DEFINITION_SOURCES = import.meta.glob("./*/*/definition.ts", {
 }) as Record<string, string>;
 
 const WIDGET_COMPONENTS = import.meta.glob("./*/*/*.tsx", { eager: false });
+
+const COMPONENT_SOURCES = import.meta.glob("../**/*.{ts,tsx}", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+const ALLOWED_LIB_THEMES = [
+  "@/lib/themes/render/browser",
+  "@/lib/themes/runtime",
+  "@/lib/themes/runtime/browser",
+  "@/lib/themes/getThemeManager",
+];
+
+const FORBIDDEN_LEAVES = ["layoutElements", "themeElements", "getElementDef"];
 
 const SPECIFIER = /(?:from|import)\s+"([^"]+)"/g;
 const BLOCK_COMMENT = /\/\*[\s\S]*?\*\//g;
@@ -31,20 +46,38 @@ describe("theme widget definitions", () => {
     expect(paths.length).toBeGreaterThan(0);
     for (const path of paths) {
       for (const specifier of specifiersOf(DEFINITION_SOURCES[path])) {
-        expect(specifier, path).toBe("@/lib/themes/widgetKit");
+        expect(specifier, path).toBe("@/core/themes/widgetKit");
       }
     }
   });
 
   it("keeps the widget kit clear of the element tables", () => {
-    const specifiers = specifiersOf(WIDGET_KIT_SOURCE);
-    expect(specifiers.length).toBeGreaterThan(0);
-    for (const specifier of specifiers) {
-      expect(specifier).toMatch(/^\.\.\/componentModel\//);
-      expect(specifier).not.toBe("../componentModel");
-      expect(specifier).not.toContain("layoutElements");
-      expect(specifier).not.toContain("themeElements");
-      expect(specifier).not.toContain("getElementDef");
+    for (const source of WIDGET_KIT_SOURCES) {
+      const specifiers = specifiersOf(source);
+      expect(specifiers.length).toBeGreaterThan(0);
+      for (const specifier of specifiers) {
+        if (specifier === "./defineWidget") continue;
+        expect(specifier).toMatch(/^@\/lib\/themes\/componentModel\/\w+$/);
+        expect(specifier).not.toBe("@/lib/themes/componentModel");
+        expect(specifier).not.toBe("@/core/themes");
+        for (const leaf of FORBIDDEN_LEAVES) {
+          expect(specifier).not.toContain(leaf);
+        }
+        expect(specifier).not.toBe("@/lib/themes/componentModel/index");
+      }
+    }
+  });
+
+  it("keeps components off the lower-level theme modules", () => {
+    const paths = Object.keys(COMPONENT_SOURCES).filter(
+      (path) => !path.endsWith(".test.ts") && !path.endsWith(".test.tsx")
+    );
+    expect(paths.length).toBeGreaterThan(0);
+    for (const path of paths) {
+      for (const specifier of specifiersOf(COMPONENT_SOURCES[path])) {
+        if (!specifier.startsWith("@/lib/themes")) continue;
+        expect(ALLOWED_LIB_THEMES, path).toContain(specifier);
+      }
     }
   });
 

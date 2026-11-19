@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * Navigates artists, albums, genres, playlists and songs. Its selection
@@ -39,12 +34,9 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeLibraryBrowser](./LibraryBrowser.tsx)
  */
-export const LIBRARY_BROWSER_ELEMENT: ElementDef = {
+export const LIBRARY_BROWSER_ELEMENT = defineWidget({
   name: "LibraryBrowser",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     views: {
       type: ValueType.EnumList,
       values: ["artists", "albums", "genres", "playlists", "songs"],
@@ -58,8 +50,6 @@ export const LIBRARY_BROWSER_ELEMENT: ElementDef = {
     itemText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
     headerText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 160, height: 160 },
   perPage: 1,
-  since: THEME_SPEC_VERSION,
-};
+});

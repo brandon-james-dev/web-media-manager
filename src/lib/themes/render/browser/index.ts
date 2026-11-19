@@ -53,3 +53,4 @@ export {
 export { useThemeStylesheet } from "../layout/browser/useThemeStylesheet";
 export type { ThemeStylesheetResult } from "../layout/browser/useThemeStylesheet";
 export { WidgetPlaceholder } from "../layout/browser/elements/WidgetPlaceholder";
+export { THEME_ICONS, resolveThemeIcon } from "../layout/themeIcons";

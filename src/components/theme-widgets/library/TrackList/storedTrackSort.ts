@@ -1,4 +1,4 @@
-import { TRACK_COLUMN_VALUES } from "@/lib/themes/widgetKit";
+import { TRACK_COLUMN_VALUES } from "@/core/themes/widgetKit";
 import type { TrackColumnId } from "./trackColumns";
 import type { TrackTableSort } from "./ThemeTrackTable";
 

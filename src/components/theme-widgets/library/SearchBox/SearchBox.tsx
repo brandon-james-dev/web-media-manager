@@ -12,15 +12,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useSidebarPlaylists } from "@/components/library-sidebar/useSidebarPlaylists";
+import { attrBool, attrRef, attrString } from "@/core/themes";
 import { useSongs, useSync } from "@/hooks";
 import { useTranslation } from "@/i18n";
 import type { WmmResourceKey } from "@/i18n";
-import {
-  attrBool,
-  attrRef,
-  attrString,
-  THEME_ICONS,
-} from "@/lib/themes/render";
+import { THEME_ICONS } from "@/lib/themes/render/browser";
 import { useThemeRender } from "@/lib/themes/render/browser";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { WidgetFrame } from "../../shared/WidgetFrame";

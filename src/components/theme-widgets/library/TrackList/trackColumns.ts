@@ -1,7 +1,7 @@
 import type { UseTranslationResult } from "@/i18n";
 import { isSongOffline } from "@/lib/offline";
 import { compareDiscThenTrack } from "@/lib/persistence";
-import { TRACK_COLUMN_VALUES } from "@/lib/themes/widgetKit";
+import { TRACK_COLUMN_VALUES } from "@/core/themes/widgetKit";
 import type { Song } from "@/models";
 
 /**

@@ -12,11 +12,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ItemGroup } from "@/components/ui/item";
+import { attrBool } from "@/core/themes";
 import { wmmBus } from "@/events";
 import { useSync, useSyncUiVisible } from "@/hooks";
 import { useTranslation } from "@/i18n";
 import { formatBytes } from "@/lib/sync/helpers";
-import { attrBool } from "@/lib/themes/render";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { useThemeTextClass } from "../../shared/themeText";
 import { WidgetFrame } from "../../shared/WidgetFrame";

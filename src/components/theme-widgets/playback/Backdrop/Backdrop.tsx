@@ -1,7 +1,7 @@
 import { NowPlayingBackdrop } from "@/components/player-controls/NowPlayingBackdrop";
 import { useArtworkPalette } from "@/components/player-controls/useArtworkPalette";
+import { attrString } from "@/core/themes";
 import { usePlayback } from "@/hooks";
-import { attrString } from "@/lib/themes/render";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { WidgetFrame } from "../../shared/WidgetFrame";
 

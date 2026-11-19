@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * The song fields a `TrackInfo` can show. These are the allowed values of its
@@ -71,12 +66,9 @@ export const TRACK_INFO_FIELDS = [
  *
  * @see [ThemeTrackInfo](./TrackInfo.tsx)
  */
-export const TRACK_INFO_ELEMENT: ElementDef = {
+export const TRACK_INFO_ELEMENT = defineWidget({
   name: "TrackInfo",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     fields: {
       type: ValueType.EnumList,
       values: TRACK_INFO_FIELDS,
@@ -92,8 +84,6 @@ export const TRACK_INFO_ELEMENT: ElementDef = {
     titleText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
     detailText: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 80, height: 16 },
   perPage: null,
-  since: THEME_SPEC_VERSION,
-};
+});

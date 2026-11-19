@@ -1,13 +1,8 @@
 import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
   ReferenceKind,
-  THEME_SPEC_VERSION,
   ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+  defineWidget,
+} from "@/core/themes/widgetKit";
 
 /**
  * A time readout for the current track. Shows `--:--` while the duration
@@ -31,20 +26,15 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemePlaybackTime](./PlaybackTime.tsx)
  */
-export const PLAYBACK_TIME_ELEMENT: ElementDef = {
+export const PLAYBACK_TIME_ELEMENT = defineWidget({
   name: "PlaybackTime",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     format: {
       type: ValueType.Enum,
       values: ["elapsed", "total", "remaining", "elapsedAndTotal"],
     },
     text: { type: ValueType.Reference, refKinds: [ReferenceKind.Text] },
   },
-  children: NO_CHILDREN,
   minSize: { width: 32, height: 12 },
   perPage: null,
-  since: THEME_SPEC_VERSION,
-};
+});

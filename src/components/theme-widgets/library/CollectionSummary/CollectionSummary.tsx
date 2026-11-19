@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { cn } from "cn";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { useSidebarPlaylists } from "@/components/library-sidebar/useSidebarPlaylists";
+import { attrList } from "@/core/themes";
 import { useSongs } from "@/hooks";
 import { useTranslation } from "@/i18n";
 import type { UseTranslationResult, WmmResourceKey } from "@/i18n";
 import { ThumbnailSize } from "@/lib";
-import { attrList } from "@/lib/themes/render";
 import {
   useThemeLayoutSnapshot,
   useThemeRender,

@@ -1,12 +1,4 @@
-import {
-  COMMON_ATTRIBUTES,
-  ElementCategory,
-  NO_CHILDREN,
-  THEME_SPEC_VERSION,
-  ValueType,
-  WIDGET_ATTRIBUTES,
-} from "@/lib/themes/widgetKit";
-import type { ElementDef } from "@/lib/themes/widgetKit";
+import { ValueType, defineWidget } from "@/core/themes/widgetKit";
 
 /**
  * The current track's cover, or a disc icon when there is none.
@@ -29,18 +21,13 @@ import type { ElementDef } from "@/lib/themes/widgetKit";
  *
  * @see [ThemeArtwork](./Artwork.tsx)
  */
-export const ARTWORK_ELEMENT: ElementDef = {
+export const ARTWORK_ELEMENT = defineWidget({
   name: "Artwork",
-  category: ElementCategory.Widget,
   attributes: {
-    ...COMMON_ATTRIBUTES,
-    ...WIDGET_ATTRIBUTES,
     fit: { type: ValueType.Enum, values: ["cover", "contain"] },
     action: { type: ValueType.Enum, values: ["none", "openNowPlaying"] },
     cornerRadius: { type: ValueType.CornerRadius },
   },
-  children: NO_CHILDREN,
   minSize: { width: 24, height: 24 },
   perPage: null,
-  since: THEME_SPEC_VERSION,
-};
+});

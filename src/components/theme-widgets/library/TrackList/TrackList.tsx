@@ -5,20 +5,20 @@ import { TrackItem } from "@/components/track-item";
 import { TvTrackList } from "@/components/tv";
 import { ItemGroup } from "@/components/ui/item";
 import { moveSongInPlaylist, removeSongsFromPlaylist } from "@/core/playlists";
+import { attrBool, attrList, attrString } from "@/core/themes";
+import type { IRNode } from "@/core/themes";
 import { wmmBus } from "@/events";
 import { usePlayback, useSongs } from "@/hooks";
 import { useTranslation } from "@/i18n";
-import { LAYOUT_ELEMENTS } from "@/lib/themes/componentModel";
 import { compareDiscThenTrack, selectors } from "@/lib/persistence";
 import type { SortableColumn } from "@/lib/persistence";
-import type { IRNode } from "@/lib/themes/ir";
 import {
   useThemeLayoutSnapshot,
   useThemeRender,
 } from "@/lib/themes/render/browser";
 import type { Song } from "@/models";
-import { attrBool, attrList, attrString } from "@/lib/themes/render";
 import type { ElementProps } from "@/lib/themes/render/browser";
+import { TRACK_LIST_ELEMENT } from "./definition";
 import { useThemeTextClass } from "../../shared/themeText";
 import { WidgetFrame } from "../../shared/WidgetFrame";
 import { filterLibrarySongs } from "../shared/filterSongs";
@@ -107,8 +107,7 @@ export function ThemeTrackList({ node, style }: ElementProps) {
     [songs, state, playlistSongIds]
   );
 
-  const defaultColumns =
-    LAYOUT_ELEMENTS.TrackList.attributes.columns.default ?? "";
+  const defaultColumns = TRACK_LIST_ELEMENT.attributes.columns.default ?? "";
   const columnsAttribute =
     attrList(node, "columns")?.join(" ") ?? defaultColumns;
   const parsedColumns = useMemo(
