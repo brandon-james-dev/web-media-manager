@@ -26,6 +26,11 @@ export {
 } from "./visualizers";
 export type { VisualizerPluginStore } from "./visualizers";
 export type { PackageFileRecord, PackageFileStore } from "./packageFiles";
+export {
+  getLyricsSettingsStore,
+  setLyricsSettingsStoreProvider,
+} from "./lyrics";
+export type { LyricsSettings, LyricsSettingsStore } from "./lyrics";
 export { getThemeStore, setThemeStoreProvider } from "./themes";
 export type {
   InstalledTheme,

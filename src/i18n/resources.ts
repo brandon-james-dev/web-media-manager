@@ -609,6 +609,50 @@ export const WMM_RESOURCES = {
   "metadata.updateDescription": text("Summary of the song editor."),
   "metadata.previousSong": text("Moves to the previous song in the editor."),
   "metadata.nextSong": text("Moves to the next song in the editor."),
+  "metadata.fetchLyrics": text("Opens the online lyrics lookup."),
+  "metadata.lyricsSearchTitle": text("Title of the online lyrics lookup dialog."),
+  "metadata.lyricsSearchDescription": text(
+    "Explains that the dialog searches an online lyrics database."
+  ),
+  "metadata.lyricsSearchPrompt": text(
+    "Shown before the first lyrics search is run."
+  ),
+  "metadata.lyricsNoResults": text(
+    "Shown when a lyrics search returns nothing."
+  ),
+  "metadata.lyricsInstrumental": text(
+    "Marks a lyrics record for an instrumental track."
+  ),
+  "metadata.lyricsSynced": text(
+    "Marks a lyrics record that carries timestamps."
+  ),
+  "metadata.lyricsPlain": text("Marks a lyrics record with plain text only."),
+  "metadata.lyricsApply": text(
+    "Copies the chosen lyrics into the lyrics field."
+  ),
+  "metadata.lyricsSyncedTiming": template(
+    "Marks a lyrics record that carries timestamps, naming its length.",
+    ["duration"]
+  ),
+  "metadata.lyricsWordSync": text(
+    "Marks a lyrics record with word-level timestamps."
+  ),
+  "metadata.lyricsRecordId": template(
+    "Identifies a lyrics record in the provider's database.",
+    ["id"]
+  ),
+  "metadata.lyricsLineCount": template(
+    "Number of lyric lines a lyrics record carries.",
+    ["count"]
+  ),
+  "metadata.lyricsResultsCount": template(
+    "Number of lyrics records a search returned.",
+    ["count"]
+  ),
+  "metadata.lyricsMatchScore": template(
+    "How closely a lyrics record matches the song being edited.",
+    ["percent"]
+  ),
 
   // settings
   "settings.title": text("The settings screen."),
@@ -671,6 +715,22 @@ export const WMM_RESOURCES = {
     "Summary under the visualizer plugins heading."
   ),
   "settings.installPlugins": text("Opens the visualizer plugin manager."),
+  "settings.lyrics": text("Heading of the online lyrics card."),
+  "settings.lyricsDescription": text(
+    "Summary under the online lyrics heading."
+  ),
+  "settings.lyricsApplicationId": text(
+    "Label of the lyrics provider application id field."
+  ),
+  "settings.lyricsApplicationIdDescription": text(
+    "Explains what the lyrics provider application id is used for."
+  ),
+  "settings.lyricsApplicationIdPlaceholder": text(
+    "Placeholder of the lyrics provider application id field."
+  ),
+  "settings.lyricsSaved": text(
+    "Toast shown after the lyrics settings are saved."
+  ),
   "settings.data": text("Heading of the song data card."),
   "settings.dataDescription": text("Summary under the song data heading."),
   "settings.clearDatabase": text(

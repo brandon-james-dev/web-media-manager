@@ -291,6 +291,21 @@ metadata.apply,Aplicar metadatos
 metadata.updateDescription,Actualiza los metadatos de la canción seleccionada
 metadata.previousSong,Canción anterior
 metadata.nextSong,Canción siguiente
+metadata.fetchLyrics,Buscar letra
+metadata.lyricsSearchTitle,Buscar letra
+metadata.lyricsSearchDescription,Busca en una base de datos de letras en línea y copia el resultado en el campo de letra.
+metadata.lyricsSearchPrompt,Busca para encontrar la letra de esta canción.
+metadata.lyricsNoResults,No se encontró la letra.
+metadata.lyricsInstrumental,Instrumental
+metadata.lyricsSynced,Letra sincronizada
+metadata.lyricsPlain,Letra en texto plano
+metadata.lyricsApply,Usar letra
+metadata.lyricsSyncedTiming,Sincronizada · {0}
+metadata.lyricsWordSync,Sincronización por palabra
+metadata.lyricsRecordId,#{0}
+metadata.lyricsLineCount,{0} líneas
+metadata.lyricsResultsCount,{0} resultados
+metadata.lyricsMatchScore,{0}% de coincidencia
 settings.title,Configuración
 settings.pageTitle,Configuración y datos
 settings.description,Administra las preferencias de la aplicación
@@ -320,6 +335,12 @@ settings.extensibilityDescription,Temas personalizados y complementos de visuali
 settings.visualizers,Visualizadores
 settings.visualizersDescription,Instala complementos de visualizador y configura el activo
 settings.installPlugins,Instalar o administrar complementos
+settings.lyrics,Letra
+settings.lyricsDescription,Configura la búsqueda de letras en línea.
+settings.lyricsApplicationId,ID de aplicación de LRCLIB
+settings.lyricsApplicationIdDescription,Opcional. Un ID de aplicación registrado aumenta el límite de solicitudes de LRCLIB para buscar letras; la búsqueda funciona sin uno.
+settings.lyricsApplicationIdPlaceholder,ID de aplicación
+settings.lyricsSaved,Configuración de letra guardada
 settings.data,Datos
 settings.dataDescription,Administra todos los datos de canciones y las fuentes usadas para escanear e importar música
 settings.clearDatabase,Borrar la base de datos de canciones

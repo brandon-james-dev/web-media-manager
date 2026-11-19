@@ -96,6 +96,7 @@ export function Editor({
       if (v !== undefined) (editUpdates as Record<string, unknown>)[k] = v;
     }
     const updatedSong = await updateTags(selectedSong, editUpdates, cover);
+
     notification$.next({
       id: uuidv7(),
       title: t("notification.songUpdated"),
@@ -121,6 +122,16 @@ export function Editor({
 
     setSelectedSongIds([selectedSong.id]);
     wmmBus.publish("wmm.ui.selectionChanged", { songIds: selectedSongIds });
+
+    // Last, so it wins over the selection subscription above: that handler
+    // re-derives the selection from `filteredSongs`, which has not refreshed
+    // yet. The drawer's form is uncontrolled and keyed on the song id, which
+    // does not change on save, so without this the reopened drawer renders the
+    // pre-edit values until a navigation re-derives the selection.
+    setSelectedSongs((prev) =>
+      prev.map((s) => (s.id === updatedSong.id ? updatedSong : s))
+    );
+
     setIsAdvancedEdit(false);
   }
 

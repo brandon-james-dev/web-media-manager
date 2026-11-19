@@ -78,13 +78,13 @@ export function ThemedLayout({
       analysis === undefined
         ? undefined
         : new ThemeLayoutState({
-            themeId,
-            formFactor,
-            pages: analysis.pages,
-            ...(analysis.defaultPageId === undefined
-              ? {}
-              : { defaultPageId: analysis.defaultPageId }),
-          }),
+          themeId,
+          formFactor,
+          pages: analysis.pages,
+          ...(analysis.defaultPageId === undefined
+            ? {}
+            : { defaultPageId: analysis.defaultPageId }),
+        }),
     [analysis, themeId, formFactor]
   );
 
@@ -116,10 +116,10 @@ export function ThemedLayout({
   useEffect(() => {
     return commandDispatcher.register("wmm.ui.toggleFullscreen", () => {
       if (document.fullscreenElement === null) {
-        void document.documentElement.requestFullscreen().catch(() => {});
+        void document.documentElement.requestFullscreen().catch(() => { });
         return;
       }
-      void document.exitFullscreen().catch(() => {});
+      void document.exitFullscreen().catch(() => { });
     });
   }, []);
 
@@ -222,7 +222,7 @@ function SettingsAffordance({ label }: { label: string }) {
   return (
     <button
       type="button"
-      className="fixed end-2 top-2 z-50 inline-flex size-8 items-center justify-center rounded-md text-foreground/70 hover:text-foreground"
+      className="fixed inset-e-2 top-2 z-50 inline-flex size-8 items-center justify-center rounded-md text-foreground/70 hover:text-foreground"
       title={label}
       aria-label={label}
       onClick={() => wmmBus.invoke("wmm.ui.openSettings")}

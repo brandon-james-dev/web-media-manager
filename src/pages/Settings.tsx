@@ -14,6 +14,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -34,7 +35,7 @@ import { clearLibrary } from "@/core/scanning";
 import { clearSubsonicSecrets } from "@/lib/sources/subsonic/subsonicSecrets";
 import { runJobWithProgress } from "@/lib/jobs/runJobWithProgress";
 import type { SourceRemoveResult } from "@/workers/shared/runSourceRemove";
-import { getSourcesStore } from "@/core/ports";
+import { getSourcesStore, getLyricsSettingsStore } from "@/core/ports";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { Badge } from "@/components/ui/badge";
 import { musicSourceStrategies } from "@/lib/sources";
@@ -80,6 +81,8 @@ export function Settings() {
   const [editingSource, setEditingSource] = useState<MusicSource | null>(null);
   const [sources, setDirectories] = useState<MusicSource[]>([]);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [lyricsApplicationId, setLyricsApplicationId] = useState("");
+  const [savedLyricsApplicationId, setSavedLyricsApplicationId] = useState("");
   const [settings, setSettings] = useState({
     theme: theme || "system",
     accentColor: accentColor || "#3b82f6",
@@ -116,6 +119,15 @@ export function Settings() {
       unsubSourceDeleted();
       unsubSourcesCleared();
     };
+  }, []);
+
+  useEffect(() => {
+    getLyricsSettingsStore()
+      .getSettings()
+      .then(({ applicationId }) => {
+        setLyricsApplicationId(applicationId ?? "");
+        setSavedLyricsApplicationId(applicationId ?? "");
+      });
   }, []);
   //#endregion
 
@@ -186,6 +198,16 @@ export function Settings() {
     toast.add({
       type: "success",
       title: t("settings.saved"),
+    });
+  };
+
+  const handleSaveLyricsSettings = async () => {
+    await getLyricsSettingsStore().setApplicationId(lyricsApplicationId);
+    setSavedLyricsApplicationId(lyricsApplicationId.trim());
+
+    toast.add({
+      type: "success",
+      title: t("settings.lyricsSaved"),
     });
   };
 
@@ -395,6 +417,40 @@ export function Settings() {
             <PluginManagerDialog />
             <VisualizerSettings pluginId={settingsPluginId} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.lyrics")}</CardTitle>
+          <CardDescription>{t("settings.lyricsDescription")}</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="lyrics-application-id">
+              {t("settings.lyricsApplicationId")}
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              {t("settings.lyricsApplicationIdDescription")}
+            </p>
+          </div>
+
+          <Input
+            id="lyrics-application-id"
+            value={lyricsApplicationId}
+            autoComplete="off"
+            placeholder={t("settings.lyricsApplicationIdPlaceholder")}
+            onChange={(e) => setLyricsApplicationId(e.target.value)}
+          />
+
+          <Button
+            onClick={handleSaveLyricsSettings}
+            className="w-full"
+            disabled={lyricsApplicationId.trim() === savedLyricsApplicationId}
+          >
+            {t("settings.save")}
+          </Button>
         </CardContent>
       </Card>
 

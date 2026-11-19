@@ -41,6 +41,7 @@ export class WmmMusicDb extends Dexie {
   themes!: Table<InstalledTheme, string>;
   themeFiles!: Table<PackageFileRecord, number>;
   themeSettings!: Table<{ key: string; value: string }, string>;
+  appSettings!: Table<{ key: string; value: string }, string>;
 
   constructor() {
     super("wmm.music");
@@ -129,6 +130,10 @@ export class WmmMusicDb extends Dexie {
       `,
 
       themeSettings: `
+        key
+      `,
+
+      appSettings: `
         key
       `,
     });

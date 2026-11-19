@@ -21,3 +21,4 @@ export {
   ThumbnailSize,
 } from "./metadata";
 export { lookupMetadataOnline } from "./metadata-providers";
+export { searchLyrics } from "./lyrics-providers";

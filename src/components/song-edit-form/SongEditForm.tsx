@@ -7,9 +7,11 @@ import type { SongEditDto } from "@/dto";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
-import { Eraser, Globe, Pen, Save, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Eraser, FileMusic, Globe, Pen, Save, ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { SongEditFormProps } from "./SongEditFormProps";
 import { AlbumArtImage } from "../album-art-image";
+import { LyricsSearchDialog } from "../lyrics-search-dialog/LyricsSearchDialog";
+import type { ILyricsResult } from "@/lib/lyrics-providers/ILyricsService";
 import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
 import { useTranslation } from "@/i18n";
 
@@ -19,6 +21,7 @@ export function SongEditForm(props: SongEditFormProps) {
   const { t } = useTranslation();
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
   const [showSearch, setShowSearch] = useState(false);
+  const [showLyricsSearch, setShowLyricsSearch] = useState(false);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const formRef = useRef<HTMLFormElement>(null);
   //#endregion
@@ -146,6 +149,12 @@ export function SongEditForm(props: SongEditFormProps) {
         setUpdatedFrontCover(new Blob([coverClone]));
       }
     }
+  }
+
+  function handleLyricsSelect(result: ILyricsResult) {
+    // Timed lyrics are a later editor; for now the plain text is what the
+    // lyrics field holds.
+    set("lyrics", result.plainLyrics ?? result.syncedLyrics ?? "");
   }
 
   async function handleEditSubmit(event: React.SubmitEvent<HTMLFormElement>) {
@@ -627,22 +636,17 @@ export function SongEditForm(props: SongEditFormProps) {
           <h2 className="text-lg font-semibold mb-4">{t("metadata.textFields")}</h2>
           <div className="grid xl:grid-cols-2 gap-4">
             <div>
-              <Label className="pb-1">{t("metadata.comment")}</Label>
-              <Textarea
-                name="comment"
-                defaultValue={song.comment ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "comment",
-                    evt.currentTarget.value !== (song.comment ?? "")
-                  )
-                }
-                className={dirty.comment ? "dark:border-accent/50" : ""}
-              />
-            </div>
-            <div>
-              <Label className="pb-1">{t("metadata.lyrics")}</Label>
+              <div className="flex min-h-7 items-center justify-between pb-1">
+                <Label>{t("metadata.lyrics")}</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowLyricsSearch(true)}
+                >
+                  <FileMusic /> {t("metadata.fetchLyrics")}
+                </Button>
+              </div>
               <Textarea
                 name="lyrics"
                 defaultValue={song.lyrics ?? ""}
@@ -656,10 +660,34 @@ export function SongEditForm(props: SongEditFormProps) {
                 className={dirty.lyrics ? "dark:border-accent/50" : ""}
               />
             </div>
+            <div>
+              <div className="flex min-h-7 items-center justify-between pb-1">
+                <Label>{t("metadata.comment")}</Label>
+              </div>
+              <Textarea
+                name="comment"
+                defaultValue={song.comment ?? ""}
+                autoComplete="off"
+                onChange={(evt) =>
+                  markDirty(
+                    "comment",
+                    evt.currentTarget.value !== (song.comment ?? "")
+                  )
+                }
+                className={dirty.comment ? "dark:border-accent/50" : ""}
+              />
+            </div>
           </div>
         </section>
         </fieldset>
       </form>
+
+      <LyricsSearchDialog
+        song={song}
+        open={showLyricsSearch}
+        onOpenChange={setShowLyricsSearch}
+        onSelect={handleLyricsSelect}
+      />
     </>
   );
 }

@@ -29,6 +29,7 @@ import { registerBrowserSourceProvider } from "./lib/persistence/browser/sources
 import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvider";
 import { registerBrowserVisualizerStoreProvider } from "./lib/persistence/browser/visualizerStoreProvider";
 import { registerBrowserThemeStoreProvider } from "./lib/persistence/browser/themeStoreProvider";
+import { registerBrowserLyricsSettingsStoreProvider } from "./lib/persistence/browser/lyricsSettingsProvider";
 import { resumeInterruptedJobs } from "./lib/background-jobs";
 import { ensureFavorites } from "./core/playlists";
 import { getThemeNavigationHandler } from "./core/themes";
@@ -53,6 +54,7 @@ registerBrowserSourceProvider();
 registerBrowserJobService();
 registerBrowserVisualizerStoreProvider();
 registerBrowserThemeStoreProvider();
+registerBrowserLyricsSettingsStoreProvider();
 
 // Restore jobs a previous session left unfinished, then re-import every
 // configured source on startup so the library stays in sync
