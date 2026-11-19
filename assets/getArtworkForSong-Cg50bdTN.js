@@ -1,0 +1,1 @@
+import{t as e}from"./songArtworkStore-D_bfc608.js";async function t(t){return await e().getBySong(t)}export{t};
