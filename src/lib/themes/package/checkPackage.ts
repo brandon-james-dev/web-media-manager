@@ -46,18 +46,19 @@ export const PACKAGE_LIMITS = {
 } as const;
 
 /**
- * Package files that must exist (`E1008`).
+ * Package files that must exist (`E1008`). Layout files are optional, so a
+ * theme with only `theme.xml` recolors the built-in UI.
  *
  * @example
  * ```json
- * { "formFactors": ["desktop"] }
+ * { "formFactors": [] }
  * ```
  * @example
  * ```ts
- * REQUIRED_FILES.includes("layouts/desktop.xml"); // true
+ * REQUIRED_FILES.includes("layouts/desktop.xml"); // false
  * ```
  */
-const REQUIRED_FILES = ["manifest.json", "theme.xml", "layouts/desktop.xml"];
+const REQUIRED_FILES = ["manifest.json", "theme.xml"];
 
 /**
  * Root files allowed besides the folders, with their byte limit.
@@ -684,8 +685,6 @@ export function checkManifest(
         `"formFactors" contains unknown values: ${unknown.join(", ")}.`,
         "formFactors"
       );
-    } else if (!formFactors.includes(FormFactor.Desktop)) {
-      report("E2005", `"formFactors" must include "desktop".`, "formFactors");
     } else if (new Set(formFactors).size !== formFactors.length) {
       report("E2005", `"formFactors" contains duplicates.`, "formFactors");
     }

@@ -289,7 +289,7 @@ Notes:
 
 | File | If the file is absent |
 |------|-----------------------|
-| `desktop.xml` | n/a (required) |
+| `desktop.xml` | Host's built-in desktop layout, with the theme's tokens and styles |
 | `tablet.xml` | Host's built-in tablet layout, with the theme's tokens and styles |
 | `mobile.xml` | Host's built-in mobile layout, with the theme's tokens and styles |
 | `tv.xml` | Host's built-in TV layout, with the theme's tokens and styles |

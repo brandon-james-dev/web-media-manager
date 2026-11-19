@@ -1,5 +1,6 @@
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
+import { createThemeMirror } from "../runtime/themeMirror";
 import { classicBlueDesktop } from "../testing/classicBlueDesktop";
 import { classicBlueTheme } from "../testing/classicBlueTheme";
 import { validateThemePackage } from "./validateThemePackage";
@@ -39,6 +40,23 @@ describe("validateThemePackage", () => {
     expect(result.files?.has("theme.xml")).toBe(true);
     expect(result.ir?.layouts.desktop?.element).toBe("Layout");
     expect(result.ir?.palettes.dark?.background).toBe("#0b1a3aff");
+  });
+
+  it("compiles a palette-only package with no layouts", () => {
+    const result = validateThemePackage(
+      zipSync({
+        "manifest.json": strToU8(
+          JSON.stringify({ ...manifest, formFactors: [] })
+        ),
+        "theme.xml": strToU8(classicBlueTheme),
+      })
+    );
+    expect(result.issues.filter((issue) => issue.severity !== "info")).toEqual(
+      []
+    );
+    expect(result.ir?.formFactors).toEqual([]);
+    expect(result.ir?.layouts).toEqual({});
+    expect(createThemeMirror(result.ir!).layouts).toEqual([]);
   });
 
   it("stops at the archive stage", () => {

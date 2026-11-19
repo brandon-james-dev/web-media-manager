@@ -1,7 +1,8 @@
 /**
  * The device class a layout file targets. Each value maps to one file in
  * `layouts/`, and the root `formFactor` attribute must match the file name
- * (`E6001`). `layouts/desktop.xml` is required; the others are optional.
+ * (`E6001`). Every layout file is optional; a form factor without one shows
+ * the built-in UI with the theme's tokens.
  *
  * @example
  * ```xml
@@ -15,7 +16,7 @@
  */
 export const FormFactor = {
   /**
-   * Viewports 1024 px and wider with a fine pointer. Required in every theme.
+   * Viewports 1024 px and wider with a fine pointer.
    *
    * @example
    * ```xml

@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { IssueSeverity } from "../issues";
 import { validateThemePackage } from "./validateThemePackage";
 
-const EXAMPLE_THEMES = ["classic-blue", "tonal"] as const;
+const EXAMPLE_THEMES = ["classic-blue", "tonal", "sage"] as const;
 
 function packageDirectory(id: string): string {
   return fileURLToPath(

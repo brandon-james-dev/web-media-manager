@@ -73,8 +73,10 @@ Open it directly in your browser — no installation required.
 
 ### Custom Themes
 
-- Theme packages are ZIP files with a `manifest.json`, a `theme.xml` and one
-  layout per form factor (`desktop`, `tablet`, `mobile`, `tv`)
+- Theme packages are ZIP files with a `manifest.json`, a `theme.xml` and an
+  optional layout per form factor (`desktop`, `tablet`, `mobile`, `tv`)
+- A theme with no layouts is a palette swap: the built-in UI takes its
+  colors and fonts
 - `theme.xml` declares colors, light and dark palettes, metrics, fonts, text
   styles, brushes, shadows, and button, slider and panel styles with states
 - Layouts arrange the shell and pages from layout elements (`Grid`, `Stack`,
@@ -92,7 +94,8 @@ Open it directly in your browser — no installation required.
   get the mobile layout, even when the TV override is stored
 - Example themes: **Classic Blue** (flat desktop layout) and **Tonal**
   (tonal light/dark surfaces with a phone layout: top app bar, bottom
-  navigation bar, mini-player card)
+  navigation bar, mini-player card), plus **Sage**, a palette-only theme
+  with light and dark sage-green palettes and no layouts
 - The theme specification and authoring guides live in
   [`docs/themes/`](docs/themes/README.md), including a prompt for generating
   themes with AI and a guide for creating new widgets
@@ -271,7 +274,7 @@ Layout renderer for desktop, tablet, mobile and TV layouts
 Stylesheet builder for button, slider and panel styles and their states
 18 theme widgets, each a definition.ts plus a component
 Widgets built only on the src/core/themes public API (guard test enforced)
-Example themes: Classic Blue (desktop), Tonal (desktop + mobile)
+Example themes: Classic Blue (desktop), Tonal (desktop + mobile), Sage (palette only)
 ```
 
 ### Sync and Playback Fixes On This Branch

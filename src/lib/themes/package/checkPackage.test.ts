@@ -153,8 +153,18 @@ describe("checkArchive", () => {
     const { issues } = checkArchive(zip({ "manifest.json": "{}" }));
     expect(issues.map((issue) => [issue.code, issue.file])).toEqual([
       ["E1008", "theme.xml"],
-      ["E1008", "layouts/desktop.xml"],
     ]);
+  });
+
+  it("stores a palette-only package without layouts", () => {
+    const { files, issues } = checkArchive(
+      zip({
+        "manifest.json": JSON.stringify({ ...baseManifest, formFactors: [] }),
+        "theme.xml": "<Theme />",
+      })
+    );
+    expect(issues).toEqual([]);
+    expect([...files.keys()].sort()).toEqual(["manifest.json", "theme.xml"]);
   });
 });
 
@@ -259,12 +269,26 @@ describe("checkManifest", () => {
       manifestCodes(baseManifest, { "layouts/mobile.xml": "<Layout />" })
     ).toEqual(["W2006"]);
     expect(manifestCodes({ ...baseManifest, formFactors: ["mobile"] })).toEqual(
-      ["E2005", "W2006", "E2006"]
+      ["W2006", "E2006"]
     );
+    expect(
+      manifestCodes(
+        { ...baseManifest, formFactors: ["mobile"] },
+        { "layouts/mobile.xml": "<Layout />" }
+      )
+    ).toEqual(["W2006"]);
     expect(manifestCodes({ ...baseManifest, formFactors: ["watch"] })).toEqual([
       "E2005",
       "W2006",
     ]);
+  });
+
+  it("accepts an empty formFactors list for a palette-only theme", () => {
+    const files = manifestFiles({ ...baseManifest, formFactors: [] });
+    files.delete("layouts/desktop.xml");
+    const { manifest, issues } = checkManifest(files);
+    expect(issues).toEqual([]);
+    expect(manifest?.formFactors).toEqual([]);
   });
 
   it("checks colorSchemes", () => {

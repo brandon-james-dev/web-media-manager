@@ -42,7 +42,7 @@ Theme details:
 - name: <display name>
 - author: <your name>
 - license: <SPDX id, e.g. MIT>
-- form factors: <desktop only, or desktop plus tablet / mobile / tv>
+- form factors: <none for a palette swap, or any of desktop / tablet / mobile / tv>
 - color schemes: <light, dark, or both>
 - honor the user's accent color: <yes / no>
 
@@ -51,7 +51,7 @@ Rules you must follow:
    styles, event attributes (on*) or {...} binding syntax. Do not use any
    reserved manifest field or reserved element.
 2. Produce exactly this package layout: manifest.json, theme.xml,
-   layouts/desktop.xml, one layout file per extra form factor you list,
+   one layout file per form factor you list (none for a palette swap),
    assets/images/ for images, assets/fonts/ only if you ship fonts, and
    previews/ for the thumbnail. File and folder names are lowercase
    kebab-case.

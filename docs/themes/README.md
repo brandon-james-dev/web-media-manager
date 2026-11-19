@@ -31,8 +31,10 @@ SDK, and the app engineers who implement the host.
 
 ## The contract in one page
 
-- A theme is a **ZIP** containing `manifest.json`, `theme.xml`, `layouts/desktop.xml`
-  (required), and optionally `layouts/tablet.xml`, `layouts/mobile.xml`, `layouts/tv.xml`, `assets/` and `previews/`.
+- A theme is a **ZIP** containing `manifest.json` and `theme.xml` (required), and optionally
+  `layouts/desktop.xml`, `layouts/tablet.xml`, `layouts/mobile.xml`, `layouts/tv.xml`, `assets/` and `previews/`.
+  A theme with no layout files is a **palette swap**: the built-in UI keeps its layout and takes
+  the theme's colors and fonts. Button, slider and panel styles only affect themed layouts.
 - A theme is **data, not code**. There is no scripting, no expressions, no raw CSS, no
   HTML, and no way to name an arbitrary component. Each element and attribute has
   a closed, typed grammar.

@@ -1,0 +1,16 @@
+{
+  "kind": "theme",
+  "spec": "1.0",
+  "id": "sage",
+  "name": "Sage",
+  "version": "1.0.0",
+  "description": "A palette-only theme: the built-in layout in soft sage greens, with light and dark palettes. Ships no layout files.",
+  "author": { "name": "Web Media Manager" },
+  "license": "MIT",
+  "formFactors": [],
+  "colorSchemes": ["light", "dark"],
+  "honorsUserAccent": false,
+  "previews": ["previews/thumbnail.png"],
+  "thumbnail": "previews/thumbnail.png",
+  "tags": ["palette", "green", "minimal"]
+}

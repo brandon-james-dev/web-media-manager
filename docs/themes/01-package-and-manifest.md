@@ -8,7 +8,7 @@ classic-blue.wmmtheme.zip
 ├── manifest.json            required  Identity, versions, compatibility, entry points
 ├── theme.xml                required  Tokens and styles
 ├── layouts/
-│   ├── desktop.xml          required  Desktop form factor
+│   ├── desktop.xml          optional  Falls back to the host's built-in desktop layout
 │   ├── tablet.xml           optional  Falls back to the host's built-in tablet layout
 │   ├── mobile.xml           optional  Falls back to the host's built-in mobile layout
 │   └── tv.xml               optional  Falls back to the host's built-in TV layout
@@ -75,7 +75,7 @@ without an XML parser for gallery listings.
 | `license` | string | no | SPDX identifier or `"SEE LICENSE IN LICENSE"`. |
 | `homepage` | string | no | `https:` URL. |
 | `app.min` | SemVer | no | Minimum app version, for theme-relevant fixes outside the spec (e.g. a widget bug). Advisory: below it, installing warns but is allowed. |
-| `formFactors` | string[] | yes | Non-empty subset of `desktop`, `tablet`, `mobile`, `tv`. Must include `desktop`. Each listed value requires its layout file, and a present layout file not listed here is a warning. |
+| `formFactors` | string[] | yes | Subset of `desktop`, `tablet`, `mobile`, `tv`, without duplicates. May be empty. Each listed value requires its layout file, and a present layout file not listed here is a warning. A form factor that is not listed shows the host's built-in layout with the theme's tokens and styles. |
 | `colorSchemes` | string[] | yes | Non-empty subset of `light`, `dark`. Each needs a `<Palette scheme>` in `theme.xml`. A single scheme disables the app's light/dark toggle while the theme is active. |
 | `honorsUserAccent` | boolean | no | Default `false`. If `true`, the user's accent picker overrides the palette `accent` slot (and its derived slots). |
 | `previews` | string[] | no | ≤ 6 paths under `previews/`. |

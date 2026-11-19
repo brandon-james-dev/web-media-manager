@@ -36,7 +36,7 @@
 | `E1005` | Archive | An absolute path, or a path containing `..` or an empty segment. |
 | `E1006` | Archive | Duplicate path, including paths that differ only by letter case. |
 | `E1007` | Archive | The path is longer than 200 characters or deeper than 6 levels. |
-| `E1008` | Archive | `manifest.json`, `theme.xml` or `layouts/desktop.xml` is missing. |
+| `E1008` | Archive | `manifest.json` or `theme.xml` is missing. |
 | `E2001` | Manifest | `manifest.json` is not UTF-8 JSON, or is not a JSON object. |
 | `I2001` | Manifest | Unknown field, ignored. Fields starting with `x-` never report. |
 | `E2002` | Manifest | Reserved field used. |
