@@ -10,8 +10,7 @@ that reads it can produce a package that installs on the first or second try.
   read this folder directly. For a plain chat, attach these files:
   `01-package-and-manifest.md`, `02-theme-xml.md`, `03-layouts.md`,
   `04-conventions-and-schema.md`, `05-validation.md`, `pages/playback.md`,
-  `pages/songs.md`, and one complete example (`08-example-classic-blue.md`, or the
-  files under `examples/themes/glass-player/`).
+  `pages/songs.md`, and one complete example (`08-example-classic-blue.md`.
 - Have a reference ready. Screenshots of the look you want work best. A written
   description also works.
 - Know how you will test it. **Settings → Custom themes → Install theme** runs the same
