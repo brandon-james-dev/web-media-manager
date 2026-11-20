@@ -1,17 +1,25 @@
+/**
+ * Resizes a bitmap to one of the app's thumbnail sizes.
+ *
+ * `mimeType` defaults to WebP, which is what the in-app thumbnails use. Artwork
+ * written into a file's tags must pass JPEG instead: WebP inside an ID3 APIC
+ * frame is ignored by Apple Music, Spotify and most other players, so the cover
+ * appears missing even though the frame is present.
+ */
 export async function resizeBitmap(
   bitmap: ImageBitmap,
-  size: ThumbnailSize
+  size: ThumbnailSize,
+  mimeType: "image/webp" | "image/jpeg" = "image/webp"
 ): Promise<Blob> {
   const canvas = new OffscreenCanvas(size, size);
   const ctx = canvas.getContext("2d")!;
 
   ctx.drawImage(bitmap, 0, 0, size, size);
 
-  const type = "image/webp";
   const quality = qualityBySize[size];
   try {
     return await canvas.convertToBlob({
-      type,
+      type: mimeType,
       quality,
     });
   } catch {

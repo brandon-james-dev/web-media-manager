@@ -35,7 +35,7 @@ export async function applySongEdits(
     const bitmap = await createImageBitmap(cover.coverFront);
 
     try {
-      const resized = await resizeBitmap(bitmap, 512);
+      const resized = await resizeBitmap(bitmap, 512, "image/jpeg");
       const buf = new Uint8Array(await resized.arrayBuffer());
 
       updatedSong.pictures ??= [];
@@ -69,7 +69,7 @@ export async function applySongEdits(
     const bitmap = await createImageBitmap(cover.coverBack);
 
     try {
-      const resized = await resizeBitmap(bitmap, 512);
+      const resized = await resizeBitmap(bitmap, 512, "image/jpeg");
       const buf = new Uint8Array(await resized.arrayBuffer());
 
       updatedSong.pictures ??= [];

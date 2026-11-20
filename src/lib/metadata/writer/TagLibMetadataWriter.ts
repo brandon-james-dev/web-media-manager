@@ -180,7 +180,7 @@ export class TagLibMetadataWriter implements IMetadataWriter {
       const bitmap = await createImageBitmap(sourceBlob);
 
       try {
-        const resizedBlob = await resizeBitmap(bitmap, 512);
+        const resizedBlob = await resizeBitmap(bitmap, 512, "image/jpeg");
 
         seen.set(type, {
           mimeType: resizedBlob.type,

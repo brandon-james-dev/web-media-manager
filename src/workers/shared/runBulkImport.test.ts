@@ -15,22 +15,25 @@ let collectPlaylists: (() => Promise<Playlist[] | null>) | undefined;
 let collectSongChanges:
   ((o: { since: number }) => Promise<unknown>) | undefined;
 let collectFavorites: (() => Promise<string[] | null>) | undefined;
+let storedSongs: Song[] = [];
+let artworkIds = new Set<string>();
+let collectSongsResult: Song[] = [song];
 
 vi.mock("@/lib", () => ({
   initMetadataStore: () => ({
-    getAll: async () => [],
+    getAll: async () => storedSongs,
     batchDelete: async () => {},
     save: () => {},
   }),
 }));
 vi.mock("@/lib/persistence/songArtworkStore", () => ({
   getSongArtworkStore: () => ({
-    listSongIdsWithArtwork: async () => new Set<string>(),
+    listSongIdsWithArtwork: async () => artworkIds,
   }),
 }));
 vi.mock("@/lib/sources", () => ({
   getStrategy: () => ({
-    collectSongs: async () => [song],
+    collectSongs: async () => collectSongsResult,
     get collectSongChanges() {
       return collectSongChanges;
     },
@@ -208,5 +211,88 @@ describe("runBulkImport changes-only", () => {
     expect(collectSongChanges).not.toHaveBeenCalled();
     expect(result).toMatchObject({ ok: true, songs: [song] });
     collectSongChanges = undefined;
+  });
+});
+
+describe("runBulkImport artwork recovery", () => {
+  const posted: Array<{ type: string; job: { payload: { song: Song } } }> = [];
+
+  function stubSelf() {
+    posted.length = 0;
+    vi.stubGlobal("self", {
+      postMessage: (message: { type: string; job: { payload: { song: Song } } }) =>
+        posted.push(message),
+    });
+  }
+
+  function reset() {
+    collectSongChanges = undefined;
+    collectPlaylists = undefined;
+    collectFavorites = undefined;
+    storedSongs = [];
+    artworkIds = new Set<string>();
+    vi.unstubAllGlobals();
+  }
+
+  const withArt = (id: string) =>
+    ({
+      id,
+      title: id,
+      sourceId: "src1",
+      pictures: [{ data: [1, 2, 3] }],
+    }) as unknown as Song;
+
+  it("walks the whole library when a stored song has no artwork row", async () => {
+    stubSelf();
+    memoryPlaylists([]);
+    collectSongChanges = vi.fn(async () => ({
+      songs: [],
+      unchanged: true,
+      note: "unchanged",
+    }));
+
+    // Saved by an interrupted run, so it never got an artwork row. The store
+    // strips `pictures`, so the incremental path cannot recover its cover art.
+    storedSongs = [withArt("orphan")];
+    artworkIds = new Set<string>();
+    collectSongsResult = [withArt("s1")];
+
+    await runBulkImport(
+      { musicSource: source, since: 123 },
+      () => false,
+      () => {},
+      "job"
+    );
+
+    expect(collectSongChanges).not.toHaveBeenCalled();
+    expect(posted.map((m) => m.job.payload.song.id)).toEqual(["s1"]);
+
+    collectSongsResult = [song];
+    reset();
+  });
+
+  it("stays incremental when every stored song has an artwork row", async () => {
+    stubSelf();
+    memoryPlaylists([]);
+    collectSongChanges = vi.fn(async () => ({
+      songs: [],
+      unchanged: true,
+      note: "unchanged",
+    }));
+
+    storedSongs = [withArt("done")];
+    artworkIds = new Set(["done"]);
+
+    await runBulkImport(
+      { musicSource: source, since: 123 },
+      () => false,
+      () => {},
+      "job"
+    );
+
+    expect(collectSongChanges).toHaveBeenCalledTimes(1);
+    expect(posted).toHaveLength(0);
+
+    reset();
   });
 });

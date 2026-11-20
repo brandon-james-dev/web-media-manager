@@ -49,9 +49,19 @@ export async function runBulkImport(
 
   const store = initMetadataStore() as CombinedMetadataStore;
   const allSongs = await store.getAll();
+  const songsWithArtwork = await getSongArtworkStore().listSongIdsWithArtwork();
+
+  // A song with no artwork row was never processed by a thumbnail job. The
+  // store strips `pictures` on save, so those songs cannot be re-enqueued from
+  // stored data alone — their cover art has to be read from the source again.
+  // When any exist, skip the incremental path and walk the whole library, which
+  // is what makes an interrupted import heal itself on the next run.
+  const unprocessed = allSongs.some(
+    (s) => s.sourceId === source.id && !songsWithArtwork.has(s.id)
+  );
 
   const changes =
-    payload.since !== undefined && collector.collectSongChanges
+    payload.since !== undefined && collector.collectSongChanges && !unprocessed
       ? await collector.collectSongChanges({
           source,
           since: payload.since,
@@ -68,9 +78,11 @@ export async function runBulkImport(
 
   const note =
     changes?.note ??
-    (payload.since === undefined
-      ? "Reading full library: no earlier successful import recorded"
-      : "Reading full library: source cannot report changes");
+    (unprocessed
+      ? "Reading full library: artwork is missing for some songs"
+      : payload.since === undefined
+        ? "Reading full library: no earlier successful import recorded"
+        : "Reading full library: source cannot report changes");
   reportProgress({ index: 0, total: 0, percent: 0, label: note });
 
   const songCollection =
@@ -101,7 +113,6 @@ export async function runBulkImport(
     if (existingId) song.id = existingId;
   }
   const existingById = new Map(allSongs.map((s) => [s.id, s]));
-  const songsWithArtwork = await getSongArtworkStore().listSongIdsWithArtwork();
   const collectedIds = new Set(songCollection.map((s) => s.id));
   const presentPaths = changes?.presentPaths
     ? new Set(changes.presentPaths)

@@ -13,10 +13,23 @@ import { AlbumArtImage } from "../album-art-image";
 import { LyricsDialog } from "../lyrics-dialog/LyricsDialog";
 import type { LyricsDialogTab } from "../lyrics-dialog/LyricsDialog";
 import type { ILyricsResult } from "@/lib/lyrics-providers/ILyricsService";
-import { staticLines, parseLrc, validateSync } from "@/lib/lyrics";
+import { parseLrc, splitTimedLyrics, validateSync } from "@/lib/lyrics";
 import { notification$ } from "@/events/notification-events";
 import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
 import { useTranslation } from "@/i18n";
+
+/**
+ * Static lyrics that agree with a timed result.
+ *
+ * The LRC is authoritative whenever it exists: taking the plain text from a
+ * separate provider field lets the two drift apart, and the timed editor then
+ * rejects every placement whose text the static lyrics do not contain.
+ */
+function plainLyricsFor(result: ILyricsResult): string {
+  const synced = result.syncedLyrics ?? "";
+  if (synced) return splitTimedLyrics(synced).lyrics ?? "";
+  return result.plainLyrics ?? "";
+}
 
 export function SongEditForm(props: SongEditFormProps) {
   //#region State
@@ -179,16 +192,21 @@ export function SongEditForm(props: SongEditFormProps) {
     // A timed result carries both: the plain text becomes the static lyrics
     // and the LRC is kept for the timed editor, so the two never disagree.
     const synced = result.syncedLyrics ?? "";
-    const plain =
-      result.plainLyrics ?? (synced ? staticLines(synced).join("\n") : "");
+    const plain = plainLyricsFor(result);
+    const existing = getFieldValue("lyrics");
 
-    if (getFieldValue("lyrics").trim() === "") {
-      set("lyrics", plain);
-    }
-
+    // A timed result is authoritative for both fields: the static lyrics are
+    // rewritten from the LRC so the timed editor's lyric panel shows exactly
+    // the text the placements carry, without the timings.
     if (synced) {
+      set("lyrics", plain);
       setSyncedLyricsValue(synced);
       set("syncedLyrics", synced);
+      return;
+    }
+
+    if (existing.trim() === "") {
+      set("lyrics", plain);
     }
   }
 
@@ -354,8 +372,8 @@ export function SongEditForm(props: SongEditFormProps) {
                   >
                     <div
                       className={`w-32 aspect-square relative border rounded-md group ${editable
-                          ? "hover:border-accent cursor-pointer"
-                          : "cursor-not-allowed opacity-60"
+                        ? "hover:border-accent cursor-pointer"
+                        : "cursor-not-allowed opacity-60"
                         }`}
                     >
                       <Pen
@@ -721,7 +739,7 @@ export function SongEditForm(props: SongEditFormProps) {
                       evt.currentTarget.value !== (song.lyrics ?? "")
                     )
                   }
-                  className={dirty.lyrics ? "dark:border-accent/50" : ""}
+                  className={dirty.lyrics ? "dark:border-accent/50 max-h-80" : "max-h-80"}
                 />
               </div>
               <div>
@@ -761,13 +779,9 @@ export function SongEditForm(props: SongEditFormProps) {
           const synced = result.syncedLyrics ?? "";
           if (!synced) return;
 
-          const plain =
-            result.plainLyrics ?? staticLines(synced).join("\n");
-
-          if (getFieldValue("lyrics").trim() === "") {
-            set("lyrics", plain);
-          }
-
+          // Same rule as applying: the LRC defines both fields, so the timed
+          // editor's lyric panel matches the placements it is editing.
+          set("lyrics", plainLyricsFor(result));
           setSyncedLyricsValue(synced);
           set("syncedLyrics", synced);
           setLyricsDialogTab("timed");

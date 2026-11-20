@@ -1,13 +1,18 @@
 export {
   appendStaticLine,
+  canPlaceAt,
+  placementWindow,
   formatTimecode,
   formatTimestamp,
+  mapPlacementsToLines,
+  isInsideWindow,
   parseLrc,
   parseTimecode,
   serializeLrc,
   splitTimedLyrics,
   staticLines,
-  trimPlacementsToLyrics,
+  syncPlacementsToLyrics,
+  trimPlacementsAfterInsertion,
   validateSync,
 } from "./lrc";
 export type {

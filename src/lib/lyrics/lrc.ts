@@ -57,6 +57,8 @@ export function parseLrc(text: string | undefined): ILyricLine[] {
     if (stamps.length === 0) continue;
 
     const body = raw.replace(TIMESTAMP, "").trim();
+    // A timestamp with no text is a gap marker, not a placement.
+    if (body === "") continue;
 
     for (const stamp of stamps) {
       const minutes = Number(stamp[1]);
@@ -245,21 +247,37 @@ export function appendStaticLine(staticLyrics: string, line: string): string {
 }
 
 /**
- * Drops the placements that a lyrics edit invalidated.
+ * Whether a placement may be added at `timeMs`.
  *
- * Editing the static lyrics can rewrite, move, or delete lines that already
- * carry a timing. Rather than diffing against the previous text, this keeps the
- * longest run of placements that still appear in the lyrics in order and drops
- * everything from the first mismatch onward. That survives intermediate states
- * (a cleared box, a paste) and matches what `validateSync` checks.
+ * A timing may land anywhere the song has room for it, including between two
+ * existing placements, so a line missing from the middle of the lyrics can be
+ * timed without re-timing everything after it. Only an already occupied moment
+ * is refused: two placements at the same time cannot both be right.
  */
-export function trimPlacementsToLyrics(
-  lyrics: string,
-  lines: ILyricLine[]
-): ILyricLine[] {
-  const source = staticLines(lyrics);
+export function canPlaceAt(timeMs: number, lines: ILyricLine[]): boolean {
+  return !lines.some((line) => Math.abs(line.timeMs - timeMs) < 1);
+}
+
+/**
+ * The window a placement is allowed to sit in, bounded by its neighbours.
+ *
+ * A lyric that is in the static text but carries no timing was either never
+ * timed or was deliberately removed from the timing side. Either way it has a
+ * fixed place in the lyrics, so its timing belongs between the placement before
+ * it and the placement after it. `minMs` is null when nothing precedes it and
+ * `maxMs` is null when nothing follows it.
+ */
+export function placementWindow(
+  staticLyrics: string,
+  lines: ILyricLine[],
+  texts: string[]
+): { minMs: number | null; maxMs: number | null } {
+  const source = staticLines(staticLyrics);
   const ordered = [...lines].sort((a, b) => a.timeMs - b.timeMs);
-  const kept: ILyricLine[] = [];
+
+  // Walk the placements in order, matching each to the static line it carries,
+  // so a repeated line maps to its own occurrence rather than the first one.
+  const timedAt = new Map<number, number>();
   let cursor = 0;
 
   for (const line of ordered) {
@@ -268,27 +286,260 @@ export function trimPlacementsToLyrics(
       .map((part) => part.trim())
       .filter((part) => part !== "");
 
-    let next = cursor;
-    let matches = true;
+    const first = parts[0];
+    if (first === undefined) continue;
 
-    for (const part of parts) {
-      const found = source.indexOf(part, next);
+    const index = source.indexOf(first, cursor);
+    if (index === -1) continue;
 
-      if (found === -1) {
-        matches = false;
-        break;
-      }
-
-      next = found + 1;
+    for (let offset = 0; offset < parts.length; offset++) {
+      timedAt.set(index + offset, line.timeMs);
     }
 
-    // The first placement that no longer fits ends the valid run: later
-    // placements were timed against lyrics that have since moved.
-    if (!matches) break;
+    cursor = index + parts.length;
+  }
+
+  const target = texts.find((text) => text.trim() !== "");
+  if (target === undefined) return { minMs: null, maxMs: null };
+
+  // Prefer an occurrence the user has removed from timing. When every
+  // occurrence is already timed the line is being re-timed, so fall back to the
+  // first one: its own placement is excluded by the neighbour scans below, which
+  // leaves the gap between the placements either side of it.
+  const untimed = source.findIndex(
+    (text, index) => text === target.trim() && !timedAt.has(index)
+  );
+  const at =
+    untimed !== -1
+      ? untimed
+      : source.findIndex((text) => text === target.trim());
+
+  if (at === -1) return { minMs: null, maxMs: null };
+
+  let minMs: number | null = null;
+  for (let index = at - 1; index >= 0; index--) {
+    const time = timedAt.get(index);
+    if (time !== undefined) {
+      minMs = time;
+      break;
+    }
+  }
+
+  let maxMs: number | null = null;
+  for (let index = at + 1; index < source.length; index++) {
+    const time = timedAt.get(index);
+    if (time !== undefined) {
+      maxMs = time;
+      break;
+    }
+  }
+
+  return { minMs, maxMs };
+}
+
+/**
+ * Whether `timeMs` sits strictly inside a window. A null bound is open, so an
+ * untimed first line may be placed any time before the next placement.
+ */
+export function isInsideWindow(
+  timeMs: number,
+  window: { minMs: number | null; maxMs: number | null }
+): boolean {
+  if (window.minMs !== null && timeMs <= window.minMs) return false;
+  if (window.maxMs !== null && timeMs >= window.maxMs) return false;
+
+  return true;
+}
+
+/**
+ * Drops the placements that an insertion invalidated.
+ *
+ * Adding a line shifts everything after it, so the timings that follow the
+ * insertion no longer line up and are removed. Rewriting or deleting a line
+ * leaves the placements alone: the user is editing the text, not re-timing the
+ * song, and wiping every later timing on each keystroke made the editor
+ * unusable.
+ */
+export function trimPlacementsAfterInsertion(
+  previousLyrics: string,
+  nextLyrics: string,
+  lines: ILyricLine[]
+): ILyricLine[] {
+  const previous = staticLines(previousLyrics);
+  const next = staticLines(nextLyrics);
+
+  // Only an addition shifts the lines that follow it.
+  if (next.length <= previous.length) return lines;
+
+  let insertedAt = 0;
+  while (
+    insertedAt < previous.length &&
+    previous[insertedAt] === next[insertedAt]
+  ) {
+    insertedAt++;
+  }
+
+  // Keep the placements that sit before the inserted line. Positions are
+  // mapped through the insertion rather than searched for by text: a lyric that
+  // repeats would otherwise match its earlier occurrence and shift every later
+  // timing onto the wrong line.
+  const shift = next.length - previous.length;
+  const kept: ILyricLine[] = [];
+  let cursor = 0;
+
+  for (const line of [...lines].sort((a, b) => a.timeMs - b.timeMs)) {
+    const parts = lineParts(line);
+
+    if (parts.length === 0) continue;
+
+    const index = previous.indexOf(parts[0], cursor);
+
+    // A placement whose line is no longer present cannot be located, so it is
+    // treated as sitting where the cursor already is. That keeps it when the
+    // insertion is later in the song and drops it when the insertion is before
+    // it, which is what "remove the timings after the added line" means.
+    if (index === -1) {
+      if (cursor >= insertedAt) break;
+      kept.push(line);
+      continue;
+    }
+
+    const mapped = index < insertedAt ? index : index + shift;
+
+    if (mapped >= insertedAt) break;
 
     kept.push(line);
-    cursor = next;
+    cursor = index + parts.length;
   }
 
   return kept;
+}
+
+/**
+ * Keeps the placements in step with an edit to the static lyrics.
+ *
+ * A rewrite (same line count) keeps every timing and adopts the new text, so
+ * fixing a typo in the lyrics fixes the placement that carries it. An insertion
+ * or a deletion shifts the lines that follow, so those timings are dropped
+ * instead of being left pointing at the wrong line.
+ */
+export function syncPlacementsToLyrics(
+  previousLyrics: string,
+  nextLyrics: string,
+  lines: ILyricLine[]
+): ILyricLine[] {
+  const previous = staticLines(previousLyrics);
+  const next = staticLines(nextLyrics);
+
+  if (next.length > previous.length) {
+    return trimPlacementsAfterInsertion(previousLyrics, nextLyrics, lines);
+  }
+
+  if (next.length < previous.length) {
+    let common = 0;
+    while (common < next.length && previous[common] === next[common]) common++;
+
+    const kept: ILyricLine[] = [];
+    let cursor = 0;
+
+    for (const line of [...lines].sort((a, b) => a.timeMs - b.timeMs)) {
+      const parts = lineParts(line);
+
+      if (parts.length === 0) continue;
+
+      // Advance through the previous lyrics so a repeated line maps to its own
+      // occurrence instead of the first one.
+      const index = previous.indexOf(parts[0], cursor);
+
+      if (index === -1 || index + parts.length > common) continue;
+
+      kept.push(line);
+      cursor = index + parts.length;
+    }
+
+    return kept;
+  }
+
+  const ordered = [...lines].sort((a, b) => a.timeMs - b.timeMs);
+  const updated: ILyricLine[] = [];
+  let cursor = 0;
+
+  for (const line of ordered) {
+    const parts = lineParts(line);
+    const index = previous.indexOf(parts[0], cursor);
+
+    if (index === -1) {
+      updated.push(line);
+      continue;
+    }
+
+    const replacement = next.slice(index, index + parts.length);
+
+    if (replacement.length !== parts.length) {
+      updated.push(line);
+      continue;
+    }
+
+    updated.push({ timeMs: line.timeMs, text: replacement.join("\n") });
+    cursor = index + parts.length;
+  }
+
+  return updated;
+}
+
+/** The non-empty lines a placement carries. */
+function lineParts(line: ILyricLine): string[] {
+  return line.text
+    .split(/\r?\n/)
+    .map((part) => part.trim())
+    .filter((part) => part !== "");
+}
+
+/**
+ * Maps each static lyric line to the placement that times it.
+ *
+ * Placements are walked in time order against the lyrics in order, so a line
+ * that repeats maps to its own occurrence. Looking a line up by text alone
+ * would give every repeat the first occurrence's timing.
+ */
+export function mapPlacementsToLines(
+  staticLyrics: string,
+  lines: ILyricLine[]
+): Array<ILyricLine | undefined> {
+  const source = staticLines(staticLyrics);
+  const mapped: Array<ILyricLine | undefined> = Array.from({
+    length: source.length,
+  });
+  let cursor = 0;
+
+  for (const line of [...lines].sort((a, b) => a.timeMs - b.timeMs)) {
+    const parts = lineParts(line);
+    if (parts.length === 0) continue;
+
+    let start = -1;
+    let at = cursor;
+    let matched = true;
+
+    for (const part of parts) {
+      const found = source.indexOf(part, at);
+
+      if (found === -1) {
+        matched = false;
+        break;
+      }
+
+      if (start === -1) start = found;
+      at = found + 1;
+    }
+
+    if (!matched) continue;
+
+    for (let index = start; index < at; index++) {
+      mapped[index] = line;
+    }
+
+    cursor = at;
+  }
+
+  return mapped;
 }

@@ -29,12 +29,16 @@ import { Textarea } from "../ui/textarea";
 import { useTranslation } from "@/i18n";
 import {
   appendStaticLine,
+  canPlaceAt,
   formatTimecode,
+  isInsideWindow,
+  mapPlacementsToLines,
   parseLrc,
   parseTimecode,
+  placementWindow,
   serializeLrc,
   staticLines,
-  trimPlacementsToLyrics,
+  syncPlacementsToLyrics,
   validateSync,
 } from "@/lib/lyrics";
 import type { ILyricLine } from "@/lib/lyrics";
@@ -78,10 +82,11 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const staticRef = useRef<HTMLDivElement>(null);
+  const placementListRef = useRef<HTMLDivElement>(null);
   // A ref, not state: a shift-click can land in the same tick as the click
   // that set the anchor, before a re-render would have committed it.
   const placementAnchorRef = useRef<string | null>(null);
-  const staticAnchorRef = useRef<string | null>(null);
+  const staticAnchorRef = useRef<number | null>(null);
   //#endregion
 
   const issues = useMemo(
@@ -91,16 +96,58 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
 
   const sourceLines = useMemo(() => staticLines(staticText), [staticText]);
 
+  // Each static line's own placement, so a repeated lyric keeps its own timing.
+  const timedByIndex = useMemo(
+    () => mapPlacementsToLines(staticText, lines),
+    [staticText, lines]
+  );
+
+  /** Brings the matching placement into view when a lyric line is clicked. */
+  const scrollToPlacement = useCallback((timeMs: number) => {
+    placementListRef.current
+      ?.querySelector(`[data-placement-time="${timeMs}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, []);
+
+  /** Brings the matching lyric line into view when a placement is clicked. */
+  const scrollToLine = useCallback((index: number) => {
+    staticRef.current
+      ?.querySelector(`[data-line-index="${index}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, []);
+
   // Latest placement first, so the newest timing reads at the top of the list.
   const sortedLines = useMemo(
     () => [...lines].sort((a, b) => b.timeMs - a.timeMs),
     [lines]
   );
 
-  /** Latest placement time, or null when nothing is placed yet. */
-  const latestTimeMs = useMemo(
-    () => (lines.length === 0 ? null : Math.max(...lines.map((l) => l.timeMs))),
-    [lines]
+  /** The lines the draft box would place, in the order they would be added. */
+  const draftTexts = useMemo(
+    () =>
+      draftText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line !== ""),
+    [draftText]
+  );
+
+  /**
+   * The window the draft may be timed in. An untimed lyric is bounded by the
+   * placements around it; a line that is not in the lyrics is unbounded.
+   */
+  const draftWindow = useMemo(
+    () => placementWindow(staticText, lines, draftTexts),
+    [staticText, lines, draftTexts]
+  );
+
+  /** Whether the cursor currently sits somewhere the draft may be placed. */
+  const canAddDraft = useMemo(
+    () =>
+      draftTexts.length > 0 &&
+      isInsideWindow(cursorMs, draftWindow) &&
+      canPlaceAt(cursorMs, lines),
+    [draftTexts, cursorMs, draftWindow, lines]
   );
 
   //#region Effects
@@ -171,10 +218,14 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
     const text = sourceLines[index];
     if (!text) return;
 
-    const anchor = staticAnchorRef.current;
-    const from = anchor === null ? -1 : sourceLines.indexOf(anchor);
+    const timed = timedByIndex[index];
+    if (timed) scrollToPlacement(timed.timeMs);
 
-    if (extend && from >= 0) {
+    // The anchor is an index, not the text: a repeated line would otherwise
+    // extend the range from its first occurrence.
+    const from = staticAnchorRef.current;
+
+    if (extend && from !== null) {
       const [start, end] = from <= index ? [from, index] : [index, from];
       const range = sourceLines.slice(start, end + 1);
       const indices = range.map((_, offset) => start + offset);
@@ -184,7 +235,7 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
       return;
     }
 
-    staticAnchorRef.current = text;
+    staticAnchorRef.current = index;
     setSelectedIndices([index]);
     setDraftText(text);
   }
@@ -222,9 +273,11 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
 
     if (texts.length === 0) return;
 
-    // A placement must land after the latest one. Refusing here keeps the list
-    // ordered without blocking the whole form on a validation error.
-    if (latestTimeMs !== null && cursorMs <= latestTimeMs) return;
+    // An untimed lyric keeps its place in the lyrics, so its timing belongs
+    // between the placement before it and the placement after it. A line that
+    // is not in the lyrics at all is free to land in any unoccupied moment.
+    if (!isInsideWindow(cursorMs, draftWindow)) return;
+    if (!canPlaceAt(cursorMs, lines)) return;
 
     // Several lines at one moment are a single placement carrying a line
     // break, so they stay together instead of stacking at the same time.
@@ -247,13 +300,13 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
   }
 
   /**
-   * Applies an edit to the static lyrics and drops the timings it invalidated.
-   * A placement whose line was rewritten, moved, or deleted can no longer be
-   * trusted, so everything from the first changed line onward is removed.
+   * Applies an edit to the static lyrics. Only an added line shifts the
+   * timings that follow it, so only an insertion drops placements; rewriting
+   * or deleting a line leaves them in place.
    */
   function handleStaticTextChange(next: string) {
+    setLines((current) => syncPlacementsToLyrics(staticText, next, current));
     setStaticText(next);
-    setLines((current) => trimPlacementsToLyrics(next, current));
     setSelectedIndices([]);
     staticAnchorRef.current = null;
   }
@@ -289,17 +342,24 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
     });
   }
 
-  /** Moves a placement to the scrubbed time. */
+  /** Moves a placement to the scrubbed time, staying between its neighbours. */
   function handleRetimeToCursor(line: ILyricLine) {
     const key = placementKey(line);
 
-    setLines((prev) =>
-      prev
-        .map((entry) =>
-          placementKey(entry) === key ? { ...entry, timeMs: cursorMs } : entry
-        )
-        .sort((a, b) => a.timeMs - b.timeMs)
-    );
+    setLines((prev) => {
+      const ordered = [...prev].sort((a, b) => a.timeMs - b.timeMs);
+      const index = ordered.findIndex((entry) => placementKey(entry) === key);
+      if (index === -1) return prev;
+
+      const before = ordered[index - 1];
+      const after = ordered[index + 1];
+      if (before && cursorMs <= before.timeMs) return prev;
+      if (after && cursorMs >= after.timeMs) return prev;
+
+      return ordered.map((entry) =>
+        placementKey(entry) === key ? { ...entry, timeMs: cursorMs } : entry
+      );
+    });
   }
 
   /**
@@ -310,6 +370,9 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
   function handlePlacementClick(line: ILyricLine, extend: boolean) {
     const ordered = [...lines].sort((a, b) => a.timeMs - b.timeMs);
     const key = placementKey(line);
+    const lineIndex = timedByIndex.findIndex((entry) => entry === line);
+
+    if (lineIndex !== -1) scrollToLine(lineIndex);
 
     if (extend && placementAnchorRef.current) {
       const from = ordered.findIndex(
@@ -512,7 +575,7 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
             </div>
 
             <ScrollArea className="min-h-0 flex-1 rounded-md border">
-              <div className="flex flex-col gap-1 p-2">
+              <div ref={placementListRef} className="flex flex-col gap-1 p-2">
                 {lines.length === 0 && (
                   <p className="p-2 text-sm text-muted-foreground">
                     {t("metadata.syncedLyricsNoPlacements")}
@@ -529,6 +592,7 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
                     return (
                       <div
                         key={`${line.timeMs}-${line.text}`}
+                        data-placement-time={line.timeMs}
                         role="button"
                         tabIndex={0}
                         aria-pressed={picked}
@@ -618,10 +682,7 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
                 type="button"
                 size="sm"
                 className="w-40 shrink-0"
-                disabled={
-                  draftText.trim() === "" ||
-                  (latestTimeMs !== null && cursorMs <= latestTimeMs)
-                }
+                disabled={!canAddDraft}
                 onClick={handleAddLine}
               >
                 <Plus /> {t("metadata.syncedLyricsAddAt", [formatTimecode(cursorMs)])}
@@ -690,7 +751,7 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
                   )}
 
                   {sourceLines.map((text, index) => {
-                    const timed = lines.find((line) => line.text === text);
+                    const timed = timedByIndex[index];
                     const added = addedTexts.has(text);
                     const selected = selectedIndices.includes(index);
 

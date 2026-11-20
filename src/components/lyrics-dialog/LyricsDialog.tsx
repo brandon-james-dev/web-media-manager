@@ -63,7 +63,7 @@ export function LyricsDialog(props: LyricsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="z-120 h-[min(46rem,calc(100vh-2rem))] max-h-[calc(100vh-2rem)] gap-0 overflow-hidden p-0 !flex flex-col sm:max-w-5xl"
+        className="z-120 h-[min(46rem,calc(100vh-2rem))] max-h-[calc(100vh-2rem)] gap-0 overflow-hidden p-0 flex! flex-col sm:max-w-5xl"
         overlayClassName="z-120 bg-black/40 backdrop-blur-sm"
       >
         <DialogHeader className="relative shrink-0 overflow-hidden rounded-t-xl border-b bg-popover px-4 py-2.5">
@@ -132,8 +132,16 @@ export function LyricsDialog(props: LyricsDialogProps) {
           </div>
         </DialogHeader>
 
+        {/* Both panels stay mounted and are only hidden, so switching tabs
+            keeps the search results and the in-progress timings. */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {tab === "timed" ? (
+          <div
+            className={
+              tab === "timed"
+                ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+                : "hidden"
+            }
+          >
             <SyncedLyricsEditorDialog
               song={song}
               lyrics={lyrics}
@@ -143,7 +151,15 @@ export function LyricsDialog(props: LyricsDialogProps) {
               onSave={onSaveSynced}
               embedded
             />
-          ) : (
+          </div>
+
+          <div
+            className={
+              tab === "fetch"
+                ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+                : "hidden"
+            }
+          >
             <LyricsSearchDialog
               song={song}
               open={open}
@@ -152,7 +168,7 @@ export function LyricsDialog(props: LyricsDialogProps) {
               onLoadTimed={onLoadTimed}
               embedded
             />
-          )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

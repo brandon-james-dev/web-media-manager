@@ -198,7 +198,10 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
             label={t("search.label")}
             dropdownSide="left"
             buttonVariant="secondary"
-            buttonType="submit"
+            // The form's onSubmit already searches, so the button must not also
+            // submit: a submit button fires onClick and onSubmit, which ran the
+            // provider request twice per click. Enter still submits the form.
+            buttonType="button"
             onPrimaryClick={() => void handleSearch(selectedProvider)}
             menuItems={(
               Object.values(LyricsProvider) as LyricsProvider[]
