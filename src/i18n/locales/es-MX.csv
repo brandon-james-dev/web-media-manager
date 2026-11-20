@@ -306,6 +306,36 @@ metadata.lyricsRecordId,#{0}
 metadata.lyricsLineCount,{0} líneas
 metadata.lyricsResultsCount,{0} resultados
 metadata.lyricsMatchScore,{0}% de coincidencia
+metadata.syncedLyricsEditor,Letras sincronizadas
+metadata.syncedLyricsEditorDescription,Desliza la forma de onda y escribe una línea para colocarla en ese momento.
+metadata.syncedLyricsEdit,Letras sincronizadas
+metadata.syncedLyricsEditMode,Editar
+metadata.syncedLyricsView,Ver
+metadata.syncedLyricsPlacements,Colocaciones
+metadata.syncedLyricsPlacementCount,{0} sincronizadas
+metadata.syncedLyricsNoPlacements,Aún no hay líneas sincronizadas.
+metadata.syncedLyricsPlaceholder,Línea en el cursor…
+metadata.syncedLyricsAddAt,Añadir en {0}
+metadata.syncedLyricsRemove,Quitar colocación
+metadata.syncedLyricsRetime,Tiempo de la colocación
+metadata.syncedLyricsSetToCursor,Mover al cursor
+metadata.syncedLyricsPickFromStatic,Selecciona líneas a la derecha para colocarlas aquí
+metadata.lyricsTabFetch,Buscar
+metadata.lyricsTabTimed,Sincronizar
+metadata.lyricsDialogTitle,Letras
+metadata.lyricsLoadTimed,Editar en sincronizado
+metadata.syncedLyricsStatic,Letras
+metadata.syncedLyricsNoStatic,Aún no hay letras.
+metadata.syncedLyricsPreview,Vista previa
+metadata.syncedLyricsShiftAll,Desplazar todo
+metadata.syncedLyricsShiftReset,Restablecer
+metadata.syncedLyricsPreviewEmpty,Aún no hay nada sincronizado.
+metadata.syncedLyricsSelectHint,Selecciona una línea y muévete a su momento; luego pulsa Agregar en
+metadata.syncedLyricsMismatch,Las líneas sincronizadas deben coincidir con las letras
+metadata.syncedLyricsMissing,No está en las letras: {0}
+metadata.syncedLyricsOutOfOrder,Fuera de orden: {0}
+metadata.syncedLyricsLoadingAudio,Cargando audio…
+metadata.syncedLyricsLoadFailed,No se pudo cargar el audio de esta canción.
 settings.title,Configuración
 settings.pageTitle,Configuración y datos
 settings.description,Administra las preferencias de la aplicación

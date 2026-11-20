@@ -6,4 +6,8 @@ export type LyricsSearchDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (result: ILyricsResult) => void;
+  /** Loads a result's timed lyrics into the timed editor. */
+  onLoadTimed?: (result: ILyricsResult) => void;
+  /** Render the body only, for the combined lyrics dialog. */
+  embedded?: boolean;
 };

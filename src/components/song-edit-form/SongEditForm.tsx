@@ -7,11 +7,14 @@ import type { SongEditDto } from "@/dto";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
-import { Eraser, FileMusic, Globe, Pen, Save, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Eraser, FileMusic, Globe, Pen, Save, ChevronLeft, ChevronRight, X, Clock } from "lucide-react";
 import type { SongEditFormProps } from "./SongEditFormProps";
 import { AlbumArtImage } from "../album-art-image";
-import { LyricsSearchDialog } from "../lyrics-search-dialog/LyricsSearchDialog";
+import { LyricsDialog } from "../lyrics-dialog/LyricsDialog";
+import type { LyricsDialogTab } from "../lyrics-dialog/LyricsDialog";
 import type { ILyricsResult } from "@/lib/lyrics-providers/ILyricsService";
+import { staticLines, parseLrc, validateSync } from "@/lib/lyrics";
+import { notification$ } from "@/events/notification-events";
 import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
 import { useTranslation } from "@/i18n";
 
@@ -21,7 +24,11 @@ export function SongEditForm(props: SongEditFormProps) {
   const { t } = useTranslation();
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
   const [showSearch, setShowSearch] = useState(false);
-  const [showLyricsSearch, setShowLyricsSearch] = useState(false);
+  const [lyricsDialogTab, setLyricsDialogTab] =
+    useState<LyricsDialogTab | null>(null);
+  const [syncedLyricsValue, setSyncedLyricsValue] = useState(
+    song.syncedLyrics ?? ""
+  );
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const formRef = useRef<HTMLFormElement>(null);
   //#endregion
@@ -84,6 +91,7 @@ export function SongEditForm(props: SongEditFormProps) {
     // Text fields
     set("comment", song.comment);
     set("lyrics", song.lyrics);
+    set("syncedLyrics", song.syncedLyrics);
     setDirty({});
     setUpdatedFrontCover(undefined);
   }
@@ -168,9 +176,20 @@ export function SongEditForm(props: SongEditFormProps) {
   }
 
   function handleLyricsSelect(result: ILyricsResult) {
-    // Timed lyrics are a later editor; for now the plain text is what the
-    // lyrics field holds.
-    set("lyrics", result.plainLyrics ?? result.syncedLyrics ?? "");
+    // A timed result carries both: the plain text becomes the static lyrics
+    // and the LRC is kept for the timed editor, so the two never disagree.
+    const synced = result.syncedLyrics ?? "";
+    const plain =
+      result.plainLyrics ?? (synced ? staticLines(synced).join("\n") : "");
+
+    if (getFieldValue("lyrics").trim() === "") {
+      set("lyrics", plain);
+    }
+
+    if (synced) {
+      setSyncedLyricsValue(synced);
+      set("syncedLyrics", synced);
+    }
   }
 
   async function handleEditSubmit(event: React.SubmitEvent<HTMLFormElement>) {
@@ -208,10 +227,24 @@ export function SongEditForm(props: SongEditFormProps) {
       // Text Fields
       comment: get("comment"),
       lyrics: get("lyrics"),
+      syncedLyrics: get("syncedLyrics"),
     };
 
     if (updatedFrontCover) {
       updates.coverFront = updatedFrontCover;
+    }
+
+    // Timed lyrics must account for the saved lyrics. A mismatch blocks the
+    // submit rather than writing two fields that disagree.
+    const issues = validateSync(updates.lyrics ?? "", parseLrc(updates.syncedLyrics));
+    if (issues.length > 0) {
+      notification$.next({
+        id: `lyrics-mismatch-${Date.now()}`,
+        title: t("metadata.syncedLyricsMismatch"),
+        state: "error",
+        kind: "lyrics",
+      });
+      return;
     }
 
     onFormSubmit?.(updates);
@@ -298,37 +331,36 @@ export function SongEditForm(props: SongEditFormProps) {
         onSubmit={handleEditSubmit}
       >
         <fieldset disabled={!editable} className="contents">
-        <section>
-          <div className="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-4">
-            <div className="row-span-2">
-              <Label
-                htmlFor="coverFront"
-                className="pb-1 flex items-center gap-2"
-              >
-                {t("metadata.albumArt")}
-                {dirty.coverFront && (
-                  <span className="w-2 h-2 bg-accent/50 rounded-full" />
-                )}
-              </Label>
+          <section>
+            <div className="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-4">
+              <div className="row-span-2">
+                <Label
+                  htmlFor="coverFront"
+                  className="pb-1 flex items-center gap-2"
+                >
+                  {t("metadata.albumArt")}
+                  {dirty.coverFront && (
+                    <span className="w-2 h-2 bg-accent/50 rounded-full" />
+                  )}
+                </Label>
 
-              <Label htmlFor="coverFront">
-                <div
-                  className="flex flex-col 
+                <Label htmlFor="coverFront">
+                  <div
+                    className="flex flex-col 
                              items-center justify-center 
                              text-sm 
                              text-muted-foreground bg-background
                             "
-                >
-                  <div
-                    className={`w-32 aspect-square relative border rounded-md group ${
-                      editable
-                        ? "hover:border-accent cursor-pointer"
-                        : "cursor-not-allowed opacity-60"
-                    }`}
                   >
-                    <Pen
-                      size={24}
-                      className="
+                    <div
+                      className={`w-32 aspect-square relative border rounded-md group ${editable
+                          ? "hover:border-accent cursor-pointer"
+                          : "cursor-not-allowed opacity-60"
+                        }`}
+                    >
+                      <Pen
+                        size={24}
+                        className="
                         absolute top-1 right-1 p-1 rounded-md
                         dark:bg-accent text-white
                         opacity-0
@@ -336,373 +368,415 @@ export function SongEditForm(props: SongEditFormProps) {
                         group-hover:opacity-100
                         data-[disabled=true]:opacity-0 data-[disabled=true]:group-hover:opacity-0
                       "
-                      data-disabled={!editable}
+                        data-disabled={!editable}
+                      />
+                      {updatedFrontCover ? (
+                        <img
+                          src={URL.createObjectURL(updatedFrontCover)}
+                          alt={song.album}
+                          className="object-cover rounded border border-accent/50"
+                        />
+                      ) : (
+                        <AlbumArtImage
+                          songId={song.id}
+                          thumbSize={ThumbnailSize.thumb128}
+                          className="object-cover rounded"
+                          fallback={
+                            <>
+                              <div>{t("library.noCoverArt")}</div>
+                              <div className="text-muted-foreground">
+                                {t("common.clickToSelect")}
+                              </div>
+                            </>
+                          }
+                        />
+                      )}
+                      {!editable && (
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 rounded-md bg-gray-400/40"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </Label>
+
+                <Input
+                  hidden
+                  id="coverFront"
+                  type="file"
+                  name="coverFront"
+                  accept="image/*"
+                  disabled={!editable}
+                  onChange={(evt) => {
+                    const file = evt.currentTarget.files?.[0];
+
+                    if (file) {
+                      // Create preview URL
+                      setUpdatedFrontCover(file);
+
+                      // Mark dirty
+                      markDirty("coverFront", true);
+                    } else {
+                      // No file selected → revert dirty state
+                      markDirty("coverFront", false);
+                    }
+                  }}
+                  className="mt-2"
+                />
+              </div>
+
+              <div>
+                <Label className="pb-1" htmlFor="title">
+                  {t("metadata.title")}
+                </Label>
+                <Input
+                  name="title"
+                  defaultValue={song.title}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "title",
+                      evt.currentTarget.value !== (song.title ?? "")
+                    )
+                  }
+                  className={
+                    dirty.title
+                      ? "dark:active:border-accent/50 dark:border-accent/50"
+                      : ""
+                  }
+                />
+              </div>
+
+              <div>
+                <Label className="pb-1">{t("metadata.artist")}</Label>
+                <Input
+                  name="artist"
+                  defaultValue={song.artist}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "artist",
+                      evt.currentTarget.value !== (song.artist ?? "")
+                    )
+                  }
+                  className={
+                    dirty.artist
+                      ? "dark:active:border-accent/50 dark:border-accent/50"
+                      : ""
+                  }
+                />
+              </div>
+
+              <div>
+                <Label className="pb-1">{t("metadata.album")}</Label>
+                <Input
+                  name="album"
+                  defaultValue={song.album}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "album",
+                      evt.currentTarget.value !== (song.album ?? "")
+                    )
+                  }
+                  className={dirty.album ? "dark:border-accent/50" : ""}
+                />
+              </div>
+
+              <div>
+                <Label className="pb-1">{t("metadata.albumArtist")}</Label>
+                <Input
+                  name="albumArtist"
+                  defaultValue={song.albumArtist ?? ""}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "albumArtist",
+                      evt.currentTarget.value !== (song.albumArtist ?? "")
+                    )
+                  }
+                  className={dirty.albumArtist ? "dark:border-accent/50" : ""}
+                />
+              </div>
+
+              <div>
+                <Label className="pb-1">{t("metadata.year")}</Label>
+                <Input
+                  name="year"
+                  defaultValue={song.year}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "year",
+                      Number(evt.currentTarget.value) !== song.year
+                    )
+                  }
+                  className={dirty.year ? "dark:border-accent/50" : ""}
+                />
+              </div>
+
+              <div>
+                <Label className="pb-1">{t("metadata.genre")}</Label>
+                <Input
+                  name="genre"
+                  defaultValue={song.genre ?? ""}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "genre",
+                      evt.currentTarget.value !== (song.genre ?? "")
+                    )
+                  }
+                  className={dirty.genre ? "dark:border-accent/50" : ""}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold mb-2">{t("metadata.trackPosition")}</h2>
+            <div className="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
+              <div>
+                <div className="grid grid-cols-3">
+                  <div>
+                    <Label className="pb-1">{t("metadata.track")}</Label>
+                    <Input
+                      name="track"
+                      defaultValue={song.track}
+                      autoComplete="off"
+                      onChange={(evt) =>
+                        markDirty(
+                          "track",
+                          evt.currentTarget.value !== (song.track ?? "")
+                        )
+                      }
+                      className={dirty.track ? "dark:border-accent/50" : ""}
                     />
-                    {updatedFrontCover ? (
-                      <img
-                        src={URL.createObjectURL(updatedFrontCover)}
-                        alt={song.album}
-                        className="object-cover rounded border border-accent/50"
-                      />
-                    ) : (
-                      <AlbumArtImage
-                        songId={song.id}
-                        thumbSize={ThumbnailSize.thumb128}
-                        className="object-cover rounded"
-                        fallback={
-                          <>
-                            <div>{t("library.noCoverArt")}</div>
-                            <div className="text-muted-foreground">
-                              {t("common.clickToSelect")}
-                            </div>
-                          </>
-                        }
-                      />
-                    )}
-                    {!editable && (
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 rounded-md bg-gray-400/40"
-                      />
-                    )}
+                  </div>
+                  <div className="text-muted-foreground flex justify-center align-middle">
+                    <Label className="pt-4 inline-flex">{t("common.of")}</Label>
+                  </div>
+                  <div>
+                    <Label className="pb-1">{t("metadata.tracks")}</Label>
+                    <Input
+                      name="totalTracks"
+                      defaultValue={song.totalTracks}
+                      autoComplete="off"
+                      onChange={(evt) =>
+                        markDirty(
+                          "totalTracks",
+                          evt.currentTarget.value !== (song.totalTracks ?? "")
+                        )
+                      }
+                      className={dirty.totalTracks ? "dark:border-accent/50" : ""}
+                    />
                   </div>
                 </div>
-              </Label>
+              </div>
+              <div>
+                <div className="grid grid-cols-3">
+                  <div>
+                    <Label className="pb-1">{t("metadata.disc")}</Label>
+                    <Input
+                      name="disc"
+                      defaultValue={song.discNumber}
+                      autoComplete="off"
+                      onChange={(evt) =>
+                        markDirty(
+                          "disc",
+                          evt.currentTarget.value !== (song.discNumber ?? "")
+                        )
+                      }
+                      className={dirty.disc ? "dark:border-accent/50" : ""}
+                    />
+                  </div>
+                  <div className="text-muted-foreground flex justify-center align-middle">
+                    <Label className="pt-4 inline-flex">{t("common.of")}</Label>
+                  </div>
+                  <div>
+                    <Label className="pb-1">{t("metadata.discs")}</Label>
+                    <Input
+                      name="totalDiscs"
+                      defaultValue={song.totalDiscs}
+                      autoComplete="off"
+                      onChange={(evt) =>
+                        markDirty(
+                          "totalDiscs",
+                          evt.currentTarget.value !== (song.totalDiscs ?? "")
+                        )
+                      }
+                      className={dirty.totalDiscs ? "dark:border-accent/50" : ""}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
 
-              <Input
-                hidden
-                id="coverFront"
-                type="file"
-                name="coverFront"
-                accept="image/*"
-                disabled={!editable}
-                onChange={(evt) => {
-                  const file = evt.currentTarget.files?.[0];
-
-                  if (file) {
-                    // Create preview URL
-                    setUpdatedFrontCover(file);
-
-                    // Mark dirty
-                    markDirty("coverFront", true);
-                  } else {
-                    // No file selected → revert dirty state
-                    markDirty("coverFront", false);
+          <section>
+            <h2 className="text-lg font-semibold mb-2">{t("metadata.credits")}</h2>
+            <div className="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
+              <div>
+                <Label className="pb-1">{t("metadata.composer")}</Label>
+                <Input
+                  name="composer"
+                  defaultValue={song.composer ?? ""}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "composer",
+                      evt.currentTarget.value !== (song.composer ?? "")
+                    )
                   }
-                }}
-                className="mt-2"
-              />
-            </div>
-
-            <div>
-              <Label className="pb-1" htmlFor="title">
-                {t("metadata.title")}
-              </Label>
-              <Input
-                name="title"
-                defaultValue={song.title}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "title",
-                    evt.currentTarget.value !== (song.title ?? "")
-                  )
-                }
-                className={
-                  dirty.title
-                    ? "dark:active:border-accent/50 dark:border-accent/50"
-                    : ""
-                }
-              />
-            </div>
-
-            <div>
-              <Label className="pb-1">{t("metadata.artist")}</Label>
-              <Input
-                name="artist"
-                defaultValue={song.artist}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "artist",
-                    evt.currentTarget.value !== (song.artist ?? "")
-                  )
-                }
-                className={
-                  dirty.artist
-                    ? "dark:active:border-accent/50 dark:border-accent/50"
-                    : ""
-                }
-              />
-            </div>
-
-            <div>
-              <Label className="pb-1">{t("metadata.album")}</Label>
-              <Input
-                name="album"
-                defaultValue={song.album}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "album",
-                    evt.currentTarget.value !== (song.album ?? "")
-                  )
-                }
-                className={dirty.album ? "dark:border-accent/50" : ""}
-              />
-            </div>
-
-            <div>
-              <Label className="pb-1">{t("metadata.albumArtist")}</Label>
-              <Input
-                name="albumArtist"
-                defaultValue={song.albumArtist ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "albumArtist",
-                    evt.currentTarget.value !== (song.albumArtist ?? "")
-                  )
-                }
-                className={dirty.albumArtist ? "dark:border-accent/50" : ""}
-              />
-            </div>
-
-            <div>
-              <Label className="pb-1">{t("metadata.year")}</Label>
-              <Input
-                name="year"
-                defaultValue={song.year}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "year",
-                    Number(evt.currentTarget.value) !== song.year
-                  )
-                }
-                className={dirty.year ? "dark:border-accent/50" : ""}
-              />
-            </div>
-
-            <div>
-              <Label className="pb-1">{t("metadata.genre")}</Label>
-              <Input
-                name="genre"
-                defaultValue={song.genre ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "genre",
-                    evt.currentTarget.value !== (song.genre ?? "")
-                  )
-                }
-                className={dirty.genre ? "dark:border-accent/50" : ""}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold mb-2">{t("metadata.trackPosition")}</h2>
-          <div className="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
-            <div>
-              <div className="grid grid-cols-3">
-                <div>
-                  <Label className="pb-1">{t("metadata.track")}</Label>
-                  <Input
-                    name="track"
-                    defaultValue={song.track}
-                    autoComplete="off"
-                    onChange={(evt) =>
-                      markDirty(
-                        "track",
-                        evt.currentTarget.value !== (song.track ?? "")
-                      )
-                    }
-                    className={dirty.track ? "dark:border-accent/50" : ""}
-                  />
-                </div>
-                <div className="text-muted-foreground flex justify-center align-middle">
-                  <Label className="pt-4 inline-flex">{t("common.of")}</Label>
-                </div>
-                <div>
-                  <Label className="pb-1">{t("metadata.tracks")}</Label>
-                  <Input
-                    name="totalTracks"
-                    defaultValue={song.totalTracks}
-                    autoComplete="off"
-                    onChange={(evt) =>
-                      markDirty(
-                        "totalTracks",
-                        evt.currentTarget.value !== (song.totalTracks ?? "")
-                      )
-                    }
-                    className={dirty.totalTracks ? "dark:border-accent/50" : ""}
-                  />
-                </div>
+                  className={dirty.composer ? "dark:border-accent/50" : ""}
+                />
+              </div>
+              <div>
+                <Label className="pb-1">{t("metadata.bpm")}</Label>
+                <Input
+                  name="bpm"
+                  defaultValue={song.bpm ?? ""}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "album",
+                      evt.currentTarget.value !== (song.bpm ?? "")
+                    )
+                  }
+                  className={dirty.bpm ? "dark:border-accent/50" : ""}
+                />
+              </div>
+              <div>
+                <Label className="pb-1">{t("metadata.copyright")}</Label>
+                <Input
+                  name="copyright"
+                  defaultValue={song.copyright ?? ""}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "copyright",
+                      evt.currentTarget.value !== (song.copyright ?? "")
+                    )
+                  }
+                  className={dirty.copyright ? "dark:border-accent/50" : ""}
+                />
+              </div>
+              <div>
+                <Label className="pb-1">{t("metadata.encoder")}</Label>
+                <Input
+                  name="encodedBy"
+                  defaultValue={song.encodedBy ?? ""}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "encodedBy",
+                      evt.currentTarget.value !== (song.encodedBy ?? "")
+                    )
+                  }
+                  className={dirty.encodedBy ? "dark:border-accent/50" : ""}
+                />
               </div>
             </div>
-            <div>
-              <div className="grid grid-cols-3">
-                <div>
-                  <Label className="pb-1">{t("metadata.disc")}</Label>
-                  <Input
-                    name="disc"
-                    defaultValue={song.discNumber}
-                    autoComplete="off"
-                    onChange={(evt) =>
-                      markDirty(
-                        "disc",
-                        evt.currentTarget.value !== (song.discNumber ?? "")
-                      )
-                    }
-                    className={dirty.disc ? "dark:border-accent/50" : ""}
-                  />
-                </div>
-                <div className="text-muted-foreground flex justify-center align-middle">
-                  <Label className="pt-4 inline-flex">{t("common.of")}</Label>
-                </div>
-                <div>
-                  <Label className="pb-1">{t("metadata.discs")}</Label>
-                  <Input
-                    name="totalDiscs"
-                    defaultValue={song.totalDiscs}
-                    autoComplete="off"
-                    onChange={(evt) =>
-                      markDirty(
-                        "totalDiscs",
-                        evt.currentTarget.value !== (song.totalDiscs ?? "")
-                      )
-                    }
-                    className={dirty.totalDiscs ? "dark:border-accent/50" : ""}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section>
-          <h2 className="text-lg font-semibold mb-2">{t("metadata.credits")}</h2>
-          <div className="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2 gap-4">
-            <div>
-              <Label className="pb-1">{t("metadata.composer")}</Label>
-              <Input
-                name="composer"
-                defaultValue={song.composer ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "composer",
-                    evt.currentTarget.value !== (song.composer ?? "")
-                  )
-                }
-                className={dirty.composer ? "dark:border-accent/50" : ""}
-              />
-            </div>
-            <div>
-              <Label className="pb-1">{t("metadata.bpm")}</Label>
-              <Input
-                name="bpm"
-                defaultValue={song.bpm ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "album",
-                    evt.currentTarget.value !== (song.bpm ?? "")
-                  )
-                }
-                className={dirty.bpm ? "dark:border-accent/50" : ""}
-              />
-            </div>
-            <div>
-              <Label className="pb-1">{t("metadata.copyright")}</Label>
-              <Input
-                name="copyright"
-                defaultValue={song.copyright ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "copyright",
-                    evt.currentTarget.value !== (song.copyright ?? "")
-                  )
-                }
-                className={dirty.copyright ? "dark:border-accent/50" : ""}
-              />
-            </div>
-            <div>
-              <Label className="pb-1">{t("metadata.encoder")}</Label>
-              <Input
-                name="encodedBy"
-                defaultValue={song.encodedBy ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "encodedBy",
-                    evt.currentTarget.value !== (song.encodedBy ?? "")
-                  )
-                }
-                className={dirty.encodedBy ? "dark:border-accent/50" : ""}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold mb-4">{t("metadata.textFields")}</h2>
-          <div className="grid xl:grid-cols-2 gap-4">
-            <div>
-              <div className="flex min-h-7 items-center justify-between pb-1">
-                <Label>{t("metadata.lyrics")}</Label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setShowLyricsSearch(true)}
-                >
-                  <FileMusic /> {t("metadata.fetchLyrics")}
-                </Button>
+          <section>
+            <h2 className="text-lg font-semibold mb-4">{t("metadata.textFields")}</h2>
+            <div className="grid xl:grid-cols-2 gap-4">
+              <div>
+                <div className="flex min-h-7 items-center justify-between pb-1">
+                  <Label>{t("metadata.lyrics")}</Label>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setLyricsDialogTab("fetch")}
+                    >
+                      <FileMusic /> {t("metadata.fetchLyrics")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setLyricsDialogTab("timed")}
+                    >
+                      <Clock /> {t("metadata.syncedLyricsEdit")}
+                    </Button>
+                  </div>
+                </div>
+                <input
+                  type="hidden"
+                  name="syncedLyrics"
+                  value={syncedLyricsValue}
+                  readOnly
+                />
+                <Textarea
+                  name="lyrics"
+                  defaultValue={song.lyrics ?? ""}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "lyrics",
+                      evt.currentTarget.value !== (song.lyrics ?? "")
+                    )
+                  }
+                  className={dirty.lyrics ? "dark:border-accent/50" : ""}
+                />
               </div>
-              <Textarea
-                name="lyrics"
-                defaultValue={song.lyrics ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "lyrics",
-                    evt.currentTarget.value !== (song.lyrics ?? "")
-                  )
-                }
-                className={dirty.lyrics ? "dark:border-accent/50" : ""}
-              />
-            </div>
-            <div>
-              <div className="flex min-h-7 items-center justify-between pb-1">
-                <Label>{t("metadata.comment")}</Label>
+              <div>
+                <div className="flex min-h-7 items-center justify-between pb-1">
+                  <Label>{t("metadata.comment")}</Label>
+                </div>
+                <Textarea
+                  name="comment"
+                  defaultValue={song.comment ?? ""}
+                  autoComplete="off"
+                  onChange={(evt) =>
+                    markDirty(
+                      "comment",
+                      evt.currentTarget.value !== (song.comment ?? "")
+                    )
+                  }
+                  className={dirty.comment ? "dark:border-accent/50" : ""}
+                />
               </div>
-              <Textarea
-                name="comment"
-                defaultValue={song.comment ?? ""}
-                autoComplete="off"
-                onChange={(evt) =>
-                  markDirty(
-                    "comment",
-                    evt.currentTarget.value !== (song.comment ?? "")
-                  )
-                }
-                className={dirty.comment ? "dark:border-accent/50" : ""}
-              />
             </div>
-          </div>
-        </section>
+          </section>
         </fieldset>
       </form>
 
-      <LyricsSearchDialog
+      <LyricsDialog
         song={song}
-        open={showLyricsSearch}
-        onOpenChange={setShowLyricsSearch}
+        lyrics={getFieldValue("lyrics")}
+        syncedLyrics={syncedLyricsValue}
+        open={lyricsDialogTab !== null}
+        tab={lyricsDialogTab ?? "fetch"}
+        onOpenChange={(next) => {
+          if (!next) setLyricsDialogTab(null);
+        }}
+        onTabChange={setLyricsDialogTab}
         onSelect={handleLyricsSelect}
+        onLoadTimed={(result) => {
+          const synced = result.syncedLyrics ?? "";
+          if (!synced) return;
+
+          const plain =
+            result.plainLyrics ?? staticLines(synced).join("\n");
+
+          if (getFieldValue("lyrics").trim() === "") {
+            set("lyrics", plain);
+          }
+
+          setSyncedLyricsValue(synced);
+          set("syncedLyrics", synced);
+          setLyricsDialogTab("timed");
+        }}
+        onSaveSynced={(result) => {
+          set("lyrics", result.lyrics);
+          setSyncedLyricsValue(result.syncedLyrics);
+          set("syncedLyrics", result.syncedLyrics);
+        }}
       />
     </>
   );

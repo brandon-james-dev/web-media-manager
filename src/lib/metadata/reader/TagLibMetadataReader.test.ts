@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TagLibMetadataReader } from "./TagLibMetadataReader";
+import { TagLibMetadataWriter } from "../writer/TagLibMetadataWriter";
 
 import { SILENCE_M4A_BASE64 } from "../writer/fixtures/silenceM4a";
 
@@ -51,5 +52,19 @@ describe("TagLibMetadataReader.readMetadataMany", () => {
 
   it("returns an empty list for no files", async () => {
     expect(await new TagLibMetadataReader().readMetadataMany([])).toEqual([]);
+  });
+
+  it("pulls timed lyrics out of the lyrics tag on import", async () => {
+    const written = await new TagLibMetadataWriter().writeTags(
+      fixture("a.m4a"),
+      { syncedLyrics: "[00:10.00] one\n[00:20.50] two" }
+    );
+
+    const [result] = await new TagLibMetadataReader().readMetadataMany([
+      new File([written.slice().buffer], "a.m4a"),
+    ]);
+
+    expect(result?.lyrics).toBe("one\ntwo");
+    expect(result?.syncedLyrics).toBe("[00:10.00] one\n[00:20.50] two");
   });
 });

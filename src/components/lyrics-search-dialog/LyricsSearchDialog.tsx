@@ -51,7 +51,7 @@ function countLines(result: IRankedLyricsResult): number {
 }
 
 export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
-  const { song, open, onOpenChange, onSelect } = props;
+  const { song, open, onOpenChange, onSelect, onLoadTimed, embedded } = props;
   const { t } = useTranslation();
   //#region State
   const [titleQuery, setTitleQuery] = useState(song.title ?? "");
@@ -112,9 +112,9 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
   }
   //#endregion
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="z-120 sm:max-w-4xl" overlayClassName="z-120">
+  const content = (
+    <>
+      {!embedded && (
         <DialogHeader className="relative -mx-4 -mt-4 overflow-hidden rounded-t-xl border-b bg-accent/10 px-4 py-2.5">
           {/* Decorative watermark: lyrics glyphs behind the header content,
               echoing the sync device header. */}
@@ -163,7 +163,9 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
             </div>
           </div>
         </DialogHeader>
+      )}
 
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-3 pb-3">
         <form
           className="flex flex-wrap gap-2"
           onSubmit={(e) => {
@@ -247,8 +249,8 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
         )}
 
         {results && results.length > 0 && (
-          <div className="grid sm:grid-cols-2 grid-cols-1 gap-4 min-h-0">
-            <div className="flex h-96 flex-col overflow-hidden rounded-md border">
+          <div className="grid sm:grid-cols-2 grid-cols-1 gap-4 min-h-0 flex-1">
+            <div className="flex min-h-0 flex-col overflow-hidden rounded-md border">
               <ScrollArea className="min-h-0 flex-1">
                 <div className="flex flex-col gap-2 p-2">
                 {results.map((result, idx) => {
@@ -352,7 +354,7 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
               </div>
             </div>
 
-            <ScrollArea className="h-96 border rounded-md">
+            <ScrollArea className="min-h-0 flex-1 border rounded-md">
               <div className="p-3">
                 {!selected && (
                   <div className="text-muted-foreground">
@@ -403,7 +405,9 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
           </div>
         )}
 
-        <DialogFooter>
+        </div>
+
+        <DialogFooter className="mx-0 mb-0 shrink-0 rounded-b-xl">
           <Button
             type="button"
             variant="outline"
@@ -411,10 +415,30 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
           >
             {t("common.cancel")}
           </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => selected && onLoadTimed?.(selected)}
+            disabled={!selected?.syncedLyrics}
+          >
+            {t("metadata.lyricsLoadTimed")}
+          </Button>
           <Button type="button" onClick={handleApply} disabled={!selected}>
             {t("metadata.lyricsApply")}
           </Button>
         </DialogFooter>
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="z-120 sm:max-w-4xl"
+        overlayClassName="z-120 bg-black/40 backdrop-blur-sm"
+      >
+        {content}
       </DialogContent>
     </Dialog>
   );

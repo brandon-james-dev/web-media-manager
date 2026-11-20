@@ -99,10 +99,16 @@ export class TagLibMetadataWriter implements IMetadataWriter {
     });
 
     // Lyrics and ratings are structured properties: `applyTags` only carries
-    // text fields, so they have to go through their own accessors.
-    if (tags.lyrics !== undefined || tags.ratings !== undefined) {
+    // text fields, so they have to go through their own accessors. Timed lyrics
+    // are stored as LRC in the same accessor, so they win when present: the LRC
+    // text already carries every plain line.
+    if (
+      tags.lyrics !== undefined ||
+      tags.syncedLyrics !== undefined ||
+      tags.ratings !== undefined
+    ) {
       const structuredBytes = await this.writeStructured(updatedFile, {
-        lyrics: tags.lyrics,
+        lyrics: tags.syncedLyrics?.trim() ? tags.syncedLyrics : tags.lyrics,
         ratings: tags.ratings,
       });
 

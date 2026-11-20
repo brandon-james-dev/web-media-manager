@@ -653,6 +653,93 @@ export const WMM_RESOURCES = {
     "How closely a lyrics record matches the song being edited.",
     ["percent"]
   ),
+  "metadata.syncedLyricsEditor": text(
+    "Title of the dialog that places timed lyrics against the audio."
+  ),
+  "metadata.syncedLyricsEditorDescription": text(
+    "Explains that scrubbing the waveform and typing places a lyric line at that time."
+  ),
+  "metadata.syncedLyricsEdit": text(
+    "Opens the timed lyrics editor from the song form."
+  ),
+  "metadata.syncedLyricsEditMode": text(
+    "Switches the static lyrics note to an editable text box."
+  ),
+  "metadata.syncedLyricsView": text(
+    "Switches the static lyrics note back to the read-only view."
+  ),
+  "metadata.syncedLyricsPlacements": text(
+    "Heading of the list of timed lyric placements."
+  ),
+  "metadata.syncedLyricsPlacementCount": template(
+    "Number of timed lyric placements in the editor.",
+    ["count"]
+  ),
+  "metadata.syncedLyricsNoPlacements": text(
+    "Shown when no lyric line has a time yet."
+  ),
+  "metadata.syncedLyricsPlaceholder": text(
+    "Placeholder of the text box that adds a lyric line at the cursor."
+  ),
+  "metadata.syncedLyricsAddAt": template(
+    "Adds the typed line at the scrubbed time.",
+    ["time"]
+  ),
+  "metadata.syncedLyricsRemove": text(
+    "Removes a timed lyric placement."
+  ),
+  "metadata.syncedLyricsRetime": text(
+    "Editable time of a timed lyric placement."
+  ),
+  "metadata.syncedLyricsSetToCursor": text(
+    "Moves a timed lyric placement to the scrubbed time."
+  ),
+  "metadata.syncedLyricsPickFromStatic": text(
+    "Shown in the timed lyric box when the static lyrics supply the lines."
+  ),
+  "metadata.lyricsTabFetch": text("Tab that searches an online lyrics database."),  "metadata.lyricsTabTimed": text("Tab that places lyrics against the audio."),
+  "metadata.lyricsDialogTitle": text("Title of the combined lyrics dialog."),
+  "metadata.lyricsLoadTimed": text(
+    "Loads a fetch result's timed lyrics into the timed tab."
+  ),
+  "metadata.syncedLyricsStatic": text(
+    "Heading of the static lyrics note."
+  ),
+  "metadata.syncedLyricsNoStatic": text(
+    "Shown when the song has no static lyrics yet."
+  ),
+  "metadata.syncedLyricsPreview": text(
+    "Toggles a preview of the timed lyrics as they would play."
+  ),
+  "metadata.syncedLyricsShiftAll": text(
+    "Label for the control that moves every timed lyric at once."
+  ),
+  "metadata.syncedLyricsShiftReset": text(
+    "Button that undoes the accumulated lyrics shift."
+  ),
+  "metadata.syncedLyricsPreviewEmpty": text(
+    "Shown in the preview when nothing has been timed yet."
+  ),
+  "metadata.syncedLyricsSelectHint": text(
+    "Hint explaining how to give a portion of the lyrics a time."
+  ),
+  "metadata.syncedLyricsMismatch": text(
+    "Shown when timed lines do not line up with the static lyrics."
+  ),
+  "metadata.syncedLyricsMissing": template(
+    "Names a timed line the static lyrics do not contain.",
+    ["text"]
+  ),
+  "metadata.syncedLyricsOutOfOrder": template(
+    "Names a timed line that appears before an earlier one in the lyrics.",
+    ["text"]
+  ),
+  "metadata.syncedLyricsLoadingAudio": text(
+    "Shown while the song audio is decoded for the waveform."
+  ),
+  "metadata.syncedLyricsLoadFailed": text(
+    "Shown when the song audio cannot be loaded or played."
+  ),
 
   // settings
   "settings.title": text("The settings screen."),

@@ -14,7 +14,7 @@ import {
   SlidersHorizontal,
   Volume2,
 } from "lucide-react";
-import { useLayoutEffect, useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
 import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
 import { AlbumArtImage } from "@/components/album-art-image";
@@ -36,6 +36,9 @@ import {
 import { useVisualizer } from "@/hooks";
 import { setVisualizerPalette } from "@/lib/visualizers";
 import { NowPlayingBackdrop } from "./NowPlayingBackdrop";
+import { SyncedLyricsView } from "@/components/lyrics-view";
+import { parseLrc } from "@/lib/lyrics";
+import { usePlaybackClock } from "@/components/theme-widgets/shared/usePlaybackClock";
 import { TvPlaybackControls } from "./TvPlaybackControls";
 import { useArtworkPalette } from "./useArtworkPalette";
 import { wmmBus } from "@/events";
@@ -288,6 +291,14 @@ export function NowPlayingView({
 
   const lyricsOpen = panel === "lyrics";
   const hasPanel = showQueuePanel || showUpNext || panel === "lyrics";
+
+  // Timed lyrics take over the lyrics tab when the song has them; the plain
+  // text stays as the fallback for songs that were never timed.
+  const timedLines = useMemo(
+    () => parseLrc(nowPlaying?.syncedLyrics),
+    [nowPlaying?.syncedLyrics]
+  );
+  const elapsedSeconds = usePlaybackClock(250);
 
   function togglePanel(tab: PanelTab) {
     setPanel(panel === tab ? null : tab);
@@ -637,7 +648,13 @@ export function NowPlayingView({
 
                 {panel === "lyrics" && (
                   <div className="flex min-h-48 w-full min-w-0 flex-1 flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none">
-                    {nowPlaying?.lyrics?.trim() ? (
+                    {timedLines.length > 0 ? (
+                      <SyncedLyricsView
+                        lines={timedLines}
+                        cursorMs={elapsedSeconds * 1000}
+                        className="min-h-0 flex-1"
+                      />
+                    ) : nowPlaying?.lyrics?.trim() ? (
                       <ScrollArea className="min-h-0 flex-1">
                         <p className="whitespace-pre-wrap pr-3 text-base leading-relaxed text-white/90">
                           {nowPlaying.lyrics}

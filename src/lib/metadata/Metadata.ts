@@ -53,6 +53,12 @@ export class Metadata {
   /** Release status (official, promotion, bootleg, ...). */
   releaseStatus?: string;
   lyrics?: string;
+  /**
+   * Timed lyrics as LRC text (`[mm:ss.xx] line`), one placement per line.
+   * Kept apart from `lyrics` so the unsynced text stays plain, and stored in
+   * the app database because file tags cannot carry SYLT through taglib-wasm.
+   */
+  syncedLyrics?: string;
 
   titleSort?: string;
   artistSort?: string;

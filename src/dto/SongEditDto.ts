@@ -19,5 +19,7 @@ export interface SongEditDto {
   encodedBy?: string;
   comment?: string;
   lyrics?: string;
+  /** LRC text with one `[mm:ss.xx]` placement per timed line. */
+  syncedLyrics?: string;
   coverFront?: Blob;
 }

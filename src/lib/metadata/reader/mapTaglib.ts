@@ -1,6 +1,7 @@
 import type { AudioProperties, ExtendedTag } from "taglib-wasm/simple";
 
 import type { IAudioProperties, ITagData } from "@/lib/contracts";
+import { splitTimedLyrics } from "@/lib/lyrics";
 
 function first(value: string[] | string | undefined): string | undefined {
   return Array.isArray(value) ? value.at(0) : value;
@@ -10,6 +11,10 @@ export function mapTags(
   tags: ExtendedTag | undefined,
   filename: string
 ): ITagData {
+  // Timed lyrics live in the ordinary lyrics tag as LRC, so the tag is split
+  // into its plain and timed halves here rather than downstream.
+  const lyrics = splitTimedLyrics(tags?.lyrics?.at(0)?.text);
+
   return {
     title: first(tags?.title) ?? filename,
     artist: first(tags?.artist),
@@ -37,7 +42,8 @@ export function mapTags(
     releaseType: first(tags?.releaseType),
     releaseCountry: first(tags?.releaseCountry),
     releaseStatus: first(tags?.releaseStatus),
-    lyrics: tags?.lyrics?.at(0)?.text,
+    lyrics: lyrics.lyrics,
+    syncedLyrics: lyrics.syncedLyrics,
 
     titleSort: first(tags?.titleSort),
     artistSort: first(tags?.artistSort),

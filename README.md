@@ -106,6 +106,18 @@ Open it directly in your browser — no installation required.
 - Album artwork management
 - Automatic metadata parsing
 - Bulk metadata operations
+- Synced (timed) lyrics read from and written back to file tags
+
+### Lyrics
+
+- Online lyrics search from the advanced edit form, with results ranked by title, artist, album, and proximity to the track length
+- One dialog with **Fetch** and **Timed** tabs, so a downloaded result can be timed without leaving the form
+- Timed lyrics editor: waveform scrubber with a video-style playhead, selectable placement markers, and per-line re-timing
+- Click or shift-click lines in the static lyrics to place one or more of them at the scrubbed moment
+- Global shift for a whole set of timings, in 0.1s, 0.5s, and 1s steps
+- Timed lyrics must stay a subsequence of the static lyrics, so the two fields cannot drift apart
+- Playback lyrics tab rolls through the timings when they are available, and falls back to the static lyrics otherwise
+- Lyrics provider application id configured in Settings
 
 ### Background Jobs
 
@@ -161,6 +173,12 @@ Web Media Manager
 │   ├── Theme widgets (src/components/theme-widgets)
 │   └── Public API (src/core/themes)
 │
+├── Lyrics
+│   ├── LRC model (parse, serialize, validate, trim)
+│   ├── Provider strategies (LRCLIB)
+│   ├── Timed lyrics editor
+│   └── Waveform peaks (src/lib/waveform)
+│
 ├── Workers
 │   ├── Job pool
 │   └── Per-job strategies
@@ -194,6 +212,7 @@ Timing optimization
 Gain control
 Playback state management
 Buffering indicator
+Timed lyrics view in the lyrics tab
 ```
 
 ### Music Sources
