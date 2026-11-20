@@ -8,6 +8,8 @@ import {
   Moon,
   ListMusic,
   Disc3,
+  Image,
+  ImageOff,
   MicVocal,
   Pause,
   Play,
@@ -158,6 +160,9 @@ export function NowPlayingView({
 
   const [panel, setPanel] = useState<PanelTab | null>(null);
   const [darkRoom, setDarkRoom] = useState<boolean>(false);
+  // Hiding the art lets an open panel (lyrics) use the whole view instead of
+  // sharing the row with a cover that adds nothing while reading along.
+  const [artHidden, setArtHidden] = useState<boolean>(false);
   const { t } = useTranslation();
   const { setSettingsOpen, settingsOpen } = useVisualizer();
   const palette = useArtworkPalette(nowPlaying?.id, open);
@@ -210,7 +215,7 @@ export function NowPlayingView({
         !!song.album &&
         song.album === playlist[0].album &&
         (song.albumArtist ?? song.artist) ===
-          (playlist[0].albumArtist ?? playlist[0].artist)
+        (playlist[0].albumArtist ?? playlist[0].artist)
     );
   const isCompact = useIsCompact();
   const isTv = useIsTv();
@@ -291,6 +296,62 @@ export function NowPlayingView({
 
   const lyricsOpen = panel === "lyrics";
   const hasPanel = showQueuePanel || showUpNext || panel === "lyrics";
+  // With the cover hidden the queue has the whole column to itself, so the
+  // track details move above it (larger, since nothing shares the space).
+  // Covers the "Up next" panel too, which stands in when the queue is empty.
+  const stackInfoOverQueue = artHidden && (showQueuePanel || showUpNext);
+
+  // Track details, rendered inside the art column normally and above the
+  // queue — larger, since nothing shares the space — when the cover is hidden.
+  const renderNowPlayingInfo = (large: boolean) => (
+    <div
+      className={cn(
+        "flex shrink-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl py-2 text-center backdrop-blur-md transition-opacity duration-300",
+        darkRoom && "opacity-30",
+        large
+          ? "w-full max-w-2xl px-4 md:h-auto"
+          : cn(
+            "md:h-26 md:w-full md:max-w-none md:px-4",
+            lyricsOpen ? "min-w-0 flex-1 px-2" : "w-full max-w-md px-4"
+          )
+      )}
+    >
+      <div className="grid w-full min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-1">
+        <div className="flex justify-end">
+          <ExplicitBadge song={nowPlaying} />
+        </div>
+        <FitText
+          maxPx={large ? 40 : 24}
+          minPx={large ? 16 : 12}
+          className="font-semibold text-white"
+        >
+          {nowPlaying?.title ?? t("playback.nothingPlaying")}
+        </FitText>
+        <div className="flex justify-start">
+          {nowPlaying && (
+            <FavoriteButton
+              songId={nowPlaying.id}
+              iconSize={large ? 28 : 22}
+            />
+          )}
+        </div>
+      </div>
+      <FitText
+        maxPx={large ? 20 : 14}
+        minPx={large ? 12 : 10}
+        className="w-full font-medium text-[color-mix(in_oklab,var(--accent)_30%,white)]"
+      >
+        {nowPlaying?.artist ?? ""}
+      </FitText>
+      <FitText
+        maxPx={large ? 20 : 14}
+        minPx={large ? 12 : 10}
+        className="w-full font-medium text-[color-mix(in_oklab,var(--accent)_30%,white)]"
+      >
+        {nowPlaying?.album ?? ""}
+      </FitText>
+    </div>
+  );
 
   // Timed lyrics take over the lyrics tab when the song has them; the plain
   // text stays as the fallback for songs that were never timed.
@@ -309,10 +370,10 @@ export function NowPlayingView({
     labelKey: WmmResourceKey;
     icon: typeof ListMusic;
   }[] = [
-    { id: "queue", labelKey: "playback.queue", icon: ListMusic },
-    { id: "lyrics", labelKey: "playback.lyrics", icon: MicVocal },
-    { id: "visualizer", labelKey: "visualizer.title", icon: Activity },
-  ];
+      { id: "queue", labelKey: "playback.queue", icon: ListMusic },
+      { id: "lyrics", labelKey: "playback.lyrics", icon: MicVocal },
+      { id: "visualizer", labelKey: "visualizer.title", icon: Activity },
+    ];
 
   function playQueueItem(song: Song) {
     if (nowPlaying?.id === song.id) {
@@ -385,7 +446,7 @@ export function NowPlayingView({
                     variant="ghost"
                     className={cn(
                       panel === id &&
-                        "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
+                      "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
                     )}
                     title={
                       panel === id ? t("playback.hidePanel", [label]) : label
@@ -398,6 +459,24 @@ export function NowPlayingView({
                   </Button>
                 );
               })}
+              {panel !== "visualizer" && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    artHidden &&
+                    "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
+                  )}
+                  title={
+                    artHidden ? t("playback.showArt") : t("playback.hideArt")
+                  }
+                  aria-label={t("playback.hideArt")}
+                  aria-pressed={artHidden}
+                  onClick={() => setArtHidden(!artHidden)}
+                >
+                  {artHidden ? <ImageOff /> : <Image />}
+                </Button>
+              )}
               {panel === "visualizer" && (
                 <>
                   <VisualizerSelector
@@ -423,7 +502,7 @@ export function NowPlayingView({
                   variant="ghost"
                   className={cn(
                     darkRoom &&
-                      "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
+                    "bg-accent/20 text-white hover:bg-accent/30 hover:text-white dark:bg-accent/25 dark:hover:bg-accent/35 dark:hover:text-white"
                   )}
                   title={
                     darkRoom ? t("playback.lightsOn") : t("playback.darkRoom")
@@ -486,79 +565,43 @@ export function NowPlayingView({
                 className={cn(
                   "flex min-h-full flex-col items-center gap-6 px-4 pb-6 md:h-full md:flex-row md:items-center md:justify-center md:gap-8 md:p-0",
                   lyricsOpen ? "justify-start pt-2" : "justify-center",
+                  stackInfoOverQueue && "md:flex-col",
                   hasPanel
                     ? "md:[--art:min(calc(100cqh-7.5rem),calc((100cqw-2rem)/2))]"
                     : "md:[--art:min(calc(100cqh-7.5rem),100cqw)]"
                 )}
               >
-                <div
-                  className={cn(
-                    "flex w-full gap-4 md:w-(--art) md:flex-col md:items-center",
-                    lyricsOpen
-                      ? "flex-row items-center"
-                      : "flex-col items-center"
-                  )}
-                >
+                {!(artHidden && lyricsOpen) && !stackInfoOverQueue && (
                   <div
                     className={cn(
-                      "relative aspect-square transition-opacity duration-300 md:size-(--art)",
-                      darkRoom && "invisible opacity-0",
+                      "flex w-full gap-4 md:flex-col md:items-center",
+                      artHidden ? "md:w-auto" : "md:w-(--art)",
                       lyricsOpen
-                        ? "size-24 shrink-0"
-                        : "w-[min(100%,28rem,calc(100dvh-24rem))]"
+                        ? "flex-row items-center"
+                        : "flex-col items-center"
                     )}
                   >
-                    <NowPlayingArt songId={nowPlaying?.id} />
-                  </div>
-
-                  <div
-                    className={cn(
-                      "flex shrink-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl py-2 text-center backdrop-blur-md transition-opacity duration-300 md:h-26 md:w-full md:max-w-none md:px-4",
-                      darkRoom && "opacity-30",
-                      lyricsOpen
-                        ? "min-w-0 flex-1 px-2"
-                        : "w-full max-w-md px-4"
-                    )}
-                  >
-                    <div className="grid w-full min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-1">
-                      <div className="flex justify-end">
-                        <ExplicitBadge song={nowPlaying} />
-                      </div>
-                      <FitText
-                        maxPx={24}
-                        minPx={12}
-                        className="font-semibold text-white"
-                      >
-                        {nowPlaying?.title ?? t("playback.nothingPlaying")}
-                      </FitText>
-                      <div className="flex justify-start">
-                        {nowPlaying && (
-                          <FavoriteButton
-                            songId={nowPlaying.id}
-                            iconSize={22}
-                          />
-                        )}
-                      </div>
+                    <div
+                      className={cn(
+                        "relative aspect-square transition-opacity duration-300 md:size-(--art)",
+                        darkRoom && "invisible opacity-0",
+                        artHidden && "hidden",
+                        lyricsOpen
+                          ? "size-24 shrink-0"
+                          : "w-[min(100%,28rem,calc(100dvh-24rem))]"
+                      )}
+                    >
+                      <NowPlayingArt songId={nowPlaying?.id} />
                     </div>
-                    <FitText
-                      maxPx={14}
-                      minPx={10}
-                      className="w-full font-medium text-[color-mix(in_oklab,var(--accent)_30%,white)]"
-                    >
-                      {nowPlaying?.artist ?? ""}
-                    </FitText>
-                    <FitText
-                      maxPx={14}
-                      minPx={10}
-                      className="w-full font-medium text-[color-mix(in_oklab,var(--accent)_30%,white)]"
-                    >
-                      {nowPlaying?.album ?? ""}
-                    </FitText>
+
+                    {renderNowPlayingInfo(false)}
                   </div>
-                </div>
+                )}
+
+                {stackInfoOverQueue && renderNowPlayingInfo(true)}
 
                 {showQueuePanel && (
-                  <div className="flex min-h-0 w-full flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none">
+                  <div className={cn("flex min-h-0 w-full flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent", isCompact ? "md:flex-1" : "md:w-(--art) md:flex-none", artHidden ? "md:h-auto md:max-h-full" : "md:h-full", stackInfoOverQueue && "md:w-full md:max-w-2xl md:flex-initial")}>
                     <div className="flex shrink-0 items-center justify-between pb-2">
                       <span className="text-sm font-medium">
                         {t("playback.queueHeading", [playlist.length])}
@@ -647,7 +690,7 @@ export function NowPlayingView({
                 )}
 
                 {panel === "lyrics" && (
-                  <div className="flex min-h-48 w-full min-w-0 flex-1 flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none">
+                  <div className={cn("flex min-h-48 w-full min-w-0 flex-1 flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent", isCompact ? "md:flex-1" : "md:w-(--art) md:flex-none")}>
                     {timedLines.length > 0 ? (
                       <SyncedLyricsView
                         lines={timedLines}
@@ -669,7 +712,7 @@ export function NowPlayingView({
                 )}
 
                 {showUpNext && upNext && (
-                  <div className="flex min-h-0 w-full flex-col justify-center rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none">
+                  <div className={cn("flex min-h-0 w-full flex-col justify-center rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent md:h-full md:w-(--art) md:flex-none", stackInfoOverQueue && "md:h-auto md:w-full md:max-w-2xl md:flex-initial")}>
                     <span className="pb-2 text-sm font-medium">
                       {t("playback.upNext")}
                     </span>

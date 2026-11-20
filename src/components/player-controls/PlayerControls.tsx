@@ -45,6 +45,7 @@ import { wmmBus } from "@/events";
 import { FavoriteButton } from "@/components/favorite-button";
 import { useTranslation } from "@/i18n";
 import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
+import { useNowPlayingUi } from "@/hooks/useNowPlayingUi";
 import { formatLength } from "@/lib/formatLength";
 import { cn } from "cn";
 import { NowPlayingView } from "./NowPlayingView";
@@ -79,6 +80,9 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   const isCompact = useIsCompact();
   const isTv = useIsTv();
   const { t } = useTranslation();
+  // Dark room blacks out the overlay; the compact bar sits on top of it, so its
+  // progress rule has to dim too or it stays the brightest thing on screen.
+  const { darkRoom } = useNowPlayingUi();
 
   //#region State
   const [isPlaylistOpen, setIsPlaylistOpen] = useState<boolean>(false);
@@ -451,7 +455,10 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
       >
         {/* Slim progress rule along the top edge, like the mini-player. */}
         <div
-          className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-muted overflow-hidden"
+          className={cn(
+            "absolute top-0 inset-x-3 h-0.5 rounded-full bg-muted overflow-hidden transition-opacity duration-300",
+            darkRoom && "opacity-30"
+          )}
           role={showBuffering ? "progressbar" : undefined}
           aria-label={showBuffering ? t("playback.buffering") : undefined}
         >
@@ -588,7 +595,12 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
               <div className="pointer-events-none fixed inset-x-0 bottom-0 z-110 mx-auto max-w-3xl px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
                 <div className="pointer-events-auto flex flex-col select-none">
                   {nowPlaying?.duration ? (
-                    <div className="flex items-center gap-3 px-6 pt-2">
+                    <div
+                      className={cn(
+                        "flex items-center gap-3 px-6 pt-2 transition-opacity duration-300",
+                        darkRoom && "opacity-30"
+                      )}
+                    >
                       <span
                         className={cn(
                           "w-10 text-right text-xs tabular-nums text-white/80 transition-opacity duration-300",

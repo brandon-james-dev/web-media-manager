@@ -198,6 +198,8 @@ export const WMM_RESOURCES = {
   "playback.hidePanel": template("Hides the named now playing panel.", ["panel"]),
   "playback.darkRoom": text("Dark room mode of the now playing view."),
   "playback.lightsOn": text("Leaves dark room mode."),
+  "playback.hideArt": text("Hides the album art so the open panel fills the view."),
+  "playback.showArt": text("Brings the album art back."),
   "playback.noLyrics": text("Shown when the current song has no lyrics."),
   "playback.queueHeading": plural(
     "Heading of the now playing queue, naming how many songs it holds.",

@@ -62,6 +62,8 @@ playback.lyrics,Letra
 playback.hidePanel,Ocultar {0}
 playback.darkRoom,Cuarto oscuro
 playback.lightsOn,Encender las luces
+playback.hideArt,Ocultar la portada
+playback.showArt,Mostrar la portada
 playback.noLyrics,Esta canción no tiene letra.
 playback.queueHeadingOne,Cola — {0} canción
 playback.queueHeadingMany,Cola — {0} canciones

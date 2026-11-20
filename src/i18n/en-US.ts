@@ -81,6 +81,8 @@ export const enUS = {
     "playback.hidePanel": "Hide {0}",
     "playback.darkRoom": "Dark room",
     "playback.lightsOn": "Turn on the lights",
+    "playback.hideArt": "Hide album art",
+    "playback.showArt": "Show album art",
     "playback.noLyrics": "No lyrics for this song.",
     "playback.queueHeadingOne": "Queue — {0} song",
     "playback.queueHeadingOther": "Queue — {0} songs",
