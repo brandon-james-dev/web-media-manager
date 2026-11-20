@@ -82,7 +82,9 @@ export function Artists() {
 
   //#region Helpers
   useEffect(() => {
-    setQuery({ sort: artistSort });
+    // Keep the rest of the query (the search filter) so a mode switch does
+    // not clear it.
+    setQuery((prev) => ({ ...prev, sort: artistSort }));
     setSort(artistSort);
   }, [setQuery, setSort, artistSort]);
 

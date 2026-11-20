@@ -49,12 +49,33 @@ export interface MusicSourceCapabilities {
 }
 
 /** Connection settings for a remote-attached instance. Credentials stay external. */
+/** One Open Subsonic extension a server advertises. */
+export interface RemoteSourceExtension {
+  /** Extension name as the server reports it, e.g. "songLyrics". */
+  name: string;
+  /** Versions the server implements. */
+  versions: number[];
+  /** True when this app can consume the extension. */
+  supported: boolean;
+}
+
 export interface RemoteSourceConfig {
   baseUrl: string;
   /** Non-secret account name for the remote (never a password/token). */
   username?: string;
   /** Subsonic "music folder" this source is bound to, when applicable. */
   musicFolderId?: string;
+  /**
+   * What the server reported about itself when the source was connected, so
+   * later calls can pick an endpoint without probing again.
+   */
+  openSubsonic?: boolean;
+  /** Server software name, e.g. "Navidrome". */
+  serverType?: string;
+  /** Server software version. */
+  serverVersion?: string;
+  /** Extensions the server advertised, with what this app can use. */
+  extensions?: RemoteSourceExtension[];
 }
 
 export interface MusicSourceBase {

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { FolderOpen, FolderPlus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, FolderOpen, FolderPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +8,14 @@ import { i18n, useTranslation } from "@/i18n";
 import type {
   IMusicSourceStrategy,
   MusicSourceConfigField,
+  MusicSourceProbe,
 } from "@/lib/sources";
 
 export interface MusicSourceConfigFormProps {
   strategy: IMusicSourceStrategy;
   initialValue?: unknown;
+  /** Id of the source being edited, so the probe can reuse stored credentials. */
+  probeSourceId?: string;
   onSubmit: (config: Record<string, unknown>) => Promise<void> | void;
   onConnect?: (config: Record<string, unknown>) => Promise<void> | void;
 }
@@ -36,6 +39,7 @@ function connectErrorMessage(err: unknown): string {
 export function MusicSourceConfigForm({
   strategy,
   initialValue,
+  probeSourceId,
   onSubmit,
   onConnect,
 }: MusicSourceConfigFormProps) {
@@ -74,6 +78,50 @@ export function MusicSourceConfigForm({
         ])
     )
   );
+
+  // What the strategy reported about the server from the current values, so
+  // the form can show its capabilities before the source is added.
+  const [probe, setProbe] = useState<MusicSourceProbe | null>(null);
+  const [probing, setProbing] = useState(false);
+
+  const probeConfig = useMemo(
+    () => ({ ...values, ...folderHandles, ...folderLists }),
+    [values, folderHandles, folderLists]
+  );
+
+  // Only the extensions this app can actually use are listed; the rest are
+  // summarised as a count so the panel stays short.
+  const supportedExtensions =
+    probe?.extensions.filter((extension) => extension.supported) ?? [];
+  const unsupportedExtensionCount =
+    probe?.extensions.filter((extension) => !extension.supported).length ?? 0;
+
+  // Probe as the user fills the form in. Debounced so a typed URL or password
+  // produces one request, not one per keystroke.
+  useEffect(() => {
+    const run = strategy.probe;
+    if (!run) return;
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setProbing(true);
+      run({ config: probeConfig, sourceId: probeSourceId })
+        .then((result) => {
+          if (!cancelled) setProbe(result);
+        })
+        .catch(() => {
+          if (!cancelled) setProbe(null);
+        })
+        .finally(() => {
+          if (!cancelled) setProbing(false);
+        });
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [strategy, probeConfig, probeSourceId]);
 
   async function pickFolder(field: MusicSourceConfigField) {
     if (!isApiSupported) {
@@ -158,7 +206,27 @@ export function MusicSourceConfigForm({
 
     // Include picked folder handles (type: "folder") in the submitted config
     // so the strategy's add() can read `config.<fieldName>` as the handle.
-    return { ...values, ...folderHandles, ...folderLists };
+    // The probe result rides along so the source stores what the server
+    // reported, and later calls need not ask again.
+    return {
+      ...values,
+      ...folderHandles,
+      ...folderLists,
+      ...(probe
+        ? {
+            openSubsonic: probe.openSubsonic,
+            ...(probe.serverType ? { serverType: probe.serverType } : {}),
+            ...(probe.serverVersion
+              ? { serverVersion: probe.serverVersion }
+              : {}),
+            extensions: probe.extensions.map(({ name, versions, supported }) => ({
+              name,
+              versions,
+              supported,
+            })),
+          }
+        : {}),
+    };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -292,6 +360,83 @@ export function MusicSourceConfigForm({
             )}
           </div>
         )
+      )}
+
+      {strategy.probe && (
+        <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+          {probing && !probe ? (
+            <p className="text-sm text-muted-foreground">
+              {t("source.checkingServer")}
+            </p>
+          ) : probe ? (
+            <>
+              <div>
+                <p className="text-sm font-medium">
+                  {probe.openSubsonic
+                    ? t("source.openSubsonicDetected")
+                    : t("source.subsonicDetected")}
+                </p>
+                {probe.openSubsonic &&
+                  (probe.serverType || probe.serverVersion) && (
+                    <p className="text-xs text-muted-foreground">
+                      {[probe.serverType, probe.serverVersion]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </p>
+                  )}
+              </div>
+
+              {probe.openSubsonic &&
+                (probe.extensions.length > 0 ? (
+                  <>
+                    {supportedExtensions.length > 0 && (
+                      <ul className="space-y-1">
+                        {supportedExtensions.map((extension) => (
+                          <li
+                            key={extension.name}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            <CheckCircle2
+                              className="h-4 w-4 shrink-0 text-accent"
+                              aria-label={t("source.extensionSupported")}
+                            />
+                            <span className="font-medium">
+                              {extension.name}
+                            </span>
+                            {extension.versions.length > 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                v{extension.versions.join(", v")}
+                              </span>
+                            )}
+                            {extension.descriptionKey && (
+                              <span className="text-xs text-muted-foreground">
+                                {t(extension.descriptionKey)}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {unsupportedExtensionCount > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("source.moreUnsupportedExtensions", [
+                          String(unsupportedExtensionCount),
+                        ])}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {t("source.noExtensionsReported")}
+                  </p>
+                ))}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {t("source.serverInfo")}
+            </p>
+          )}
+        </div>
       )}
 
       {connectionError && (

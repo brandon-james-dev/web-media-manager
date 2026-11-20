@@ -14,12 +14,17 @@
  * localStorage at call time.
  */
 import type { Playlist, Song, SubsonicMusicSource } from "@/models";
-import { SubsonicClient, type SubsonicCredentials } from "./SubsonicClient";
+import {
+  SubsonicClient,
+  type SubsonicCredentials,
+  type SubsonicStructuredLyrics,
+} from "./SubsonicClient";
 import { getSubsonicSecret } from "./subsonicSecrets";
 import { getStore } from "@/core/system";
 import { getPlaylistStore } from "@/core/ports";
 import { parseSourceUri, sourceUri } from "@/core/contracts/sources";
 import { ArtworkType } from "@/lib/contracts";
+import { serializeLrc } from "@/lib/lyrics/lrc";
 
 /** The Open Subsonic `<song>`/`<child>` shape we read. */
 interface SubsonicChild {
@@ -262,7 +267,87 @@ export async function collectSubsonicSongs(
     }
   }
 
+  // Lyrics the server holds are not in the file tags, so they are read here
+  // and stored with the song. Gated on the extension the probe recorded, so a
+  // server without it costs no extra requests.
+  if (sourceHasSongLyrics(source)) {
+    await attachSubsonicLyrics(client, creds, songs);
+  }
+
   return songs;
+}
+
+/**
+ * Whether the source advertised the `songLyrics` extension when it was added.
+ * Sources added before the probe existed have no extension list, so they are
+ * skipped rather than paying a failed request per song.
+ */
+function sourceHasSongLyrics(source: SubsonicMusicSource): boolean {
+  const extensions = (source.config as { extensions?: { name: string }[] })
+    .extensions;
+  return extensions?.some((e) => e.name === "songLyrics") === true;
+}
+
+/** Prefer a synced record; otherwise take the first one offered. */
+function pickLyricsRecord(
+  records: SubsonicStructuredLyrics[]
+): SubsonicStructuredLyrics | undefined {
+  return records.find((r) => r.synced) ?? records[0];
+}
+
+/**
+ * Attach the lyrics the server holds for each song.
+ *
+ * The server is the authority here: a song can carry lyrics that were never
+ * written into its tags, which is exactly what `getLyricsBySongId` returns.
+ * Synced records become LRC in `syncedLyrics` plus plain text in `lyrics`, so
+ * the timed editor opens on them instead of starting from nothing.
+ *
+ * A song whose lookup fails keeps no lyrics rather than failing the import —
+ * most of a library legitimately has none.
+ */
+async function attachSubsonicLyrics(
+  client: SubsonicClient,
+  creds: SubsonicCredentials,
+  songs: Song[]
+): Promise<void> {
+  const LYRICS_CONCURRENCY = 4;
+
+  await asyncPool(songs, LYRICS_CONCURRENCY, async (song) => {
+    const remoteId = parseSourceUri(song.id)?.itemId ?? song.id;
+
+    try {
+      const record = pickLyricsRecord(
+        await client.getLyricsBySongId(creds, remoteId)
+      );
+      if (!record) return;
+
+      // The API names the array `line`; `offset` shifts every timestamp.
+      const offset = record.offset ?? 0;
+      const lines = (record.line ?? [])
+        .map((line) => ({
+          timeMs: Math.max(0, (line.start ?? 0) + offset),
+          text: line.value.trim(),
+        }))
+        .filter((line) => line.text !== "");
+
+      if (lines.length === 0) return;
+
+      song.lyrics = lines.map((line) => line.text).join("\n");
+
+      if (record.synced) {
+        song.syncedLyrics = serializeLrc(lines);
+      }
+    } catch (error) {
+      // No lyrics for this song, or the server does not implement the
+      // endpoint despite advertising it. Warn rather than fail the import,
+      // but leave a trace: a silent catch hid a wrong response field once.
+      console.warn(
+        `[subsonic] lyrics lookup failed for ${song.id}:`,
+        error instanceof Error ? error.message : error
+      );
+    }
+  });
 }
 
 /**

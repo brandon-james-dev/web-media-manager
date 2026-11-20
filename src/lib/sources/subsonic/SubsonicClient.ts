@@ -23,6 +23,51 @@ export interface SubsonicConfig {
   musicFolderId?: string;
 }
 
+/** What a server reports about itself from `ping`. */
+export interface SubsonicServerInfo {
+  /** API version the server speaks. */
+  version: string;
+  /** True when the server implements the Open Subsonic extensions. */
+  openSubsonic: boolean;
+  /** Server software name, e.g. "Navidrome" (Open Subsonic only). */
+  type?: string;
+  /** Server software version (Open Subsonic only). */
+  serverVersion?: string;
+}
+
+/**
+ * What a server reports about itself, read from the response wrapper. Unlike
+ * `SubsonicServerInfo` this is available even when the credentials were
+ * rejected, so the add form can identify a server from its URL alone.
+ */
+export interface SubsonicIdentity extends SubsonicServerInfo {
+  /** True when the request itself succeeded, i.e. the credentials are valid. */
+  authOk: boolean;
+}
+
+/** One extension a server advertises from `getOpenSubsonicExtensions`. */export interface SubsonicExtension {
+  name: string;
+  versions: number[];
+}
+
+/** One line of structured lyrics, from the `songLyrics` extension. */
+export interface SubsonicLyricLine {
+  /** Start of the line in milliseconds (absent for unsynced lyrics). */
+  start?: number;
+  value: string;
+}
+
+/** One lyrics record from `getLyricsBySongId`. */
+export interface SubsonicStructuredLyrics {
+  lang?: string;
+  /** True when the lines carry timestamps. */
+  synced: boolean;
+  /** Offset applied to every line, in milliseconds. */
+  offset?: number;
+  /** The lines. Named `line` by the API, not `lines`. */
+  line: SubsonicLyricLine[];
+}
+
 const API_VERSION = "1.16.1";
 const CLIENT_NAME = "wmm";
 
@@ -119,12 +164,102 @@ export class SubsonicClient {
   }
 
   /**
-   * Verify the configuration + credentials against the server.
-   * Returns the server version on success; throws on failure.
+   * Read what the server reports about itself without requiring valid
+   * credentials.
+   *
+   * `type`, `serverVersion` and `openSubsonic` live on the response wrapper,
+   * so they arrive even when the request itself fails authentication. That is
+   * what lets the add form identify a server from its URL alone, before the
+   * user has typed a password. Returns null when the URL does not answer with
+   * a Subsonic envelope at all (wrong host, a proxy's bare 401, HTML page).
    */
-  async ping(creds: SubsonicCredentials): Promise<string> {
-    const body = await this.request<{ version: string }>("ping", creds);
-    return body["subsonic-response"].version;
+  async identify(creds: SubsonicCredentials): Promise<SubsonicIdentity | null> {
+    const url = this.buildUrl("ping", creds);
+
+    let res: Response;
+    try {
+      res = await fetch(url);
+    } catch {
+      return null;
+    }
+
+    if (!res.ok) return null;
+
+    let body: SubsonicResponse<unknown>;
+    try {
+      body = (await res.json()) as SubsonicResponse<unknown>;
+    } catch {
+      return null;
+    }
+
+    const response = body?.["subsonic-response"];
+    if (!response) return null;
+
+    return {
+      authOk: response.status === "ok",
+      version: response.version,
+      openSubsonic: response.openSubsonic === true,
+      type: typeof response.type === "string" ? response.type : undefined,
+      serverVersion:
+        typeof response.serverVersion === "string"
+          ? response.serverVersion
+          : undefined,
+    };
+  }
+
+  /**
+   * Verify the configuration + credentials against the server.
+   * Returns what the server reports about itself; throws on failure.
+   */
+  async ping(creds: SubsonicCredentials): Promise<SubsonicServerInfo> {
+    const body = await this.request<{
+      version: string;
+      openSubsonic?: boolean;
+      type?: string;
+      serverVersion?: string;
+    }>("ping", creds);
+    const response = body["subsonic-response"];
+
+    return {
+      version: response.version,
+      openSubsonic: response.openSubsonic === true,
+      type: typeof response.type === "string" ? response.type : undefined,
+      serverVersion:
+        typeof response.serverVersion === "string"
+          ? response.serverVersion
+          : undefined,
+    };
+  }
+
+  /**
+   * Extensions the server advertises.
+   *
+   * Servers that predate the endpoint answer with an error, so a failed call
+   * returns null ("unknown") rather than an empty list ("none") — the two
+   * mean different things to a caller deciding what to try.
+   */
+  async getOpenSubsonicExtensions(
+    creds: SubsonicCredentials
+  ): Promise<SubsonicExtension[] | null> {
+    try {
+      const body = await this.request<{
+        openSubsonicExtensions?: SubsonicExtension[];
+      }>("getOpenSubsonicExtensions", creds);
+      const list = body["subsonic-response"].openSubsonicExtensions;
+
+      if (!Array.isArray(list)) return null;
+
+      return list
+        .filter((entry) => typeof entry?.name === "string")
+        .map((entry) => ({
+          name: entry.name,
+          versions: Array.isArray(entry.versions)
+            ? entry.versions.filter((v) => typeof v === "number")
+            : [],
+        }));
+    } catch {
+      return null;
+    }
   }
 
   /** Music folders exposed by this server. */
@@ -289,6 +424,25 @@ export class SubsonicClient {
       id,
     });
     return body["subsonic-response"].song;
+  }
+
+  /**
+   * Structured lyrics for a song, from the `songLyrics` extension.
+   *
+   * Line-level timings are in milliseconds, which is the unit the app's LRC
+   * model uses. A server without the extension answers with an error, so the
+   * caller should check the advertised extensions before relying on this.
+   */
+  async getLyricsBySongId(
+    creds: SubsonicCredentials,
+    id: string
+  ): Promise<SubsonicStructuredLyrics[]> {
+    const body = await this.request<{
+      lyricsList?: { structuredLyrics?: SubsonicStructuredLyrics[] };
+    }>("getLyricsBySongId", creds, { id });
+    const list = body["subsonic-response"].lyricsList?.structuredLyrics;
+
+    return Array.isArray(list) ? list : [];
   }
 
   /**

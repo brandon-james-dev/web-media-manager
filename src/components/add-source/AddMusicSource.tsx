@@ -243,6 +243,7 @@ export function AddMusicSource({
           }
           onSubmit={handleConfigSubmit}
           onConnect={handleConnect}
+          probeSourceId={isEditing ? editingSource?.id : undefined}
         />
       ) : null}
     </>

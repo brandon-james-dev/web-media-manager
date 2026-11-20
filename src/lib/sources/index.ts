@@ -29,7 +29,11 @@ export const allMusicSourceStrategies: IMusicSourceStrategy[] = [
 
 export * from "./config";
 export { resyncAllSources } from "./resync";
-export type { IMusicSourceStrategy } from "./IMusicSourceStrategy";
+export type {
+  IMusicSourceStrategy,
+  MusicSourceProbe,
+  MusicSourceProbeExtension,
+} from "./IMusicSourceStrategy";
 export type { MusicSourceConfigField } from "./MusicSourceConfigField";
 export { LocalMusicSourceStrategy } from "./file/LocalMusicSourceStrategy";
 export { SyncMusicSourceStrategy } from "./sync/SyncMusicSourceStrategy";

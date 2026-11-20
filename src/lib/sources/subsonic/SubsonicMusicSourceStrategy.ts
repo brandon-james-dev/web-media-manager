@@ -15,6 +15,7 @@ import {
   SubsonicClient,
   type SubsonicCredentials,
 } from "@/lib/sources/subsonic/SubsonicClient";
+import { probeSubsonicServer } from "@/lib/sources/subsonic/openSubsonicExtensions";
 import { getMusicSourceImportConfig } from "@/lib/sources/config";
 import type { MusicSourceImportConfig } from "@/lib/sources/config";
 import { getJobService } from "@/core/jobs";
@@ -23,9 +24,11 @@ import { getSourcesStore } from "@/core/ports";
 import { uuidv7 } from "uuidv7";
 import type { Song } from "@/models/Song";
 import type { MusicSource, Playlist, SubsonicMusicSource } from "@/models";
+import type { RemoteSourceExtension } from "@/core/contracts";
 import type {
   IMusicSourceStrategy,
   IJobHandle,
+  MusicSourceProbe,
   SongChanges,
 } from "../IMusicSourceStrategy";
 import type { MusicSourceConfigField } from "../MusicSourceConfigField";
@@ -36,6 +39,11 @@ export interface SubsonicSourceConfig {
   username: string;
   password: string;
   musicFolderId?: string;
+  /** What the config form's probe learned about the server. */
+  openSubsonic?: boolean;
+  serverType?: string;
+  serverVersion?: string;
+  extensions?: RemoteSourceExtension[];
 }
 
 /** Validate the server URL field. */
@@ -79,6 +87,7 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
       name: "baseUrl",
       label: "Server URL",
       labelKey: "source.serverUrl",
+      type: "url",
       placeholder: "https://music.example.com",
       required: true,
       validate: (v) =>
@@ -133,9 +142,49 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
       username: input.username,
       password: input.password,
       musicFolderId: input.musicFolderId || undefined,
+      openSubsonic: input.openSubsonic,
+      serverType: input.serverType,
+      serverVersion: input.serverVersion,
+      extensions: input.extensions,
     });
     this.connectedSource = source;
     await options.onSourceAdded?.();
+  }
+
+  /**
+   * Report what the server is and what it supports, so the config form can
+   * show it before the source is added. Returns null until the fields the
+   * request needs are filled in.
+   */
+  async probe(options: {
+    config?: unknown;
+    sourceId?: string;
+  }): Promise<MusicSourceProbe | null> {
+    const input = options.config as SubsonicSourceConfig | undefined;
+    if (!input?.baseUrl || !isValidHttpUrl(input.baseUrl)) return null;
+
+    // Editing an existing source: the password is not in the form, it lives in
+    // the secrets store, so read it back to reach the extension list.
+    const password =
+      input.password ||
+      (options.sourceId
+        ? ((await getSubsonicSecret(options.sourceId)) ?? "")
+        : "");
+
+    try {
+      const client = new SubsonicClient({ baseUrl: input.baseUrl });
+      // Credentials are optional here: the server names itself on the response
+      // wrapper even when it rejects the request, so the form can identify it
+      // from the URL alone and list extensions once a password is known.
+      return await probeSubsonicServer(client, {
+        username: input.username ?? "",
+        password,
+      });
+    } catch {
+      // Unreachable server or bad credentials: the connect action reports
+      // the error, the probe just stays quiet.
+      return null;
+    }
   }
 
   async updateSource(options: {
@@ -157,6 +206,14 @@ export class SubsonicMusicSourceStrategy implements IMusicSourceStrategy {
         baseUrl: input.baseUrl,
         username: input.username,
         musicFolderId: input.musicFolderId || undefined,
+        ...(input.openSubsonic !== undefined
+          ? { openSubsonic: input.openSubsonic }
+          : {}),
+        ...(input.serverType ? { serverType: input.serverType } : {}),
+        ...(input.serverVersion
+          ? { serverVersion: input.serverVersion }
+          : {}),
+        ...(input.extensions ? { extensions: input.extensions } : {}),
       },
     };
     const store = getSourcesStore();

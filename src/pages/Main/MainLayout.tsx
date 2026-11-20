@@ -59,7 +59,6 @@ import {
   Outlet,
   NavLink,
   useLocation,
-  useParams,
   useNavigate,
 } from "react-router";
 import { Editor } from "@/components/editor";
@@ -100,6 +99,11 @@ function tabFromPathname(pathname: string) {
 
 function modeFromParam(mode: string | undefined) {
   return mode === "edit" ? "edit" : "playback";
+}
+
+/** The `:mode` segment of a tab path, e.g. `/songs/edit` -> "edit". */
+function modeFromPath(pathname: string) {
+  return pathname.split("/").filter(Boolean)[1];
 }
 
 /**
@@ -288,7 +292,6 @@ function SidebarDndArea({
 function MainLayout() {
   //#region State
   const { pathname } = useLocation();
-  const { mode } = useParams();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const isTv = useIsTv();
@@ -352,7 +355,10 @@ function MainLayout() {
   }
 
   const activeTab = isSyncPage ? "sync" : tabFromPathname(pathname);
-  const activeMode = isSyncPage ? undefined : modeFromParam(mode);
+  // `useParams()` here only sees this layout route's params, never the child
+  // route's `:mode`, so the mode is read from the pathname instead — otherwise
+  // `activeMode` is permanently "playback" and the Edit toggle cannot switch.
+  const activeMode = isSyncPage ? undefined : modeFromParam(modeFromPath(pathname));
 
   const routeMode = activeMode ?? "playback";
 
@@ -565,7 +571,9 @@ function MainLayout() {
               disabled={isSyncPage}
               pressed={!isSyncPage && activeMode === "edit"}
               onPressedChange={(pressed) => {
-                navigate(`${activeTab}/${pressed ? "edit" : "playback"}`);
+                // Absolute, so the path resolves from the root rather than
+                // relative to this layout route.
+                navigate(`/${activeTab}/${pressed ? "edit" : "playback"}`);
               }}
             >
               <Pen className="h-4 w-4" />

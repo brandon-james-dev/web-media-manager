@@ -993,6 +993,10 @@ export const WMM_RESOURCES = {
     "Accessible name of the button that re-syncs the named source.",
     ["name"]
   ),
+  "source.removeNamed": template(
+    "Accessible name of the button that removes the named source.",
+    ["name"]
+  ),
   "source.notSupported": text(
     "Shown for a source type this browser cannot use."
   ),
@@ -1057,6 +1061,34 @@ export const WMM_RESOURCES = {
   "source.fieldRequired": template(
     "Shown when a required field is empty.",
     ["field"]
+  ),
+  "source.checkingServer": text(
+    "Shown while the form asks the server what it is."
+  ),
+  "source.serverInfo": text(
+    "Placeholder in the server info box before anything has been detected."
+  ),
+  "source.openSubsonicDetected": text(
+    "Title shown when the server reports Open Subsonic support."
+  ),
+  "source.subsonicDetected": text(
+    "Shown when the server does not report Open Subsonic support."
+  ),
+  "source.extensionSupported": text(
+    "Accessible label for an extension this app can use."
+  ),
+  "source.extensionUnsupported": text(
+    "Accessible label for an extension this app cannot use."
+  ),
+  "source.extensionSongLyrics": text(
+    "What the app does with the songLyrics extension."
+  ),
+  "source.noExtensionsReported": text(
+    "Shown when an Open Subsonic server did not report its extensions."
+  ),
+  "source.moreUnsupportedExtensions": template(
+    "Summarises how many extensions the server offers that the app cannot use.",
+    ["count"]
   ),
   "source.removeFolderNamed": template(
     "Accessible name of the button that drops the named folder.",

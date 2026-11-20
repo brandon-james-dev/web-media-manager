@@ -22,6 +22,31 @@ import type { MusicSourceConfigField } from "./MusicSourceConfigField";
  * `resolveSongBytes()`, so the provider dispatches by source kind instead
  * of branching on it.
  */
+/** One extension a probed server advertises, as the form displays it. */
+export interface MusicSourceProbeExtension {
+  name: string;
+  versions: number[];
+  /** True when this app can consume the extension. */
+  supported: boolean;
+  /** What the app does with it — shown next to a supported extension. */
+  descriptionKey?: WmmResourceKey;
+}
+
+/**
+ * What a strategy learned about a server from its config, before the source
+ * is added. The standard config form renders this under the fields so the
+ * user can see what the server supports.
+ */
+export interface MusicSourceProbe {
+  /** True when the server implements the Open Subsonic extensions. */
+  openSubsonic: boolean;
+  /** Server software name, e.g. "Navidrome". */
+  serverType?: string;
+  /** Server software version. */
+  serverVersion?: string;
+  extensions: MusicSourceProbeExtension[];
+}
+
 export interface IMusicSourceStrategy {
   /** The MusicSource kind this strategy adds (discriminator). */
   readonly kind: MusicSourceKind;
@@ -46,6 +71,22 @@ export interface IMusicSourceStrategy {
    * strategy without config fields just runs `add()` directly.
    */
   configFields?: MusicSourceConfigField[];
+
+  /**
+   * Inspect the server described by the config form's current values, so the
+   * form can show what it supports before the source is added. Called as the
+   * user types (debounced); return null when there is nothing to report yet
+   * (incomplete or invalid config, unreachable server).
+   */
+  probe?(options: {
+    config?: unknown;
+    /**
+     * Id of the source being edited, when the form is in edit mode. Lets a
+     * strategy reuse stored credentials (which are never held in form state)
+     * so the probe can report the same detail as when adding.
+     */
+    sourceId?: string;
+  }): Promise<MusicSourceProbe | null>;
 
   /**
    * Authorize + persist the source WITHOUT starting the import. A strategy

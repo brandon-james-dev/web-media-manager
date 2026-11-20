@@ -7,6 +7,7 @@ import {
 import { getSourcesStore } from "@/core/ports";
 import { uuidv7 } from "uuidv7";
 import type { MusicSourceCapabilities } from "@/core/contracts/sources";
+import type { RemoteSourceExtension } from "@/core/contracts";
 
 /**
  * Default capabilities for a Subsonic source. Streamable, browsable and
@@ -32,6 +33,11 @@ export interface AddSubsonicSourceInput {
   password: string;
   musicFolderId?: string;
   name?: string;
+  /** What the config form's probe learned about the server. */
+  openSubsonic?: boolean;
+  serverType?: string;
+  serverVersion?: string;
+  extensions?: RemoteSourceExtension[];
 }
 
 /**
@@ -89,6 +95,12 @@ export async function addSubsonicSource(
       baseUrl: input.baseUrl.replace(/\/+$/, ""),
       username: input.username,
       ...(input.musicFolderId ? { musicFolderId: input.musicFolderId } : {}),
+      ...(input.openSubsonic !== undefined
+        ? { openSubsonic: input.openSubsonic }
+        : {}),
+      ...(input.serverType ? { serverType: input.serverType } : {}),
+      ...(input.serverVersion ? { serverVersion: input.serverVersion } : {}),
+      ...(input.extensions ? { extensions: input.extensions } : {}),
     },
   };
 

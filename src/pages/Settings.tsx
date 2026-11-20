@@ -36,6 +36,8 @@ import { clearSubsonicSecrets } from "@/lib/sources/subsonic/subsonicSecrets";
 import { runJobWithProgress } from "@/lib/jobs/runJobWithProgress";
 import type { SourceRemoveResult } from "@/workers/shared/runSourceRemove";
 import { getSourcesStore, getLyricsSettingsStore } from "@/core/ports";
+import { getJobService } from "@/core/jobs";
+import { wmmBus } from "@/events";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { Badge } from "@/components/ui/badge";
 import { musicSourceStrategies } from "@/lib/sources";
@@ -81,6 +83,10 @@ export function Settings() {
   const [editingSource, setEditingSource] = useState<MusicSource | null>(null);
   const [sources, setDirectories] = useState<MusicSource[]>([]);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [removingSourceId, setRemovingSourceId] = useState<string | null>(null);
+  // Bulk imports currently running, so clearing the library can stop them
+  // first instead of deleting rows a worker is still writing.
+  const [runningImportIds, setRunningImportIds] = useState<string[]>([]);
   const [lyricsApplicationId, setLyricsApplicationId] = useState("");
   const [savedLyricsApplicationId, setSavedLyricsApplicationId] = useState("");
   const [settings, setSettings] = useState({
@@ -128,6 +134,27 @@ export function Settings() {
         setLyricsApplicationId(applicationId ?? "");
         setSavedLyricsApplicationId(applicationId ?? "");
       });
+  }, []);
+
+  // Track running bulk imports so the clear action can cancel them.
+  useEffect(() => {
+    return wmmBus.on("wmm.jobs.state", (evt) => {
+      if (!evt || evt.parentJobId) return;
+      if (evt.jobType !== "Bulk Import") return;
+
+      const { jobId, state } = evt;
+
+      if (state === "started") {
+        setRunningImportIds((prev) =>
+          prev.includes(jobId) ? prev : [...prev, jobId]
+        );
+        return;
+      }
+
+      if (state === "completed" || state === "error" || state === "canceled") {
+        setRunningImportIds((prev) => prev.filter((id) => id !== jobId));
+      }
+    });
   }, []);
   //#endregion
 
@@ -212,6 +239,14 @@ export function Settings() {
   };
 
   const handleClearSongs = async () => {
+    // A running import would keep writing rows into the library being cleared,
+    // so stop it first and let the worker unwind before deleting anything.
+    if (runningImportIds.length > 0) {
+      const service = getJobService();
+      for (const jobId of runningImportIds) service.cancelJob(jobId);
+      setRunningImportIds([]);
+    }
+
     await clearLibrary();
     await clearSubsonicSecrets();
     await refresh();
@@ -231,6 +266,16 @@ export function Settings() {
       setDeleteDirDialogOpen(false);
       return;
     }
+
+    // Dismiss the dialog before the job starts. The removal runs in the
+    // background with its own progress notification, so keeping the modal up
+    // while it worked made the confirm click look like it did nothing.
+    setPendingDeleteId(null);
+    setDeleteDirDialogOpen(false);
+    // The row's actions collapse to a spinner for the length of the job, so
+    // the list shows which source is going away instead of leaving buttons
+    // that would fire a second removal.
+    setRemovingSourceId(source.id);
 
     // The songs and the source record are deleted by a worker job so a large
     // library reports progress instead of freezing the page. The kind's own
@@ -253,6 +298,7 @@ export function Settings() {
         },
       });
     } catch (error) {
+      setRemovingSourceId(null);
       toast.add({
         type: "error",
         title: t("source.removeFailed"),
@@ -264,8 +310,10 @@ export function Settings() {
     const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
     await strategy?.cleanupRemovedSource?.(source);
 
-    setPendingDeleteId(null);
-    setDeleteDirDialogOpen(false);
+    // The job deleted the source record in the worker, so re-read the list
+    // rather than trusting the copy this page loaded earlier.
+    await refresh();
+    setRemovingSourceId(null);
   };
   //#endregion
 
@@ -494,6 +542,16 @@ export function Settings() {
 
                   <div className={cn("flex items-center gap-1 shrink-0", isCompact ? "pl-1" : undefined)}>
                     {isCompact && <SourceKindBadge source={dir} />}
+                    {removingSourceId === dir.id ? (
+                      <span
+                        role="status"
+                        aria-label={t("source.removing")}
+                        className={cn("flex items-center justify-center", isCompact ? "px-3" : "px-2")}
+                      >
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </span>
+                    ) : (
+                      <>
                     {musicSourceStrategies.some((s) => s.kind === dir.kind && s.updateSource) && (
                       <Button
                         variant="ghost"
@@ -527,6 +585,7 @@ export function Settings() {
                       variant="secondary"
                       size="icon"
                       className={isCompact ? "w-auto px-3" : undefined}
+                      aria-label={t("source.removeNamed", [dir.name])}
                       onClick={() => {
                         setPendingDeleteId(dir.id);
                         setDeleteDirDialogOpen(true);
@@ -534,6 +593,8 @@ export function Settings() {
                     >
                       <X className="h-4 w-4" />
                     </Button>
+                      </>
+                    )}
                   </div>
                 </Item>
               ))}

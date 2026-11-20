@@ -80,7 +80,9 @@ export function Songs() {
 
   //#region Subscribe to domain events
   useEffect(() => {
-    setQuery({ sort: songSort });
+    // Keep whatever else the query carries (the search filter in particular)
+    // so switching between playback and edit mode does not clear it.
+    setQuery((prev) => ({ ...prev, sort: songSort }));
     setSort(songSort);
   }, [setQuery, setSort, songSort]);
   //#endregion

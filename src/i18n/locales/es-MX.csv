@@ -448,11 +448,12 @@ source.updated,Se actualizó {0}
 source.updateFailed,No se pudo actualizar {0}
 source.editNamed,Editar {0}
 source.syncNamed,Sincronizar {0}
+source.removeNamed,Quitar {0}
 source.notSupported,No es compatible con este navegador
 source.removing,Quitando la fuente de música
 source.removeFailed,No se pudo quitar la fuente de música
 source.removeTitle,Quitar fuente de música
-source.removeDescription,Esto quitará la fuente de tu biblioteca. Las canciones ya importadas se conservarán.
+source.removeDescription,Esto quitará la fuente y todas las canciones importadas de ella. Los archivos no se modifican.
 source.noneAdded,Aún no hay fuentes de música agregadas. Agrega una carpeta en el dispositivo o un servidor Subsonic.
 source.kindLocal,En el dispositivo
 source.kindServer,Servidor
@@ -472,6 +473,15 @@ source.folderAlreadyAdded,"Ya se agregó ""{0}"""
 source.chooseAtLeastOneFolder,Elige al menos una carpeta
 source.chooseFolder,Elige una carpeta
 source.fieldRequired,{0} es obligatorio
+source.checkingServer,Comprobando el servidor...
+source.serverInfo,Información del servidor
+source.openSubsonicDetected,Se detectó Open Subsonic
+source.subsonicDetected,Se detectó un servidor Subsonic
+source.extensionSupported,Compatible con esta app
+source.extensionUnsupported,No la usa esta app
+source.extensionSongLyrics,Letras
+source.noExtensionsReported,El servidor no informó sus extensiones
+source.moreUnsupportedExtensions,{0} extensión(es) más sin soporte
 source.removeFolderNamed,Quitar {0}
 source.addFolder,Agregar carpeta
 source.addAnotherFolder,Agregar otra carpeta
