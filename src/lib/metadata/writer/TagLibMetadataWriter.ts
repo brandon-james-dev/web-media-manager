@@ -10,6 +10,7 @@ import type { MetadataRating } from "@/lib/metadata/Metadata";
 import type { ITagData } from "@/lib/contracts/ITagData";
 import type { IMetadataWriter } from "@/lib/contracts/IMedataWriter";
 import { resizeBitmap } from "@/lib/metadata/artwork/resizeBitmap";
+import { toId3v23 } from "./toId3v23";
 
 const TAGLIB_RAW_TOP_RATING = 255;
 
@@ -118,14 +119,14 @@ export class TagLibMetadataWriter implements IMetadataWriter {
     }
 
     // Replaces the whole picture set, so an empty list clears it.
-    return await applyPictures(updatedFile, pictures);
+    return toId3v23(await applyPictures(updatedFile, pictures));
   }
 
   async writeRatings(
     file: File,
     ratings: MetadataRating[]
   ): Promise<Uint8Array> {
-    return await this.writeStructured(file, { ratings });
+    return toId3v23(await this.writeStructured(file, { ratings }));
   }
 
   /**
