@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { AlphabetScrubber } from "@/components/alphabet-scrubber";
 import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
 import { useShufflePlay, useSourceSongs, useSongs } from "@/hooks";
@@ -56,7 +57,7 @@ const ALL_ARTISTS = "__all_artists__";
  */
 export function Artists() {
   //#region State
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
   const { setSort, activeMode, selectedSourceIds } =
@@ -153,7 +154,7 @@ export function Artists() {
     return Array.from(map.values()).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
-  }, [visibleSongs, t, language]);
+  }, [visibleSongs, t]);
 
   // The "All Artists" entry is selected by default (and by its sentinel id);
   // a real artist id switches the right pane to the detail column.
@@ -181,12 +182,17 @@ export function Artists() {
   // album sections (art → sticky title row → songs) plus the header
   // play/shuffle affordances. All Artists feeds in the whole library's
   // albums/songs; a selected artist feeds in its own.
-  const detailAlbums = isAllArtists
-    ? allAlbums
-    : (selectedArtist?.albums ?? []);
-  const detailSongs = isAllArtists
-    ? allAlbums.flatMap((a) => a.songs)
-    : (selectedArtist?.songs ?? []);
+  const detailAlbums = useMemo(
+    () => (isAllArtists ? allAlbums : (selectedArtist?.albums ?? [])),
+    [isAllArtists, allAlbums, selectedArtist]
+  );
+  const detailSongs = useMemo(
+    () =>
+      isAllArtists
+        ? allAlbums.flatMap((a) => a.songs)
+        : (selectedArtist?.songs ?? []),
+    [isAllArtists, allAlbums, selectedArtist]
+  );
   const detailName = isAllArtists
     ? t("library.allArtists")
     : (selectedArtist?.name ?? "");
@@ -221,6 +227,7 @@ export function Artists() {
   );
 
   const detailListRef = useRef<HTMLDivElement>(null);
+  const detailContentRef = useRef<HTMLDivElement>(null);
   const groupLetterIndex = useMemo(
     () =>
       isAllArtists
@@ -232,6 +239,31 @@ export function Artists() {
     () => new Set(groupLetterIndex.keys()),
     [groupLetterIndex]
   );
+
+  /**
+   * All Artists mounts one section per album in the library, which on a large
+   * collection is thousands of rows and tens of thousands of DOM nodes — the
+   * whole library rendered before the first paint. Only the artist groups
+   * around the viewport are mounted here; the rest are positioned from their
+   * measured height, so scrolling and the alphabet scrubber stay exact.
+   *
+   * A single artist keeps the plain list: one group is bounded by that
+   * artist's own catalogue and virtualization would only add measurement.
+   */
+  // The virtualizer returns functions React Compiler cannot memoize, so it
+  // skips this component by design; the virtualizer owns that state itself.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const groupVirtualizer = useVirtualizer({
+    count: isAllArtists ? albumGroups.length : 0,
+    getScrollElement: () =>
+      detailContentRef.current?.closest<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]'
+      ) ?? null,
+    estimateSize: () => 900,
+    overscan: 2,
+    getItemKey: (index) => albumGroups[index]?.key ?? index,
+    measureElement: (el) => el.getBoundingClientRect().height,
+  });
   //#endregion
 
   //#region Interactivity handlers
@@ -315,6 +347,36 @@ export function Artists() {
     wmmBus.publish("wmm.ui.selectionChanged", { songIds: selectedSongIds });
   }, [selectedSongIds]);
   //#endregion
+
+  // One artist group: its sticky header (All Artists only) and each album
+  // section. Shared by the virtualized All Artists list and the plain
+  // single-artist list so both render identically.
+  const renderGroup = (artistName: string | undefined, albums: Album[]) => (
+    <>
+      {artistName && (
+        <div className="sticky top-0 z-20 flex h-10 items-center truncate bg-background text-sm font-bold uppercase tracking-wide text-primary">
+          {artistName}
+        </div>
+      )}
+      {albums.map((album) => (
+        <AlbumSection
+          key={album.id}
+          album={album}
+          stickyTop={artistName ? "top-10" : "top-0"}
+          isCompact={isCompact}
+          activeMode={activeMode}
+          nowPlayingSongId={nowPlayingSongId}
+          onPlay={() => playAlbum(album)}
+          onShuffle={() => shuffleAlbum(album)}
+          onEdit={() => editAlbum(album)}
+          onEditSong={editSong}
+          onToggleSong={toggleSongSelection}
+          selectedSongIds={selectedSongIds}
+          onArtDoubleClick={() => handleAlbumArtDoubleClick(album)}
+        />
+      ))}
+    </>
+  );
 
   return (
     <div className="h-full w-full flex">
@@ -532,33 +594,39 @@ export function Artists() {
 
         <div className="relative flex-1 min-h-0">
           <ScrollArea ref={detailListRef} className="h-full">
-            <div className={cn("pb-6", isCompact ? "px-3" : "px-5")}>
-              {albumGroups.map(({ key, artistName, albums }) => (
-                <div key={key} data-artist-group={artistName}>
-                  {artistName && (
-                    <div className="sticky top-0 z-20 flex h-10 items-center truncate bg-background text-sm font-bold uppercase tracking-wide text-primary">
-                      {artistName}
-                    </div>
-                  )}
-                  {albums.map((album) => (
-                    <AlbumSection
-                      key={album.id}
-                      album={album}
-                      stickyTop={artistName ? "top-10" : "top-0"}
-                      isCompact={isCompact}
-                      activeMode={activeMode}
-                      nowPlayingSongId={nowPlayingSongId}
-                      onPlay={() => playAlbum(album)}
-                      onShuffle={() => shuffleAlbum(album)}
-                      onEdit={() => editAlbum(album)}
-                      onEditSong={editSong}
-                      onToggleSong={toggleSongSelection}
-                      selectedSongIds={selectedSongIds}
-                      onArtDoubleClick={() => handleAlbumArtDoubleClick(album)}
-                    />
-                  ))}
+            <div
+              ref={detailContentRef}
+              className={cn("pb-6", isCompact ? "px-3" : "px-5")}
+            >
+              {isAllArtists ? (
+                <div
+                  className="relative"
+                  style={{ height: groupVirtualizer.getTotalSize() }}
+                >
+                  {groupVirtualizer.getVirtualItems().map((virtualGroup) => {
+                    const group = albumGroups[virtualGroup.index];
+                    if (!group) return null;
+
+                    return (
+                      <div
+                        key={virtualGroup.key}
+                        ref={groupVirtualizer.measureElement}
+                        data-index={virtualGroup.index}
+                        className="absolute top-0 left-0 w-full"
+                        style={{
+                          top: virtualGroup.start,
+                        }}
+                      >
+                        {renderGroup(group.artistName, group.albums)}
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              ) : (
+                albumGroups.map(({ key, artistName, albums }) => (
+                  <div key={key}>{renderGroup(artistName, albums)}</div>
+                ))
+              )}
             </div>
           </ScrollArea>
           {isAllArtists && groupLetterIndex.size > 0 && (
@@ -569,22 +637,12 @@ export function Artists() {
               autoHide={isCompact}
               hoverOnly={!isCompact}
               scrollRef={detailListRef}
-              onSelect={(letter) => {
-                const name =
-                  albumGroups[groupLetterIndex.get(letter) ?? 0]?.artistName;
-                const root = detailListRef.current;
-                const viewport = root?.querySelector<HTMLElement>(
-                  '[data-slot="scroll-area-viewport"]'
-                );
-                const group = Array.from(
-                  root?.querySelectorAll<HTMLElement>("[data-artist-group]") ??
-                  []
-                ).find((el) => el.dataset.artistGroup === name);
-                if (!viewport || !group) return;
-                viewport.scrollTop +=
-                  group.getBoundingClientRect().top -
-                  viewport.getBoundingClientRect().top;
-              }}
+              onSelect={(letter) =>
+                groupVirtualizer.scrollToIndex(
+                  groupLetterIndex.get(letter) ?? 0,
+                  { align: "start" }
+                )
+              }
             />
           )}
         </div>

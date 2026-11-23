@@ -492,6 +492,7 @@ function MainLayout() {
               <TabsList>
                 <TabsTrigger
                   value="songs"
+                  nativeButton={false}
                   render={
                     <NavLink
                       to={`songs/${routeMode}`}
@@ -506,6 +507,7 @@ function MainLayout() {
 
                 <TabsTrigger
                   value="albums"
+                  nativeButton={false}
                   render={
                     <NavLink
                       to={`albums/${routeMode}`}
@@ -520,6 +522,7 @@ function MainLayout() {
 
                 <TabsTrigger
                   value="artists"
+                  nativeButton={false}
                   render={
                     <NavLink
                       to={`artists/${routeMode}`}

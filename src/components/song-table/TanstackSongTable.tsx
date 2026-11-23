@@ -349,6 +349,7 @@ export function TanstackSongTable(props: SongTableProps) {
               return (
                 <div
                   key={virtualRow.key}
+                  data-index={virtualRow.index}
                   className="absolute top-0 left-0 w-full odd:bg-accent/5"
                   style={{
                     // No fixed height here: measureElement reads the row's

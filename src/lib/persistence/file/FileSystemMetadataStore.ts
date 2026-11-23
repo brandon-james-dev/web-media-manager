@@ -145,19 +145,28 @@ export class FileSystemMetadataStore implements IMetadataStore {
           dir,
           existingSong.relativePath
         );
+
+        // A persisted source keeps only the folder's name, so after a reload
+        // `folder` is a plain `{ name }` until the user re-picks the directory
+        // in the source picker. That is the normal state, not a failure: there
+        // is simply no handle to read the file through yet.
+        if (typeof folder?.getDirectoryHandle !== "function") return undefined;
+
         const parts = path.split("/").filter(Boolean);
         let directoryHandle = folder;
 
         for (let i = 0; i < parts.length - 1; i++) {
-          directoryHandle = await directoryHandle?.getDirectoryHandle(parts[i]);
+          directoryHandle = await directoryHandle.getDirectoryHandle(parts[i]);
         }
 
-        const fileHandle = await directoryHandle?.getFileHandle(parts.at(-1)!);
+        const fileHandle = await directoryHandle.getFileHandle(parts.at(-1)!);
 
         this.setFileHandle(id, fileHandle);
         existingFileHandle = fileHandle;
-      } catch (err) {
-        console.error("Failed to reconstruct file handle:", err);
+      } catch {
+        // The file or one of its folders is gone (moved, renamed, deleted).
+        // Callers treat a missing handle as "not on disk"; nothing to report.
+        return undefined;
       }
     }
 
