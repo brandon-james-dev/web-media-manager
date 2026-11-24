@@ -10,4 +10,6 @@ export interface QuickEditDto {
   year?: number;
   track?: number;
   coverFront?: Blob;
+  /** Clear the front cover instead of replacing it. */
+  removeCoverFront?: boolean;
 }

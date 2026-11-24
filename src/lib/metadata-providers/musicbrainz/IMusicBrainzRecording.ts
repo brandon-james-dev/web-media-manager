@@ -58,3 +58,20 @@ export interface IMusicBrainzRelease {
     tracks?: Array<IMusicBrainzTrack>;
   }>;
 }
+
+/** Release entry returned by the release search endpoint. */
+export interface IMusicBrainzReleaseSearchResult {
+  id: string;
+  title: string;
+  date?: string;
+  country?: string;
+  status?: string;
+
+  "artist-credit"?: IMusicBrainzArtistCredit[];
+  "release-group"?: {
+    id?: string;
+    "primary-type"?: string;
+    "secondary-types"?: string[];
+  };
+  "track-count"?: number;
+}

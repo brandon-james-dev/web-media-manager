@@ -1,31 +1,20 @@
 import { useState } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
-import { Itunes, Musicbrainz } from "@thesvg/react";
+import { Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import type { IOnlineMetadata } from "@/lib/metadata-providers/online/IOnlineMetadata";
 import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
 import { OnlineMetadataResolver } from "@/lib/metadata-providers/online/OnlineMetadataResolver";
 import type { IPicture } from "@/lib/contracts";
-import { SplitButton } from "../split-button/SplitButton";
 import { useTranslation } from "@/i18n";
 import type { OnlineSearchPanelProps } from "./OnlineSearchPanelProps";
-
-const PROVIDER_ICON: Record<MetadataProvider, React.ReactNode> = {
-  [MetadataProvider.iTunes]: <Itunes variant="mono" className="h-4 w-4" />,
-  [MetadataProvider.MusicBrainz]: <Musicbrainz variant="mono" className="h-4 w-4" />,
-};
-const PROVIDER_NAME: Record<MetadataProvider, string> = {
-  [MetadataProvider.iTunes]: "iTunes",
-  [MetadataProvider.MusicBrainz]: "MusicBrainz",
-};
+import { OnlineSearchQueryForm } from "./OnlineSearchQueryForm";
 
 export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
   const { song, onSelect } = props;
   const { t } = useTranslation();
   //#region State
-  const [titleQuery, setTitleQuery] = useState(song.title);
-  const [artistQuery, setArtistQuery] = useState(song.artist);
+  const [titleQuery, setTitleQuery] = useState(song.title ?? "");
+  const [artistQuery, setArtistQuery] = useState(song.artist ?? "");
   const [albumQuery, setAlbumQuery] = useState("");
   const [selectedProvider, setSelectedProvider] = useState<MetadataProvider>(
     MetadataProvider.iTunes
@@ -73,56 +62,17 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="shrink-0 bg-primary-foreground border-b sticky z-raised top-0">
-        <form
-          className="lg:w-4xl mx-auto flex gap-2 my-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSearch(selectedProvider);
-          }}
-        >
-          <Input
-            value={titleQuery}
-            autoComplete="off"
-            onChange={(e) => setTitleQuery(e.target.value)}
-            placeholder={t("search.titlePlaceholder")}
-            className="flex-1 min-w-0"
-          />
-          <Input
-            value={artistQuery}
-            autoComplete="off"
-            onChange={(e) => setArtistQuery(e.target.value)}
-            placeholder={t("search.artistPlaceholder")}
-            className="flex-1 min-w-0"
-          />
-          <Input
-            value={albumQuery}
-            autoComplete="off"
-            onChange={(e) => setAlbumQuery(e.target.value)}
-            placeholder={t("search.albumPlaceholder")}
-            className="flex-1 min-w-0"
-          />
-          <SplitButton
-            label={t("search.label")}
-            dropdownSide="left"
-            onPrimaryClick={async () => await handleSearch(selectedProvider)}
-            buttonVariant="secondary"
-            buttonType="submit"
-            menuItems={(
-              Object.values(MetadataProvider) as MetadataProvider[]
-            ).map((provider) => ({
-              label: (
-                <div className="flex items-center gap-2">
-                  {PROVIDER_ICON[provider]}
-                  {PROVIDER_NAME[provider]}
-                </div>
-              ),
-              onClick: () => setSelectedProvider(provider)
-            }))}
-            dropdownTriggerContent={<>{PROVIDER_ICON[selectedProvider]}<ChevronDown /></>}
-          />
-        </form>
-      </div>
+      <OnlineSearchQueryForm
+        titleQuery={titleQuery}
+        artistQuery={artistQuery}
+        albumQuery={albumQuery}
+        onTitleQueryChange={setTitleQuery}
+        onArtistQueryChange={setArtistQuery}
+        onAlbumQueryChange={setAlbumQuery}
+        provider={selectedProvider}
+        onProviderChange={setSelectedProvider}
+        onSubmit={() => handleSearch(selectedProvider)}
+      />
       <div className="flex-1 py-2">
         {loading && (
           <div className="text-center space-y-2">

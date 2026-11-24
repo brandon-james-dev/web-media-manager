@@ -60,6 +60,14 @@ export interface UseCoverFlowOptions {
   reduceMotion?: boolean;
   onItemClick?: (item: CoverFlowItem, index: number) => void;
   onIndexChange?: (index: number) => void;
+  /**
+   * Fire `onItemClick` for a card that is not centred, in the same click that
+   * snaps it into place. Without this a surface that opens on click needs two
+   * clicks: one to centre the card, one to act on it.
+   */
+  activateOnSnap?: boolean;
+  /** Click on the empty space around the cards, not on a card itself. */
+  onBackgroundClick?: () => void;
 }
 
 export interface CoverFlowContainerProps {
@@ -88,6 +96,7 @@ export interface UseCoverFlowResult {
   containerRef: React.RefObject<HTMLDivElement | null>;
   containerProps: CoverFlowContainerProps;
   handleCardClick: (item: CoverFlowItem, index: number) => void;
+  handleBackgroundClick: () => void;
 }
 
 export interface CoverFlowProps {
@@ -111,6 +120,8 @@ export interface CoverFlowProps {
   renderImage?: (props: RenderImageProps) => ReactNode;
   flippedIndex?: number | null;
   renderBack?: (item: CoverFlowItem, index: number) => ReactNode;
+  activateOnSnap?: boolean;
+  onBackgroundClick?: () => void;
 }
 
 const defaultRenderImage = (props: RenderImageProps) =>
@@ -158,6 +169,8 @@ export function useCoverFlow({
   reduceMotion,
   onItemClick,
   onIndexChange,
+  activateOnSnap = false,
+  onBackgroundClick,
 }: UseCoverFlowOptions): UseCoverFlowResult {
   const safeInitial = clampIndex(initialIndex, items.length);
   const [activeIndex, setActiveIndex] = useState(safeInitial);
@@ -189,6 +202,12 @@ export function useCoverFlow({
   const isRtlRef = useRef(false);
   const scrollModeRef = useRef(scrollMode);
   const centerGapRef = useRef(effectiveCenterGap);
+  const activateOnSnapRef = useRef(activateOnSnap);
+  const onBackgroundClickRef = useRef(onBackgroundClick);
+  /** Distance travelled by the current drag, to tell a drag from a click. */
+  const dragMovedRef = useRef(0);
+  /** A drag that ends on the backdrop must not count as a background click. */
+  const suppressClickUntilRef = useRef(0);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
@@ -199,6 +218,8 @@ export function useCoverFlow({
     onIndexChangeRef.current = onIndexChange;
     scrollModeRef.current = scrollMode;
     centerGapRef.current = effectiveCenterGap;
+    activateOnSnapRef.current = activateOnSnap;
+    onBackgroundClickRef.current = onBackgroundClick;
   });
 
   const systemReducedMotion = useReducedMotion();
@@ -348,22 +369,33 @@ export function useCoverFlow({
     (item: CoverFlowItem, index: number) => {
       if (index === activeIndexRef.current) {
         onItemClickRef.current?.(item, index);
-      } else if (enableClickToSnapRef.current) {
-        jumpToIndex(index);
+        return;
       }
+      if (!enableClickToSnapRef.current) return;
+      jumpToIndex(index);
+      // The card is centred now, so act on it in this same click rather than
+      // making the user click a second time.
+      if (activateOnSnapRef.current) onItemClickRef.current?.(item, index);
     },
     [jumpToIndex],
   );
+
+  const handleBackgroundClick = useCallback(() => {
+    if (performance.now() < suppressClickUntilRef.current) return;
+    onBackgroundClickRef.current?.();
+  }, []);
 
   const rawDragX = useRef(0);
 
   const onDragStart = useCallback(() => {
     rawDragX.current = scrollX.get();
+    dragMovedRef.current = 0;
     setIsDragging(true);
   }, [scrollX]);
 
   const onDrag = useCallback(
     (_: unknown, info: PanInfo) => {
+      dragMovedRef.current += Math.abs(info.delta.x);
       const deltaX = isRtlRef.current ? -info.delta.x : info.delta.x;
       rawDragX.current -= deltaX / (effectiveCenterGap * DRAG_DIVISOR_RATIO);
       const raw = rawDragX.current;
@@ -378,6 +410,9 @@ export function useCoverFlow({
   const onDragEnd = useCallback(
     (_: unknown, info: PanInfo) => {
       setIsDragging(false);
+      if (dragMovedRef.current > 6) {
+        suppressClickUntilRef.current = performance.now() + 300;
+      }
       const velocityX = isRtlRef.current ? -info.velocity.x : info.velocity.x;
       const projected = scrollX.get() - velocityX * VELOCITY_PROJECTION;
       const clamped = clampIndex(Math.round(projected), items.length);
@@ -421,6 +456,7 @@ export function useCoverFlow({
     prefersReducedMotion,
     goTo: jumpToIndex,
     containerRef,
+    handleBackgroundClick,
     containerProps: {
       role: "region",
       "aria-roledescription": "carousel",
@@ -460,6 +496,8 @@ export function CoverFlow({
   renderImage,
   flippedIndex = null,
   renderBack,
+  activateOnSnap = false,
+  onBackgroundClick,
 }: CoverFlowProps) {
   const {
     activeIndex,
@@ -470,6 +508,7 @@ export function CoverFlow({
     containerRef,
     containerProps,
     handleCardClick,
+    handleBackgroundClick,
   } = useCoverFlow({
     items,
     itemWidth,
@@ -483,6 +522,8 @@ export function CoverFlow({
     reduceMotion,
     onItemClick,
     onIndexChange,
+    activateOnSnap,
+    onBackgroundClick,
   });
 
   const instanceId = useId().replace(/:/g, "x");
@@ -568,6 +609,7 @@ export function CoverFlow({
           className,
         )}
         {...containerProps}
+        onClick={handleBackgroundClick}
       >
         <div
           className="relative flex h-[calc(100%-6.5rem)] w-full items-center justify-center pointer-events-none mb-4"
@@ -715,7 +757,12 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
         zIndex,
         pointerEvents: "auto",
       }}
-      onClick={() => onCardClick(item, index)}
+      onClick={(e) => {
+        // Keep the click off the container: a card click must not also read as
+        // a background click.
+        e.stopPropagation();
+        onCardClick(item, index);
+      }}
     >
       <motion.div
         className="relative h-full w-full rounded-xl bg-black shadow-2xl"

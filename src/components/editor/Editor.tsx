@@ -86,13 +86,15 @@ export function Editor({
     const selectedSong = selectedSongs[0];
     const cover = updates.coverFront
       ? { coverFront: updates.coverFront }
-      : undefined;
+      : updates.removeCoverFront
+        ? { removeCoverFront: true }
+        : undefined;
     const editUpdates: Partial<Song> = {};
     for (const [k, v] of Object.entries(updates) as [
       keyof SongEditDto,
       unknown,
     ][]) {
-      if (k === "coverFront") continue;
+      if (k === "coverFront" || k === "removeCoverFront") continue;
       if (v !== undefined) (editUpdates as Record<string, unknown>)[k] = v;
     }
     const updatedSong = await updateTags(selectedSong, editUpdates, cover);
@@ -150,7 +152,9 @@ export function Editor({
     if (updates.track !== undefined) editUpdates.track = updates.track;
     const cover = updates.coverFront
       ? { coverFront: updates.coverFront }
-      : undefined;
+      : updates.removeCoverFront
+        ? { removeCoverFront: true }
+        : undefined;
 
     if (selectedSongs.length === 1) {
       const updatedSong = await updateTags(

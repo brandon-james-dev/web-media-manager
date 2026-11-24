@@ -209,16 +209,25 @@ export function Albums() {
       initialIndex={selectedAlbumIndex}
       onIndexChange={(index) => {
         setSelectedAlbumIndex(index);
-        setFlippedIndex(null);
+        // Keep the flip when the index settles on the album that was just
+        // flipped; clear it when the carousel moves to a different album.
+        setFlippedIndex((current) => (current === index ? current : null));
       }}
       enableReflection={!isPhoneLandscape}
       flippedIndex={isPhoneLandscape ? flippedIndex : null}
+      activateOnSnap={isPhoneLandscape}
+      onBackgroundClick={() => setFlippedIndex(null)}
       renderBack={
         isPhoneLandscape
           ? (_, index) => (
               <ol
-                className="h-full touch-pan-y overflow-y-auto overscroll-contain py-1 text-left"
-                onClick={(e) => e.stopPropagation()}
+                className="h-full touch-pan-y overflow-y-auto overscroll-contain pt-1 pb-4 text-left"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Space below the tracks flips the album back, so the whole
+                  // face is a target rather than only the trailing spacer.
+                  if (e.target === e.currentTarget) setFlippedIndex(null);
+                }}
               >
                 {(albums[index]?.songs ?? []).map((song) => (
                   <li key={song.id}>

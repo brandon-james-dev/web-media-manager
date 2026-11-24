@@ -22,4 +22,6 @@ export interface SongEditDto {
   /** LRC text with one `[mm:ss.xx]` placement per timed line. */
   syncedLyrics?: string;
   coverFront?: Blob;
+  /** Clear the front cover instead of replacing it. */
+  removeCoverFront?: boolean;
 }

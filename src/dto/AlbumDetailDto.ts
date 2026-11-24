@@ -7,4 +7,6 @@ export interface AlbumDetailDto {
   albumArtist?: string;
   songs: { id: string; track?: number; title?: string }[];
   coverFront?: Blob;
+  /** Clear the front cover instead of replacing it. */
+  removeCoverFront?: boolean;
 }

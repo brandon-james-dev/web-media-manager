@@ -1,4 +1,9 @@
 import { ArtworkType, type IPicture } from "../../contracts";
+import type {
+  IOnlineAlbumMetadata,
+  IOnlineAlbumTrack,
+} from "../online/IOnlineAlbumMetadata";
+import type { IOnlineAlbumService } from "../online/IOnlineAlbumService";
 import type { IOnlineMetadata } from "../online/IOnlineMetadata";
 import type { IOnlineMetadataService } from "../online/IOnlineMetadataService";
 import { MetadataProvider } from "../online/MetadataProvider";
@@ -6,6 +11,7 @@ import type {
   IMusicBrainzArtistCredit,
   IMusicBrainzRecording,
   IMusicBrainzRelease,
+  IMusicBrainzReleaseSearchResult,
 } from "./IMusicBrainzRecording";
 
 /** Abort a fetch after `ms` so a stalled request can't hang the search. */
@@ -15,6 +21,34 @@ function fetchWithTimeout(url: string, ms: number): Promise<Response> {
   return fetch(url, { signal: controller.signal }).finally(() =>
     clearTimeout(timer)
   );
+}
+
+/** Fetch JSON with the same timeout and error reporting as `lookup`. */
+async function fetchJson<T>(url: string, ms = 15000): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(url, ms);
+  } catch (e) {
+    throw new Error(
+      `MusicBrainz request timed out or failed: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+
+  if (!res.ok) {
+    let apiError = "";
+    try {
+      const body = await res.json();
+      apiError = body?.error ?? "";
+    } catch {
+      // ignore parse failure — fall back to status text
+    }
+    throw new Error(
+      `MusicBrainz request failed (${res.status})` +
+        (apiError ? `: ${apiError}` : "")
+    );
+  }
+
+  return (await res.json()) as T;
 }
 
 /** Cover Art Archive thumbnail sizes, most desirable first. Size availability
@@ -64,7 +98,9 @@ function joinCredits(
     .trim();
 }
 
-export class MusicBrainzMetadataService implements IOnlineMetadataService {
+export class MusicBrainzMetadataService
+  implements IOnlineMetadataService, IOnlineAlbumService
+{
   async lookup(
     query: string,
     _isCancelled?: () => boolean,
@@ -204,5 +240,108 @@ export class MusicBrainzMetadataService implements IOnlineMetadataService {
     }
 
     return results;
+  }
+
+  async searchAlbums(query: string): Promise<IOnlineAlbumMetadata[] | null> {
+    // The panel passes "title|artist|album" (structured), same as the song
+    // lookup. For an album search the title field carries the album name.
+    const [title, artist, album] = query
+      .split("|")
+      .map((s) => s.trim().replace(/"/g, ""));
+    const releaseTerm = album || title;
+
+    const terms: string[] = [];
+    if (releaseTerm) terms.push(`release:"${releaseTerm}"`);
+    if (artist) terms.push(`artist:"${artist}"`);
+    const luceneQuery = terms.join(" AND ");
+
+    const url = `https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(luceneQuery)}&fmt=json&limit=10`;
+    const data = await fetchJson<{
+      releases?: IMusicBrainzReleaseSearchResult[];
+    }>(url);
+
+    const releases = data.releases;
+    if (!releases?.length) return null;
+
+    return releases.map((release) => {
+      const credits = release["artist-credit"];
+      return {
+        source: MetadataProvider.MusicBrainz,
+        id: release.id,
+        title: release.title,
+        artist: joinCredits(credits),
+        albumArtist: joinCredits(credits),
+        year: release.date ? Number(release.date.slice(0, 4)) : undefined,
+        trackCount: release["track-count"],
+      };
+    });
+  }
+
+  async searchAlbumArt(query: string): Promise<IPicture[] | null> {
+    const albums = await this.searchAlbums(query);
+    if (!albums?.length) return null;
+
+    const thumbs = await Promise.all(
+      albums.map((album) => resolveCoverArtThumb(album.id))
+    );
+
+    const pictures: IPicture[] = [];
+    for (const thumbUrl of thumbs) {
+      if (!thumbUrl) continue;
+      pictures.push({
+        mimeType: "image/jpeg",
+        url: thumbUrl,
+        type: ArtworkType.FrontCover,
+        description: "Front Cover",
+      });
+    }
+
+    return pictures.length > 0 ? pictures : null;
+  }
+
+  async lookupAlbumTracks(
+    album: IOnlineAlbumMetadata
+  ): Promise<IOnlineAlbumMetadata | null> {
+    const url = `https://musicbrainz.org/ws/2/release/${encodeURIComponent(album.id)}?inc=recordings+artist-credits&fmt=json`;
+    const release = await fetchJson<IMusicBrainzRelease>(url);
+
+    const tracks: IOnlineAlbumTrack[] = [];
+    for (const media of release.media ?? []) {
+      for (const entry of media.track ?? media.tracks ?? []) {
+        const parsed = Number(entry.number);
+        tracks.push({
+          title: entry.title ?? "",
+          track: isNaN(parsed) ? undefined : parsed,
+          discNumber: media.position,
+          duration: entry.length ? entry.length / 1000 : undefined,
+        });
+      }
+    }
+
+    // Cover art is resolved here, at Apply time, so the search itself stays
+    // one request per provider.
+    const thumbUrl = await resolveCoverArtThumb(release.id);
+    const pictures: IPicture[] = thumbUrl
+      ? [
+          {
+            mimeType: "image/jpeg",
+            url: thumbUrl,
+            type: ArtworkType.FrontCover,
+            description: "Front Cover",
+          },
+        ]
+      : (album.pictures ?? []);
+
+    const credits = release["artist-credit"];
+
+    return {
+      ...album,
+      title: release.title || album.title,
+      artist: joinCredits(credits) ?? album.artist,
+      albumArtist: joinCredits(credits) ?? album.albumArtist,
+      year: release.date ? Number(release.date.slice(0, 4)) : album.year,
+      pictures,
+      tracks,
+    };
   }
 }

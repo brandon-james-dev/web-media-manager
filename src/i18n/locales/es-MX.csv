@@ -39,6 +39,8 @@ common.reset,Restablecer
 common.moreActions,Más acciones
 common.moreOptions,Más opciones
 common.clickToSelect,Haz clic para elegir
+common.yes,Sí
+common.no,No
 common.fullScreen,Pantalla completa
 common.exitFullScreen,Salir de pantalla completa
 common.unknownArtist,Artista desconocido
@@ -322,6 +324,22 @@ metadata.explicit,Explícito
 metadata.multipleValues,(Varios valores…)
 metadata.onlineSearch,Búsqueda en línea
 metadata.apply,Aplicar metadatos
+metadata.applyMetadataToTracks,Aplicar metadatos a las pistas
+metadata.noTracks,No se encontraron pistas
+metadata.searchAlbumArt,Buscar carátula
+metadata.removeAlbumArt,Quitar carátula
+metadata.info,Detalles de la pista
+metadata.trackInfo,Detalles de la pista
+metadata.fileName,Nombre del archivo
+metadata.filePath,Ruta del archivo
+metadata.fileSize,Tamaño del archivo
+metadata.sampleRate,Frecuencia de muestreo
+metadata.channels,Canales
+metadata.codec,Códec
+metadata.container,Contenedor
+metadata.lossless,Sin pérdida
+metadata.added,Agregado
+metadata.updated,Actualizado
 metadata.updateDescription,Actualiza los metadatos de la canción seleccionada
 metadata.previousSong,Canción anterior
 metadata.nextSong,Canción siguiente

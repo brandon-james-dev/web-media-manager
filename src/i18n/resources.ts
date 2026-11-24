@@ -175,6 +175,8 @@ export const WMM_RESOURCES = {
   "common.moreActions": text("Opens a menu of further actions for a row."),
   "common.moreOptions": text("Opens a menu of alternative options for a button."),
   "common.clickToSelect": text("Invites the user to pick a file."),
+  "common.yes": text("Affirmative answer."),
+  "common.no": text("Negative answer."),
   "common.fullScreen": text("Enters the full screen view."),
   "common.exitFullScreen": text("Leaves the full screen view."),
   "common.unknownArtist": text("Stand-in artist name for a track with no artist tag."),
@@ -653,6 +655,28 @@ export const WMM_RESOURCES = {
   ),
   "metadata.onlineSearch": text("Opens the online metadata lookup."),
   "metadata.apply": text("Copies the looked-up metadata into the form."),
+  "metadata.applyMetadataToTracks": text(
+    "Applies the looked-up track titles and numbers to every track."
+  ),
+  "metadata.noTracks": text(
+    "Shown when a looked-up album returns no track list."
+  ),
+  "metadata.searchAlbumArt": text(
+    "Opens the online lookup to pick album art only."
+  ),
+  "metadata.removeAlbumArt": text("Clears the album art."),
+  "metadata.info": text("Opens the read-only track details."),
+  "metadata.trackInfo": text("Title of the read-only track details."),
+  "metadata.fileName": text("File name field."),
+  "metadata.filePath": text("File path field."),
+  "metadata.fileSize": text("File size field."),
+  "metadata.sampleRate": text("Sample rate field."),
+  "metadata.channels": text("Channel count field."),
+  "metadata.codec": text("Codec field."),
+  "metadata.container": text("Container format field."),
+  "metadata.lossless": text("Lossless field."),
+  "metadata.added": text("Date the app imported the file."),
+  "metadata.updated": text("Date the app last changed the stored record."),
   "metadata.updateDescription": text("Summary of the song editor."),
   "metadata.previousSong": text("Moves to the previous song in the editor."),
   "metadata.nextSong": text("Moves to the next song in the editor."),

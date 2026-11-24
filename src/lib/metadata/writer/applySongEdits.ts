@@ -8,6 +8,8 @@ import { resizeBitmap } from "../artwork/resizeBitmap";
 export interface CoverUpdate {
   coverFront?: Blob;
   coverBack?: Blob;
+  /** Drop the front cover instead of keeping the existing artwork. */
+  removeCoverFront?: boolean;
 }
 
 /**
@@ -48,7 +50,7 @@ export async function applySongEdits(
     } finally {
       bitmap.close();
     }
-  } else {
+  } else if (!cover?.removeCoverFront) {
     const frontCover = await getPicturesForSongOfType(
       song.id,
       ArtworkType.FrontCover
