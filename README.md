@@ -2,6 +2,10 @@
 
 A modern web-based media management application focused on local media libraries, portable device synchronization, metadata management, and high-performance playback.
 
+[![Support WMM on: Gumroad](https://img.shields.io/badge/Support%20WMM%20on-Gumroad-blueviolet?style=flat-square)](https://brandonjames70.gumroad.com/l/wmm)
+
+[![Sponsor Me on: GitHub](https://img.shields.io/badge/Sponsor%20Me%20on-GitHub-blue?style=flat-square)](https://github.com/sponsors/brandon-james-dev)
+
 ## Live Demo
 
 The application is deployed on GitHub Pages:
