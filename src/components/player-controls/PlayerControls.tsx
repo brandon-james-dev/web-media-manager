@@ -25,18 +25,8 @@ import { RepeatState, ShuffleState, usePlayback } from "@/hooks/usePlayback";
 import { useOfflineSongs } from "@/hooks/useOfflineSongs";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
-} from "@/components/ui/item";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Song } from "@/models";
 import { AlbumArtImage } from "@/components/album-art-image";
@@ -100,9 +90,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   // (faster) rate from trackPosition.
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   // Which track the readout belongs to (see the reset below).
-  const [elapsedSongId, setElapsedSongId] = useState<string | undefined>(
-    undefined
-  );
+  const [elapsedSongId, setElapsedSongId] = useState<string | undefined>(undefined);
   // Mobile renders a compact mini-player (now-playing info + one large play
   // button) instead of the wide three-column bar, whose controls are too
   // small to reach with a thumb.
@@ -123,8 +111,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   // A cached song needs no network, so it never shows as buffering even while
   // its bytes are being decoded.
   const { offlineSongIds } = useOfflineSongs();
-  const showBuffering =
-    isBuffering && !!nowPlaying && !offlineSongIds.has(nowPlaying.id);
+  const showBuffering = isBuffering && !!nowPlaying && !offlineSongIds.has(nowPlaying.id);
 
   // When playback rolls onto the next track the readout restarts at zero
   // immediately, instead of showing the previous track's time until the next
@@ -146,8 +133,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
       if (shortcut === "next") wmmBus.invoke("wmm.playback.next");
       if (shortcut === "prev") wmmBus.invoke("wmm.playback.prev");
       if (shortcut === "queue") {
-        if (nowPlaying)
-          wmmBus.invoke("wmm.playlists.addSong", { songId: nowPlaying.id });
+        if (nowPlaying) wmmBus.invoke("wmm.playlists.addSong", { songId: nowPlaying.id });
       }
     });
 
@@ -307,9 +293,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       variant="secondary"
                       size="sm"
                       className={
-                        nowPlayingIndex == i
-                          ? "bg-accent hover:bg-accent/70 text-white"
-                          : ""
+                        nowPlayingIndex == i ? "bg-accent hover:bg-accent/70 text-white" : ""
                       }
                       onClick={() => handlePlaylistItemClick(s)}
                     >
@@ -331,8 +315,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   // hide whether or not a track is playing, because the remote is the only
   // input and an idle screen should stay clean; elsewhere they stay up while
   // paused.
-  const idleEligible =
-    isNowPlayingOpen && (isTv || (!isCompact && isPlaying));
+  const idleEligible = isNowPlayingOpen && (isTv || (!isCompact && isPlaying));
   const isIdle = idleFlag && idleEligible;
   const controlsHidden = controlsHiddenFlag && isNowPlayingOpen;
 
@@ -412,14 +395,12 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
 
   const overlayClass = isNowPlayingOpen
     ? cn(
-        "relative z-110 transition-opacity duration-300",
-        isIdle && "pointer-events-none opacity-0"
+        "relative z-chrome transition-opacity duration-300",
+        isIdle && "pointer-events-none opacity-0",
       )
     : "";
 
-  const meta = [nowPlaying?.artist, nowPlaying?.album]
-    .filter(Boolean)
-    .join(" — ");
+  const meta = [nowPlaying?.artist, nowPlaying?.album].filter(Boolean).join(" — ");
   const progress =
     nowPlaying?.duration && nowPlaying.duration > 0
       ? Math.min(100, (trackPosition / nowPlaying.duration) * 100)
@@ -427,16 +408,11 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
 
   function pctFromPointer(e: React.PointerEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
-    return Math.min(
-      100,
-      Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)
-    );
+    return Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
   }
 
   const scrubSeconds =
-    scrubPct !== null && nowPlaying?.duration
-      ? (scrubPct / 100) * nowPlaying.duration
-      : null;
+    scrubPct !== null && nowPlaying?.duration ? (scrubPct / 100) * nowPlaying.duration : null;
 
   if (isCompact) {
     const compactBar = (
@@ -450,14 +426,14 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
         }}
         className={cn(
           "relative flex shrink-0 cursor-pointer flex-col rounded-xl border bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg select-none",
-          overlayClass
+          overlayClass,
         )}
       >
         {/* Slim progress rule along the top edge, like the mini-player. */}
         <div
           className={cn(
             "absolute top-0 inset-x-3 h-0.5 rounded-full bg-muted overflow-hidden transition-opacity duration-300",
-            darkRoom && "opacity-30"
+            darkRoom && "opacity-30",
           )}
           role={showBuffering ? "progressbar" : undefined}
           aria-label={showBuffering ? t("playback.buffering") : undefined}
@@ -500,10 +476,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
             {scrubPct !== null && (
               <>
                 <div className="absolute inset-x-0 top-0 h-1.5 bg-muted">
-                  <div
-                    className="h-full bg-accent"
-                    style={{ width: `${scrubPct}%` }}
-                  />
+                  <div className="h-full bg-accent" style={{ width: `${scrubPct}%` }} />
                 </div>
                 <div
                   className="absolute top-0 size-4 -translate-x-1/2 -translate-y-1/4 rounded-full bg-white shadow"
@@ -553,19 +526,13 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 </span>
                 <ExplicitBadge song={nowPlaying} />
               </div>
-              <div className="min-w-0 truncate text-xs text-muted-foreground">
-                {meta || " "}
-              </div>
+              <div className="min-w-0 truncate text-xs text-muted-foreground">{meta || " "}</div>
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
             {nowPlaying && (
-              <FavoriteButton
-                songId={nowPlaying.id}
-                className="h-10 w-10"
-                iconSize={20}
-              />
+              <FavoriteButton songId={nowPlaying.id} className="h-10 w-10" iconSize={20} />
             )}
             <Button
               size="icon"
@@ -592,19 +559,14 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
           <>
             <div style={{ height: compactBarHeight }} />
             {createPortal(
-              <div className="pointer-events-none fixed inset-x-0 bottom-0 z-110 mx-auto max-w-3xl px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+              <div className="pointer-events-none fixed inset-x-0 bottom-0 z-chrome mx-auto max-w-3xl px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
                 <div className="pointer-events-auto flex flex-col select-none">
                   {nowPlaying?.duration ? (
-                    <div
-                      className={cn(
-                        "flex items-center gap-3 px-6 pt-2 transition-opacity duration-300",
-                        darkRoom && "opacity-30"
-                      )}
-                    >
+                    <div className="flex items-center gap-3 px-6 pt-2 transition-opacity duration-300">
                       <span
                         className={cn(
-                          "w-10 text-right text-xs tabular-nums text-white/80 transition-opacity duration-300",
-                          controlsHidden && "opacity-0"
+                          "w-10 text-right text-xs tabular-nums text-foreground transition-opacity duration-300",
+                          controlsHidden && "opacity-0",
                         )}
                       >
                         {formatLength(scrubSeconds ?? elapsedSeconds)}
@@ -617,7 +579,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                         aria-valuenow={Math.round(scrubPct ?? progress)}
                         className={cn(
                           "relative flex flex-1 touch-none items-center transition-[height] duration-300",
-                          controlsHidden ? "h-5" : "h-8"
+                          controlsHidden ? "h-5" : "h-8",
                         )}
                         onPointerDown={(e) => {
                           e.currentTarget.setPointerCapture(e.pointerId);
@@ -638,11 +600,14 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                         <div
                           className={cn(
                             "relative w-full overflow-hidden rounded-full bg-white/25 transition-[height] duration-300",
-                            controlsHidden ? "h-0.5" : "h-1.5"
+                            controlsHidden ? "h-0.5" : "h-1.5",
                           )}
                         >
                           <div
-                            className="h-full bg-white"
+                            className={cn(
+                              "h-full transition-colors duration-300",
+                              controlsHidden ? "bg-white/40" : "bg-foreground",
+                            )}
                             style={{ width: `${scrubPct ?? progress}%` }}
                           />
                           {showBuffering && (
@@ -653,16 +618,17 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                         </div>
                         <div
                           className={cn(
-                            "absolute top-1/2 z-10 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow transition-opacity duration-300",
-                            controlsHidden && scrubPct === null && "opacity-0"
+                            "absolute top-1/2 z-10 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full shadow transition-opacity duration-300",
+                            controlsHidden ? "bg-white/40" : "bg-foreground",
+                            controlsHidden && scrubPct === null && "opacity-0",
                           )}
                           style={{ left: `${scrubPct ?? progress}%` }}
                         />
                       </div>
                       <span
                         className={cn(
-                          "w-10 text-xs tabular-nums text-white/80 transition-opacity duration-300",
-                          controlsHidden && "opacity-0"
+                          "w-10 text-xs tabular-nums text-foreground transition-opacity duration-300",
+                          controlsHidden && "opacity-0",
                         )}
                       >
                         {formatLength(nowPlaying.duration)}
@@ -672,7 +638,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                   <div
                     className={cn(
                       "flex items-center justify-between gap-1 px-4 py-2 transition-opacity duration-300 sm:justify-center sm:gap-4",
-                      controlsHidden && "pointer-events-none opacity-0"
+                      controlsHidden && "pointer-events-none opacity-0",
                     )}
                   >
                     <Button
@@ -687,9 +653,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       <Shuffle
                         className={cn(
                           "size-6",
-                          shuffle === ShuffleState.On
-                            ? "stroke-accent"
-                            : "stroke-foreground"
+                          shuffle === ShuffleState.On ? "stroke-accent" : "stroke-foreground",
                         )}
                       />
                     </Button>
@@ -708,9 +672,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       className="size-16 shrink-0 rounded-full transition-transform active:scale-95 disabled:opacity-50"
                       onClick={handlePlayPause}
                       disabled={!nowPlaying}
-                      aria-label={
-                        isPlaying ? t("playback.pause") : t("playback.play")
-                      }
+                      aria-label={isPlaying ? t("playback.pause") : t("playback.play")}
                     >
                       <PlayPauseCutout isPlaying={isPlaying} />
                     </button>
@@ -732,20 +694,14 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                       title={t("playback.repeat")}
                       aria-label={t("playback.repeat")}
                     >
-                      {repeat === RepeatState.Off && (
-                        <RepeatOff className="size-6" />
-                      )}
-                      {repeat === RepeatState.One && (
-                        <Repeat1 className="size-6 stroke-accent" />
-                      )}
-                      {repeat === RepeatState.All && (
-                        <Repeat2 className="size-6 stroke-accent" />
-                      )}
+                      {repeat === RepeatState.Off && <RepeatOff className="size-6" />}
+                      {repeat === RepeatState.One && <Repeat1 className="size-6 stroke-accent" />}
+                      {repeat === RepeatState.All && <Repeat2 className="size-6 stroke-accent" />}
                     </Button>
                   </div>
                 </div>
               </div>,
-              document.body
+              document.body,
             )}
           </>
         ) : (
@@ -755,9 +711,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
         <NowPlayingView
           open={isNowPlayingOpen}
           onClose={() => setIsNowPlayingOpen(false)}
-          onBackgroundClick={() =>
-            setControlsHiddenFlag((hidden) => !hidden)
-          }
+          onBackgroundClick={() => setControlsHiddenFlag((hidden) => !hidden)}
           controlsHidden={controlsHidden}
         />
       </>
@@ -767,231 +721,217 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
   return (
     <>
       {!hideBar && (
-      <div
-        className={cn(
-          "flex shrink-0 border-t p-4 select-none",
-          isNowPlayingOpen ? "bg-transparent" : "bg-secondary/50",
-          overlayClass
-        )}
-      >
-        <div className="flex w-full items-center justify-between gap-4">
-          <div className="flex w-60 items-center gap-3">
-            {isNowPlayingOpen ? (
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label={t("playback.closeNowPlaying")}
-                title={t("playback.closeNowPlaying")}
-                className="size-12 shrink-0"
-                onClick={() => setIsNowPlayingOpen(false)}
-              >
-                <ChevronDown className="size-7" />
-              </Button>
-            ) : (
-              <button
-                type="button"
-                aria-label={t("playback.openNowPlaying")}
-                title={t("playback.nowPlaying")}
-                className="group/art relative shrink-0 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                onClick={() => setIsNowPlayingOpen(true)}
-              >
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md bg-black/55 text-white opacity-0 transition-opacity group-hover/art:opacity-100 group-focus-visible/art:opacity-100"
+        <div
+          className={cn(
+            "flex shrink-0 border-t p-4 select-none",
+            isNowPlayingOpen ? "bg-transparent" : "bg-secondary/50",
+            overlayClass,
+          )}
+        >
+          <div className="flex w-full items-center justify-between gap-4">
+            <div className="flex w-60 items-center gap-3">
+              {isNowPlayingOpen ? (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t("playback.closeNowPlaying")}
+                  title={t("playback.closeNowPlaying")}
+                  className="size-12 shrink-0"
+                  onClick={() => setIsNowPlayingOpen(false)}
                 >
-                  <Maximize2 className="size-5" />
-                </span>
-                <AlbumArtImage
-                  songId={nowPlaying?.id}
-                  thumbSize={ThumbnailSize.thumb64}
-                  className="w-12 rounded-md"
-                  fallback={
-                    <div className="flex aspect-square w-12 items-center justify-center rounded-md border">
-                      <Disc3 className="text-accent" />
-                    </div>
-                  }
-                />
-              </button>
-            )}
-
-            <div
-              className={cn(
-                "flex min-w-0 flex-1 items-center gap-3",
-                isNowPlayingOpen && "invisible"
-              )}
-            >
-              <div className="flex min-w-0 flex-col overflow-hidden">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <span className="truncate">
-                    {nowPlaying?.title ?? t("playback.nothingPlaying")}
-                  </span>
-                  <ExplicitBadge song={nowPlaying} />
-                </span>
-                <span className="truncate text-sm text-muted-foreground">
-                  {nowPlaying?.artist ?? ""}
-                </span>
-              </div>
-              {nowPlaying && (
-                <FavoriteButton songId={nowPlaying.id} iconSize={16} />
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-1 flex-col items-center">
-            <div className="mb-2 flex items-center gap-2">
-              <Button
-                size="lg"
-                variant="ghost"
-                title={t("playback.shuffle")}
-                aria-label={t("playback.shuffle")}
-                aria-pressed={shuffle === ShuffleState.On}
-                onClick={handleShuffleToggle}
-              >
-                <Shuffle
-                  className={
-                    shuffle === ShuffleState.On
-                      ? "stroke-accent"
-                      : "stroke-foreground"
-                  }
-                />
-              </Button>
-
-              <Button
-                size="lg"
-                variant="ghost"
-                onClick={handlePrev}
-                disabled={!nowPlaying}
-                aria-label={t("playback.previous")}
-              >
-                <SkipBack className="fill-secondary-foreground" />
-              </Button>
-
-              <Button
-                size="lg"
-                variant="default"
-                className="rounded-full bg-accent border-accent/25 hover:bg-accent/75 text-white"
-                onClick={handlePlayPause}
-                aria-label={isPlaying ? t("playback.pause") : t("playback.play")}
-              >
-                {isPlaying ? (
-                  <Pause className="fill-secondary-foreground" />
-                ) : (
-                  <Play className="fill-secondary-foreground" />
-                )}
-              </Button>
-
-              <Button
-                size="lg"
-                variant="ghost"
-                onClick={handleNext}
-                disabled={!nowPlaying}
-                aria-label={t("playback.next")}
-              >
-                <SkipForward className="fill-secondary-foreground" />
-              </Button>
-
-              <Button
-                size="lg"
-                variant="ghost"
-                onClick={handleRepeatToggle}
-                title={t("playback.repeat")}
-                aria-label={t("playback.repeat")}
-              >
-                {repeat === RepeatState.Off && <RepeatOff />}
-                {repeat === RepeatState.One && (
-                  <Repeat1 className="stroke-accent" />
-                )}
-                {repeat === RepeatState.All && (
-                  <Repeat2 className="stroke-accent" />
-                )}
-              </Button>
-            </div>
-
-            <div className="flex w-full max-w-lg items-center gap-3">
-              <span className="w-10 text-right text-xs">
-                {elapsedSeconds > 0 ? formatLength(elapsedSeconds) : "--:--"}
-              </span>
-
-              <div className="relative flex-1">
-                <Slider
-                  defaultValue={[0]}
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={
-                    nowPlaying &&
-                    nowPlaying.duration != null &&
-                    nowPlaying.duration > 0
-                      ? (trackPosition / nowPlaying.duration) * 100
-                      : 0
-                  }
-                  onValueChange={handleSeek}
-                  className="flex-1"
-                  aria-label={t("playback.seek")}
-                />
-                {showBuffering && (
-                  <div
-                    className="pointer-events-none absolute inset-x-0 top-1/2 z-0 h-1 -translate-y-1/2 overflow-hidden rounded-full"
-                    role="progressbar"
-                    aria-label={t("playback.buffering")}
-                  >
-                    <div className="buffering-sweep h-full w-1/3 bg-accent/60" />
-                  </div>
-                )}
-              </div>
-
-              <span className="w-10 text-xs">
-                {nowPlaying?.duration
-                  ? formatLength(nowPlaying.duration)
-                  : "--:--"}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex w-60 items-center justify-end gap-3">
-            <Popover open={isPlaylistOpen} onOpenChange={setIsPlaylistOpen}>
-              <PopoverTrigger
-                disabled={playlist.length === 0}
-                render={
-                  <Button
-                    variant="ghost"
-                    title={t("playback.playlist")}
-                    aria-label={t("playback.playlist")}
-                    className={cn("w-6", isNowPlayingOpen && "invisible")}
-                    disabled={playlist.length === 0}
-                  >
-                    <ListMusic className="fill-secondary-foreground" />
-                  </Button>
-                }
-              />
-              {queuePanel}
-            </Popover>
-
-            <Button
-              variant="ghost"
-              onClick={handleMuteToggle}
-              title={muted ? t("playback.unmute") : t("playback.mute")}
-              aria-label={muted ? t("playback.unmute") : t("playback.mute")}
-            >
-              {muted ? (
-                <VolumeX className="fill-secondary-foreground w-6" />
+                  <ChevronDown className="size-7" />
+                </Button>
               ) : (
-                <Volume2 className="fill-secondary-foreground w-6" />
+                <button
+                  type="button"
+                  aria-label={t("playback.openNowPlaying")}
+                  title={t("playback.nowPlaying")}
+                  className="group/art relative shrink-0 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  onClick={() => setIsNowPlayingOpen(true)}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md bg-black/55 text-white opacity-0 transition-opacity group-hover/art:opacity-100 group-focus-visible/art:opacity-100"
+                  >
+                    <Maximize2 className="size-5" />
+                  </span>
+                  <AlbumArtImage
+                    songId={nowPlaying?.id}
+                    thumbSize={ThumbnailSize.thumb64}
+                    className="w-12 rounded-md"
+                    fallback={
+                      <div className="flex aspect-square w-12 items-center justify-center rounded-md border">
+                        <Disc3 className="text-accent" />
+                      </div>
+                    }
+                  />
+                </button>
               )}
-            </Button>
 
-            <Slider
-              min={0}
-              max={1}
-              step={0.01}
-              defaultValue={[0.75]}
-              value={[muted ? 0 : volume]}
-              onValueChange={handleVolumeChange}
-              aria-label={t("playback.volume")}
-            />
+              <div
+                className={cn(
+                  "flex min-w-0 flex-1 items-center gap-3",
+                  isNowPlayingOpen && "invisible",
+                )}
+              >
+                <div className="flex min-w-0 flex-col overflow-hidden">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <span className="truncate">
+                      {nowPlaying?.title ?? t("playback.nothingPlaying")}
+                    </span>
+                    <ExplicitBadge song={nowPlaying} />
+                  </span>
+                  <span className="truncate text-sm text-muted-foreground">
+                    {nowPlaying?.artist ?? ""}
+                  </span>
+                </div>
+                {nowPlaying && <FavoriteButton songId={nowPlaying.id} iconSize={16} />}
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col items-center">
+              <div className="mb-2 flex items-center gap-2">
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  title={t("playback.shuffle")}
+                  aria-label={t("playback.shuffle")}
+                  aria-pressed={shuffle === ShuffleState.On}
+                  onClick={handleShuffleToggle}
+                >
+                  <Shuffle
+                    className={shuffle === ShuffleState.On ? "stroke-accent" : "stroke-foreground"}
+                  />
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  onClick={handlePrev}
+                  disabled={!nowPlaying}
+                  aria-label={t("playback.previous")}
+                >
+                  <SkipBack className="fill-secondary-foreground" />
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="default"
+                  className="rounded-full bg-accent border-accent/25 hover:bg-accent/75 text-white"
+                  onClick={handlePlayPause}
+                  aria-label={isPlaying ? t("playback.pause") : t("playback.play")}
+                >
+                  {isPlaying ? (
+                    <Pause className="fill-secondary-foreground" />
+                  ) : (
+                    <Play className="fill-secondary-foreground" />
+                  )}
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  onClick={handleNext}
+                  disabled={!nowPlaying}
+                  aria-label={t("playback.next")}
+                >
+                  <SkipForward className="fill-secondary-foreground" />
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="ghost"
+                  onClick={handleRepeatToggle}
+                  title={t("playback.repeat")}
+                  aria-label={t("playback.repeat")}
+                >
+                  {repeat === RepeatState.Off && <RepeatOff />}
+                  {repeat === RepeatState.One && <Repeat1 className="stroke-accent" />}
+                  {repeat === RepeatState.All && <Repeat2 className="stroke-accent" />}
+                </Button>
+              </div>
+
+              <div className="flex w-full max-w-lg items-center gap-3">
+                <span className="w-10 text-right text-xs">
+                  {elapsedSeconds > 0 ? formatLength(elapsedSeconds) : "--:--"}
+                </span>
+
+                <div className="relative flex-1">
+                  <Slider
+                    defaultValue={[0]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={
+                      nowPlaying && nowPlaying.duration != null && nowPlaying.duration > 0
+                        ? (trackPosition / nowPlaying.duration) * 100
+                        : 0
+                    }
+                    onValueChange={handleSeek}
+                    className="flex-1"
+                    aria-label={t("playback.seek")}
+                  />
+                  {showBuffering && (
+                    <div
+                      className="pointer-events-none absolute inset-x-0 top-1/2 z-0 h-1 -translate-y-1/2 overflow-hidden rounded-full"
+                      role="progressbar"
+                      aria-label={t("playback.buffering")}
+                    >
+                      <div className="buffering-sweep h-full w-1/3 bg-accent/60" />
+                    </div>
+                  )}
+                </div>
+
+                <span className="w-10 text-xs">
+                  {nowPlaying?.duration ? formatLength(nowPlaying.duration) : "--:--"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex w-60 items-center justify-end gap-3">
+              <Popover open={isPlaylistOpen} onOpenChange={setIsPlaylistOpen}>
+                <PopoverTrigger
+                  disabled={playlist.length === 0}
+                  render={
+                    <Button
+                      variant="ghost"
+                      title={t("playback.playlist")}
+                      aria-label={t("playback.playlist")}
+                      className={cn("w-6", isNowPlayingOpen && "invisible")}
+                      disabled={playlist.length === 0}
+                    >
+                      <ListMusic className="fill-secondary-foreground" />
+                    </Button>
+                  }
+                />
+                {queuePanel}
+              </Popover>
+
+              <Button
+                variant="ghost"
+                onClick={handleMuteToggle}
+                title={muted ? t("playback.unmute") : t("playback.mute")}
+                aria-label={muted ? t("playback.unmute") : t("playback.mute")}
+              >
+                {muted ? (
+                  <VolumeX className="fill-secondary-foreground w-6" />
+                ) : (
+                  <Volume2 className="fill-secondary-foreground w-6" />
+                )}
+              </Button>
+
+              <Slider
+                min={0}
+                max={1}
+                step={0.01}
+                defaultValue={[0.75]}
+                value={[muted ? 0 : volume]}
+                onValueChange={handleVolumeChange}
+                aria-label={t("playback.volume")}
+              />
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       <NowPlayingView

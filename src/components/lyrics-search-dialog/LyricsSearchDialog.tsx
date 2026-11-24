@@ -438,8 +438,8 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="z-120 sm:max-w-4xl"
-        overlayClassName="z-120 bg-black/40 backdrop-blur-sm"
+        className="sm:max-w-4xl"
+        overlayClassName="bg-black/40 backdrop-blur-sm"
       >
         {content}
       </DialogContent>

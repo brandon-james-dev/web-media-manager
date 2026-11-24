@@ -359,7 +359,7 @@ export function SidebarSyncQueue({
           {flights.map((flight) => (
             <motion.div
               key={flight.key}
-              className="pointer-events-none fixed z-50 flex max-w-[60%] items-center gap-1.5 rounded-full border bg-popover px-2.5 py-1 text-xs shadow-lg"
+              className="pointer-events-none fixed z-popover flex max-w-[60%] items-center gap-1.5 rounded-full border bg-popover px-2.5 py-1 text-xs shadow-lg"
               style={{ left: flight.from.x, top: flight.from.y }}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{

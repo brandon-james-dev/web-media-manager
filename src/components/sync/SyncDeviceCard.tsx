@@ -225,7 +225,7 @@ export function SyncDeviceCard({
       {splashToken > 0 && (
         <motion.div
           key={splashToken}
-          className="pointer-events-none absolute inset-0 z-20 rounded-xl ring-2 ring-accent"
+          className="pointer-events-none absolute inset-0 z-raised rounded-xl ring-2 ring-accent"
           initial={{ opacity: 0.85 }}
           animate={{ opacity: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}

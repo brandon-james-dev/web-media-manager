@@ -169,8 +169,6 @@ function SongMenuSurface({
         >
           <DrawerContent
             className="mx-auto w-full max-w-md select-none"
-            overlayClassName="z-70"
-            viewportClassName="z-70"
           >
             <DrawerHeader className="pb-1">
               <DrawerTitle className="truncate text-sm">

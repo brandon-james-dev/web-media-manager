@@ -92,7 +92,7 @@ export function VisualizerSelector({
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent positionerClassName="z-120">
+        <SelectContent>
           {(plugins ?? []).map((plugin) => (
             <SelectItem key={plugin.id} value={plugin.id}>
               {plugin.name}

@@ -117,6 +117,35 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Layering scale. Every app-level z-index comes from this list, so a new
+   floating surface picks a layer instead of inventing a number. Tailwind maps
+   `--z-index-*` to the `z-*` utility, so `z-modal` reads as the layer name.
+   In-component stacking (coverflow depth, slider thumbs, gradient overlays)
+   stays local and does not use these. */
+@theme {
+  /* Sticky headers inside a scroll container. */
+  --z-index-sticky: 10;
+  /* Overlays confined to one panel: scrubbers, edge fades, sheet backdrops. */
+  --z-index-raised: 20;
+  /* Non-modal sheets that coexist with chrome instead of covering it: the
+     album detail sheet offsets itself above the player bar and must stay
+     below the bottom nav and the player bar. */
+  --z-index-sheet: 30;
+  /* The in-flow chrome row: player controls and the bottom navigation. */
+  --z-index-chrome-row: 40;
+  /* Fullscreen app views: now playing, album fullscreen. */
+  --z-index-overlay: 100;
+  /* App chrome that floats above those views: the player bar, host settings. */
+  --z-index-chrome: 110;
+  /* Dialogs and drawers, with their backdrops. Above all app chrome. */
+  --z-index-modal: 200;
+  /* Portalled floating UI: popover, menu, select, tooltip. Above dialogs, so
+     a menu opened from inside a dialog is never trapped behind it. */
+  --z-index-popover: 300;
+  /* Toasts, above everything. */
+  --z-index-toast: 400;
+}
+
 @utility scrollbar-slider {
   @apply shrink-0 px-8 pb-3
     **:data-[slot=slider-track]:h-2.5

@@ -390,7 +390,7 @@ export function NowPlayingView({
           key="now-playing"
           data-now-playing="true"
           className={cn(
-            "fixed inset-0 z-100 flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] transition-colors duration-300",
+            "fixed inset-0 z-overlay flex flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] transition-colors duration-300",
             // The player bar is not rendered on a television, so the space it
             // would occupy is not reserved there.
             isTv

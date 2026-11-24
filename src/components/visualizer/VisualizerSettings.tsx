@@ -214,10 +214,7 @@ export function VisualizerSettings({
 
   return (
     <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent
-        className={cn("z-120 sm:max-w-md", className)}
-        overlayClassName="z-120"
-      >
+      <DialogContent className={cn("sm:max-w-md", className)}>
         <DialogHeader>
           <DialogTitle>
             {plugin

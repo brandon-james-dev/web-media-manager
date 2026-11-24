@@ -439,7 +439,7 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
   const content = (
     <>
       {!embedded && (
-        <DialogHeader className="sticky top-0 z-10 -mx-4 -mt-4 overflow-hidden rounded-t-xl border-b bg-popover px-4 py-2.5">
+        <DialogHeader className="sticky top-0 z-sticky -mx-4 -mt-4 overflow-hidden rounded-t-xl border-b bg-popover px-4 py-2.5">
           <div
             className="pointer-events-none absolute inset-0 select-none bg-accent/10 text-accent/10"
             aria-hidden="true"
@@ -866,8 +866,8 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="z-120 max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-5xl"
-        overlayClassName="z-120 bg-black/40 backdrop-blur-sm"
+        className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-5xl"
+        overlayClassName="bg-black/40 backdrop-blur-sm"
       >
         {content}
       </DialogContent>

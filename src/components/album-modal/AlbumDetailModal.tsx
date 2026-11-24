@@ -10,7 +10,7 @@ import { ThumbnailSize } from "@/lib";
 import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks/usePlayback";
 import { ShuffleState } from "@/hooks/usePlayback";
-import { useIsCompact } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsPhoneLandscape } from "@/lib/hooks/useIsMobile";
 import { useTranslation } from "@/i18n";
 import { cn } from "cn";
 import { albumGenre, albumPictureSong, albumYear, trackSorted } from "@/lib/albums/albumDisplay";
@@ -21,7 +21,9 @@ import type { AlbumDetailModalProps } from "./AlbumDetailModalProps";
  * Album detail sheet, opened by a single click on an album in playback mode.
  * Desktop shows a dialog (art left, actions + tracks right); mobile shows the
  * same content as a bottom drawer (art centered on top, title/track count
- * with Play + Shuffle right-aligned, all tracks underneath).
+ * with Play + Shuffle right-aligned, all tracks underneath). A phone held in
+ * landscape has no vertical room for that stack, so the drawer switches to the
+ * desktop arrangement: art and actions in a left column, tracks on the right.
  */
 export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModalProps) {
   // Real playback state, so the Play button reflects what is actually going,
@@ -29,6 +31,10 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
   const { isPlaying, nowPlaying, shuffle } = usePlayback();
   const { t } = useTranslation();
   const isCompact = useIsCompact();
+  // A phone on its side has no vertical room for the stacked drawer (art on
+  // top, tracks below), so it uses the desktop arrangement instead: art and
+  // actions in a left column, title and tracks on the right.
+  const isPhoneLandscape = useIsPhoneLandscape();
   // Manual exit animation: Base UI's `data-ending-style` doesn't run on a
   // programmatic close (its duration is `calc(--drawer-swipe-strength * 400ms)`
   // and the strength var stays 0 off-swipe), so the popup vanishes instantly.
@@ -124,7 +130,12 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
   const trackCount = t("library.songCount", [tracks.length]);
 
   const trackList = (
-    <div className="min-h-0 flex-1 overflow-y-auto my-6">
+    <div
+      className={cn(
+        "min-h-0 flex-1 overflow-y-auto",
+        isPhoneLandscape ? "my-2" : "my-6",
+      )}
+    >
       <ItemGroup
         className={cn(
           "gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0! divide-y divide-border",
@@ -158,11 +169,13 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
         showSwipeHandle={false}
       >
         {open && !!album && (
+          // Below the bottom nav and the player bar, which stay live while the
+          // sheet is open; the sheet itself sits in the sheet layer.
           <div
             data-slot="album-drawer-frost"
             aria-hidden="true"
             onClick={requestClose}
-            className="fixed inset-0 z-40 bg-black/10 supports-backdrop-filter:backdrop-blur-lg cursor-pointer"
+            className="fixed inset-0 z-raised bg-black/10 supports-backdrop-filter:backdrop-blur-lg cursor-pointer"
           />
         )}
 
@@ -172,55 +185,97 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
               "rounded-xl",
               "mx-auto w-full max-w-3xl",
               "data-[swipe-direction=down]:bottom-(--sheet-offset,9.5rem)",
-              "max-h-[calc(100dvh-var(--sheet-offset,9.5rem)-1.5rem)]",
-              "data-[swipe-direction=down]:[--closed-transform:translate3d(0,calc(100%+var(--sheet-offset,9.5rem)+2px),0)]",
-              "p-0 overflow-hidden select-none",
-              "[--bleed:0px]",
-              closing &&
-              "data-[swipe-direction=down]:[--translate-y:calc(100%+var(--sheet-offset,9.5rem)+2px)]",
+              isPhoneLandscape
+                ? "max-h-[calc(100dvh-var(--sheet-offset,9.5rem)-0.5rem)]"
+                : "max-h-[calc(100dvh-var(--sheet-offset,9.5rem)-1.5rem)]",
             )}
+            viewportClassName="z-sheet"
           >
-            <div className="relative shrink-0 bg-accent/10 px-4 pt-9 pb-4">
-              <div
-                aria-hidden="true"
-                className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-muted-foreground/25"
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                className="absolute right-2 top-8"
-                aria-label={t("library.closeAlbum")}
-                onClick={requestClose}
-              >
-                <X />
-              </Button>
-
-              <div className="w-full flex justify-center">
-                <div className="w-40">{albumArt}</div>
-              </div>
-
-              <div className="mt-4 flex items-end justify-between gap-3">
-                <div className="min-w-0">
-                  <DrawerTitle className="min-w-0 truncate text-xl font-bold">
-                    {album.title}
-                  </DrawerTitle>
-                  <div className="mt-0.5 truncate text-sm text-muted-foreground">
-                    {album.artist}
-                  </div>
-                  <div className="truncate text-sm text-muted-foreground">
-                    {meta ? `${meta} · ` : ""}
-                    {trackCount}
+            {isPhoneLandscape ? (
+              // Landscape: art and actions on the left, title and tracks on the
+              // right, so the track list keeps the drawer's full height.
+              <div className="flex min-h-0 flex-1 gap-4 p-3">
+                <div className="flex w-28 shrink-0 flex-col gap-2">
+                  {albumArt}
+                  <div className="flex items-center justify-center gap-1.5">
+                    {playButton}
+                    {shuffleButton}
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {playButton}
-                  {shuffleButton}
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                  <div className="flex shrink-0 items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <DrawerTitle className="truncate text-lg font-bold">
+                        {album.title}
+                      </DrawerTitle>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {album.artist}
+                      </div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {meta ? `${meta} · ` : ""}
+                        {trackCount}
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="shrink-0"
+                      aria-label={t("library.closeAlbum")}
+                      onClick={requestClose}
+                    >
+                      <X />
+                    </Button>
+                  </div>
+
+                  {trackList}
                 </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="relative shrink-0 bg-accent/10 px-4 pt-9 pb-4">
+                  <div
+                    aria-hidden="true"
+                    className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-muted-foreground/25"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute right-2 top-8"
+                    aria-label={t("library.closeAlbum")}
+                    onClick={requestClose}
+                  >
+                    <X />
+                  </Button>
 
-            {trackList}
+                  <div className="w-full flex justify-center">
+                    <div className="w-40">{albumArt}</div>
+                  </div>
+
+                  <div className="mt-4 flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <DrawerTitle className="min-w-0 truncate text-xl font-bold">
+                        {album.title}
+                      </DrawerTitle>
+                      <div className="mt-0.5 truncate text-sm text-muted-foreground">
+                        {album.artist}
+                      </div>
+                      <div className="truncate text-sm text-muted-foreground">
+                        {meta ? `${meta} · ` : ""}
+                        {trackCount}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {playButton}
+                      {shuffleButton}
+                    </div>
+                  </div>
+                </div>
+
+                {trackList}
+              </>
+            )}
           </DrawerContent>
         )}
       </Drawer>

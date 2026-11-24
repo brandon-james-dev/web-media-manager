@@ -209,10 +209,7 @@ export function PluginManagerDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogContent
-        className={cn("z-120 sm:max-w-2xl", className)}
-        overlayClassName="z-120"
-      >
+      <DialogContent className={cn("sm:max-w-2xl", className)}>
         <DialogHeader>
           <DialogTitle>{t("visualizer.pluginsTitle")}</DialogTitle>
           <DialogDescription>

@@ -29,7 +29,7 @@ export function ThemeTrialBar() {
     <div
       role="alertdialog"
       aria-live="polite"
-      className="fixed inset-x-0 bottom-4 z-100 mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-3 rounded-lg border bg-popover px-4 py-2 text-popover-foreground shadow-lg"
+      className="fixed inset-x-0 bottom-4 z-modal mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-3 rounded-lg border bg-popover px-4 py-2 text-popover-foreground shadow-lg"
     >
       <span className="text-sm">
         {t("settings.themeTrialPrompt", [String(trial.secondsLeft)])}

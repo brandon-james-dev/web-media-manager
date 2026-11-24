@@ -75,7 +75,7 @@ export function AlphabetScrubber({
   return (
     <div
       className={cn(
-        "absolute inset-y-0 z-20 flex items-center py-2 transition-opacity duration-300",
+        "absolute inset-y-0 z-raised flex items-center py-2 transition-opacity duration-300",
         !shown && "opacity-0",
         !visible && "pointer-events-none",
         side === "right" ? "right-0" : "left-0",

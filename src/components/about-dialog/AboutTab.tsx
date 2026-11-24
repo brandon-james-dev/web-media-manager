@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -9,7 +8,6 @@ import { ExternalLink, Heart } from "lucide-react";
 import type { ReactNode } from "react";
 
 const REPOSITORY_URL = "https://github.com/brandon-james-dev/web-media-manager";
-const LIVE_DEMO_URL = "https://brandon-james-dev.github.io/web-media-manager/";
 const SUPPORT_URL = "https://brandonjames70.gumroad.com/l/wmm";
 const SPONSOR_URL = "https://github.com/sponsors/brandon-james-dev";
 
@@ -56,7 +54,6 @@ export function AboutTab() {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-medium">{t("app.title")}</span>
-              <Badge variant="outline">{system.WMM_VERSION}</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
               {t("about.description")}
@@ -83,11 +80,6 @@ export function AboutTab() {
             <ExternalLinkButton
               href={REPOSITORY_URL}
               label={t("about.repository")}
-              icon={null}
-            />
-            <ExternalLinkButton
-              href={LIVE_DEMO_URL}
-              label={t("about.liveDemo")}
               icon={null}
             />
           </div>

@@ -65,11 +65,20 @@ error fails the build before Vite starts.
 - Formatting is oxc's Oxfmt, run through `vp fmt` (check with `vp fmt --check`)
   — not Prettier. The `.prettierrc` in the repo is vestigial; do not treat it as
   the source of truth. `vendor/` and `dist/` are lint-ignored.
+- **There is no Oxfmt config file**, so `vp fmt` falls back to its defaults
+  (100-column print width) and reformats the whole file away from the repo's
+  80-column style. Do not run it over existing files until a config exists;
+  format only new files, or add the config first.
 - Public modules carry JSDoc with `@example` blocks (XML and TS for theme
   code); enums are `const` objects, not TS `enum`.
 - UI primitives live in `src/components/ui` (shadcn `base-nova` style on
   `@base-ui/react`, lucide icons). A `Button` rendered as an anchor needs
   `nativeButton={false}` or Base UI logs a console error.
+- **z-index comes from the named scale in `src/index.css`** (`z-sticky`,
+  `z-raised`, `z-sheet`, `z-chrome-row`, `z-overlay`, `z-chrome`, `z-modal`,
+  `z-popover`, `z-toast`). Pick the layer by role; never add a raw number or a
+  per-call-site override. The album detail sheet is non-modal and must stay
+  below `z-chrome-row` and `z-chrome`.
 - Commit messages are capitalized past tense with no prefix: `Added song-hiding
   feature`, `Fixed all artists view render timing`.
 - Do not name commercial products in code comments; describe the behavior.

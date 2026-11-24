@@ -31,7 +31,7 @@ export function SongTable(props: SongTableProps) {
   return (
     <div className="rounded-md">
       <table className="w-full border-collapse text-sm select-none">
-        <thead className="sticky top-0 bg-background z-10">
+        <thead className="sticky top-0 bg-background z-sticky">
           <tr className="border-b">
             {sortableColumns.map(([key, labelKey]) => {
               const isActive = sort?.selector === selectors[key];

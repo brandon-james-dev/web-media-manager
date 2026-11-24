@@ -80,7 +80,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
     <div
       data-tv-playback-controls="true"
       className={cn(
-        "absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/80 via-black/50 to-transparent px-8 pt-10 pb-6 transition-opacity duration-300",
+        "absolute inset-x-0 bottom-0 z-raised bg-linear-to-t from-black/80 via-black/50 to-transparent px-8 pt-10 pb-6 transition-opacity duration-300",
         hidden && "pointer-events-none opacity-0"
       )}
     >

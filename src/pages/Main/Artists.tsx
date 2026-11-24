@@ -354,7 +354,7 @@ export function Artists() {
   const renderGroup = (artistName: string | undefined, albums: Album[]) => (
     <>
       {artistName && (
-        <div className="sticky top-0 z-20 flex h-10 items-center truncate bg-background text-sm font-bold uppercase tracking-wide text-primary">
+        <div className="sticky top-0 z-raised flex h-10 items-center truncate bg-background text-sm font-bold uppercase tracking-wide text-primary">
           {artistName}
         </div>
       )}
@@ -691,6 +691,14 @@ function AlbumSection({
     .filter((v) => v !== undefined && v !== null && v !== "")
     .join(" · ");
 
+  /** Play this album's queue starting at `song`. */
+  function playSong(song: Song) {
+    wmmBus.invoke("wmm.playback.playQueue", {
+      songIds: songs.map((s) => s.id),
+    });
+    wmmBus.invoke("wmm.playback.playSong", { songId: song.id });
+  }
+
   return (
     <section className="mt-4">
       <SongContextMenu songs={album.songs}>
@@ -724,7 +732,7 @@ function AlbumSection({
 
           <div
             className={cn(
-              "sticky z-10 bg-background py-2 flex items-end gap-3",
+              "sticky z-sticky bg-background py-2 flex items-end gap-3",
               stickyTop
             )}
           >
@@ -783,7 +791,15 @@ function AlbumSection({
         </div>
       </SongContextMenu>
 
-      <ItemGroup className="mt-1 pr-7 gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0! divide-y divide-border">
+      <ItemGroup
+        className={cn(
+          "mt-1 gap-0! has-data-[size=sm]:gap-0! has-data-[size=xs]:gap-0! divide-y divide-border",
+          // The right inset reserves room for the A-Z scrubber, which only
+          // overlays the list on wide layouts. On compact it just made the
+          // rows stop short of the album's action buttons above them.
+          isCompact ? "pr-0" : "pr-7"
+        )}
+      >
         {songs.map((song, i) => (
           <div key={song.id}>
             <TrackItem
@@ -795,23 +811,22 @@ function AlbumSection({
               isPlaying={nowPlayingSongId === song.id}
               // Playback mode: tap/click plays. Edit mode: the row isn't a
               // play affordance — double-click opens that song's editor.
-              onPlay={
-                activeMode === "edit"
-                  ? undefined
-                  : () => {
-                    wmmBus.invoke("wmm.playback.playQueue", {
-                      songIds: songs.map((s) => s.id),
-                    });
-                    wmmBus.invoke("wmm.playback.playSong", {
-                      songId: song.id,
-                    });
-                  }
-              }
+              // Compact (phone/tablet) has no hover and no double-tap, so a
+              // single tap plays there; desktop keeps double-click.
+              onPlay={activeMode === "edit" ? undefined : () => playSong(song)}
               onClick={
-                activeMode === "edit" ? () => onToggleSong(song) : undefined
+                activeMode === "edit"
+                  ? () => onToggleSong(song)
+                  : isCompact
+                    ? () => playSong(song)
+                    : undefined
               }
               onDoubleClick={
-                activeMode === "edit" ? () => onEditSong(song) : undefined
+                activeMode === "edit"
+                  ? () => onEditSong(song)
+                  : isCompact
+                    ? undefined
+                    : () => playSong(song)
               }
               className={cn(
                 selectedSongIds.includes(song.id) &&

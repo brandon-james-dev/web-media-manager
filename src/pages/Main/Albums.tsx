@@ -16,14 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
-import {
-  ArrowDownAZ,
-  ArrowUpAZ,
-  GalleryHorizontal,
-  Grid2x2,
-  Volume2,
-  X,
-} from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, GalleryHorizontal, Grid2x2, Volume2, X } from "lucide-react";
 import { useIsCompact, useIsPhoneLandscape } from "@/lib/hooks/useIsMobile";
 import { formatLength } from "@/lib/formatLength";
 import { AlphabetScrubber } from "@/components/alphabet-scrubber";
@@ -34,6 +27,7 @@ import { TrackItem } from "@/components/track-item";
 import { DraggableSongs } from "@/components/library-sidebar";
 import { ItemGroup } from "@/components/ui/item";
 import { CoverFlow, type CoverFlowItem } from "@/components/ui/CoverFlow";
+import { NoArtworkDisc } from "@/components/ui/no-artwork-disc";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { ThumbnailSize } from "@/lib";
 import { AlbumDetailModal } from "@/components/album-modal";
@@ -47,8 +41,7 @@ export function Albums() {
   const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
   const { filteredSongs } = useSongs();
   const { setQuery } = useSongs();
-  const { setSort, activeMode, selectedSourceIds } =
-    useOutletContext<MainContext>();
+  const { setSort, activeMode, selectedSourceIds } = useOutletContext<MainContext>();
   const [albumSort] = useState<{
     selector: (song: Song) => void;
     desc: boolean;
@@ -78,9 +71,7 @@ export function Albums() {
 
   useEffect(() => {
     const selector =
-      sortField === "album"
-        ? (song: Song) => song.album
-        : (song: Song) => song.artist;
+      sortField === "album" ? (song: Song) => song.album : (song: Song) => song.artist;
 
     const sort = { selector, desc: sortDesc };
 
@@ -96,9 +87,7 @@ export function Albums() {
     const base =
       selectedSourceIds.length === 0
         ? filteredSongs
-        : filteredSongs.filter((song) =>
-            selectedSourceIds.includes(song.sourceId)
-          );
+        : filteredSongs.filter((song) => selectedSourceIds.includes(song.sourceId));
     return deviceSongs.length === 0 ? base : [...base, ...deviceSongs];
   }, [filteredSongs, selectedSourceIds, deviceSongs]);
 
@@ -128,16 +117,10 @@ export function Albums() {
 
   const gridRef = useRef<HTMLDivElement>(null);
   const letterIndex = useMemo(
-    () =>
-      buildLetterIndex(
-        albums.map((a) => (sortField === "album" ? a.title : a.artist))
-      ),
-    [albums, sortField]
+    () => buildLetterIndex(albums.map((a) => (sortField === "album" ? a.title : a.artist))),
+    [albums, sortField],
   );
-  const availableLetters = useMemo(
-    () => new Set(letterIndex.keys()),
-    [letterIndex]
-  );
+  const availableLetters = useMemo(() => new Set(letterIndex.keys()), [letterIndex]);
 
   const coverFlowItems = useMemo<CoverFlowItem[]>(
     () =>
@@ -147,7 +130,7 @@ export function Albums() {
         title: a.title,
         subtitle: a.artist,
       })),
-    [albums]
+    [albums],
   );
   //#endregion
 
@@ -243,9 +226,7 @@ export function Albums() {
                       type="button"
                       className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs active:bg-white/10"
                       onClick={() => {
-                        const songIds = (albums[index]?.songs ?? []).map(
-                          (s) => s.id
-                        );
+                        const songIds = (albums[index]?.songs ?? []).map((s) => s.id);
                         wmmBus.invoke("wmm.playback.playQueue", {
                           songIds,
                         });
@@ -300,6 +281,7 @@ export function Albums() {
           songId={src || undefined}
           thumbSize={ThumbnailSize.thumb512}
           className={className}
+          fallback={<NoArtworkDisc />}
         />
       )}
     />
@@ -325,10 +307,7 @@ export function Albums() {
 
         <div className="flex items-center gap-3">
           <div className="bg-muted flex border border-foreground/15 rounded-md">
-            <Select
-              value={sortField}
-              onValueChange={(v) => setSortField(v as "album" | "artist")}
-            >
+            <Select value={sortField} onValueChange={(v) => setSortField(v as "album" | "artist")}>
               <SelectTrigger className="w-35">
                 <SelectValue>{t(sortFieldLabels[sortField])}</SelectValue>
               </SelectTrigger>
@@ -343,11 +322,7 @@ export function Albums() {
               onPressedChange={(p) => setSortDesc(p)}
               className="px-3 py-1 aria-pressed:bg-transparent"
             >
-              {sortDesc ? (
-                <ArrowDownAZ className="h-4 w-4" />
-              ) : (
-                <ArrowUpAZ className="h-4 w-4" />
-              )}
+              {sortDesc ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpAZ className="h-4 w-4" />}
             </Toggle>
           </div>
         </div>
@@ -392,11 +367,7 @@ export function Albums() {
             reversed={sortDesc}
             scrollRef={gridRef}
             onSelect={(letter) =>
-              scrollListToIndex(
-                gridRef.current,
-                letterIndex.get(letter) ?? 0,
-                albums.length
-              )
+              scrollListToIndex(gridRef.current, letterIndex.get(letter) ?? 0, albums.length)
             }
           />
         </div>
@@ -405,11 +376,11 @@ export function Albums() {
         <>
           {isPhoneLandscape ? (
             createPortal(
-              <div className="fixed inset-0 z-100 bg-background pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
+              <div className="fixed inset-0 z-overlay bg-background pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
                 <button
                   type="button"
                   aria-label={t("common.exitFullScreen")}
-                  className="absolute right-2 bottom-2 z-110 flex size-9 items-center justify-center rounded-full bg-secondary/80 text-foreground"
+                  className="absolute right-2 bottom-2 z-chrome flex size-9 items-center justify-center rounded-full bg-secondary/80 text-foreground"
                   onClick={() => {
                     setFlippedIndex(null);
                     setViewMode("grid");
@@ -419,7 +390,7 @@ export function Albums() {
                 </button>
                 {coverFlow}
               </div>,
-              document.body
+              document.body,
             )
           ) : (
             <div className="relative h-80 shrink-0">{coverFlow}</div>
@@ -432,9 +403,7 @@ export function Albums() {
                 max={albums.length - 1}
                 step={1}
                 value={[Math.min(selectedAlbumIndex, albums.length - 1)]}
-                onValueChange={(v) =>
-                  setSelectedAlbumIndex(Array.isArray(v) ? v[0] : v)
-                }
+                onValueChange={(v) => setSelectedAlbumIndex(Array.isArray(v) ? v[0] : v)}
               />
             </div>
           )}

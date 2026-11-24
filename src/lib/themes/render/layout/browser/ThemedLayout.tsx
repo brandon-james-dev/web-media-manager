@@ -194,7 +194,7 @@ function ThemedLayoutBody() {
         <RenderNode node={analysis.shell} placement={FILL_PLACEMENT} />
       </div>
       {overlayOpen ? (
-        <div className="fixed inset-0 z-50 flex flex-col">
+        <div className="fixed inset-0 z-overlay flex flex-col">
           <RenderNode node={overlay.node} placement={FILL_PLACEMENT} />
         </div>
       ) : null}
@@ -222,7 +222,7 @@ function SettingsAffordance({ label }: { label: string }) {
   return (
     <button
       type="button"
-      className="fixed inset-e-2 top-2 z-50 inline-flex size-8 items-center justify-center rounded-md text-foreground/70 hover:text-foreground"
+      className="fixed inset-e-2 top-2 z-chrome inline-flex size-8 items-center justify-center rounded-md text-foreground/70 hover:text-foreground"
       title={label}
       aria-label={label}
       onClick={() => wmmBus.invoke("wmm.ui.openSettings")}

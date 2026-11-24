@@ -681,7 +681,7 @@ function MainLayout() {
               // visible beside it and remains draggable; a fixed column from md.
               <div
                 className={cn(
-                  "absolute inset-y-0 right-0 z-20 w-56 border-l shadow-lg",
+                  "absolute inset-y-0 right-0 z-raised w-56 border-l shadow-lg",
                   "md:static md:w-96 md:shadow-none"
                 )}
               >
@@ -712,7 +712,7 @@ function MainLayout() {
           )}
         >
           {isMobileSearchOpen && (
-            <div className="absolute bottom-full left-0 right-0 z-70 mb-2 overflow-hidden rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg">
+            <div className="absolute bottom-full left-0 right-0 z-popover mb-2 overflow-hidden rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg">
               <InputGroup className="h-14 border-0">
                 <InputGroupInput
                   ref={mobileSearchRef}
@@ -750,7 +750,7 @@ function MainLayout() {
               isTablet && showBottomNav && "order-2 min-w-0 flex-1",
               isCompact &&
               activeMode === "playback" &&
-              "relative z-60 overflow-visible"
+              "relative z-chrome-row overflow-visible"
             )}
             hidden={isSyncPage || !hasSources || (total ?? 0) === 0}
           >
@@ -766,7 +766,7 @@ function MainLayout() {
           {showBottomNav && (
             <nav
               className={cn(
-                "relative z-60 w-full min-w-0 shrink-0 rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg",
+                "relative z-chrome-row w-full min-w-0 shrink-0 rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg",
                 isTablet && showBottomNav && "order-1 min-w-0 flex-1"
               )}
             >

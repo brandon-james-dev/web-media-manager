@@ -257,3 +257,28 @@ hash as defines, sets the base path per mode, and configures the PWA
 | New theme widget                      | `src/components/theme-widgets/<area>/<Name>/` with a `definition.ts` using `defineWidget`, registered in `theme-widgets/index.ts` |
 | New user-facing string                | `src/i18n/resources.ts` + `en-US.ts`, then `npm run i18n:sync`                                                                    |
 | New UI primitive                      | `src/components/ui/`, shadcn `base-nova` conventions                                                                              |
+| Placeholder for missing artwork       | `NoArtworkDisc` in `src/components/ui/no-artwork-disc.tsx` — a disc in `text-accent` on `bg-accent/15`                            |
+
+## Layering
+
+`src/index.css` defines the z-index scale as `@theme` tokens, which Tailwind
+maps to `z-*` utilities. Every app-level z-index comes from this list:
+
+| Utility        | Value | Role                                          |
+| -------------- | ----- | --------------------------------------------- |
+| `z-sticky`     | 10    | sticky headers inside a scroll container      |
+| `z-raised`     | 20    | in-panel overlays, sheet backdrops            |
+| `z-sheet`      | 30    | non-modal sheets (album detail)               |
+| `z-chrome-row` | 40    | in-flow player controls and bottom nav        |
+| `z-overlay`    | 100   | now playing, album fullscreen, themed overlay |
+| `z-chrome`     | 110   | floating player bar, host settings button     |
+| `z-modal`      | 200   | dialogs and drawers, with their backdrops     |
+| `z-popover`    | 300   | popover, menu, select, tooltip                |
+| `z-toast`      | 400   | toasts                                        |
+
+Pick the layer by role, not by what a surface must beat. The album detail sheet
+is `modal={false}` and offsets itself above the player bar with
+`bottom-(--sheet-offset,9.5rem)`, so it deliberately sits below `z-chrome-row`
+and `z-chrome`; raising it to the modal layer puts it over the nav and player
+bar. In-component stacking (coverflow depth, slider thumbs, gradient overlays)
+stays local and does not use these tokens.

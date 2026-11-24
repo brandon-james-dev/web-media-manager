@@ -22,6 +22,7 @@ import {
 } from "motion/react";
 import { cn } from "@/lib/shadcn-utils/utils";
 import { useTickAudio } from "@/lib/cover-flow-audio";
+import { NoArtworkDisc } from "@/components/ui/no-artwork-disc";
 
 type Direction = "left" | "right";
 
@@ -112,18 +113,23 @@ export interface CoverFlowProps {
   renderBack?: (item: CoverFlowItem, index: number) => ReactNode;
 }
 
-const defaultRenderImage = (props: RenderImageProps) => (
-  <img
-    src={props.src}
-    alt={props.alt}
-    width={props.width}
-    height={props.height}
-    className={props.className}
-    draggable={props.draggable}
-    sizes={props.sizes}
-    loading={props.loading}
-  />
-);
+const defaultRenderImage = (props: RenderImageProps) =>
+  props.src ? (
+    <img
+      src={props.src}
+      alt={props.alt}
+      width={props.width}
+      height={props.height}
+      className={props.className}
+      draggable={props.draggable}
+      sizes={props.sizes}
+      loading={props.loading}
+    />
+  ) : (
+    // No artwork: a disc on a tint of the accent colour, rather than the
+    // white box a broken <img> paints.
+    <NoArtworkDisc className={props.className} />
+  );
 
 function clampIndex(index: number, length: number) {
   return Math.min(Math.max(index, 0), Math.max(length - 1, 0));
@@ -170,9 +176,7 @@ export function useCoverFlow({
   }, []);
 
   const scale =
-    containerWidth > 0 && itemWidth > 0
-      ? Math.min(1, (containerWidth * 0.78) / itemWidth)
-      : 1;
+    containerWidth > 0 && itemWidth > 0 ? Math.min(1, (containerWidth * 0.78) / itemWidth) : 1;
   const effectiveCenterGap = Math.round(centerGap * scale);
 
   const activeIndexRef = useRef(activeIndex);
@@ -232,7 +236,7 @@ export function useCoverFlow({
       scrollX.set(clamped);
       tick(dir, velocity);
     },
-    [items.length, scrollX, tick]
+    [items.length, scrollX, tick],
   );
 
   useEffect(() => {
@@ -254,12 +258,10 @@ export function useCoverFlow({
     const handleWheel = (e: WheelEvent) => {
       if (!enableScrollRef.current) return;
       e.preventDefault();
-      const wheelDelta =
-        Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      const wheelDelta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
 
       const now = e.timeStamp;
-      const notched =
-        e.deltaMode !== 0 || Math.abs(wheelDelta) >= STEP_DELTA_THRESHOLD;
+      const notched = e.deltaMode !== 0 || Math.abs(wheelDelta) >= STEP_DELTA_THRESHOLD;
 
       if (scrollModeRef.current === "scrub" && !notched) {
         const deltaX = isRtlRef.current ? -wheelDelta : wheelDelta;
@@ -277,7 +279,7 @@ export function useCoverFlow({
         if (dt > 0) {
           scrubVelocity = Math.max(
             -MAX_SCRUB_VELOCITY,
-            Math.min(MAX_SCRUB_VELOCITY, (-deltaX / dt) * 1000)
+            Math.min(MAX_SCRUB_VELOCITY, (-deltaX / dt) * 1000),
           );
         }
 
@@ -303,7 +305,7 @@ export function useCoverFlow({
           scrubbing = false;
           const target = clampIndex(
             Math.round(scrollX.get() - scrubVelocity * VELOCITY_PROJECTION),
-            items.length
+            items.length,
           );
           const prev = activeIndexRef.current;
           setActiveIndex(target);
@@ -321,15 +323,14 @@ export function useCoverFlow({
 
       const threshold = scrollThresholdRef.current;
       const shouldJump =
-        (accumulator > threshold || accumulator < -threshold) &&
-        now - lastJump > 150;
+        (accumulator > threshold || accumulator < -threshold) && now - lastJump > 150;
 
       if (shouldJump) {
         const dir = accumulator > 0 ? "right" : "left";
         jumpToIndex(
           Math.round(scrollX.get()) + (dir === "right" ? 1 : -1),
           Math.abs(wheelDelta),
-          dir
+          dir,
         );
         accumulator = 0;
         lastJump = now;
@@ -351,7 +352,7 @@ export function useCoverFlow({
         jumpToIndex(index);
       }
     },
-    [jumpToIndex]
+    [jumpToIndex],
   );
 
   const rawDragX = useRef(0);
@@ -368,14 +369,10 @@ export function useCoverFlow({
       const raw = rawDragX.current;
       const max = items.length - 1;
       const damped =
-        raw < 0
-          ? raw * BOUNDS_DAMPING
-          : raw > max
-            ? max + (raw - max) * BOUNDS_DAMPING
-            : raw;
+        raw < 0 ? raw * BOUNDS_DAMPING : raw > max ? max + (raw - max) * BOUNDS_DAMPING : raw;
       scrollX.set(damped);
     },
-    [effectiveCenterGap, items.length, scrollX]
+    [effectiveCenterGap, items.length, scrollX],
   );
 
   const onDragEnd = useCallback(
@@ -390,7 +387,7 @@ export function useCoverFlow({
       scrollX.set(clamped);
       if (clamped !== prev) tick(dir, Math.abs(info.velocity.x));
     },
-    [items.length, scrollX, tick]
+    [items.length, scrollX, tick],
   );
 
   const onKeyDown = useCallback(
@@ -412,7 +409,7 @@ export function useCoverFlow({
         if (item) onItemClickRef.current?.(item, idx);
       }
     },
-    [jumpToIndex, items]
+    [jumpToIndex, items],
   );
 
   return {
@@ -492,13 +489,13 @@ export function CoverFlow({
   const isMounted = useSyncExternalStore(
     subscribeNever,
     () => true,
-    () => false
+    () => false,
   );
   const [isMobile, setIsMobile] = useState(false);
   const [isSafari] = useState(
     () =>
       typeof window !== "undefined" &&
-      /^((?!chrome|android).)*safari/i.test(window.navigator.userAgent)
+      /^((?!chrome|android).)*safari/i.test(window.navigator.userAgent),
   );
 
   useEffect(() => {
@@ -516,9 +513,7 @@ export function CoverFlow({
   const effectiveCenterGap = Math.round(centerGap * scale);
 
   const reflectionFilterId =
-    isMounted && enableReflection && !isMobile && !isSafari
-      ? `${instanceId}-rf`
-      : undefined;
+    isMounted && enableReflection && !isMobile && !isSafari ? `${instanceId}-rf` : undefined;
   const showReflection = isMounted && enableReflection;
 
   if (items.length === 0) return null;
@@ -570,7 +565,7 @@ export function CoverFlow({
         className={cn(
           "group/cf relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-transparent focus:outline-none touch-pan-y",
           isDragging ? "is-dragging cursor-grabbing" : "cursor-grab",
-          className
+          className,
         )}
         {...containerProps}
       >
@@ -600,7 +595,7 @@ export function CoverFlow({
                 renderBack={renderBack}
                 onCardClick={handleCardClick}
               />
-            )
+            ),
           )}
         </div>
 
@@ -678,11 +673,7 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
     if (reduceMotion) return 0;
     const pos = index - value;
     const absPos = Math.abs(pos);
-    return absPos < 0.5
-      ? -pos * (rotation * 2)
-      : pos < 0
-        ? rotation
-        : -rotation;
+    return absPos < 0.5 ? -pos * (rotation * 2) : pos < 0 ? rotation : -rotation;
   });
 
   const x = useTransform(scrollX, (value) => {
@@ -700,24 +691,18 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
     return absPos > 0.5 ? -200 : absPos * -400;
   });
 
-  const zIndex = useTransform(
-    scrollX,
-    (value) => 1000 - Math.abs(index - value) * 10
-  );
+  const zIndex = useTransform(scrollX, (value) => 1000 - Math.abs(index - value) * 10);
 
-  const dimOpacity = useTransform(scrollX, (value) =>
-    Math.abs(index - value) < 0.5 ? 0 : 0.5
-  );
+  const dimOpacity = useTransform(scrollX, (value) => (Math.abs(index - value) < 0.5 ? 0 : 0.5));
 
   const imageRenderer = renderImage ?? defaultRenderImage;
-  const cursorClass =
-    isActive || enableClickToSnap ? "cursor-pointer" : "cursor-grab";
+  const cursorClass = isActive || enableClickToSnap ? "cursor-pointer" : "cursor-grab";
 
   return (
     <motion.div
       className={cn(
         "absolute top-1/2 left-1/2 preserve-3d will-change-transform group-[.is-dragging]/cf:cursor-grabbing!",
-        cursorClass
+        cursorClass,
       )}
       style={{
         width,
@@ -766,8 +751,7 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
             alt: item.title,
             width,
             height,
-            className:
-              "object-cover select-none pointer-events-none w-full h-full",
+            className: "object-cover select-none pointer-events-none w-full h-full",
             draggable: false,
             sizes: `${width}px`,
             priority: isActive,
@@ -800,9 +784,7 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
               width: "100%",
               height: "100%",
               transform: "scaleY(-1)",
-              filter: reflectionFilterId
-                ? `url(#${reflectionFilterId})`
-                : undefined,
+              filter: reflectionFilterId ? `url(#${reflectionFilterId})` : undefined,
               mixBlendMode: reflectionFilterId ? "screen" : undefined,
               opacity: reflectionFilterId ? 0.55 : 0.4,
             }}
@@ -810,7 +792,7 @@ const CoverFlowItemCard = memo(function CoverFlowItemCard({
             <div
               className={cn(
                 "relative h-full w-full rounded-xl bg-black",
-                reflectionFilterId && "shadow-2xl"
+                reflectionFilterId && "shadow-2xl",
               )}
             >
               <div className="absolute inset-0 z-20 rounded-xl border border-white/10 pointer-events-none" />

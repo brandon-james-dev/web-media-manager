@@ -455,7 +455,7 @@ export function ThemeTrackTable({
     <div
       role="row"
       className={cn(
-        "sticky top-0 z-10 grid w-full min-w-0 cursor-default select-none items-center",
+        "sticky top-0 z-sticky grid w-full min-w-0 cursor-default select-none items-center",
         headerClass
       )}
       style={{

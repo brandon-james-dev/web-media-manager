@@ -73,7 +73,7 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="shrink-0 bg-primary-foreground border-b sticky z-20 top-0">
+      <div className="shrink-0 bg-primary-foreground border-b sticky z-raised top-0">
         <form
           className="lg:w-4xl mx-auto flex gap-2 my-2"
           onSubmit={(e) => {
