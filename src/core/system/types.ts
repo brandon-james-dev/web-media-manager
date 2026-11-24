@@ -9,3 +9,5 @@ export interface SystemScanStatus {
 }
 
 export const WMM_VERSION = __APP_VERSION__;
+export const WMM_BUILD_TIME = __APP_BUILD_TIME__;
+export const WMM_COMMIT_HASH = __APP_COMMIT_HASH__;

@@ -35,6 +35,7 @@
 // ------------------------------------------------------------- namespaces
 /** Top-level resource namespaces: the first segment of every key. */
 export const WMM_RESOURCE_NAMESPACES = [
+  "about",
   "app",
   "common",
   "playback",
@@ -127,6 +128,27 @@ function plural<const P extends readonly string[]>(
  * the key is the resource name, the value describes it.
  */
 export const WMM_RESOURCES = {
+  // about
+  "about.title": text("Title of the about dialog."),
+  "about.open": text("Opens the about dialog."),
+  "about.tabAbout": text("About tab of the about dialog."),
+  "about.tabCredits": text("Open source credits tab of the about dialog."),
+  "about.tabShortcuts": text("Keyboard shortcuts tab of the about dialog."),
+  "about.description": text("One-line summary of what the application is."),
+  "about.version": text("Label for the application version."),
+  "about.built": text("Label for the date and time the build was produced."),
+  "about.commit": text("Label for the commit the build was produced from."),
+  "about.links": text("Heading of the project link list."),
+  "about.repository": text("Link to the source code repository."),
+  "about.liveDemo": text("Link to the hosted demo of the application."),
+  "about.support": text("Heading of the project support links."),
+  "about.gumroad": text("Link to the project's store page."),
+  "about.sponsor": text("Link to the project's sponsorship page."),
+  "about.credits": text("Heading of the open source credits list."),
+  "about.creditsDescription": text(
+    "Summary above the open source credits list."
+  ),
+
   // app
   "app.title": text("Application name shown in the top bar."),
 

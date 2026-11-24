@@ -13,6 +13,27 @@ export const enUS = {
   language: "en-US",
   nativeName: "English (US)",
   resources: {
+    // about
+    "about.title": "About",
+    "about.open": "About Web Media Manager",
+    "about.tabAbout": "About",
+    "about.tabCredits": "Credits",
+    "about.tabShortcuts": "Keyboard Shortcuts",
+    "about.description":
+      "A web-based media manager for local music libraries and portable devices.",
+    "about.version": "Version",
+    "about.built": "Built",
+    "about.commit": "Commit",
+    "about.links": "Links",
+    "about.repository": "Source code",
+    "about.liveDemo": "Live demo",
+    "about.support": "Support the project",
+    "about.gumroad": "Support on Gumroad",
+    "about.sponsor": "Sponsor on GitHub",
+    "about.credits": "Open source credits",
+    "about.creditsDescription":
+      "Web Media Manager is built with these open source projects.",
+
     // app
     "app.title": "Web Media Manager",
 

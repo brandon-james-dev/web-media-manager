@@ -3,12 +3,25 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 /** Version sourced from package.json so the app's version never drifts. */
 const pkg = JSON.parse(readFileSync(path.resolve("package.json"), "utf-8")) as {
   version: string;
 };
+
+/** Short commit hash of the built revision, or "unknown" outside a checkout. */
+function readCommitHash(): string {
+  try {
+    return execSync("git rev-parse --short=7 HEAD", {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "unknown";
+  }
+}
 
 const APP_NAME = "Web Media Manager";
 const APP_SHORT_NAME = "Media Manager";
@@ -83,6 +96,8 @@ export default defineConfig(({ mode }) => {
 
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),
+      __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+      __APP_COMMIT_HASH__: JSON.stringify(readCommitHash()),
     },
 
     build: {

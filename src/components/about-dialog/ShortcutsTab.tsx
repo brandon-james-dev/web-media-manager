@@ -1,0 +1,126 @@
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranslation } from "@/i18n";
+import type { WmmResourceKey } from "@/i18n";
+import { getShortcuts } from "@/lib/keyboard-shortcuts";
+import { Kbd } from "@/components/ui/kbd";
+import { usesCommandMeta } from "@/lib/keyboard-shortcuts";
+import {
+  ArrowBigUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Command,
+  Option,
+} from "lucide-react";
+
+/** Resource key for each registered shortcut, by shortcut id. */
+const SHORTCUT_LABEL_KEYS: Record<string, WmmResourceKey> = {
+  openShortcuts: "settings.shortcutOpenShortcuts",
+  openSettings: "settings.shortcutOpenSettings",
+  next: "settings.shortcutNext",
+  prev: "settings.shortcutPrev",
+  playpause: "settings.shortcutPlayPause",
+  queue: "settings.shortcutQueue",
+  edit: "settings.shortcutEdit",
+  fullscreen: "settings.shortcutFullscreen",
+  close: "settings.shortcutClose",
+};
+
+export function ShortcutsTab({ open }: { open: boolean }) {
+  const shortcuts = open ? [...getShortcuts().values()] : [];
+  const { t } = useTranslation();
+
+  return (
+    <ScrollArea className="max-h-[60vh] pr-4">
+      <div className="mt-4 space-y-3">
+        {shortcuts.map((s) => {
+          const c = s.combo;
+
+          return (
+            <div
+              key={s.id}
+              className="flex justify-between items-center border-b pb-2"
+            >
+              <span className="text-sm">
+                {SHORTCUT_LABEL_KEYS[s.id]
+                  ? t(SHORTCUT_LABEL_KEYS[s.id])
+                  : s.description}
+              </span>
+
+              <span className="flex gap-1 select-none items-center">
+                {c.ctrl && (
+                  <>
+                    <Kbd>{usesCommandMeta ? <Command /> : "Ctrl"}</Kbd>
+                    <span>+</span>
+                  </>
+                )}
+
+                {c.meta && (
+                  <>
+                    <Kbd>{usesCommandMeta ? <Command /> : "Ctrl"}</Kbd>
+                    <span>+</span>
+                  </>
+                )}
+
+                {c.shift && (
+                  <>
+                    <Kbd>
+                      <ArrowBigUp />
+                    </Kbd>
+                    <span>+</span>
+                  </>
+                )}
+
+                {c.alt && (
+                  <>
+                    <Kbd>{usesCommandMeta ? <Option /> : "Alt"}</Kbd>
+                    <span>+</span>
+                  </>
+                )}
+
+                {(() => {
+                  switch (c.key) {
+                    case "ArrowUp":
+                      return (
+                        <Kbd>
+                          <ArrowUp />
+                        </Kbd>
+                      );
+
+                    case "ArrowDown":
+                      return (
+                        <Kbd>
+                          <ArrowDown />
+                        </Kbd>
+                      );
+
+                    case "ArrowLeft":
+                      return (
+                        <Kbd>
+                          <ArrowLeft />
+                        </Kbd>
+                      );
+
+                    case "ArrowRight":
+                      return (
+                        <Kbd>
+                          <ArrowRight />
+                        </Kbd>
+                      );
+
+                    case " ":
+                      return <Kbd>Space</Kbd>;
+
+                    default:
+                      return <Kbd>{c.key}</Kbd>;
+                  }
+                })()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </ScrollArea>
+  );
+}

@@ -238,3 +238,7 @@ interface USBConnectionEvent extends Event {
 
 /** Injected at build time from package.json version (see vite.config.ts). */
 declare const __APP_VERSION__: string;
+/** ISO timestamp of the build, injected by vite.config.ts. */
+declare const __APP_BUILD_TIME__: string;
+/** Short (7 character) commit hash of the build, injected by vite.config.ts. */
+declare const __APP_COMMIT_HASH__: string;

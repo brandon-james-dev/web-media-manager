@@ -1,4 +1,21 @@
 key,es-MX
+about.title,Acerca de
+about.open,Acerca de Web Media Manager
+about.tabAbout,Acerca de
+about.tabCredits,Créditos
+about.tabShortcuts,Atajos de teclado
+about.description,Un gestor de medios web para bibliotecas de música locales y dispositivos portátiles.
+about.version,Versión
+about.built,Compilado
+about.commit,Commit
+about.links,Enlaces
+about.repository,Código fuente
+about.liveDemo,Demostración en vivo
+about.support,Apoyar el proyecto
+about.gumroad,Apoyar en Gumroad
+about.sponsor,Patrocinar en GitHub
+about.credits,Créditos de código abierto
+about.creditsDescription,Web Media Manager está construido con estos proyectos de código abierto.
 app.title,Web Media Manager
 common.cancel,Cancelar
 common.close,Cerrar

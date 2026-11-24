@@ -20,7 +20,8 @@ import { PlaybackProvider } from "./providers/PlaybackProvider";
 import { useEffect, useState } from "react";
 import { keyShortcut$ } from "@/events";
 import { registerDefaultShortcuts } from "./lib/keyboard-shortcuts/registerDefaultShortcuts";
-import { KeyboardShortcutsModal } from "./components/keyboard-shortcuts-modal";
+import { AboutDialog } from "./components/about-dialog";
+import type { AboutTab } from "./components/about-dialog";
 import { TvFullscreenPrompt } from "./components/tv";
 import { handleKey } from "./lib";
 import { registerBrowserStoreProvider } from "./lib/persistence/browser/storeProvider";
@@ -100,7 +101,8 @@ function HomeRoute() {
 }
 
 function App() {
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [aboutTab, setAboutTab] = useState<AboutTab>("about");
   const themedLayout = useThemedLayoutSelection();
   const themePending = useThemedLayoutPending();
   const builtinUi = themedLayout === undefined && !themePending;
@@ -140,21 +142,25 @@ function App() {
   );
 
   useEffect(() => {
+    // The shortcut and the bus command both land on the shortcuts tab.
+    const toggleShortcuts = () => {
+      setAboutTab("shortcuts");
+      setIsAboutOpen((prev) => !prev);
+    };
+
     const sub = keyShortcut$.subscribe((shortcut) => {
-      if (shortcut === "openShortcuts") setIsShortcutsOpen(!isShortcutsOpen);
+      if (shortcut === "openShortcuts") toggleShortcuts();
     });
 
     // Also listen for the ui.openShortcuts command on the bus so any
-    // gesture/configurable binding can open the shortcuts modal.
-    const offCmd = wmmBus.onCommand("wmm.ui.openShortcuts", () =>
-      setIsShortcutsOpen((prev) => !prev)
-    );
+    // gesture/configurable binding can open the shortcuts reference.
+    const offCmd = wmmBus.onCommand("wmm.ui.openShortcuts", toggleShortcuts);
 
     return () => {
       sub.unsubscribe();
       offCmd();
     };
-  });
+  }, []);
 
   const navigate = useNavigate();
   useEffect(() => {
@@ -203,7 +209,12 @@ function App() {
                 <div className="flex flex-col app-viewport">
                   {builtinUi ? (
                     <header className="shrink-0 border-b pt-[env(safe-area-inset-top)]">
-                      <NavBar />
+                      <NavBar
+                        onOpenAbout={() => {
+                          setAboutTab("about");
+                          setIsAboutOpen(true);
+                        }}
+                      />
                     </header>
                   ) : null}
 
@@ -249,9 +260,11 @@ function App() {
                       <Route path="/settings" element={<Settings />} />
                     </Routes>
 
-                    <KeyboardShortcutsModal
-                      open={isShortcutsOpen}
-                      onOpenChange={setIsShortcutsOpen}
+                    <AboutDialog
+                      open={isAboutOpen}
+                      onOpenChange={setIsAboutOpen}
+                      tab={aboutTab}
+                      onTabChange={setAboutTab}
                     />
                     <TvFullscreenPrompt />
                   </main>
