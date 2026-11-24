@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { createPortal } from "react-dom";
 import {
+  ALargeSmall,
   Activity,
   ChevronDown,
   Maximize,
@@ -27,6 +28,7 @@ import { ExplicitBadge } from "@/components/explicit-badge";
 import { FavoriteButton } from "@/components/favorite-button";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { formatLength } from "@/lib/formatLength";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useTranslation, type WmmResourceKey } from "@/i18n";
@@ -48,6 +50,42 @@ import { keyShortcut$ } from "@/events/keyboard-events";
 import type { Song } from "@/models";
 import { getStore } from "@/core/system";
 import { RepeatState, ShuffleState } from "@/hooks/usePlayback";
+
+/**
+ * Lyrics text sizes, smallest first. The first entry is the size the panel
+ * used before the control existed, so the smallest step never shrinks the
+ * text below what it already was; the last is 3x it.
+ */
+const SYNCED_LYRICS_SIZES = [
+  { text: "text-2xl", lineHeight: 56 },
+  { text: "text-3xl", lineHeight: 70 },
+  { text: "text-4xl", lineHeight: 84 },
+  { text: "text-5xl", lineHeight: 112 },
+  { text: "text-6xl", lineHeight: 140 },
+  { text: "text-7xl", lineHeight: 168 },
+] as const;
+
+/** Plain lyrics start at `text-base`; the last step is 3x that. */
+const PLAIN_LYRICS_SIZES = [
+  "text-base",
+  "text-lg",
+  "text-xl",
+  "text-2xl",
+  "text-3xl",
+  "text-4xl",
+  "text-5xl",
+] as const;
+
+/** The lyrics column widens with the text so long lines still fit. */
+const LYRICS_WIDTH_CLASSES = [
+  "md:max-w-(--art)",
+  "md:max-w-[calc(var(--art)*1.2)]",
+  "md:max-w-[calc(var(--art)*1.4)]",
+  "md:max-w-[calc(var(--art)*1.6)]",
+  "md:max-w-[calc(var(--art)*1.8)]",
+  "md:max-w-[calc(var(--art)*2)]",
+  "md:max-w-[calc(var(--art)*2.2)]",
+] as const;
 
 function NowPlayingArt({ songId }: { songId: string | undefined }) {
   const picture = useArtwork(songId ?? "", ArtworkType.FrontCover);
@@ -160,6 +198,8 @@ export function NowPlayingView({
 
   const [panel, setPanel] = useState<PanelTab | null>(null);
   const [darkRoom, setDarkRoom] = useState<boolean>(false);
+  /** Index into the lyrics size steps; 0 is the original size. */
+  const [lyricsSizeStep, setLyricsSizeStep] = useState(0);
   // Hiding the art lets an open panel (lyrics) use the whole view instead of
   // sharing the row with a cover that adds nothing while reading along.
   const [artHidden, setArtHidden] = useState<boolean>(false);
@@ -361,6 +401,26 @@ export function NowPlayingView({
   );
   const elapsedSeconds = usePlaybackClock(250);
 
+  // The two lyric modes have different step counts, so clamp on read: a step
+  // picked on plain lyrics must not index past the synced list.
+  const syncedSize =
+    SYNCED_LYRICS_SIZES[
+      Math.min(lyricsSizeStep, SYNCED_LYRICS_SIZES.length - 1)
+    ];
+  const plainSize =
+    PLAIN_LYRICS_SIZES[Math.min(lyricsSizeStep, PLAIN_LYRICS_SIZES.length - 1)];
+  const lyricsMaxStep =
+    (timedLines.length > 0
+      ? SYNCED_LYRICS_SIZES.length
+      : PLAIN_LYRICS_SIZES.length) - 1;
+  const lyricsWidthClass =
+    LYRICS_WIDTH_CLASSES[
+      Math.min(lyricsSizeStep, LYRICS_WIDTH_CLASSES.length - 1)
+    ];
+  const hasLyrics = timedLines.length > 0 || !!nowPlaying?.lyrics?.trim();
+  /** Panels that add their own controls after the view buttons. */
+  const hasPanelConfig = panel === "visualizer" || (panel === "lyrics" && hasLyrics);
+
   function togglePanel(tab: PanelTab) {
     setPanel(panel === tab ? null : tab);
   }
@@ -476,6 +536,42 @@ export function NowPlayingView({
                 >
                   {artHidden ? <ImageOff /> : <Image />}
                 </Button>
+              )}
+              {hasPanelConfig && (
+                <Separator
+                  orientation="vertical"
+                  className="mx-1 h-5 self-center bg-white/40 data-vertical:self-center"
+                />
+              )}
+              {panel === "lyrics" && hasLyrics && (
+                <>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title={t("playback.lyricsTextSmaller")}
+                    aria-label={t("playback.lyricsTextSmaller")}
+                    onClick={() =>
+                      setLyricsSizeStep((step) => Math.max(0, step - 1))
+                    }
+                    disabled={lyricsSizeStep === 0}
+                  >
+                    <ALargeSmall />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title={t("playback.lyricsTextLarger")}
+                    aria-label={t("playback.lyricsTextLarger")}
+                    onClick={() =>
+                      setLyricsSizeStep((step) =>
+                        Math.min(lyricsMaxStep, step + 1)
+                      )
+                    }
+                    disabled={lyricsSizeStep >= lyricsMaxStep}
+                  >
+                    <ALargeSmall className="-scale-x-100" />
+                  </Button>
+                </>
               )}
               {panel === "visualizer" && (
                 <>
@@ -690,16 +786,23 @@ export function NowPlayingView({
                 )}
 
                 {panel === "lyrics" && (
-                  <div className={cn("flex min-h-48 w-full min-w-0 flex-1 flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent", isCompact ? "md:flex-1" : "md:w-(--art) md:flex-none")}>
+                  <div className={cn("flex min-h-48 w-full min-w-0 flex-1 flex-col rounded-xl bg-black/45 p-3 text-white backdrop-blur-md md:bg-transparent", isCompact ? "md:flex-1" : "md:flex-none", lyricsWidthClass)}>
                     {timedLines.length > 0 ? (
                       <SyncedLyricsView
                         lines={timedLines}
                         cursorMs={elapsedSeconds * 1000}
                         className="min-h-0 flex-1"
+                        lineHeight={syncedSize.lineHeight}
+                        textClassName={cn(syncedSize.text, "font-semibold")}
                       />
                     ) : nowPlaying?.lyrics?.trim() ? (
                       <ScrollArea className="min-h-0 flex-1">
-                        <p className="whitespace-pre-wrap pr-3 text-base leading-relaxed text-white/90">
+                        <p
+                          className={cn(
+                            "whitespace-pre-wrap pr-3 leading-relaxed text-white/90",
+                            plainSize
+                          )}
+                        >
                           {nowPlaying.lyrics}
                         </p>
                       </ScrollArea>

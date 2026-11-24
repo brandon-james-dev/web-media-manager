@@ -84,6 +84,8 @@ playback.lightsOn,Encender las luces
 playback.hideArt,Ocultar la portada
 playback.showArt,Mostrar la portada
 playback.noLyrics,Esta canción no tiene letra.
+playback.lyricsTextSmaller,Texto de letra más pequeño
+playback.lyricsTextLarger,Texto de letra más grande
 playback.queueHeadingOne,Cola — {0} canción
 playback.queueHeadingMany,Cola — {0} canciones
 playback.queueHeadingOther,Cola — {0} canciones

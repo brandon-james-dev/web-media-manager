@@ -225,6 +225,8 @@ export const WMM_RESOURCES = {
   "playback.hideArt": text("Hides the album art so the open panel fills the view."),
   "playback.showArt": text("Brings the album art back."),
   "playback.noLyrics": text("Shown when the current song has no lyrics."),
+  "playback.lyricsTextSmaller": text("Shrinks the lyrics text."),
+  "playback.lyricsTextLarger": text("Enlarges the lyrics text."),
   "playback.queueHeading": plural(
     "Heading of the now playing queue, naming how many songs it holds.",
     ["count"]

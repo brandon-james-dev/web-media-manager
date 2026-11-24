@@ -3,11 +3,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbnailSize } from "@/lib";
 import type { IOnlineMetadata } from "@/lib/metadata-providers/online/IOnlineMetadata";
+import { fetchCoverBlob } from "@/lib/metadata-providers/online/fetchCoverBlob";
 import type { SongEditDto } from "@/dto";
 import { useRef, useState } from "react";
 import OnlineSearchPanel from "../online-search-panel/OnlineSearchPanel";
 import { Button } from "../ui/button";
-import { Eraser, FileMusic, Globe, Pen, Save, ChevronLeft, ChevronRight, X, Clock } from "lucide-react";
+import { Eraser, FileMusic, Globe, Pen, Save, ChevronLeft, ChevronRight, Trash2, X, Clock } from "lucide-react";
 import type { SongEditFormProps } from "./SongEditFormProps";
 import { AlbumArtImage } from "../album-art-image";
 import { LyricsDialog } from "../lyrics-dialog/LyricsDialog";
@@ -36,6 +37,7 @@ export function SongEditForm(props: SongEditFormProps) {
   const { song, formId, onFormSubmit, onNavigatePrev, onNavigateNext, isPrevDisabled, isNextDisabled, onClose } = props;
   const { t } = useTranslation();
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob>();
+  const [removeCover, setRemoveCover] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [lyricsDialogTab, setLyricsDialogTab] =
     useState<LyricsDialogTab | null>(null);
@@ -107,6 +109,7 @@ export function SongEditForm(props: SongEditFormProps) {
     set("syncedLyrics", song.syncedLyrics);
     setDirty({});
     setUpdatedFrontCover(undefined);
+    setRemoveCover(false);
   }
 
   async function handleSearchResultConfirm(online: IOnlineMetadata) {
@@ -153,38 +156,15 @@ export function SongEditForm(props: SongEditFormProps) {
     // Album art: search results carry only the thumbnail `url` — download
     // the full-size (1000x1000) image here, at Apply time, not during search.
     const frontCover = online.pictures?.find((p) => p.type === "FrontCover");
+    const coverBlob = await fetchCoverBlob(frontCover);
 
-    if (frontCover) {
-      let coverData: Uint8Array | undefined;
-      if (frontCover.data && frontCover.data.length > 0) {
-        coverData = frontCover.data;
-      } else if (frontCover.url) {
-        try {
-          // iTunes: swap the thumbnail size for the full 1000x1000 URL.
-          let fullUrl = frontCover.url;
-          if (fullUrl.includes("100x100")) {
-            fullUrl = fullUrl.replace("100x100", "1000x1000");
-          }
-          const res = await fetch(fullUrl);
-          if (res.ok) {
-            coverData = new Uint8Array(await res.arrayBuffer());
-          }
-        } catch {
-          // ignore artwork download failures at apply time
-        }
-      }
-
-      if (coverData && coverData.length > 0) {
-        const coverClone = coverData.slice();
-        set(
-          "frontCover",
-          new File(
-            [coverClone],
-            frontCover.description || "Front Cover" + ".jpeg"
-          )
-        );
-        setUpdatedFrontCover(new Blob([coverClone]));
-      }
+    if (coverBlob) {
+      set(
+        "frontCover",
+        new File([coverBlob], frontCover?.description || "Front Cover.jpeg")
+      );
+      setUpdatedFrontCover(coverBlob);
+      setRemoveCover(false);
     }
   }
 
@@ -250,6 +230,8 @@ export function SongEditForm(props: SongEditFormProps) {
 
     if (updatedFrontCover) {
       updates.coverFront = updatedFrontCover;
+    } else if (removeCover) {
+      updates.removeCoverFront = true;
     }
 
     // Timed lyrics must account for the saved lyrics. A mismatch blocks the
@@ -269,6 +251,21 @@ export function SongEditForm(props: SongEditFormProps) {
     currentTarget.reset();
   }
   //#endregion
+
+  const noCoverArt = (
+    <div
+      className="
+        w-full h-full rounded-md border
+        flex flex-col
+        items-center justify-center
+        text-xs text-foreground text-center
+        bg-background
+      "
+    >
+      <div>{t("library.noCoverArt")}</div>
+      <div className="text-muted-foreground">{t("common.clickToSelect")}</div>
+    </div>
+  );
 
   return (
     <>
@@ -321,8 +318,7 @@ export function SongEditForm(props: SongEditFormProps) {
             <ChevronRight />
           </Button>
           <Button
-            size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={onClose}
           >
             <X />
@@ -388,25 +384,37 @@ export function SongEditForm(props: SongEditFormProps) {
                       "
                         data-disabled={!editable}
                       />
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        type="button"
+                        disabled={!editable}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setUpdatedFrontCover(undefined);
+                          setRemoveCover(true);
+                          markDirty("coverFront", true);
+                        }}
+                        aria-label={t("metadata.removeAlbumArt")}
+                        title={t("metadata.removeAlbumArt")}
+                        className="absolute top-1 left-1 rounded-md dark:bg-accent text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
                       {updatedFrontCover ? (
                         <img
                           src={URL.createObjectURL(updatedFrontCover)}
                           alt={song.album}
                           className="object-cover rounded border border-accent/50"
                         />
+                      ) : removeCover ? (
+                        noCoverArt
                       ) : (
                         <AlbumArtImage
                           songId={song.id}
                           thumbSize={ThumbnailSize.thumb128}
                           className="object-cover rounded"
-                          fallback={
-                            <>
-                              <div>{t("library.noCoverArt")}</div>
-                              <div className="text-muted-foreground">
-                                {t("common.clickToSelect")}
-                              </div>
-                            </>
-                          }
+                          fallback={noCoverArt}
                         />
                       )}
                       {!editable && (

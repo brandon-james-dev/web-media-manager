@@ -184,6 +184,18 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
     return songs;
   }, [selectedSongs, songs, song]);
 
+  /** Advanced edit needs every targeted song's source to allow write-back. */
+  const targetEditable = useMemo(
+    () =>
+      target.every((s) =>
+        sources.some(
+          (source) =>
+            source.id === s.sourceId && source.capabilities.metadataWrite
+        )
+      ),
+    [target, sources]
+  );
+
   /**
    * Playlists synced from a read-only source can't take new songs, and the
    * reserved favorites playlist is already covered by the favorites action.
@@ -567,6 +579,7 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
             id: "advanced-edit",
             label: t("library.advancedEdit"),
             icon: <PencilRuler />,
+            disabled: !targetEditable,
             onSelect: () =>
               song &&
               wmmBus.invoke("wmm.library.song.edit", { songId: song.id }),
@@ -669,6 +682,7 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
     song,
     t,
     target,
+    targetEditable,
     toggleOffline,
     toggleHidden,
     addToPlaylist,

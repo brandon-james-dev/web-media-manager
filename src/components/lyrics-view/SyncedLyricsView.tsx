@@ -35,7 +35,7 @@ function PreviewLine(props: {
 
   return (
     <div
-      className={`flex items-center justify-center text-center leading-snug ${
+      className={`flex items-center justify-center overflow-hidden text-center leading-snug ${
         dimmed ? "text-white/60" : "text-white"
       } ${className}`}
       style={{ height }}

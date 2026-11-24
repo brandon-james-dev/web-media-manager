@@ -1,5 +1,5 @@
 import type { QuickEditDto } from "@/dto";
-import { Pen, Save } from "lucide-react";
+import { Pen, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { QuickEditField } from "./QuickEditField";
 import { quickEditFields } from "./quickEditFields";
@@ -18,6 +18,7 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
     Partial<Record<EditableField, string | number>>
   >({});
   const [updatedFrontCover, setUpdatedFrontCover] = useState<Blob | null>(null);
+  const [removeCover, setRemoveCover] = useState(false);
   //#endregion
 
   // Disable the form when a song's source doesn't allow metadata write-back.
@@ -27,9 +28,11 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
   // can disable themselves accordingly.
   useEffect(() => {
     const dirty =
-      Object.keys(values).length > 0 || updatedFrontCover !== null;
+      Object.keys(values).length > 0 ||
+      updatedFrontCover !== null ||
+      removeCover;
     onDirtyChange?.(dirty);
-  }, [values, updatedFrontCover, onDirtyChange]);
+  }, [values, updatedFrontCover, removeCover, onDirtyChange]);
 
   // Nothing to edit. The editor can hold a selection whose songs did not
   // resolve — a track on a sync device is not a library song, so it is absent
@@ -75,6 +78,7 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
       year: values.year as QuickEditDto["year"],
       track: values.track as QuickEditDto["track"],
       coverFront: updatedFrontCover ?? undefined,
+      removeCoverFront: removeCover || undefined,
     };
 
     const updates = stripEmptyFields(rawUpdates) as QuickEditDto;
@@ -83,8 +87,24 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
 
     setValues({});
     setUpdatedFrontCover(null);
+    setRemoveCover(false);
   }
   //#endregion
+
+  const noCoverArt = (
+    <div
+      className="
+        w-full h-full rounded-md border
+        flex flex-col
+        items-center justify-center
+        text-xs text-foreground text-center
+        bg-background
+      "
+    >
+      <div>{t("library.noCoverArt")}</div>
+      <div className="text-muted-foreground">{t("common.clickToSelect")}</div>
+    </div>
+  );
 
   return (
     <>
@@ -92,7 +112,10 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
         id={formId || "quick-edit-form"}
         className="grid grid-cols-1 sm:grid-cols-[auto_1fr_1fr_1fr] gap-2 w-full"
         onSubmit={handleQuickEditFormSubmit}
-        onReset={() => setUpdatedFrontCover(null)}
+        onReset={() => {
+          setUpdatedFrontCover(null);
+          setRemoveCover(false);
+        }}
       >
         <div className="row-span-2 flex flex-col items-center gap-2">
           <Label className="text-xs font-medium text-muted-foreground mt-1">
@@ -112,6 +135,7 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
 
               const blob = file.slice(0, file.size, file.type);
               setUpdatedFrontCover(blob);
+              setRemoveCover(false);
             }}
           />
 
@@ -142,6 +166,22 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
                 "
                 data-disabled={!editable}
               />
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                type="button"
+                disabled={!editable}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setUpdatedFrontCover(null);
+                  setRemoveCover(true);
+                }}
+                aria-label={t("metadata.removeAlbumArt")}
+                title={t("metadata.removeAlbumArt")}
+                className="absolute top-1 left-1 rounded-md dark:bg-accent text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="size-4" />
+              </Button>
 
               {updatedFrontCover ? (
                 <img
@@ -149,26 +189,13 @@ export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEd
                   alt={songs[0].album}
                   className="object-cover rounded-md border"
                 />
+              ) : removeCover ? (
+                noCoverArt
               ) : (
                 <AlbumArtImage
                   songId={songs[0].id}
                   thumbSize={ThumbnailSize.thumb256}
-                  fallback={
-                    <div
-                      className="
-                        w-full h-full rounded-md border
-                        flex flex-col
-                        items-center justify-center
-                        text-xs text-foreground text-center
-                        bg-background
-                      "
-                    >
-                      <div>{t("library.noCoverArt")}</div>
-                      <div className="text-muted-foreground">
-                        {t("common.clickToSelect")}
-                      </div>
-                    </div>
-                  }
+                  fallback={noCoverArt}
                 />
               )}
               {!editable && (

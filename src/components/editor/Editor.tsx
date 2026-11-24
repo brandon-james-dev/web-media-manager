@@ -519,7 +519,11 @@ export function Editor({
               </div>
 
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={() => setIsAdvancedEdit(true)}>
+                <Button
+                  size="sm"
+                  onClick={() => setIsAdvancedEdit(true)}
+                  disabled={!editable}
+                >
                   <PencilRuler />
                   {t("library.advancedEdit")}
                 </Button>
