@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const batchDelete = vi.fn(async () => undefined);
 const deleteSource = vi.fn(async () => undefined);
+const deleteHiddenTracksForSource = vi.fn(async () => 0);
 const filter = vi.fn(async () => ({
   data: [{ id: "s1" }, { id: "s2" }, { id: "s3" }],
 }));
@@ -10,6 +11,8 @@ vi.mock("@/core/ports", () => ({
   getStore: () => ({ filter, batchDelete }),
   getSourcesStore: () => ({ deleteSource }),
 }));
+
+vi.mock("@/lib/hidden", () => ({ deleteHiddenTracksForSource }));
 
 const { runSourceRemove } = await import("./runSourceRemove");
 
@@ -23,6 +26,7 @@ describe("runSourceRemove", () => {
   beforeEach(() => {
     batchDelete.mockClear();
     deleteSource.mockClear();
+    deleteHiddenTracksForSource.mockClear();
     filter.mockClear();
   });
 
@@ -37,6 +41,7 @@ describe("runSourceRemove", () => {
 
     expect(result).toEqual({ cancelled: false, removed: 3 });
     expect(batchDelete).toHaveBeenCalledWith(["s1", "s2", "s3"]);
+    expect(deleteHiddenTracksForSource).toHaveBeenCalledWith("loc1");
     expect(deleteSource).toHaveBeenCalledWith("loc1");
     expect(events.at(-1)?.index).toBe(3);
     expect(events.at(-1)?.percent).toBe(1);
@@ -50,6 +55,7 @@ describe("runSourceRemove", () => {
     );
 
     expect(result.cancelled).toBe(true);
+    expect(deleteHiddenTracksForSource).not.toHaveBeenCalled();
     expect(deleteSource).not.toHaveBeenCalled();
   });
 });

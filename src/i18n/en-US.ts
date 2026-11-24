@@ -153,6 +153,17 @@ export const enUS = {
     "library.alphabetIndex": "Alphabet index",
     "library.closeAlbum": "Close album",
     "library.song": "Song",
+    "library.visibility": "Visibility",
+    "library.hideSelectionOne": "Hide Track",
+    "library.hideSelectionOther": "Hide {0} Tracks",
+    "library.unhideSelectionOne": "Unhide Track",
+    "library.unhideSelectionOther": "Unhide {0} Tracks",
+    "library.tracksHiddenOne": "Track hidden",
+    "library.tracksHiddenOther": "{0} tracks hidden",
+    "library.tracksUnhiddenOne": "Track unhidden",
+    "library.tracksUnhiddenOther": "{0} tracks unhidden",
+    "library.trackLabel": "{0} - {1}",
+    "library.showHiddenTracks": "Show hidden",
 
     // playlist
     "playlist.current": "Current playlist",

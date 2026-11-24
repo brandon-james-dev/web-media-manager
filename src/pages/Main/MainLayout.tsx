@@ -362,7 +362,8 @@ function MainLayout() {
 
   const routeMode = activeMode ?? "playback";
 
-  const { query, setQuery, total, filteredTotal } = useSongs();
+  const { query, setQuery, total, filteredTotal, showHidden, setShowHidden, hiddenCount } =
+    useSongs();
 
   const [sourceCount, setSourceCount] = useState<number | null>(null);
   useEffect(() => {
@@ -562,6 +563,9 @@ function MainLayout() {
                   selected={selectedSourceIds}
                   onSelectedChange={setSelectedSourceIds}
                   anchor={searchAnchor}
+                  showHidden={showHidden}
+                  onShowHiddenChange={setShowHidden}
+                  hiddenCount={hiddenCount}
                 />
               </InputGroupAddon>
             </InputGroup>
@@ -727,6 +731,15 @@ function MainLayout() {
                     {t("search.resultCount", [filteredTotal ?? 0])}
                   </InputGroupAddon>
                 )}
+                <InputGroupAddon className="p-4" align="inline-end">
+                  <SourceFilter
+                    selected={selectedSourceIds}
+                    onSelectedChange={setSelectedSourceIds}
+                    showHidden={showHidden}
+                    onShowHiddenChange={setShowHidden}
+                    hiddenCount={hiddenCount}
+                  />
+                </InputGroupAddon>
               </InputGroup>
             </div>
           )}

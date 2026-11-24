@@ -12,6 +12,13 @@ export type QueryOptions<T> = {
   skip?: number;
   take?: number;
   page?: number;
+
+  /**
+   * List songs the user hid from the library. Off by default: the store drops
+   * them from the result, so no caller can list them by accident. Only the
+   * Songs page's "show hidden" switch turns it on.
+   */
+  includeHidden?: boolean;
 };
 
 export const selectors = {

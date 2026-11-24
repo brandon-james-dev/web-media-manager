@@ -23,7 +23,7 @@ import {
   savePlaylist,
 } from "@/core/playlists";
 import { getPlaylistStore, getSourcesStore } from "@/core/ports";
-import { usePlayback, useSongs } from "@/hooks";
+import { useHiddenSongs, usePlayback, useSongs } from "@/hooks";
 import { wmmBus } from "@/events";
 import { cn } from "cn";
 import type { MusicSource } from "@/models";
@@ -75,6 +75,7 @@ export function SidebarPlaylistTracks({
   onBack,
 }: SidebarPlaylistTracksProps) {
   const { songs } = useSongs();
+  const { hiddenSongIds } = useHiddenSongs();
   const { nowPlaying } = usePlayback();
   const { t } = useTranslation();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
@@ -218,7 +219,8 @@ export function SidebarPlaylistTracks({
   const byId = new Map(songs.map((song) => [song.id, song]));
   const tracks = (playlist?.songs ?? [])
     .map((entry) => byId.get(entry.songId))
-    .filter((song) => song !== undefined);
+    .filter((song) => song !== undefined)
+    .filter((song) => !hiddenSongIds.has(song.id));
 
   return (
     // The whole panel is the drop target while a playlist is open, so a track

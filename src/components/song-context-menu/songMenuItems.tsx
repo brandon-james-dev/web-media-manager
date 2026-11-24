@@ -10,6 +10,8 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { wmmBus } from "@/events";
 import {
   Download,
+  Eye,
+  EyeOff,
   HardDriveDownload,
   Heart,
   ListMusic,
@@ -23,6 +25,7 @@ import {
 } from "lucide-react";
 import {
   useFavorites,
+  useHiddenSongs,
   useOfflineSongs,
   usePlayback,
   useSourceKinds,
@@ -34,6 +37,7 @@ import {
   isAlwaysOfflineKind,
   removeSongOffline,
 } from "@/lib/offline";
+import { hideTracks, unhideTracks } from "@/lib/hidden";
 import { getStore } from "@/core/system";
 import { getPlaylistStore, getSourcesStore } from "@/core/ports";
 import {
@@ -105,6 +109,7 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
   const { nowPlaying, isPlaying } = usePlayback();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { offlineSongIds } = useOfflineSongs();
+  const { hiddenSongIds } = useHiddenSongs();
   const sourceKinds = useSourceKinds();
   const { t } = useTranslation();
 
@@ -293,6 +298,26 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
       ? (song?.title ?? t("library.songCount", [1]))
       : t("library.songCount", [target.length]);
 
+  /** "Artist - Title" for one song, "3 songs" for a selection. */
+  const trackLabel =
+    target.length === 1
+      ? t("library.trackLabel", [
+          song?.albumArtist || song?.artist || "",
+          song?.title ?? "",
+        ])
+      : t("library.songCount", [target.length]);
+
+  /**
+   * Device tracks are read from the device on demand and never imported into
+   * the library, so the store's hidden filter never sees them — hiding one
+   * would write a row that changes nothing. The action is withheld instead.
+   */
+  const isDeviceTrack = useMemo(() => {
+    if (target.length === 0) return false;
+    const deviceIds = new Set(devices.map((device) => device.id));
+    return target.every((s) => deviceIds.has(s.sourceId));
+  }, [devices, target]);
+
   /** Add every selected song to an existing playlist. */
   const addToPlaylist = useCallback(
     async (playlistId: string) => {
@@ -365,6 +390,31 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
   }, [target, offlineSongIds, notify, selectionLabel, t]);
 
   /**
+   * Hide the selection from the library, or bring it back when every song is
+   * already hidden. Hidden songs are filtered out of every browse list, so the
+   * page selection is cleared: the rows are about to disappear.
+   */
+  const toggleHidden = useCallback(async () => {
+    const allHidden = target.every((s) => hiddenSongIds.has(s.id));
+
+    if (allHidden) {
+      await unhideTracks(target.map((s) => s.id));
+      notify(
+        "success",
+        t("library.tracksUnhidden", [target.length]),
+        trackLabel
+      );
+      return;
+    }
+
+    await hideTracks(
+      target.map((s) => ({ songId: s.id, sourceId: s.sourceId }))
+    );
+    wmmBus.publish("wmm.ui.selectionChanged", { songIds: [] });
+    notify("success", t("library.tracksHidden", [target.length]), trackLabel);
+  }, [target, hiddenSongIds, notify, trackLabel, t]);
+
+  /**
    * Create a playlist from the selection. Playlists live in the app's own
    * store; a source that can persist playlists also gets a written copy
    * (savePlaylist decides that from the source's capabilities).
@@ -389,6 +439,7 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
   const groups = useMemo<SongMenuGroup[]>(() => {
     const allFavorite = target.every((s) => isFavorite(s.id));
     const allOffline = target.every((s) => offlineSongIds.has(s.id));
+    const allHidden = target.every((s) => hiddenSongIds.has(s.id));
 
     return [
       {
@@ -583,10 +634,26 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
           },
         ],
       },
+      {
+        id: "hidden",
+        label: t("library.visibility"),
+        hidden: isDeviceTrack,
+        actions: [
+          {
+            id: "hide-tracks",
+            label: allHidden
+              ? t("library.unhideSelection", [target.length])
+              : t("library.hideSelection", [target.length]),
+            icon: allHidden ? <Eye /> : <EyeOff />,
+            onSelect: () => void toggleHidden(),
+          },
+        ],
+      },
     ];
   }, [
     editablePlaylists,
     hasConnectedDevices,
+    isDeviceTrack,
     isEditHidden,
     isFavorite,
     isNowPlaying,
@@ -594,6 +661,7 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
     isQueued,
     notify,
     offlineSongIds,
+    hiddenSongIds,
     playlistId,
     playlistReadOnly,
     sourceKinds,
@@ -602,6 +670,7 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
     t,
     target,
     toggleOffline,
+    toggleHidden,
     addToPlaylist,
     toggleFavorites,
     onItemClick,

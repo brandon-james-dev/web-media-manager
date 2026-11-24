@@ -8,6 +8,7 @@ export * from "./useThemes";
 export * from "./useShufflePlay";
 export * from "./useFavorites";
 export * from "./useOfflineSongs";
+export * from "./useHiddenSongs";
 export * from "./useOfflineDownload";
 export * from "./useSourceKinds";
 export * from "./useVisualizer";

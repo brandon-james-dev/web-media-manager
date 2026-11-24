@@ -1,4 +1,5 @@
 import { getSourcesStore, getStore } from "@/core/ports";
+import { deleteHiddenTracksForSource } from "@/lib/hidden";
 import type { WorkerProgress } from "../WorkerJob";
 
 /** Thrown from the progress callback to stop a run that was cancelled. */
@@ -58,6 +59,11 @@ export async function runSourceRemove(
     }
 
     if (isCancelled()) throw new SourceRemoveCanceled();
+
+    // The hidden entries are keyed by song id, so they have to go with the
+    // songs they point at; a re-import of the same folder mints new ids and
+    // would otherwise leave the old rows behind forever.
+    await deleteHiddenTracksForSource(sourceId);
 
     await getSourcesStore().deleteSource(sourceId);
 

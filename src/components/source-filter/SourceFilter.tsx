@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Filter, Lock, Pen, X } from "lucide-react";
+import { Eye, Filter, Lock, Pen, X } from "lucide-react";
 import { getStore } from "@/core/system";
 import { getSourcesStore } from "@/core/ports";
 import { useSync } from "@/hooks";
@@ -23,6 +23,15 @@ export type SourceFilterProps = {
    * also keeps the popup open.
    */
   anchor?: HTMLElement | null;
+  /**
+   * Whether hidden songs are listed. Omitted by a host that has no song
+   * provider (the theme widget's search box), which hides the visibility
+   * section rather than offering a switch that cannot work.
+   */
+  showHidden?: boolean;
+  onShowHiddenChange?: (next: boolean) => void;
+  /** How many songs are hidden, so the switch can say what it would reveal. */
+  hiddenCount?: number;
 };
 
 /**
@@ -43,6 +52,9 @@ export function SourceFilter({
   selected,
   onSelectedChange,
   anchor,
+  showHidden = false,
+  onShowHiddenChange,
+  hiddenCount = 0,
 }: SourceFilterProps) {
   const [sources, setSources] = useState<MusicSource[]>([]);
   const [open, setOpen] = useState(false);
@@ -132,12 +144,12 @@ export function SourceFilter({
       <PopoverTrigger
         render={
           <Button
-            variant={selected.length > 0 ? "default" : "ghost"}
+            variant={selected.length > 0 || showHidden ? "default" : "ghost"}
             size="icon-sm"
             className="shrink-0"
             title={t("source.filter")}
             aria-label={t("source.filter")}
-            aria-pressed={selected.length > 0}
+            aria-pressed={selected.length > 0 || showHidden}
           >
             <Filter />
           </Button>
@@ -205,6 +217,36 @@ export function SourceFilter({
               );
             })}
           </div>
+
+          {/* Hiding is a library-wide rule, so its switch belongs with the
+              other library filters rather than on one page. A host without a
+              song provider passes no handler and gets no section. */}
+          {onShowHiddenChange && (
+            <div className="flex flex-col gap-1 border-t pt-2">
+              <div className="text-sm font-medium">
+                {t("library.visibility")}
+              </div>
+              <Toggle
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                pressed={showHidden}
+                onPressedChange={onShowHiddenChange}
+                title={t("library.showHiddenTracks")}
+              >
+                <Eye className="shrink-0 opacity-60" aria-hidden="true" />
+                <span className="min-w-0 truncate text-left">
+                  {t("library.showHiddenTracks")}
+                </span>
+                <span className="flex-1" />
+                {hiddenCount > 0 && (
+                  <span className="shrink-0 tabular-nums opacity-60">
+                    {hiddenCount}
+                  </span>
+                )}
+              </Toggle>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

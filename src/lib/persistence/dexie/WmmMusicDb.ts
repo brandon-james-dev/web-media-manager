@@ -8,6 +8,7 @@ import type {
   PluginSettingsRecord,
 } from "@/core/visualizers/contracts";
 import type { OfflineAudioRecord } from "@/lib/offline/offlineAudioStore";
+import type { HiddenTrackRecord } from "@/lib/hidden/hiddenTrackStore";
 import type {
   MusicSource,
   PlayHistoryEntry,
@@ -38,6 +39,7 @@ export class WmmMusicDb extends Dexie {
   pluginFiles!: Table<PackageFileRecord, number>;
   pluginSettings!: Table<PluginSettingsRecord, string>;
   offlineAudio!: Table<OfflineAudioRecord, string>;
+  hiddenTracks!: Table<HiddenTrackRecord, string>;
   themes!: Table<InstalledTheme, string>;
   themeFiles!: Table<PackageFileRecord, number>;
   themeSettings!: Table<{ key: string; value: string }, string>;
@@ -114,6 +116,12 @@ export class WmmMusicDb extends Dexie {
         songId,
         sourceId,
         cachedAt
+      `,
+
+      hiddenTracks: `
+        songId,
+        sourceId,
+        hiddenAt
       `,
 
       themes: `

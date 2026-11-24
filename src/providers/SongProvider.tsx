@@ -9,7 +9,7 @@ import { getJobService } from "@/core/jobs";
 import { getPersistedRootDirectories } from "@/lib/persistence/dexie";
 import type { QueryOptions } from "@/lib/persistence";
 import type { Song, LocalMusicSource } from "@/models";
-import { SongContext } from "@/hooks";
+import { SongContext, useHiddenSongs } from "@/hooks";
 import { commandDispatcher, wmmBus } from "@/events";
 
 export function SongProvider({ children }: { children: React.ReactNode }) {
@@ -23,6 +23,12 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   const [query, setQuery] = useState<QueryOptions<Song>>({
     sort: { selector: (song: Song) => song.title, desc: false },
   });
+  /**
+   * Whether hidden songs are listed. Off by default: hiding is meant to take a
+   * track out of the library, and the Songs page offers the switch back.
+   */
+  const [showHidden, setShowHidden] = useState(false);
+  const { hiddenSongIds } = useHiddenSongs();
   const lastProgressTime = useRef<number>(new Date().getMilliseconds());
   const refreshTimeout = useRef<number | null>(null);
   //#endregion
@@ -151,7 +157,9 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
 
   const refreshSongs = async () => {
     const store = getStore();
-    const result = await store.filter(query);
+    // Hidden songs are dropped by the store's filter itself, so the query only
+    // carries the opt-in; the page's own filter (the search box) is untouched.
+    const result = await store.filter({ ...query, includeHidden: showHidden });
     setFilteredSongs(result.data);
     setTotal(result.total);
     setFilteredTotal(result.filteredCount);
@@ -168,7 +176,7 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
   // Initializer
   useEffect(() => {
     refreshSongs();
-  }, [query]);
+  }, [query, showHidden, hiddenSongIds]);
   //#endregion
 
   //#region Global event listeners
@@ -268,6 +276,9 @@ export function SongProvider({ children }: { children: React.ReactNode }) {
         page,
         filteredTotal,
         setQuery,
+        showHidden,
+        setShowHidden,
+        hiddenCount: hiddenSongIds.size,
       }}
     >
       {children}

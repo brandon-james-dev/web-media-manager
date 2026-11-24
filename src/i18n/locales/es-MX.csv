@@ -140,6 +140,21 @@ library.favoriteServer,Favorita en el servidor
 library.alphabetIndex,Índice alfabético
 library.closeAlbum,Cerrar álbum
 library.song,Canción
+library.visibility,Visibilidad
+library.hideSelectionOne,Ocultar {0} canción
+library.hideSelectionMany,Ocultar {0} canciones
+library.hideSelectionOther,Ocultar {0} canciones
+library.unhideSelectionOne,Mostrar {0} canción
+library.unhideSelectionMany,Mostrar {0} canciones
+library.unhideSelectionOther,Mostrar {0} canciones
+library.tracksHiddenOne,Se ocultó {0} canción
+library.tracksHiddenMany,Se ocultaron {0} canciones
+library.tracksHiddenOther,Se ocultaron {0} canciones
+library.tracksUnhiddenOne,Se mostró {0} canción
+library.tracksUnhiddenMany,Se mostraron {0} canciones
+library.tracksUnhiddenOther,Se mostraron {0} canciones
+library.trackLabel,{0} - {1}
+library.showHiddenTracks,Mostrar ocultas
 playlist.current,Lista actual
 playlist.add,Agregar a la lista
 playlist.save,Guardar lista

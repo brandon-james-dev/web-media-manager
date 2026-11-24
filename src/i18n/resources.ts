@@ -314,6 +314,29 @@ export const WMM_RESOURCES = {
   "library.alphabetIndex": text("Accessible name of the A-Z jump bar."),
   "library.closeAlbum": text("Closes the album detail sheet."),
   "library.song": text("Stand-in label for a single song in a menu heading."),
+  "library.visibility": text(
+    "Heading of the hide/unhide actions in the song menu."
+  ),
+  "library.hideSelection": plural("Hides the selected songs from the library.", [
+    "count",
+  ]),
+  "library.unhideSelection": plural(
+    "Brings the selected songs back to the library.",
+    ["count"]
+  ),
+  "library.tracksHidden": plural("Toast shown after songs are hidden.", [
+    "count",
+  ]),
+  "library.tracksUnhidden": plural("Toast shown after songs are unhidden.", [
+    "count",
+  ]),
+  "library.trackLabel": template(
+    'One song as "artist - title", used as a notification body.',
+    ["artist", "title"]
+  ),
+  "library.showHiddenTracks": text(
+    "Lists the hidden songs so they can be unhidden."
+  ),
 
   // playlist
   "playlist.current": text("The playlist currently open."),

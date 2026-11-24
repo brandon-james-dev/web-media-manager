@@ -62,7 +62,7 @@ export class DexieMetadataStore implements IMetadataStore {
   }
 
   async filter(options: QueryOptions<Song>): Promise<DataSourceResult<Song>> {
-    const { filter, sort, skip, page } = options;
+    const { filter, sort, skip, page, includeHidden } = options;
 
     const table = this.db.songs;
 
@@ -106,6 +106,20 @@ export class DexieMetadataStore implements IMetadataStore {
 
     if (filter) {
       array = array.filter(filter);
+    }
+
+    // A hidden song is out of the library as far as any list is concerned, so
+    // the query drops it here rather than leaving each view to remember. The
+    // ids are read per call so a hide lands on the next query without a cache
+    // to invalidate; `includeHidden` is the one opt-in.
+    if (!includeHidden) {
+      const hidden = new Set(
+        await this.db.hiddenTracks.toCollection().primaryKeys()
+      );
+
+      if (hidden.size > 0) {
+        array = array.filter((song) => !hidden.has(song.id));
+      }
     }
 
     const filteredCount = array.length;

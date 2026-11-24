@@ -17,7 +17,7 @@ import { songIdentity, trackIdentity } from "@/lib/sync/helpers";
 import { hasConnectedDevice } from "@/lib/sync/helpers/markDeviceDisconnected";
 import { wmmBus } from "@/events";
 import { SyncDeviceCard, SyncStat, useAddDevice } from "@/components/sync";
-import { useOfflineSongs, useSongs, useSourceKinds, useSync } from "@/hooks";
+import { useHiddenSongs, useOfflineSongs, useSongs, useSourceKinds, useSync } from "@/hooks";
 import { useTranslation } from "@/i18n";
 import { usbAvailable } from "@/lib/sync/usbAvailable";
 import type { Song } from "@/models";
@@ -28,6 +28,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
   const { devices, queuedSongs, syncedSongIds, syncCompleted } = useSync();
   const { refreshDevices } = useSync();
   const { songs } = useSongs();
+  const { hiddenSongIds } = useHiddenSongs();
   const { offlineSongIds } = useOfflineSongs();
   const sourceKinds = useSourceKinds();
   const [addQuery, setAddQuery] = useState("");
@@ -75,12 +76,13 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
       .filter(
         (song) =>
           !queued.has(song.id) &&
+          !hiddenSongIds.has(song.id) &&
           [song.title, song.artist, song.album, song.albumArtist, song.genre].some(
             (f) => f?.toLowerCase().includes(q)
           )
       )
       .slice(0, 50);
-  }, [addQuery, songs, queuedSongs]);
+  }, [addQuery, songs, queuedSongs, hiddenSongIds]);
 
   // Artists and albums whose name matches, so a whole record can be queued
   // without typing every track title.
@@ -89,7 +91,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
     if (!q) return [];
     const counts = new Map<string, number>();
     for (const song of songs) {
-      if (!isAvailable(song)) continue;
+      if (!isAvailable(song) || hiddenSongIds.has(song.id)) continue;
       const artist = song.albumArtist || song.artist;
       if (!artist || !artist.toLowerCase().includes(q)) continue;
       counts.set(artist, (counts.get(artist) ?? 0) + 1);
@@ -98,14 +100,14 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
       .map(([name, trackCount]) => ({ name, trackCount }))
       .sort((a, b) => a.name.localeCompare(b.name))
       .slice(0, 10);
-  }, [addQuery, songs, isAvailable]);
+  }, [addQuery, songs, isAvailable, hiddenSongIds]);
 
   const addAlbumResults = useMemo(() => {
     const q = addQuery.trim().toLowerCase();
     if (!q) return [];
     const counts = new Map<string, { artist?: string; trackCount: number }>();
     for (const song of songs) {
-      if (!isAvailable(song)) continue;
+      if (!isAvailable(song) || hiddenSongIds.has(song.id)) continue;
       if (!song.album || !song.album.toLowerCase().includes(q)) continue;
       const key = `${song.albumArtist ?? song.artist ?? ""}|${song.album}`;
       const existing = counts.get(key);
@@ -125,7 +127,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
       }))
       .sort((a, b) => a.album.localeCompare(b.album))
       .slice(0, 10);
-  }, [addQuery, songs, isAvailable]);
+  }, [addQuery, songs, isAvailable, hiddenSongIds]);
 
   // Identities already on each device, so the search can mark a result as
   // present and refuse to queue it again.

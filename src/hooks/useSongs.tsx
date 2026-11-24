@@ -13,6 +13,11 @@ interface SongContextValue {
   total?: number;
   page?: number;
   skip?: number;
+  /** Whether hidden songs are listed; off unless the Songs page turns it on. */
+  showHidden: boolean;
+  setShowHidden: Dispatch<SetStateAction<boolean>>;
+  /** How many songs are hidden, so a view can offer the switch back. */
+  hiddenCount: number;
 }
 
 export const SongContext = createContext<SongContextValue | null>(null);

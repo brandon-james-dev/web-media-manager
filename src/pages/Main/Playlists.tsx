@@ -41,7 +41,7 @@ import {
 import { isPlaylistReadOnly } from "@/core/playlists";
 import { wmmBus } from "@/events";
 import { SongSearchPanel } from "@/components/song-search";
-import { useShufflePlay, useSongs } from "@/hooks";
+import { useHiddenSongs, useShufflePlay, useSongs } from "@/hooks";
 import { useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router";
 import type { MainContext } from "./MainLayout";
 import type { MusicSource, Playlist, Song } from "@/models";
@@ -143,6 +143,7 @@ export function Playlists({
   //#region State
   const { t } = useTranslation();
   const { songs } = useSongs();
+  const { hiddenSongIds } = useHiddenSongs();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
   const [searchParams] = useSearchParams();
@@ -293,13 +294,15 @@ export function Playlists({
   }
 
   // Entries whose song is no longer in the library are skipped rather than
-  // rendered as gaps.
+  // rendered as gaps, and a hidden song is left out of the list it was hidden
+  // from.
   const tracks = useMemo(
     () =>
       (selected?.songs ?? [])
         .map((entry) => songsById.get(entry.songId))
-        .filter((song): song is Song => Boolean(song)),
-    [selected, songsById]
+        .filter((song): song is Song => Boolean(song))
+        .filter((song) => !hiddenSongIds.has(song.id)),
+    [selected, songsById, hiddenSongIds]
   );
 
   // Library songs matching the add-search that are not already in the open
@@ -312,12 +315,13 @@ export function Playlists({
       .filter(
         (song) =>
           !inPlaylist.has(song.id) &&
+          !hiddenSongIds.has(song.id) &&
           [song.title, song.artist, song.album, song.albumArtist, song.genre].some(
             (f) => f?.toLowerCase().includes(q)
           )
       )
       .slice(0, 50);
-  }, [addQuery, songs, tracks]);
+  }, [addQuery, songs, tracks, hiddenSongIds]);
 
   // Artists and albums whose name matches, so a whole record can be added
   // without typing every track title. Mirrors the sync queue's add-search.
