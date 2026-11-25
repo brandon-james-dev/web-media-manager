@@ -176,6 +176,15 @@ Strategies are `.ts`, UI-free and worker-safe; per-kind icons and badges live
 in `source-ui.tsx`. Config and credentials are resolved on the main thread and
 threaded into job payloads, because workers cannot read IndexedDB secrets.
 
+A plugin source is a third kind, `kind: "plugin"`: `PluginSourceStrategy` reads
+a declarative descriptor from an installed source plugin, so the host issues the
+listing request and streams the bytes without running plugin code. Plugin
+sources are read-only (streaming and browsing, no metadata write, no sync) and
+resolve through `pluginSourceRegistry` rather than the built-in registries.
+`getStrategyForSource` dispatches on the main thread; `getStrategy(kind,
+descriptor)` builds one from a job payload in the worker, so the worker needs no
+plugin store.
+
 The bulk import does real set logic: upsert collected songs, delete library
 songs for that `sourceId` that were no longer collected, then save — in that
 order. Startup resync (`resyncAllSources`) is silent; user-initiated work is
@@ -212,17 +221,36 @@ Safety: no CSS/JS/HTML from authors, SVG sanitized, 15-second keep-or-revert
 trial bar, `?theme=default` safe mode, Settings always host chrome. The spec
 lives in `docs/themes/`.
 
-## Visualizers
+## Plugins
 
-`src/core/visualizers` holds the framework-free `PluginManager` (install,
-validate, list, remove, load, settings), manifest validation, the fflate ZIP
+One install, validate, store and remove pipeline serves every plugin kind.
+`src/core/visualizers` holds the framework-free `PluginManager` (inspect,
+install, list, remove, load, settings), `validateManifest`, the fflate ZIP
 reader with path/size limits, and `AnalyserFrameSource`. Storage goes through
-the `VisualizerPluginStore` port. Runtime hosts live in `src/lib/visualizers`:
-`ShaderHost` (WebGL uniforms `uTime`, `uResolution`, `uBass`, `uMid`,
-`uTreble`, `uVolume`, `uFFT[256]`, `uWaveform[256]`) and `CanvasHost` (ES module
-from a Blob URL, TypeScript stripped with a lazily imported sucrase).
-`createRuntimeHost` is the only runtime switch. Plugin management and settings
-live on `/settings`; the now-playing panel only renders the active plugin.
+the `VisualizerPluginStore` port. `src/components/plugin-manager` is the
+kind-filtered dialog shared by every kind, which is why it does not sit under
+`components/visualizer`.
+
+Two shapes of plugin:
+
+- **Executable** — `kind: "visualizer"` names a `runtime` and an `entry` file.
+  Runtime hosts live in `src/lib/visualizers`: `ShaderHost` (WebGL uniforms
+  `uTime`, `uResolution`, `uBass`, `uMid`, `uTreble`, `uVolume`, `uFFT[256]`,
+  `uWaveform[256]`) and `CanvasHost` (ES module from a Blob URL, TypeScript
+  stripped with a lazily imported sucrase). `createRuntimeHost` is the only
+  runtime switch.
+- **Declarative** — `kind: "lyrics"` and `kind: "source"` name no runtime and no
+  entry. They describe what they contribute through a `provider` descriptor and
+  the host drives the requests, so an installed plugin never runs third-party
+  code. `PluginLyricsService` (`src/lib/lyrics-providers/plugin`) and
+  `PluginSourceStrategy` (`src/lib/sources/plugin`) read those descriptors.
+
+`initializePlugins()` runs at boot: it registers the lyrics provider registry
+and its built-ins synchronously, seeds the bundled examples, then reconciles
+every plugin registry with the installed set. Each later step is isolated.
+Installing or removing a plugin refreshes that kind's registry immediately, and
+a plugin provider id can never shadow a built-in one. The spec lives in
+`docs/plugins/`.
 
 ## i18n
 

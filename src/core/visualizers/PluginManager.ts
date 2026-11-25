@@ -4,6 +4,7 @@ import {
   PLUGIN_MANIFEST_FILE,
   type InstalledPlugin,
   type LoadedVisualizerPlugin,
+  type PluginKind,
   type PluginSettingsValues,
   type VisualizerPluginManifest,
 } from "./contracts";
@@ -45,6 +46,14 @@ export interface InspectedPlugin {
 export interface InstallPluginOptions {
   /** Overwrite an already-installed plugin with the same id. */
   replace?: boolean;
+  /**
+   * Reject a manifest whose kind differs from this one.
+   *
+   * The manager dialog is opened for one kind, so installing a lyrics plugin
+   * from the visualizer window would store a plugin the window cannot show.
+   * Checked before anything is written.
+   */
+  expectKind?: PluginKind;
 }
 
 export interface InstallPluginResult {
@@ -166,6 +175,19 @@ export class PluginManager {
     options: InstallPluginOptions = {}
   ): Promise<InstallPluginResult> {
     const inspected = await this.inspectZip(input);
+    const pluginKind = inspected.manifest.kind ?? "visualizer";
+
+    if (options.expectKind !== undefined && pluginKind !== options.expectKind) {
+      throw new PluginInstallError([
+        {
+          code: "kind-mismatch",
+          severity: "error",
+          field: "kind",
+          message: `"${inspected.manifest.name}" is a ${pluginKind} plugin, but this window installs ${options.expectKind} plugins.`,
+        },
+      ]);
+    }
+
     const existing = await this.store.getPlugin(inspected.manifest.id);
 
     if (existing && !options.replace) {
@@ -187,7 +209,7 @@ export class PluginManager {
       ...(inspected.manifest.runtime
         ? { runtime: inspected.manifest.runtime }
         : {}),
-      kind: inspected.manifest.kind ?? "visualizer",
+      kind: pluginKind,
       ...(inspected.manifest.author
         ? { author: inspected.manifest.author }
         : {}),

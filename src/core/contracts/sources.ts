@@ -12,7 +12,12 @@
  * lives in the platform's secret store, never on the source entity.
  */
 
-export type MusicSourceKind = "local" | "subsonic" | "server" | "sync";
+export type MusicSourceKind =
+  | "local"
+  | "subsonic"
+  | "server"
+  | "sync"
+  | "plugin";
 
 /**
  * What a source can do. The UI uses these to gate operations (e.g. never
@@ -168,7 +173,26 @@ export type MusicSource =
   | LocalMusicSource
   | SubsonicMusicSource
   | WmmServerMusicSource
-  | SyncMusicSource;
+  | SyncMusicSource
+  | PluginMusicSource;
+
+/**
+ * A source contributed by an installed plugin.
+ *
+ * The plugin's manifest describes how to read its library and stream its
+ * songs; this record keeps the instance's own identity plus the values the
+ * add form collected. Secrets never live here — they go to the platform
+ * secret store, keyed by source id.
+ */
+export interface PluginMusicSource extends MusicSourceBase {
+  kind: "plugin";
+  /** Installed plugin id that contributed this source kind. */
+  pluginId: string;
+  /** Provider id from that plugin's manifest. */
+  providerId: string;
+  /** Non-secret config values collected by the provider's config fields. */
+  config: Record<string, string>;
+}
 
 /** Display name of a local source: its folder, or "first +N" for several. */
 export function localSourceName(
@@ -215,6 +239,13 @@ export function isLocalSource(source: MusicSource): source is LocalMusicSource {
 /** Type guard: is this source a portable sync device? */
 export function isSyncSource(source: MusicSource): source is SyncMusicSource {
   return source.kind === "sync";
+}
+
+/** Type guard: is this source contributed by an installed plugin? */
+export function isPluginSource(
+  source: MusicSource
+): source is PluginMusicSource {
+  return source.kind === "plugin";
 }
 
 /* ------------------------------------------------------------------ */

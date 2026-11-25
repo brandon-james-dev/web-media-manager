@@ -30,27 +30,40 @@ self.onmessage = async (event: MessageEvent<any>) => {
     const handler = workerStrategies[job.type];
 
     if (Object.hasOwn(workerStrategies, job.type)) {
-      const result = await handler(
-        job.payload,
-        () => cancelledJobs.has(job.id),
-        (progress) => {
-          self.postMessage({
-            id: job.id,
-            type: "progress",
-            jobType: job.type,
-            ...progress,
-          });
-        },
-        job.id,
-        job.parentJobId
-      );
+      // A throwing handler must answer with an `error` message. Without this
+      // the rejection escaped the async listener as an unhandled rejection,
+      // the adapter never saw `complete` or `error`, and its promise never
+      // settled — the job hung with no checkpoint and no notification.
+      try {
+        const result = await handler(
+          job.payload,
+          () => cancelledJobs.has(job.id),
+          (progress) => {
+            self.postMessage({
+              id: job.id,
+              type: "progress",
+              jobType: job.type,
+              ...progress,
+            });
+          },
+          job.id,
+          job.parentJobId
+        );
 
-      self.postMessage({
-        id: job.id,
-        type: "complete",
-        jobType: job.type,
-        result,
-      });
+        self.postMessage({
+          id: job.id,
+          type: "complete",
+          jobType: job.type,
+          result,
+        });
+      } catch (error) {
+        self.postMessage({
+          id: job.id,
+          type: "error",
+          jobType: job.type,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 };

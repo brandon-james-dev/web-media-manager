@@ -2,6 +2,7 @@ import { createLyricsProviderRegistry } from "@/core/lyrics";
 import { setLyricsProviderRegistryProvider } from "@/core/ports";
 import { refreshPluginLyricsProviders } from "@/lib/lyrics-providers/plugin/refreshPluginLyricsProviders";
 import { registerBuiltinLyricsProviders } from "@/lib/lyrics-providers/registerBuiltinLyricsProviders";
+import { refreshPluginSourceStrategies } from "@/lib/sources";
 import { ensureExampleVisualizers } from "./seedExampleVisualizers";
 
 /**
@@ -9,9 +10,9 @@ import { ensureExampleVisualizers } from "./seedExampleVisualizers";
  *
  * Registers the lyrics provider registry and its built-in providers first, so
  * a lookup always has somewhere to resolve a provider from, then seeds the
- * bundled example plugins and reconciles the registry with the installed
- * plugin set. Each later step is isolated: a failure in one leaves the others
- * as they were.
+ * bundled example plugins and reconciles the lyrics and source registries with
+ * the installed plugin set. Each later step is isolated: a failure in one
+ * leaves the others as they were.
  *
  * @example
  * ```ts
@@ -35,5 +36,11 @@ export async function initializePlugins(): Promise<void> {
     await refreshPluginLyricsProviders();
   } catch {
     // A failed refresh leaves the built-in providers registered.
+  }
+
+  try {
+    await refreshPluginSourceStrategies();
+  } catch {
+    // A failed refresh leaves the built-in source kinds addable.
   }
 }

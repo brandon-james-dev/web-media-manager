@@ -577,6 +577,10 @@ export const WMM_RESOURCES = {
   "visualizer.zipHint": text(
     "Explains what the plugin archive must contain."
   ),
+  "visualizer.chooseZip": text(
+    "Placeholder of the plugin archive picker when nothing is chosen."
+  ),
+  "visualizer.browse": text("Button that opens the archive picker."),
   "visualizer.updateIfInstalled": text(
     "Replaces a plugin that is already installed."
   ),
@@ -587,6 +591,15 @@ export const WMM_RESOURCES = {
     "Shown while a plugin archive is installed."
   ),
   "visualizer.installPlugin": text("Installs the chosen plugin archive."),
+  "visualizer.installFailed": text(
+    "Notification title when a plugin archive fails to install."
+  ),
+  "visualizer.removeFailed": text(
+    "Notification title when a plugin cannot be removed."
+  ),
+  "visualizer.runtimeFailed": text(
+    "Notification title when a visualizer stops with an error."
+  ),
   "visualizer.loadingExample": text(
     "Shown while the example plugin is downloaded."
   ),
@@ -884,6 +897,15 @@ export const WMM_RESOURCES = {
   "settings.installLyricsPlugins": text(
     "Opens the lyrics plugin manager."
   ),
+  "settings.musicSources": text(
+    "Heading of the music source plugins section."
+  ),
+  "settings.musicSourcesDescription": text(
+    "Summary under the music source plugins heading."
+  ),
+  "settings.installSourcePlugins": text(
+    "Opens the music source plugin manager."
+  ),
   "settings.lyricsSettings": text(
     "Opens the lyrics settings dialog."
   ),
@@ -900,7 +922,28 @@ export const WMM_RESOURCES = {
     "Title of the lyrics plugin manager dialog."
   ),
   "settings.lyricsPluginsDescription": text(
-    "Summary under the lyrics plugin manager title."
+    "Summary under the lyrics plugins dialog title."
+  ),
+  "settings.sourcePluginsTitle": text(
+    "Title of the music source plugins dialog."
+  ),
+  "settings.sourcePluginsDescription": text(
+    "Summary under the music source plugins dialog title."
+  ),
+  "settings.installSourcePlugin": text(
+    "Submit button in the music source plugins dialog."
+  ),
+  "settings.removeSourcePlugin": text(
+    "Remove button in the music source plugins dialog."
+  ),
+  "settings.removeLyricsPlugin": text(
+    "Remove button in the lyrics plugins dialog."
+  ),
+  "settings.removePlugin": text(
+    "Remove button for a plugin kind with no specific label."
+  ),
+  "settings.installLyricsPlugin": text(
+    "Submit button in the lyrics plugins dialog."
   ),
   "settings.noLyricsPluginsInstalled": text(
     "Shown in the lyrics plugin manager when no lyrics plugin is installed."
@@ -1118,6 +1161,9 @@ export const WMM_RESOURCES = {
   "source.kindServer": text("Badge for a source served by a WMM server."),
   "source.kindSync": text(
     "Badge for a portable device used as a sync target."
+  ),
+  "source.kindPlugin": text(
+    "Badge for a source contributed by an installed plugin."
   ),
   "source.localDescription": text(
     "One-line description of the on-device source type."

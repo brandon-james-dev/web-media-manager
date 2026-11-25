@@ -207,12 +207,16 @@ export class BackgroundService {
       return;
     }
 
-    // Normal completion
+    // A failed job must not be announced as a success. `job.state` is already
+    // "failed" here, so publish the matching state and carry the message the
+    // notification renders.
     wmmBus.publish("wmm.jobs.state", {
-      state: "completed",
+      state: error ? "error" : "completed",
       jobId: job.id,
       jobType: job.type,
-      payload: result,
+      payload: error
+        ? { message: error instanceof Error ? error.message : String(error) }
+        : result,
       silent: job.silent,
     });
 

@@ -5,7 +5,7 @@
  * `runBulkImport`/`runArtworkProcess` import them).
  */
 import type { ReactNode } from "react";
-import { Cpu, FolderOpen, HardDrive, Server } from "lucide-react";
+import { Cpu, FolderOpen, HardDrive, Puzzle, Server } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { i18n } from "@/i18n";
 import type { MusicSourceKind } from "@/core/contracts";
@@ -15,6 +15,7 @@ const KIND_ICON: Record<MusicSourceKind, ReactNode> = {
   subsonic: <Server className="h-8 w-8" />,
   server: <Cpu className="h-8 w-8" />,
   sync: <HardDrive className="h-8 w-8" />,
+  plugin: <Puzzle className="h-8 w-8" />,
 };
 
 const KIND_BADGE: Record<MusicSourceKind, () => ReactNode> = {
@@ -40,6 +41,12 @@ const KIND_BADGE: Record<MusicSourceKind, () => ReactNode> = {
     <Badge variant="secondary">
       <HardDrive />
       {i18n.t("source.kindSync")}
+    </Badge>
+  ),
+  plugin: () => (
+    <Badge variant="secondary">
+      <Puzzle />
+      {i18n.t("source.kindPlugin")}
     </Badge>
   ),
 };

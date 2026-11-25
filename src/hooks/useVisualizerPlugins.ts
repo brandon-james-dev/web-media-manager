@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
-import type { PluginSettingsValues } from "@/core/visualizers";
+import type { PluginKind, PluginSettingsValues } from "@/core/visualizers";
 import { getVisualizerPluginManager } from "@/lib/visualizers";
 import { refreshPluginLyricsProviders } from "@/lib/lyrics-providers/plugin/refreshPluginLyricsProviders";
+import { refreshPluginSourceStrategies, removeSourcesForPlugin } from "@/lib/sources";
+import { toast } from "@/components/ui/toast";
+import { useTranslation } from "@/i18n";
 
 /**
  * TanStack Query bindings for the plugin manager.
@@ -52,30 +55,49 @@ export function useInstallPlugin() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (variables: { file: File; replace?: boolean }) =>
+    mutationFn: (variables: {
+      file: File;
+      replace?: boolean;
+      expectKind?: PluginKind;
+    }) =>
       getVisualizerPluginManager().installFromZip(variables.file, {
         replace: variables.replace,
+        expectKind: variables.expectKind,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: visualizerKeys.all });
-      // A lyrics plugin contributes a provider, so the registry follows the
-      // installed set.
+      // A lyrics plugin contributes a provider and a source plugin a source
+      // kind, so both registries follow the installed set.
       void refreshPluginLyricsProviders().catch(() => {});
+      void refreshPluginSourceStrategies().catch(() => {});
     },
   });
 }
 
 export function useRemovePlugin() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   return useMutation({
-    mutationFn: (pluginId: string) =>
-      getVisualizerPluginManager().remove(pluginId),
+    mutationFn: async (pluginId: string) => {
+      await getVisualizerPluginManager().remove(pluginId);
+      // A source plugin's sources have no provider left to serve them, so they
+      // go with the plugin instead of lingering as unusable rows.
+      await removeSourcesForPlugin(pluginId);
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: visualizerKeys.all });
-      // A lyrics plugin contributes a provider, so the registry follows the
-      // installed set.
+      // A lyrics plugin contributes a provider and a source plugin a source
+      // kind, so both registries follow the installed set.
       void refreshPluginLyricsProviders().catch(() => {});
+      void refreshPluginSourceStrategies().catch(() => {});
+    },
+    onError: (error: Error) => {
+      toast.add({
+        type: "error",
+        title: t("visualizer.removeFailed"),
+        description: error.message,
+      });
     },
   });
 }

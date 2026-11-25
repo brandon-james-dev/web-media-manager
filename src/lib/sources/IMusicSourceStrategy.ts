@@ -52,12 +52,18 @@ export interface IMusicSourceStrategy {
   readonly kind: MusicSourceKind;
   /** Display name ("On device", "Subsonic server"...). */
   readonly name: string;
-  /** Resource key of the display name, so the picker renders it translated. */
-  readonly labelKey: WmmResourceKey;
+  /** Resource key of the display name, so the picker renders it translated.
+   *  Absent for a plugin source, whose name comes from its manifest. */
+  readonly labelKey?: WmmResourceKey;
   /** One-line description shown on the card. */
   readonly description: string;
-  /** Resource key of the description shown on the card. */
-  readonly descriptionKey: WmmResourceKey;
+  /** Resource key of the description shown on the card. Absent for a plugin
+   *  source, whose description comes from its manifest. */
+  readonly descriptionKey?: WmmResourceKey;
+  /** Provider id, for a plugin-contributed source kind. */
+  readonly providerId?: string;
+  /** Installed plugin that contributed this provider, when it is a plugin. */
+  readonly pluginId?: string;
   /** Whether this source kind can run on the current platform. E.g. the
    *  on-device source needs the File System Access API (showDirectoryPicker),
    *  which Safari lacks — the chooser disables it there. Default true. */

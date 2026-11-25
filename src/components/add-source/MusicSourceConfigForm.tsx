@@ -195,7 +195,7 @@ export function MusicSourceConfigForm({
         continue;
       }
       if (f.required !== false && !v.trim()) {
-        next[f.name] = t("source.fieldRequired", [t(f.labelKey)]);
+        next[f.name] = t("source.fieldRequired", [f.labelKey ? t(f.labelKey) : f.label]);
         continue;
       }
       const err = f.validate?.(v, values);
@@ -252,7 +252,7 @@ export function MusicSourceConfigForm({
       {fields.map((f) =>
         f.type === "folder" && f.options?.multiple ? (
           <div className="space-y-1.5" key={f.name}>
-            <Label>{t(f.labelKey)}</Label>
+            <Label>{f.labelKey ? t(f.labelKey) : f.label}</Label>
             <ul className="space-y-1">
               {(folderLists[f.name] ?? []).map((folder) => (
                 <li
@@ -299,7 +299,7 @@ export function MusicSourceConfigForm({
           </div>
         ) : f.type === "folder" ? (
           <div className="space-y-1.5" key={f.name}>
-            <Label htmlFor={`src-config-${f.name}`}>{t(f.labelKey)}</Label>
+            <Label htmlFor={`src-config-${f.name}`}>{f.labelKey ? t(f.labelKey) : f.label}</Label>
             <button
               type="button"
               id={`src-config-${f.name}`}
@@ -336,7 +336,7 @@ export function MusicSourceConfigForm({
           </div>
         ) : (
           <div className="space-y-1.5" key={f.name}>
-            <Label htmlFor={`src-config-${f.name}`}>{t(f.labelKey)}</Label>
+            <Label htmlFor={`src-config-${f.name}`}>{f.labelKey ? t(f.labelKey) : f.label}</Label>
             <Input
               id={`src-config-${f.name}`}
               type={f.type ?? "text"}

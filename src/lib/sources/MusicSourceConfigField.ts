@@ -10,8 +10,9 @@ export interface MusicSourceConfigField<TOptions = Record<string, unknown>> {
   name: string;
   /** Label shown next to the input. */
   label: string;
-  /** Resource key of the label, so the form renders it translated. */
-  labelKey: WmmResourceKey;
+  /** Resource key of the label, so the form renders it translated. Absent for
+   *  a plugin-declared field, whose label comes from its manifest. */
+  labelKey?: WmmResourceKey;
   /** Native input type ("text" | "password" | "number"...). Use "folder"
    *  for a folder-picker button (e.g. the on-device source). Default "text". */
   type?: string;

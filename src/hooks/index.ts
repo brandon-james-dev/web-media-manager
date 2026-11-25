@@ -14,6 +14,7 @@ export * from "./useSourceKinds";
 export * from "./useIsMobile";
 export * from "./useSourceEditable";
 export * from "./useLyricsProviders";
+export * from "./usePluginSourceStrategies";
 export * from "./useVisualizer";
 export * from "./useVisualizerPlugins";
 export * from "./useAnalysisFrame";

@@ -10,11 +10,28 @@ import { zipSync } from "fflate";
  */
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const examples = join(root, "examples", "visualizers");
+const sourceExamples = join(root, "examples", "sources");
 const output = join(root, "public", "plugins");
 
 const PLUGINS = ["aurora"];
+/** Source plugins are declarative: a manifest and nothing else. */
+const SOURCE_PLUGINS = ["webdav"];
 
 mkdirSync(output, { recursive: true });
+
+for (const id of SOURCE_PLUGINS) {
+  const directory = join(sourceExamples, id);
+  const entries = {
+    "manifest.json": new Uint8Array(
+      readFileSync(join(directory, "manifest.json"))
+    ),
+  };
+
+  const archive = zipSync(entries);
+  const target = join(output, `${id}-source.zip`);
+  writeFileSync(target, Buffer.from(archive));
+  console.log(`built ${target} (${archive.byteLength} bytes)`);
+}
 
 for (const id of PLUGINS) {
   const directory = join(examples, id);

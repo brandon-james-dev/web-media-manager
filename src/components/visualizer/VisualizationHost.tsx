@@ -18,6 +18,7 @@ import {
   type VisualizerRuntimeHost,
 } from "@/lib/visualizers";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { useIsTv } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n";
 import type { VisualizationHostProps } from "./VisualizationHostProps";
@@ -251,6 +252,11 @@ export function VisualizationHost({
         const message =
           cause instanceof Error ? cause.message : String(cause);
         setError(message);
+        toast.add({
+          type: "error",
+          title: t("visualizer.runtimeFailed"),
+          description: message,
+        });
         onErrorRef.current?.(
           cause instanceof Error ? cause : new Error(message)
         );

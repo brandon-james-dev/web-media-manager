@@ -44,7 +44,10 @@ export async function runBulkImport(
   const { musicSource: source } = payload;
   if (!id) return { cancelled: true };
 
-  const collector = getStrategy(source.kind);
+  const collector = getStrategy(
+    source.kind,
+    payload.musicSourceConfig?.sourceProvider
+  );
   if (!collector) return { cancelled: true };
 
   const store = initMetadataStore() as CombinedMetadataStore;

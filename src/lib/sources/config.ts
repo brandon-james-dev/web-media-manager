@@ -1,6 +1,9 @@
 import type { MusicSource } from "@/models";
 import type { RemoteSourceConfig } from "@/core/contracts";
-import { musicSourceStrategies } from ".";
+import type { PluginSourceProviderDescriptor } from "@/core/visualizers";
+import { allMusicSourceStrategies, musicSourceStrategies } from ".";
+import { getPluginSourceProvider } from "./plugin/pluginSourceRegistry";
+import { PluginSourceStrategy } from "./plugin/PluginSourceStrategy";
 import type { IMusicSourceStrategy } from "./IMusicSourceStrategy";
 
 /**
@@ -17,6 +20,12 @@ export interface MusicSourceImportConfig {
   sourceId: string;
   config: RemoteSourceConfig | undefined;
   secret?: string;
+  /**
+   * A plugin source's descriptor. The worker has no plugin store, so the
+   * enqueueing strategy carries the descriptor it already holds into the job
+   * payload and the worker builds the strategy from it.
+   */
+  sourceProvider?: PluginSourceProviderDescriptor;
 }
 
 /**
@@ -30,7 +39,10 @@ export async function getMusicSourceImportConfig(
 ): Promise<MusicSourceImportConfig> {
   return {
     sourceId: source.id,
-    config: "config" in source ? source.config : undefined,
+    config:
+      source.kind === "subsonic" || source.kind === "server"
+        ? source.config
+        : undefined,
     secret: await getSecretForSource(source),
   };
 }
@@ -44,7 +56,31 @@ async function getSecretForSource(
 
 /** Find the strategy for a source kind, or null when unsupported. */
 export function getStrategy(
-  kind: MusicSource["kind"]
+  kind: MusicSource["kind"],
+  sourceProvider?: PluginSourceProviderDescriptor
 ): IMusicSourceStrategy | null {
+  if (kind === "plugin") {
+    return sourceProvider
+      ? new PluginSourceStrategy(sourceProvider, "")
+      : null;
+  }
   return musicSourceStrategies.find((s) => s.kind === kind) ?? null;
+}
+
+/**
+ * Find the strategy that serves one configured source.
+ *
+ * Plugin sources resolve through the installed-provider registry, so playback
+ * and resync reach a plugin's strategy the same way they reach a built-in one.
+ */
+export function getStrategyForSource(
+  source: MusicSource
+): IMusicSourceStrategy | null {
+  if (source.kind === "plugin") {
+    const entry = getPluginSourceProvider(source.providerId);
+    return entry
+      ? new PluginSourceStrategy(entry.descriptor, entry.pluginId)
+      : null;
+  }
+  return allMusicSourceStrategies.find((s) => s.kind === source.kind) ?? null;
 }

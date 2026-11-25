@@ -14,6 +14,7 @@ export type {
   SubsonicMusicSource,
   WmmServerMusicSource,
   SyncMusicSource,
+  PluginMusicSource,
   SyncSourceType,
   SyncSourceUsb,
   MusicSourceCapabilities,

@@ -283,10 +283,15 @@ visualizer.removePlugin,Quitar complemento
 visualizer.selectToSeeDetails,Elige un complemento para ver sus detalles.
 visualizer.pluginZip,ZIP del complemento
 visualizer.zipHint,El archivo debe contener un manifest.json en la raíz (o dentro de una sola carpeta de nivel superior).
+visualizer.chooseZip,Elige un archivo ZIP
+visualizer.browse,Examinar
 visualizer.updateIfInstalled,Actualizar si ya está instalado
 visualizer.updateIfInstalledHint,Reemplaza un complemento existente con el mismo id.
 visualizer.installing,Instalando...
 visualizer.installPlugin,Instalar complemento
+visualizer.installFailed,No se pudo instalar el complemento
+visualizer.removeFailed,No se pudo quitar el complemento
+visualizer.runtimeFailed,El visualizador se detuvo
 visualizer.loadingExample,Cargando ejemplo...
 visualizer.installExample,Instalar el ejemplo de aurora
 visualizer.installedNamed,Se instaló {0} {1}.
@@ -422,12 +427,22 @@ settings.installPlugins,Instalar o administrar visualizadores
 settings.lyricsProviders,Proveedores de letras
 settings.lyricsProvidersDescription,Instala complementos de proveedor de letras y consulta qué proveedores puede usar una búsqueda
 settings.installLyricsPlugins,Instalar o administrar complementos de letras
+settings.musicSources,Fuentes de música
+settings.musicSourcesDescription,Instala complementos de fuentes de música y consulta qué tipos de fuente se pueden agregar
+settings.installSourcePlugins,Instalar o administrar complementos de fuente
 settings.lyricsSettings,Configuración de letras
 settings.lyricsSettingsDescription,Configura la búsqueda de letras en línea.
 settings.lyricsProviderBuiltin,Integrado
 settings.lyricsProviderPlugin,Complemento
 settings.lyricsPluginsTitle,Complementos de letras
 settings.lyricsPluginsDescription,Instala un archivo ZIP que añade un proveedor de letras.
+settings.sourcePluginsTitle,Complementos de fuentes de música
+settings.sourcePluginsDescription,Instala un archivo ZIP que agrega una fuente de música.
+settings.installSourcePlugin,Instalar complemento de fuente de música
+settings.removeSourcePlugin,Quitar plugin de fuente de música
+settings.removeLyricsPlugin,Quitar plugin de letras
+settings.removePlugin,Quitar plugin
+settings.installLyricsPlugin,Instalar complemento de letras
 settings.noLyricsPluginsInstalled,Aún no hay complementos de letras instalados.
 settings.lyricsApplicationId,ID de aplicación de LRCLIB
 settings.lyricsApplicationIdDescription,Opcional. Un ID de aplicación registrado aumenta el límite de solicitudes de LRCLIB para buscar letras; la búsqueda funciona sin uno.
@@ -520,6 +535,7 @@ source.noneAdded,Aún no hay fuentes de música agregadas. Agrega una carpeta en
 source.kindLocal,En el dispositivo
 source.kindServer,Servidor
 source.kindSync,Dispositivo de sincronización
+source.kindPlugin,Complemento
 source.localDescription,Agrega una carpeta de música de esta computadora
 source.syncDescription,"Un reproductor portátil como un iPod, usado como destino de sincronización."
 source.subsonicName,Servidor Subsonic

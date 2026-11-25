@@ -15,7 +15,12 @@ export const PLUGIN_MANIFEST_FILE = "manifest.json";
  * executable and names a runtime plus an entry file; the other kinds are
  * declarative and describe what they contribute through `provider`.
  */
-export type PluginKind = "visualizer" | "theme" | "layout" | "lyrics";
+export type PluginKind =
+  | "visualizer"
+  | "theme"
+  | "layout"
+  | "lyrics"
+  | "source";
 
 export interface PluginSettingOption {
   value: string;

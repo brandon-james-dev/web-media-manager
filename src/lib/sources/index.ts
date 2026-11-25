@@ -29,6 +29,20 @@ export const allMusicSourceStrategies: IMusicSourceStrategy[] = [
 
 export * from "./config";
 export { resyncAllSources } from "./resync";
+export {
+  getPluginSourceProvider,
+  listPluginSourceProviders,
+  subscribePluginSourceProviders,
+} from "./plugin/pluginSourceRegistry";
+export type { RegisteredPluginSource } from "./plugin/pluginSourceRegistry";
+export { refreshPluginSourceStrategies } from "./plugin/refreshPluginSourceStrategies";
+export { removeSourcesForPlugin } from "./plugin/removePluginSources";
+export {
+  PluginSourceStrategy,
+  deletePluginSourceSecret,
+  getPluginSourceSecret,
+  setPluginSourceSecret,
+} from "./plugin/PluginSourceStrategy";
 export type {
   IMusicSourceStrategy,
   MusicSourceProbe,

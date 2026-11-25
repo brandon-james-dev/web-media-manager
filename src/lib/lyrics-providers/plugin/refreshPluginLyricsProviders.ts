@@ -1,4 +1,5 @@
 import { getLyricsProviderRegistry } from "@/core/ports";
+import { isPluginLyricsProvider } from "@/core/visualizers";
 import { getVisualizerPluginManager } from "../../visualizers/getPluginManager";
 import { PluginLyricsService } from "./PluginLyricsService";
 
@@ -28,7 +29,7 @@ export async function refreshPluginLyricsProviders(): Promise<void> {
     }
 
     const descriptor = plugin.manifest.provider;
-    if (!descriptor) {
+    if (!descriptor || !isPluginLyricsProvider(descriptor)) {
       continue;
     }
 

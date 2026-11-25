@@ -51,6 +51,14 @@ export function BulkImportNotification({
 
   const payload = notification.payload;
 
+  // A failed import carries the reason on the payload. The progress bar has
+  // nothing left to report, so the message replaces it.
+  const errorMessage =
+    notification.state === "error"
+      ? ((payload as { message?: string } | undefined)?.message ??
+        t("notification.unknownError"))
+      : undefined;
+
   // `?? 0` does NOT guard NaN (NaN is not nullish); a NaN `percent`/`overall`
   // from a 0-total progress report would flow into <Progress value={...}>
   // and render "NaN" / trigger React's "Received NaN for `value`" warning.
@@ -129,7 +137,9 @@ export function BulkImportNotification({
             {t("notification.importingSongs")}
           </div>
 
-          {parentComplete ? (
+          {errorMessage ? (
+            <div className="text-xs text-destructive">{errorMessage}</div>
+          ) : parentComplete ? (
             <div className="text-xs text-muted-foreground">
               {t("notification.completed")}
             </div>

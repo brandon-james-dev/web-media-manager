@@ -12,6 +12,7 @@ import {
 import { toast } from "@/components/ui/toast";
 import { useTranslation } from "@/i18n";
 import { musicSourceStrategies } from "@/lib/sources";
+import { usePluginSourceStrategies } from "@/hooks/usePluginSourceStrategies";
 import { sourceKindIcon } from "@/lib/sources/source-ui";
 import type { IMusicSourceStrategy } from "@/lib/sources";
 import type { MusicSource } from "@/models";
@@ -59,8 +60,13 @@ export function AddMusicSource({
     useState<IMusicSourceStrategy | null>(null);
   const [pendingConfig, setPendingConfig] = useState<unknown>(undefined);
 
+  // Installed source plugins render beside the built-in kinds, so a plugin
+  // source is added through the same list and config form.
+  const pluginStrategies = usePluginSourceStrategies();
+  const strategies = [...musicSourceStrategies, ...pluginStrategies];
+
   const editingStrategy = editingSource
-    ? (musicSourceStrategies.find((s) => s.kind === editingSource.kind) ?? null)
+    ? (strategies.find((s) => s.kind === editingSource.kind) ?? null)
     : null;
 
   const isEditing = Boolean(editingSource && editingStrategy);
@@ -171,7 +177,7 @@ export function AddMusicSource({
       </div>
 
       <div className="divide-y rounded-lg border">
-        {musicSourceStrategies.map((strategy) => (
+        {strategies.map((strategy) => (
           <button
             key={strategy.kind}
             type="button"
@@ -189,7 +195,7 @@ export function AddMusicSource({
             </div>
             <div className="min-w-0">
               <div className="font-medium">
-                {t(strategy.labelKey)}
+                {strategy.labelKey ? t(strategy.labelKey) : strategy.name}
                 {strategy.isAvailable === false && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
                     {t("source.notSupported")}
@@ -197,7 +203,9 @@ export function AddMusicSource({
                 )}
               </div>
               <div className="text-sm text-muted-foreground">
-                {t(strategy.descriptionKey)}
+                {strategy.descriptionKey
+                  ? t(strategy.descriptionKey)
+                  : strategy.description}
               </div>
             </div>
           </button>
@@ -223,10 +231,16 @@ export function AddMusicSource({
           <Title>
             {isEditing
               ? t("source.editNamed", [editingSource?.name ?? ""])
-              : t(formStrategy.labelKey)}
+              : formStrategy.labelKey
+                ? t(formStrategy.labelKey)
+                : formStrategy.name}
           </Title>
         </div>
-        <Description>{t(formStrategy.descriptionKey)}</Description>
+        <Description>
+          {formStrategy.descriptionKey
+            ? t(formStrategy.descriptionKey)
+            : formStrategy.description}
+        </Description>
       </Header>
 
       {formStrategy.configFields?.length ? (

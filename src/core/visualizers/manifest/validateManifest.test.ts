@@ -138,4 +138,85 @@ describe("validatePluginManifest", () => {
     expect(result.valid).toBe(false);
     expect(codes(result)).toContain("kind-invalid");
   });
+
+  it("accepts a declarative source provider", () => {
+    const result = validatePluginManifest(
+      {
+        id: "webdav-source",
+        name: "WebDAV",
+        version: "0.1.0",
+        kind: "source",
+        provider: {
+          id: "webdav",
+          name: "WebDAV",
+          config: [
+            { key: "baseUrl", label: "Server URL", required: true },
+            { key: "password", label: "Password", secret: true },
+          ],
+          library: {
+            url: "{baseUrl}",
+            method: "PROPFIND",
+            body: "<propfind/>",
+            recordTag: "d:response",
+            fields: { id: "href", title: "displayname", artist: "displayname" },
+          },
+          stream: { url: "{baseUrl}/{path}" },
+        },
+      },
+      []
+    );
+
+    expect(codes(result)).toEqual([]);
+    expect(result.valid).toBe(true);
+    expect(result.manifest?.provider).toMatchObject({
+      id: "webdav",
+      library: { method: "PROPFIND", recordTag: "d:response" },
+    });
+  });
+
+  it("rejects a source provider without the required field mappings", () => {
+    const result = validatePluginManifest(
+      {
+        id: "webdav-source",
+        name: "WebDAV",
+        version: "0.1.0",
+        kind: "source",
+        provider: {
+          id: "webdav",
+          name: "WebDAV",
+          library: {
+            url: "https://dav.example.test/music",
+            fields: { id: "href", title: "displayname" },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
+
+  it("rejects a source provider whose library URL is not https", () => {
+    const result = validatePluginManifest(
+      {
+        id: "webdav-source",
+        name: "WebDAV",
+        version: "0.1.0",
+        kind: "source",
+        provider: {
+          id: "webdav",
+          name: "WebDAV",
+          library: {
+            url: "http://dav.example.test/music",
+            fields: { id: "href", title: "name", artist: "name" },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
 });

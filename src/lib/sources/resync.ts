@@ -1,5 +1,5 @@
 import { getSourcesStore } from "@/core/ports";
-import { allMusicSourceStrategies } from "./index";
+import { getStrategyForSource } from "./config";
 
 /**
  * Enqueue a resync (Bulk Import) run for every configured music source.
@@ -18,7 +18,7 @@ export async function resyncAllSources(
   const sources = await getSourcesStore().getSources();
   for (const source of sources) {
     if (skipSourceIds.has(source.id)) continue;
-    const strategy = allMusicSourceStrategies.find((s) => s.kind === source.kind);
+    const strategy = getStrategyForSource(source);
 
     // One unreadable source must not abort the whole resync. A Zune that was
     // unplugged throws from `refreshSource` (`NotFoundError: The device was

@@ -23,8 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Item } from "@/components/ui/item";
-import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus, SlidersHorizontal } from "lucide-react";
-import { useTheme, useVisualizer, useLyricsProviders } from "@/hooks";
+import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus, SlidersHorizontal, Trash2 } from "lucide-react";
+import { useTheme, useVisualizer, useLyricsProviders, usePluginSourceStrategies, useRemovePlugin } from "@/hooks";
 import {
   AUTO_LANGUAGE,
   useTranslation,
@@ -40,7 +40,7 @@ import { wmmBus } from "@/events";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
 import { LyricsSettings } from "@/components/lyrics-settings";
 import { Badge } from "@/components/ui/badge";
-import { musicSourceStrategies } from "@/lib/sources";
+import { getStrategyForSource, musicSourceStrategies } from "@/lib/sources";
 import { runSourceRefresh } from "@/lib/sources/runSourceRefresh";
 import { useIsCompact, useIsTv } from "@/hooks/useIsMobile";
 import { cn } from "cn"
@@ -50,10 +50,10 @@ import { toast } from "@/components/ui/toast";
 import { AccentColorSelector } from "@/components/theme-provider";
 import { ThemesSection } from "@/components/themes";
 import {
-  PluginManagerDialog,
   VisualizerSelector,
   VisualizerSettings,
 } from "@/components/visualizer";
+import { PluginManagerDialog } from "@/components/plugin-manager";
 
 const THEME_OPTIONS = [
   { value: "light", labelKey: "settings.themeLight", icon: Sun },
@@ -78,8 +78,11 @@ export function Settings() {
     useTranslation();
   const [settingsPluginId, setSettingsPluginId] = useState<string>();
   const [lyricsManagerOpen, setLyricsManagerOpen] = useState(false);
+  const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
   const [lyricsSettingsOpen, setLyricsSettingsOpen] = useState(false);
   const lyricsProviders = useLyricsProviders();
+  const pluginSourceStrategies = usePluginSourceStrategies();
+  const removePlugin = useRemovePlugin();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -168,7 +171,7 @@ export function Settings() {
 
   /** Re-pull a source's library via its music source strategy. */
   async function handleSyncSource(source: MusicSource) {
-    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
+    const strategy = getStrategyForSource(source);
     if (!strategy) {
       console.warn(
         `[Settings] No sync strategy for source "${source.name}" (kind=${source.kind})`
@@ -289,7 +292,7 @@ export function Settings() {
       return;
     }
 
-    const strategy = musicSourceStrategies.find((s) => s.kind === source.kind);
+    const strategy = getStrategyForSource(source);
     await strategy?.cleanupRemovedSource?.(source);
 
     // The job deleted the source record in the worker, so re-read the list
@@ -511,6 +514,77 @@ export function Settings() {
               onOpenChange={setLyricsSettingsOpen}
             />
           </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>{t("settings.musicSources")}</Label>
+              <p className="text-sm text-muted-foreground">
+                {t("settings.musicSourcesDescription")}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1 rounded-sm border p-1">
+              {musicSourceStrategies.map((strategy) => (
+                <Item
+                  key={strategy.kind}
+                  className="flex items-center justify-between gap-2 px-2 py-1.5"
+                >
+                  <span className="truncate">
+                    {strategy.labelKey ? t(strategy.labelKey) : strategy.name}
+                  </span>
+                  <Badge variant="outline">
+                    {t("settings.lyricsProviderBuiltin")}
+                  </Badge>
+                </Item>
+              ))}
+              {pluginSourceStrategies.map((strategy) => (
+                <Item
+                  key={strategy.providerId}
+                  className="flex items-center justify-between gap-2 px-2 py-1.5"
+                >
+                  <span className="truncate">{strategy.name}</span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <Badge variant="outline">
+                      {t("settings.lyricsProviderPlugin")}
+                    </Badge>
+                    {strategy.pluginId && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        title={t("visualizer.removePlugin")}
+                        aria-label={t("visualizer.removePlugin")}
+                        disabled={removePlugin.isPending}
+                        onClick={() =>
+                          removePlugin.mutate(strategy.pluginId as string)
+                        }
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
+                  </span>
+                </Item>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setSourceManagerOpen(true)}
+              >
+                <PackagePlus />
+                {t("settings.installSourcePlugins")}
+              </Button>
+            </div>
+
+            <PluginManagerDialog
+              kind="source"
+              open={sourceManagerOpen}
+              onOpenChange={setSourceManagerOpen}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -564,7 +638,7 @@ export function Settings() {
                       </span>
                     ) : (
                       <>
-                    {musicSourceStrategies.some((s) => s.kind === dir.kind && s.updateSource) && (
+                    {getStrategyForSource(dir)?.updateSource && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -576,7 +650,7 @@ export function Settings() {
                       </Button>
                     )}
 
-                    {musicSourceStrategies.some((s) => s.kind === dir.kind) && (
+                    {getStrategyForSource(dir) && (
                       <Button
                         variant="ghost"
                         size="icon"

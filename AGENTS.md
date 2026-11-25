@@ -37,6 +37,7 @@ error fails the build before Vite starts.
 | `src/lib/`                      | Implementations behind the ports: persistence (Dexie/file/browser), metadata reader+writer, sources, sync, themes pipeline, visualizers runtimes, background jobs, keyboard shortcuts, offline |
 | `src/events/`                   | `WmmBus` (RxJS), command/event taxonomy, dispatch, job + notification wiring                                                                                                                   |
 | `src/providers/`                | React providers: playback, songs, sync, visualizers                                                                                                                                            |
+| `src/hooks/`                    | Shared React hooks: playback, songs, sync, sources, plugins, layout breakpoints                                                                                                                |
 | `src/components/`               | Feature components, one folder per concept; `ui/` holds shadcn primitives                                                                                                                      |
 | `src/components/theme-widgets/` | Widgets a theme layout can render, registered via `registerAppThemeWidgets()`                                                                                                                  |
 | `src/pages/`                    | Route screens (`Main/`, `Tv/`, `Settings.tsx`)                                                                                                                                                 |
@@ -44,8 +45,8 @@ error fails the build before Vite starts.
 | `src/dto/`                      | Per-form DTOs (QuickEditDto, SongEditDto, AlbumDetailDto)                                                                                                                                      |
 | `src/workers/`                  | Worker pool, adapter, `metadata.worker.ts`, `shared/` job bodies                                                                                                                               |
 | `src/i18n/`                     | Resource registry, English pack, CSV language packs, service, hook                                                                                                                             |
-| `docs/`                         | Contract docs: `events-taxonomy.md`, `resources-i18n.md`, `themes/`                                                                                                                            |
-| `examples/`                     | Example visualizer plugins and themes, packed by the build scripts                                                                                                                             |
+| `docs/`                         | Contract docs: `events-taxonomy.md`, `resources-i18n.md`, `themes/`, `plugins/`                                                                                                                |
+| `examples/`                     | Example plugins (`visualizers/`, `sources/`) and themes, packed by the build scripts                                                                                                           |
 | `scripts/`                      | `i18n-sync.ts`, `build-example-plugins.mjs`, `build-example-themes.mjs`                                                                                                                        |
 
 ## Conventions

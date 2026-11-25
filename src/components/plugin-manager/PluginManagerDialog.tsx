@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  FileArchive,
   Sparkles,
   Trash2,
   Upload,
@@ -13,6 +14,7 @@ import {
   getRuntimeDescriptor,
   type InstallPluginResult,
   type ManifestIssue,
+  type PluginKind,
 } from "@/core/visualizers";
 import {
   useInstallPlugin,
@@ -29,20 +31,63 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/components/ui/toast";
 import { Switch } from "@/components/ui/switch";
 import { useTranslation } from "@/i18n";
+import type { WmmResourceKey } from "@/i18n/resources";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { VisualizerSelector } from "./VisualizerSelector";
+import { VisualizerSelector } from "@/components/visualizer";
 import type { PluginManagerDialogProps } from "./PluginManagerDialogProps";
+
+/** Dialog title, summary, submit and remove label per plugin kind. */
+const PLUGIN_DIALOG_COPY: Record<
+  PluginKind,
+  {
+    title: WmmResourceKey;
+    description: WmmResourceKey;
+    install: WmmResourceKey;
+    remove: WmmResourceKey;
+  }
+> = {
+  visualizer: {
+    title: "visualizer.pluginsTitle",
+    description: "visualizer.pluginsDescription",
+    install: "visualizer.installPlugin",
+    remove: "visualizer.removePlugin",
+  },
+  lyrics: {
+    title: "settings.lyricsPluginsTitle",
+    description: "settings.lyricsPluginsDescription",
+    install: "settings.installLyricsPlugin",
+    remove: "settings.removeLyricsPlugin",
+  },
+  source: {
+    title: "settings.sourcePluginsTitle",
+    description: "settings.sourcePluginsDescription",
+    install: "settings.installSourcePlugin",
+    remove: "settings.removeSourcePlugin",
+  },
+  theme: {
+    title: "settings.sourcePluginsTitle",
+    description: "settings.sourcePluginsDescription",
+    install: "settings.installSourcePlugin",
+    remove: "settings.removePlugin",
+  },
+  layout: {
+    title: "settings.sourcePluginsTitle",
+    description: "settings.sourcePluginsDescription",
+    install: "settings.installSourcePlugin",
+    remove: "settings.removePlugin",
+  },
+};
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) {
@@ -117,6 +162,21 @@ export function PluginManagerDialog({
 
   const isOpen = open ?? managerOpen;
   const setOpen = onOpenChange ?? setManagerOpen;
+
+  /** Close the dialog and drop the previous install's outcome. */
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      setFile(null);
+      setReplace(false);
+      setIssues([]);
+      setSuccess(null);
+      setConfirmRemoveId(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+    setOpen(next);
+  }
   const active =
     kind === "visualizer"
       ? plugins?.find((plugin) => plugin.id === activePluginId)
@@ -144,7 +204,7 @@ export function PluginManagerDialog({
   }
 
   function handleInstallError(error: Error) {
-    setIssues(
+    const issues: ManifestIssue[] =
       error instanceof PluginInstallError
         ? error.issues
         : [
@@ -153,8 +213,15 @@ export function PluginManagerDialog({
             severity: "error",
             message: error.message,
           },
-        ]
-    );
+        ];
+    setIssues(issues);
+    // The inline list is only visible while this dialog is open, so the
+    // failure also goes out as a notification.
+    toast.add({
+      type: "error",
+      title: t("visualizer.installFailed"),
+      description: issues[0]?.message ?? error.message,
+    });
   }
 
   function handleInstall() {
@@ -165,7 +232,7 @@ export function PluginManagerDialog({
     setIssues([]);
     setSuccess(null);
     install.mutate(
-      { file, replace },
+      { file, replace, expectKind: kind },
       { onSuccess: handleInstalled, onError: handleInstallError }
     );
   }
@@ -217,22 +284,12 @@ export function PluginManagerDialog({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className={cn("sm:max-w-2xl", className)}>
         <DialogHeader>
-          <DialogTitle>
-            {t(
-              kind === "visualizer"
-                ? "visualizer.pluginsTitle"
-                : "settings.lyricsPluginsTitle"
-            )}
-          </DialogTitle>
+          <DialogTitle>{t(PLUGIN_DIALOG_COPY[kind].title)}</DialogTitle>
           <DialogDescription>
-            {t(
-              kind === "visualizer"
-                ? "visualizer.pluginsDescription"
-                : "settings.lyricsPluginsDescription"
-            )}
+            {t(PLUGIN_DIALOG_COPY[kind].description)}
           </DialogDescription>
         </DialogHeader>
 
@@ -358,7 +415,7 @@ export function PluginManagerDialog({
                         onClick={() => setConfirmRemoveId(active.id)}
                       >
                         <Trash2 />
-                        {t("visualizer.removePlugin")}
+                        {t(PLUGIN_DIALOG_COPY[kind].remove)}
                       </Button>
                     )}
                   </>
@@ -376,20 +433,43 @@ export function PluginManagerDialog({
               <div className="flex flex-col gap-3 pr-2">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="plugin-zip">{t("visualizer.pluginZip")}</Label>
-                  <Input
-                    id="plugin-zip"
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".zip,application/zip"
-                    onChange={(event) => {
-                      setFile(event.target.files?.[0] ?? null);
-                      setIssues([]);
-                      setSuccess(null);
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t("visualizer.zipHint")}
-                  </p>
+                  <label
+                    htmlFor="plugin-zip"
+                    className={cn(
+                      "group flex cursor-pointer items-center gap-3 rounded-xl border border-dashed p-3 transition-colors",
+                      "hover:border-ring hover:bg-accent/40",
+                      "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50"
+                    )}
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:text-foreground">
+                      <FileArchive />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        {file ? file.name : t("visualizer.chooseZip")}
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {file
+                          ? formatBytes(file.size)
+                          : t("visualizer.zipHint")}
+                      </span>
+                    </span>
+                    <span className="shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium">
+                      {t("visualizer.browse")}
+                    </span>
+                    <input
+                      id="plugin-zip"
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".zip,application/zip"
+                      className="sr-only"
+                      onChange={(event) => {
+                        setFile(event.target.files?.[0] ?? null);
+                        setIssues([]);
+                        setSuccess(null);
+                      }}
+                    />
+                  </label>
                 </div>
 
                 <div className="flex items-center justify-between gap-3 rounded-lg border p-2">
@@ -416,7 +496,7 @@ export function PluginManagerDialog({
                     <Upload />
                     {install.isPending
                       ? t("visualizer.installing")
-                      : t("visualizer.installPlugin")}
+                      : t(PLUGIN_DIALOG_COPY[kind].install)}
                   </Button>
                   {kind === "visualizer" && (
                     <Button
@@ -429,11 +509,6 @@ export function PluginManagerDialog({
                         ? t("visualizer.loadingExample")
                         : t("visualizer.installExample")}
                     </Button>
-                  )}
-                  {file && (
-                    <span className="truncate text-xs text-muted-foreground">
-                      {file.name}
-                    </span>
                   )}
                 </div>
 

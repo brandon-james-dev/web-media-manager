@@ -1,0 +1,52 @@
+{
+  "id": "webdav-source",
+  "name": "WebDAV",
+  "version": "0.1.0",
+  "author": "Web Media Manager",
+  "description": "Read a music library from a WebDAV share over PROPFIND.",
+  "kind": "source",
+  "provider": {
+    "id": "webdav",
+    "name": "WebDAV",
+    "description": "Read a music library from a WebDAV share.",
+    "config": [
+      {
+        "key": "baseUrl",
+        "label": "Server URL",
+        "placeholder": "https://dav.example.com/music",
+        "required": true
+      },
+      {
+        "key": "username",
+        "label": "Username",
+        "required": true
+      },
+      {
+        "key": "password",
+        "label": "Password",
+        "required": true,
+        "secret": true
+      }
+    ],
+    "library": {
+      "url": "{baseUrl}",
+      "method": "PROPFIND",
+      "body": "<?xml version=\"1.0\"?><d:propfind xmlns:d=\"DAV:\"><d:prop><d:displayname/><d:getcontentlength/><d:getcontenttype/><d:resourcetype/></d:prop></d:propfind>",
+      "headers": {
+        "Depth": "infinity",
+        "Content-Type": "application/xml; charset=utf-8"
+      },
+      "recordTag": "d:response",
+      "fields": {
+        "id": "href",
+        "title": "displayname",
+        "artist": "displayname",
+        "fileSize": "getcontentlength",
+        "path": "href"
+      }
+    },
+    "stream": {
+      "url": "{baseUrl}/{path}"
+    }
+  }
+}

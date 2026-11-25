@@ -22,11 +22,18 @@ export type {
   PluginSettingsValues,
   VisualizerPluginManifest,
 } from "./PluginManifest";
+export {
+  isPluginLyricsProvider,
+  isPluginSourceProvider,
+} from "./PluginProvider";
 export type {
   PluginLyricsFieldMap,
   PluginLyricsProviderDescriptor,
   PluginLyricsQueryField,
   PluginProviderDescriptor,
+  PluginSourceConfigField,
+  PluginSourceFieldMap,
+  PluginSourceProviderDescriptor,
 } from "./PluginProvider";
 export type {
   VisualizationApi,

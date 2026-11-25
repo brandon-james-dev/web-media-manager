@@ -6,8 +6,12 @@ import {
 } from "../contracts/PluginManifest";
 import type {
   PluginLyricsFieldMap,
+  PluginLyricsProviderDescriptor,
   PluginLyricsQueryField,
   PluginProviderDescriptor,
+  PluginSourceConfigField,
+  PluginSourceFieldMap,
+  PluginSourceProviderDescriptor,
 } from "../contracts/PluginProvider";
 import {
   getRuntimeDescriptor,
@@ -44,7 +48,8 @@ export type ManifestIssueCode =
   | "provider-invalid"
   | "settings-invalid"
   | "archive-invalid"
-  | "already-installed";
+  | "already-installed"
+  | "kind-mismatch";
 
 export interface ManifestIssue {
   code: ManifestIssueCode;
@@ -68,6 +73,7 @@ const PLUGIN_KINDS: readonly PluginKind[] = [
   "theme",
   "layout",
   "lyrics",
+  "source",
 ];
 
 const LYRICS_QUERY_FIELDS: readonly PluginLyricsQueryField[] = [
@@ -88,6 +94,318 @@ const LYRICS_FIELD_KEYS: readonly (keyof PluginLyricsFieldMap)[] = [
   "hasWordSync",
   "instrumental",
 ];
+
+const SOURCE_FIELD_KEYS: readonly (keyof PluginSourceFieldMap)[] = [
+  "id",
+  "title",
+  "artist",
+  "album",
+  "albumArtist",
+  "duration",
+  "track",
+  "discNumber",
+  "genre",
+  "year",
+  "bitrate",
+  "fileSize",
+  "path",
+  "streamUrl",
+  "coverArtUrl",
+];
+
+const SOURCE_REQUIRED_FIELDS: readonly (keyof PluginSourceFieldMap)[] = [
+  "id",
+  "title",
+  "artist",
+];
+
+/** True when a URL is absolute https, or a template over `{baseUrl}`. */
+function isHttpsOrTemplateUrl(url: string): boolean {
+  return url.startsWith("https://") || url.includes("{baseUrl}");
+}
+
+function validateSourceConfig(
+  raw: unknown,
+  issues: ManifestIssue[]
+): PluginSourceConfigField[] | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(raw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.config",
+      message: "`provider.config` must be an array of field descriptors.",
+    });
+    return undefined;
+  }
+
+  const fields: PluginSourceConfigField[] = [];
+  const keys = new Set<string>();
+
+  for (const [index, entry] of raw.entries()) {
+    const field = `provider.config[${index}]`;
+    if (!isRecord(entry)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field,
+        message: `${field} must be an object.`,
+      });
+      continue;
+    }
+
+    const key = readString(entry, "key");
+    const label = readString(entry, "label");
+    if (!key || !SETTING_KEY_PATTERN.test(key)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field,
+        message: `${field}.key must start with a letter and contain only letters, digits, "_" or "-".`,
+      });
+      continue;
+    }
+    if (keys.has(key)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field,
+        message: `Config key "${key}" is declared more than once.`,
+      });
+      continue;
+    }
+    keys.add(key);
+
+    if (!label) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field,
+        message: `${field}.label is required.`,
+      });
+      continue;
+    }
+
+    const placeholder = readString(entry, "placeholder");
+    fields.push({
+      key,
+      label,
+      ...(placeholder ? { placeholder } : {}),
+      ...(entry.required === true ? { required: true } : {}),
+      ...(entry.secret === true ? { secret: true } : {}),
+    });
+  }
+
+  return fields.length ? fields : undefined;
+}
+
+function validateSourceProvider(
+  raw: Record<string, unknown>,
+  issues: ManifestIssue[]
+): PluginSourceProviderDescriptor | undefined {
+  const id = readString(raw, "id");
+  if (!id || !PLUGIN_ID_PATTERN.test(id)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.id",
+      message:
+        "`provider.id` must be a lowercase slug (letters, digits, dots, dashes, underscores).",
+    });
+  }
+
+  const name = readString(raw, "name");
+  if (!name) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.name",
+      message: "`provider.name` is required.",
+    });
+  }
+
+  const config = validateSourceConfig(raw.config, issues);
+
+  const library = raw.library;
+  if (!isRecord(library)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.library",
+      message: "`provider.library` must be an object.",
+    });
+    return undefined;
+  }
+
+  const libraryUrl = readString(library, "url");
+  if (!libraryUrl || !isHttpsOrTemplateUrl(libraryUrl)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.library.url",
+      message:
+        "`provider.library.url` must be an absolute https:// URL or a template using {baseUrl}.",
+    });
+  }
+
+  const libraryHeaders = readHeaders(
+    library.headers,
+    "provider.library.headers",
+    issues
+  );
+  const resultsPath = readString(library, "resultsPath");
+  const recordTag = readString(library, "recordTag");
+  const body = readString(library, "body");
+
+  let method: "GET" | "PROPFIND" | undefined;
+  if (library.method !== undefined) {
+    if (library.method !== "GET" && library.method !== "PROPFIND") {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.library.method",
+        message: "`provider.library.method` must be GET or PROPFIND.",
+      });
+    } else {
+      method = library.method;
+    }
+  }
+
+  const fieldsRaw = library.fields;
+  if (!isRecord(fieldsRaw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.library.fields",
+      message: "`provider.library.fields` must be an object.",
+    });
+    return undefined;
+  }
+
+  const fields: Partial<PluginSourceFieldMap> = {};
+  for (const key of SOURCE_FIELD_KEYS) {
+    const value = fieldsRaw[key];
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value !== "string" || !value.trim()) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: `provider.library.fields.${key}`,
+        message: "Each mapped field must be a non-empty JSON field name.",
+      });
+    } else {
+      fields[key] = value.trim();
+    }
+  }
+
+  for (const key of SOURCE_REQUIRED_FIELDS) {
+    if (!fields[key]) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: `provider.library.fields.${key}`,
+        message: `\`provider.library.fields.${key}\` is required.`,
+      });
+    }
+  }
+
+  let stream: PluginSourceProviderDescriptor["stream"];
+  if (raw.stream !== undefined) {
+    if (!isRecord(raw.stream)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.stream",
+        message: "`provider.stream` must be an object.",
+      });
+    } else {
+      const streamUrl = readString(raw.stream, "url");
+      if (!streamUrl || !isHttpsOrTemplateUrl(streamUrl)) {
+        issues.push({
+          code: "provider-invalid",
+          severity: "error",
+          field: "provider.stream.url",
+          message:
+            "`provider.stream.url` must be an absolute https:// URL or a template using {baseUrl}.",
+        });
+      } else {
+        const headers = readHeaders(
+          raw.stream.headers,
+          "provider.stream.headers",
+          issues
+        );
+        stream = { url: streamUrl, ...(headers ? { headers } : {}) };
+      }
+    }
+  }
+
+  if (
+    !id ||
+    !name ||
+    !libraryUrl ||
+    !SOURCE_REQUIRED_FIELDS.every((key) => fields[key])
+  ) {
+    return undefined;
+  }
+
+  const description = readString(raw, "description");
+
+  return {
+    id,
+    name,
+    ...(description ? { description } : {}),
+    ...(config ? { config } : {}),
+    library: {
+      url: libraryUrl,
+      ...(method ? { method } : {}),
+      ...(body ? { body } : {}),
+      ...(libraryHeaders ? { headers: libraryHeaders } : {}),
+      ...(resultsPath ? { resultsPath } : {}),
+      ...(recordTag ? { recordTag } : {}),
+      fields: fields as PluginSourceFieldMap,
+    },
+    ...(stream ? { stream } : {}),
+  };
+}
+
+/** Read a header map, reporting a non-string value per entry. */
+function readHeaders(
+  raw: unknown,
+  field: string,
+  issues: ManifestIssue[]
+): Record<string, string> | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!isRecord(raw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field,
+      message: `\`${field}\` must be an object.`,
+    });
+    return undefined;
+  }
+
+  const headers: Record<string, string> = {};
+  for (const [header, value] of Object.entries(raw)) {
+    if (typeof value !== "string") {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: `${field}.${header}`,
+        message: "Each header value must be a string.",
+      });
+    } else {
+      headers[header] = value;
+    }
+  }
+  return Object.keys(headers).length ? headers : undefined;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -314,12 +632,12 @@ function validateProvider(
   issues: ManifestIssue[]
 ): PluginProviderDescriptor | undefined {
   if (raw === undefined) {
-    if (kind === "lyrics") {
+    if (kind === "lyrics" || kind === "source") {
       issues.push({
         code: "provider-missing",
         severity: "error",
         field: "provider",
-        message: "`provider` is required for lyrics plugins.",
+        message: `\`provider\` is required for ${kind} plugins.`,
       });
     }
     return undefined;
@@ -335,6 +653,17 @@ function validateProvider(
     return undefined;
   }
 
+  if (kind === "source") {
+    return validateSourceProvider(raw, issues);
+  }
+
+  return validateLyricsProvider(raw, issues);
+}
+
+function validateLyricsProvider(
+  raw: Record<string, unknown>,
+  issues: ManifestIssue[]
+): PluginLyricsProviderDescriptor | undefined {
   const id = readString(raw, "id");
   if (!id || !PLUGIN_ID_PATTERN.test(id)) {
     issues.push({
@@ -557,7 +886,8 @@ export function validatePluginManifest(
         code: "kind-invalid",
         severity: "error",
         field: "kind",
-        message: "`kind` must be one of visualizer, theme, layout, lyrics.",
+        message:
+          "`kind` must be one of visualizer, theme, layout, lyrics, source.",
       });
     } else {
       kind = kindValue as PluginKind;

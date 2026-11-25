@@ -64,8 +64,14 @@ export function VisualizerSelector({
   onConfigure,
 }: VisualizerSelectorProps) {
   const { t } = useTranslation();
-  const { data: plugins, isPending } = useInstalledPlugins();
+  const { data: installed, isPending } = useInstalledPlugins();
   const { activePluginId, setActivePluginId } = useVisualizer();
+  // Only executable visualizers belong here: the store holds every plugin
+  // kind, so an unfiltered list would offer a lyrics or source plugin as if
+  // it could be rendered.
+  const plugins = (installed ?? []).filter(
+    (plugin) => plugin.kind === "visualizer"
+  );
 
   function select(pluginId: string) {
     setActivePluginId(pluginId);
@@ -76,7 +82,7 @@ export function VisualizerSelector({
     return (
       <Select
         value={activePluginId ?? undefined}
-        items={(plugins ?? []).map((plugin) => ({
+        items={plugins.map((plugin) => ({
           value: plugin.id,
           label: plugin.name,
         }))}
@@ -93,7 +99,7 @@ export function VisualizerSelector({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {(plugins ?? []).map((plugin) => (
+          {plugins.map((plugin) => (
             <SelectItem key={plugin.id} value={plugin.id}>
               {plugin.name}
             </SelectItem>
@@ -110,13 +116,13 @@ export function VisualizerSelector({
           <p className="p-3 text-sm text-muted-foreground">
             {t("visualizer.loadingPlugins")}
           </p>
-        ) : (plugins ?? []).length === 0 ? (
+        ) : plugins.length === 0 ? (
           <p className="p-3 text-sm text-muted-foreground">
             {t("visualizer.noneInstalled")}
           </p>
         ) : (
           <ul className="flex flex-col gap-1">
-            {(plugins ?? []).map((plugin) => {
+            {plugins.map((plugin) => {
               const isActive = plugin.id === activePluginId;
               const runtime = plugin.runtime
                 ? getRuntimeDescriptor(plugin.runtime)
