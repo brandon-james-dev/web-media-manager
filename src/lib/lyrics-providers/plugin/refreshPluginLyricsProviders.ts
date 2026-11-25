@@ -1,6 +1,6 @@
 import { getLyricsProviderRegistry } from "@/core/ports";
-import { isPluginLyricsProvider } from "@/core/visualizers";
-import { getVisualizerPluginManager } from "../../visualizers/getPluginManager";
+import { isPluginLyricsProvider } from "@/core/plugins";
+import { getPluginManager } from "@/lib/plugins";
 import { PluginLyricsService } from "./PluginLyricsService";
 
 /** Provider ids this module registered, so a removed plugin is unregistered. */
@@ -20,7 +20,7 @@ const registered = new Set<string>();
  */
 export async function refreshPluginLyricsProviders(): Promise<void> {
   const registry = getLyricsProviderRegistry();
-  const plugins = await getVisualizerPluginManager().list();
+  const plugins = await getPluginManager().list();
   const next = new Set<string>();
 
   for (const plugin of plugins) {

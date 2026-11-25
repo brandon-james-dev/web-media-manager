@@ -15,6 +15,7 @@ export * from "./useIsMobile";
 export * from "./useSourceEditable";
 export * from "./useLyricsProviders";
 export * from "./useMetadataProviders";
+export * from "./useMetadataProviderSelection";
 export * from "./usePluginSourceStrategies";
 export * from "./useVisualizer";
 export * from "./useVisualizerPlugins";

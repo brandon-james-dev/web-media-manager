@@ -3,6 +3,8 @@ import { Loader2 } from "lucide-react";
 import type { MetadataPicture } from "@/core/contracts";
 import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
 import { getMetadataProviderRegistry } from "@/core/ports";
+import { useMetadataProviderSelection, useMetadataProviders } from "@/hooks";
+import { buildMetadataSearchQuery } from "@/lib/metadata-providers/online/buildMetadataSearchQuery";
 import { useTranslation } from "@/i18n";
 import type { AlbumArtSearchPanelProps } from "./AlbumArtSearchPanelProps";
 import { OnlineSearchQueryForm } from "./OnlineSearchQueryForm";
@@ -19,7 +21,11 @@ export default function AlbumArtSearchPanel(props: AlbumArtSearchPanelProps) {
   const [titleQuery, setTitleQuery] = useState("");
   const [artistQuery, setArtistQuery] = useState(album.artist);
   const [albumQuery, setAlbumQuery] = useState(album.title);
-  const [selectedProvider, setSelectedProvider] = useState<MetadataProvider>(
+  const providers = useMetadataProviders().filter(
+    (entry) => entry.hasAlbumLookup
+  );
+  const [selectedProvider, setSelectedProvider] = useMetadataProviderSelection(
+    providers,
     MetadataProvider.iTunes
   );
   const [loading, setLoading] = useState(false);
@@ -28,7 +34,7 @@ export default function AlbumArtSearchPanel(props: AlbumArtSearchPanelProps) {
   //#endregion
 
   //#region Interactivity handlers
-  async function handleSearch(provider: MetadataProvider) {
+  async function handleSearch(provider: string) {
     setLoading(true);
     setError(null);
 
@@ -38,10 +44,11 @@ export default function AlbumArtSearchPanel(props: AlbumArtSearchPanelProps) {
       setLoading(false);
       return;
     }
-    const searchQuery =
-      provider === MetadataProvider.MusicBrainz
-        ? [titleQuery, artistQuery, albumQuery].join("|")
-        : [titleQuery, artistQuery, albumQuery].filter(Boolean).join(" ");
+    const searchQuery = buildMetadataSearchQuery(provider, {
+      title: titleQuery,
+      artist: artistQuery,
+      album: albumQuery,
+    });
 
     try {
       setPictures(await service.searchAlbumArt(searchQuery));
@@ -65,6 +72,7 @@ export default function AlbumArtSearchPanel(props: AlbumArtSearchPanelProps) {
         onAlbumQueryChange={setAlbumQuery}
         provider={selectedProvider}
         onProviderChange={setSelectedProvider}
+        providers={providers}
         onSubmit={() => handleSearch(selectedProvider)}
         showTitle={false}
       />

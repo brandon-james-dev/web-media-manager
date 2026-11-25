@@ -146,12 +146,9 @@ export function SongEditForm(props: SongEditFormProps) {
     // Text fields
     set("comment", online.comment);
 
-    // Lyrics are hand-written or fetched deliberately, so an online result
-    // never replaces text that is already there. Checked against the field
-    // rather than the stored song so an unsaved edit counts as content too.
-    if (getFieldValue("lyrics").trim() === "") {
-      set("lyrics", online.lyrics);
-    }
+    // Lyrics are deliberately excluded: they are hand-written or fetched
+    // through the lyrics dialog, so applying an online metadata result must
+    // not overwrite either the plain or the timed field.
 
     // Album art: search results carry only the thumbnail `url` — download
     // the full-size (1000x1000) image here, at Apply time, not during search.

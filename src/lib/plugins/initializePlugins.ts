@@ -9,7 +9,7 @@ import { registerBuiltinLyricsProviders } from "@/lib/lyrics-providers/registerB
 import { refreshPluginMetadataProviders } from "@/lib/metadata-providers/plugin/refreshPluginMetadataProviders";
 import { registerBuiltinMetadataProviders } from "@/lib/metadata-providers/registerBuiltinMetadataProviders";
 import { refreshPluginSourceStrategies } from "@/lib/sources";
-import { ensureExampleVisualizers } from "./seedExampleVisualizers";
+import { ensureExampleVisualizers } from "@/lib/visualizers/seedExampleVisualizers";
 
 /**
  * Brings the plugin host up after the store providers are registered.

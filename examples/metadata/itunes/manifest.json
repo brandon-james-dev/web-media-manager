@@ -5,6 +5,7 @@
   "kind": "metadata",
   "author": "Web Media Manager",
   "description": "Look up song tags from the iTunes Search API.",
+  "thumbnail": "thumbnail.png",
   "provider": {
     "role": "metadata",
     "id": "itunes-metadata",

@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "author": "Web Media Manager",
   "description": "Read a music library from a WebDAV share over PROPFIND.",
+  "thumbnail": "thumbnail.png",
   "kind": "source",
   "provider": {
     "id": "webdav",

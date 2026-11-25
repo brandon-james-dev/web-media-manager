@@ -1,5 +1,5 @@
 import type { PluginProviderDescriptor } from "./PluginProvider";
-import type { VisualizerRuntime } from "./VisualizerRuntime";
+import type { VisualizerRuntime } from "@/core/visualizers/contracts/VisualizerRuntime";
 
 /**
  * `manifest.json` — the single source of truth for an installed plugin.

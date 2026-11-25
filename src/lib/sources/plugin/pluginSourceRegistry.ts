@@ -1,4 +1,4 @@
-import type { PluginSourceProviderDescriptor } from "@/core/visualizers";
+import type { PluginSourceProviderDescriptor } from "@/core/plugins";
 
 /** One installed plugin's source provider, as the registry holds it. */
 export interface RegisteredPluginSource {

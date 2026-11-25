@@ -1,6 +1,7 @@
 import { getMetadataProviderRegistry } from "@/core/ports";
-import { isPluginMetadataProvider } from "@/core/visualizers";
-import { getVisualizerPluginManager } from "../../visualizers/getPluginManager";
+import { isPluginMetadataProvider } from "@/core/plugins";
+import { getPluginManager } from "@/lib/plugins";
+import { PluginAlbumMetadataService } from "./PluginAlbumMetadataService";
 import { PluginMetadataService } from "./PluginMetadataService";
 
 /** Provider ids this module registered, so a removed plugin is unregistered. */
@@ -20,7 +21,7 @@ const registered = new Set<string>();
  */
 export async function refreshPluginMetadataProviders(): Promise<void> {
   const registry = getMetadataProviderRegistry();
-  const plugins = await getVisualizerPluginManager().list();
+  const plugins = await getPluginManager().list();
   const next = new Set<string>();
 
   for (const plugin of plugins) {
@@ -45,9 +46,12 @@ export async function refreshPluginMetadataProviders(): Promise<void> {
         name: descriptor.name,
         origin: "plugin",
         pluginId: plugin.id,
-        hasAlbumLookup: false,
+        hasAlbumLookup: descriptor.albumSearch !== undefined,
       },
-      () => new PluginMetadataService(descriptor, plugin.id)
+      () => new PluginMetadataService(descriptor, plugin.id),
+      descriptor.albumSearch
+        ? () => new PluginAlbumMetadataService(descriptor, plugin.id)
+        : undefined
     );
     next.add(descriptor.id);
   }

@@ -1,19 +1,31 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Globe } from "lucide-react";
 import { Itunes, Musicbrainz } from "@thesvg/react";
 import { Input } from "../ui/input";
+import { PluginThumbnail } from "../plugin-manager";
 import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
 import { SplitButton } from "../split-button/SplitButton";
 import { useTranslation } from "@/i18n";
+import type { MetadataProviderDescriptor } from "@/core/contracts";
 import type { OnlineSearchQueryFormProps } from "./OnlineSearchQueryFormProps";
 
-const PROVIDER_ICON: Record<MetadataProvider, React.ReactNode> = {
+/** Brand marks for the built-ins; a plugin provider shows its own thumbnail. */
+const PROVIDER_ICON: Record<string, React.ReactNode> = {
   [MetadataProvider.iTunes]: <Itunes variant="mono" className="h-4 w-4" />,
-  [MetadataProvider.MusicBrainz]: <Musicbrainz variant="mono" className="h-4 w-4" />,
+  [MetadataProvider.MusicBrainz]: (
+    <Musicbrainz variant="mono" className="h-4 w-4" />
+  ),
 };
-const PROVIDER_NAME: Record<MetadataProvider, string> = {
-  [MetadataProvider.iTunes]: "iTunes",
-  [MetadataProvider.MusicBrainz]: "MusicBrainz",
-};
+
+function providerIcon(entry: MetadataProviderDescriptor): React.ReactNode {
+  const brand = PROVIDER_ICON[entry.id];
+  if (brand) {
+    return brand;
+  }
+  if (entry.pluginId) {
+    return <PluginThumbnail pluginId={entry.pluginId} className="size-4" />;
+  }
+  return <Globe className="h-4 w-4" />;
+}
 
 /** The title/artist/album query row shared by the song and album lookups. */
 export function OnlineSearchQueryForm(props: OnlineSearchQueryFormProps) {
@@ -26,6 +38,7 @@ export function OnlineSearchQueryForm(props: OnlineSearchQueryFormProps) {
     onAlbumQueryChange,
     provider,
     onProviderChange,
+    providers,
     onSubmit,
     showTitle = true,
   } = props;
@@ -68,21 +81,25 @@ export function OnlineSearchQueryForm(props: OnlineSearchQueryFormProps) {
           dropdownSide="left"
           onPrimaryClick={onSubmit}
           buttonVariant="secondary"
-          buttonType="submit"
-          menuItems={(
-            Object.values(MetadataProvider) as MetadataProvider[]
-          ).map((provider) => ({
+          buttonType="button"
+          menuItems={providers.map((entry) => ({
             label: (
               <div className="flex items-center gap-2">
-                {PROVIDER_ICON[provider]}
-                {PROVIDER_NAME[provider]}
+                {providerIcon(entry)}
+                {entry.name}
               </div>
             ),
-            onClick: () => onProviderChange(provider),
+            onClick: () => onProviderChange(entry.id),
           }))}
           dropdownTriggerContent={
             <>
-              {PROVIDER_ICON[provider]}
+              {providerIcon(
+                providers.find((entry) => entry.id === provider) ?? {
+                  id: provider,
+                  name: provider,
+                  origin: "builtin",
+                }
+              )}
               <ChevronDown />
             </>
           }

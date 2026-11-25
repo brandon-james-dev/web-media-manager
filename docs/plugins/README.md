@@ -14,7 +14,7 @@ the app engineers who add a new plugin kind.
 | 02 | [Lyrics providers](02-lyrics-providers.md) | `kind: "lyrics"`, the `provider.search` descriptor, ranking |
 | 03 | [Music sources](03-music-sources.md) | `kind: "source"`, the `provider.library`/`provider.stream` descriptor, the WebDAV example |
 | 04 | [Visualizers](04-visualizers.md) | `kind: "visualizer"`, runtimes, entry files, shader uniforms |
-| 05 | [Metadata providers](05-metadata-providers.md) | `kind: "metadata"`, the `provider.search` descriptor, the registry, the iTunes example |
+| 05 | [Metadata providers](05-metadata-providers.md) | `kind: "metadata"`, the `provider.search` and `provider.auth` descriptors, the registry, the iTunes, Apple Music and Spotify examples |
 
 ## The contract in one page
 

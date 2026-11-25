@@ -7,7 +7,7 @@ import type {
   PluginSettingDescriptor,
   PluginSettingValue,
   PluginSettingsValues,
-} from "@/core/visualizers";
+} from "@/core/plugins";
 import {
   useInstalledPlugins,
   usePluginSettings,

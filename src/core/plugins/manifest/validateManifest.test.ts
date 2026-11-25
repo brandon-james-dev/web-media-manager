@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { isPluginMetadataProvider } from "@/core/plugins";
+import itunes from "../../../../examples/metadata/itunes/manifest.json";
 import { validatePluginManifest } from "./validateManifest";
 
 const visualizerManifest = {
@@ -308,4 +310,177 @@ describe("validatePluginManifest", () => {
     expect(result.valid).toBe(false);
     expect(codes(result)).toContain("provider-invalid");
   });
+
+  it("accepts literal query parameters, a method and a token exchange", () => {
+    const result = validatePluginManifest(
+      {
+        id: "spotify-metadata",
+        name: "Spotify Metadata",
+        version: "0.1.0",
+        kind: "metadata",
+        provider: {
+          role: "metadata",
+          id: "spotify-metadata",
+          name: "Spotify Metadata",
+          search: {
+            url: "https://api.spotify.com/v1/search",
+            params: { title: "q" },
+            query: { type: "track" },
+            method: "GET",
+            fields: { title: "name", artist: "artists.0.name" },
+          },
+          auth: {
+            url: "https://accounts.spotify.com/api/token",
+            method: "POST",
+            body: "grant_type=client_credentials",
+            tokenPath: "access_token",
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(true);
+    const provider = result.manifest?.provider;
+    expect(
+      provider && isPluginMetadataProvider(provider)
+        ? provider.search.query
+        : undefined
+    ).toEqual({ type: "track" });
+    expect(
+      provider && isPluginMetadataProvider(provider)
+        ? provider.auth?.tokenPath
+        : undefined
+    ).toBe("access_token");
+  });
+
+  it("accepts a per-record detail request and keeps its field map", () => {
+    const result = validatePluginManifest(
+      {
+        id: "spotify-metadata",
+        name: "Spotify",
+        version: "0.1.0",
+        kind: "metadata",
+        provider: {
+          role: "metadata",
+          id: "spotify-metadata",
+          name: "Spotify",
+          search: {
+            url: "https://api.spotify.com/v1/search",
+            params: { title: "q" },
+            query: { type: "track" },
+            fields: { title: "name", artist: "artists.0.name" },
+            detail: {
+              url: "https://api.spotify.com/v1/artists/{artists.0.id}",
+              fields: { genre: "genres.0" },
+            },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(true);
+    const provider = result.manifest?.provider;
+    expect(
+      provider && isPluginMetadataProvider(provider)
+        ? provider.search.detail
+        : undefined
+    ).toEqual({
+      url: "https://api.spotify.com/v1/artists/{artists.0.id}",
+      fields: { genre: "genres.0" },
+    });
+  });
+
+  it("rejects a detail request over plain http", () => {
+    const result = validatePluginManifest(
+      {
+        id: "spotify-metadata",
+        name: "Spotify",
+        version: "0.1.0",
+        kind: "metadata",
+        provider: {
+          role: "metadata",
+          id: "spotify-metadata",
+          name: "Spotify",
+          search: {
+            url: "https://api.spotify.com/v1/search",
+            fields: { title: "name", artist: "artistName" },
+            detail: {
+              url: "http://api.spotify.com/v1/artists/{id}",
+              fields: { genre: "genres.0" },
+            },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
+
+  it("rejects a token exchange without a token path", () => {
+    const result = validatePluginManifest(
+      {
+        id: "spotify-metadata",
+        name: "Spotify Metadata",
+        version: "0.1.0",
+        kind: "metadata",
+        provider: {
+          role: "metadata",
+          id: "spotify-metadata",
+          name: "Spotify Metadata",
+          search: {
+            url: "https://api.spotify.com/v1/search",
+            fields: { title: "name", artist: "artistName" },
+          },
+          auth: { url: "https://accounts.spotify.com/api/token" },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
+
+  it("rejects a token exchange over plain http", () => {
+    const result = validatePluginManifest(
+      {
+        id: "spotify-metadata",
+        name: "Spotify Metadata",
+        version: "0.1.0",
+        kind: "metadata",
+        provider: {
+          role: "metadata",
+          id: "spotify-metadata",
+          name: "Spotify Metadata",
+          search: {
+            url: "https://api.spotify.com/v1/search",
+            fields: { title: "name", artist: "artistName" },
+          },
+          auth: {
+            url: "http://accounts.spotify.com/api/token",
+            tokenPath: "access_token",
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
+
+  it.each([["itunes", itunes]])(
+    "accepts the shipped %s metadata example",
+    (_name, manifest) => {
+      const result = validatePluginManifest(manifest, []);
+
+      expect(result.issues.filter((i) => i.severity === "error")).toEqual([]);
+      expect(result.valid).toBe(true);
+      expect(result.manifest?.kind).toBe("metadata");
+    }
+  );
 });

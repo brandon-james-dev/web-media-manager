@@ -1,9 +1,7 @@
 export { CanvasHost } from "./CanvasHost";
 export { ShaderHost } from "./ShaderHost";
 export { createRuntimeHost } from "./createRuntimeHost";
-export { getVisualizerPluginManager } from "./getPluginManager";
 export { ensureExampleVisualizers } from "./seedExampleVisualizers";
-export { initializePlugins } from "./initializePlugins";
 export {
   getVisualizerPalette,
   setVisualizerPalette,

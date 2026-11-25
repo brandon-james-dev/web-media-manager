@@ -2,7 +2,7 @@ import type { PackageFileStore } from "@/core/ports/packageFiles";
 import type {
   InstalledPlugin,
   PluginSettingsRecord,
-} from "@/core/visualizers/contracts";
+} from "@/core/plugins/contracts";
 
 /**
  * Visualizer plugin store port.

@@ -6,7 +6,7 @@ import type { InstalledTheme } from "@/core/ports/themes";
 import type {
   InstalledPlugin,
   PluginSettingsRecord,
-} from "@/core/visualizers/contracts";
+} from "@/core/plugins/contracts";
 import type { OfflineAudioRecord } from "@/lib/offline/offlineAudioStore";
 import type { HiddenTrackRecord } from "@/lib/hidden-songs/hiddenTrackStore";
 import type {

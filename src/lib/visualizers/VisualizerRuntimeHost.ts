@@ -1,7 +1,7 @@
+import type { VisualizerPluginManifest } from "@/core/plugins";
 import type {
   AnalysisFrame,
   VisualizationApi,
-  VisualizerPluginManifest,
   VisualizerRuntime,
 } from "@/core/visualizers";
 

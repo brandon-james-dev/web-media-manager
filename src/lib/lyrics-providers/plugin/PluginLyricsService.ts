@@ -3,7 +3,7 @@ import type {
   PluginLyricsFieldMap,
   PluginLyricsProviderDescriptor,
   PluginLyricsQueryField,
-} from "@/core/visualizers";
+} from "@/core/plugins";
 import type {
   ILyricsLookupOptions,
   ILyricsQuery,

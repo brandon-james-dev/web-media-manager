@@ -4,11 +4,11 @@ import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models/Song";
 import type { MusicSourceCapabilities } from "@/core/contracts";
 import { sourceUri } from "@/core/contracts/sources";
-import type { PluginSourceProviderDescriptor } from "@/core/visualizers";
+import type { PluginSourceProviderDescriptor } from "@/core/plugins";
 import { getJobService, type WorkerProgress } from "@/core/jobs";
 import { getSourcesStore } from "@/core/ports";
 import { createEncryptedSecretStore } from "@/lib/secrets/encryptedSecretStore";
-import { expandHeaders } from "@/lib/plugins";
+import { expandHeaders } from "@/lib/plugins/expandTemplate";
 import type {
   IJobHandle,
   IMusicSourceStrategy,

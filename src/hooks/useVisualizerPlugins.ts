@@ -5,8 +5,8 @@ import type {
   PluginKind,
   PluginSettingDescriptor,
   PluginSettingsValues,
-} from "@/core/visualizers";
-import { getVisualizerPluginManager } from "@/lib/visualizers";
+} from "@/core/plugins";
+import { getPluginManager } from "@/lib/plugins";
 import { refreshPluginLyricsProviders } from "@/lib/lyrics-providers/plugin/refreshPluginLyricsProviders";
 import { refreshPluginMetadataProviders } from "@/lib/metadata-providers/plugin/refreshPluginMetadataProviders";
 import { refreshPluginSourceStrategies, removeSourcesForPlugin } from "@/lib/sources";
@@ -47,7 +47,7 @@ function secretSettingKeys(
 export function useInstalledPlugins() {
   return useQuery({
     queryKey: visualizerKeys.list(),
-    queryFn: () => getVisualizerPluginManager().list(),
+    queryFn: () => getPluginManager().list(),
   });
 }
 
@@ -55,7 +55,7 @@ export function useInstalledPlugins() {
 export function useLoadedPlugin(pluginId: string | null) {
   return useQuery({
     queryKey: visualizerKeys.detail(pluginId ?? "none"),
-    queryFn: () => getVisualizerPluginManager().load(pluginId as string),
+    queryFn: () => getPluginManager().load(pluginId as string),
     enabled: pluginId !== null,
     staleTime: Infinity,
   });
@@ -64,7 +64,7 @@ export function useLoadedPlugin(pluginId: string | null) {
 export function usePluginSettings(pluginId: string | null) {
   return useQuery({
     queryKey: visualizerKeys.settings(pluginId ?? "none"),
-    queryFn: () => getVisualizerPluginManager().getSettings(pluginId as string),
+    queryFn: () => getPluginManager().getSettings(pluginId as string),
     enabled: pluginId !== null,
   });
 }
@@ -78,7 +78,7 @@ export function useInstallPlugin() {
       replace?: boolean;
       expectKind?: PluginKind;
     }) =>
-      getVisualizerPluginManager().installFromZip(variables.file, {
+      getPluginManager().installFromZip(variables.file, {
         replace: variables.replace,
         expectKind: variables.expectKind,
       }),
@@ -99,7 +99,7 @@ export function useRemovePlugin() {
 
   return useMutation({
     mutationFn: async (pluginId: string) => {
-      const manager = getVisualizerPluginManager();
+      const manager = getPluginManager();
       const plugin = await manager.get(pluginId);
       const secretKeys = secretSettingKeys(plugin?.manifest.settings);
       await manager.remove(pluginId);
@@ -133,7 +133,7 @@ export function useSavePluginSettings(pluginId: string | null) {
   // otherwise overwrite a newer value.
   return useMutation({
     mutationFn: async (values: PluginSettingsValues) => {
-      const manager = getVisualizerPluginManager();
+      const manager = getPluginManager();
       const id = pluginId as string;
       const plugin = await manager.get(id);
       const plain: PluginSettingsValues = { ...values };
@@ -158,7 +158,7 @@ export function useResetPluginSettings(pluginId: string | null) {
 
   return useMutation({
     mutationFn: async () => {
-      const manager = getVisualizerPluginManager();
+      const manager = getPluginManager();
       const id = pluginId as string;
       const plugin = await manager.get(id);
       await clearPluginSettingSecrets(id, secretSettingKeys(plugin?.manifest.settings));
@@ -177,7 +177,7 @@ export function useResetPluginSettings(pluginId: string | null) {
 export function usePluginThumbnail(pluginId: string | undefined) {
   const { data } = useQuery({
     queryKey: visualizerKeys.thumbnail(pluginId ?? "none"),
-    queryFn: () => getVisualizerPluginManager().getThumbnail(pluginId as string),
+    queryFn: () => getPluginManager().getThumbnail(pluginId as string),
     enabled: pluginId !== undefined,
     staleTime: Infinity,
   });

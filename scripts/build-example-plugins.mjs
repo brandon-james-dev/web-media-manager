@@ -28,6 +28,9 @@ for (const id of METADATA_PLUGINS) {
     "manifest.json": new Uint8Array(
       readFileSync(join(directory, "manifest.json"))
     ),
+    "thumbnail.png": new Uint8Array(
+      readFileSync(join(directory, "thumbnail.png"))
+    ),
   };
 
   const archive = zipSync(entries);
@@ -41,6 +44,9 @@ for (const id of SOURCE_PLUGINS) {
   const entries = {
     "manifest.json": new Uint8Array(
       readFileSync(join(directory, "manifest.json"))
+    ),
+    "thumbnail.png": new Uint8Array(
+      readFileSync(join(directory, "thumbnail.png"))
     ),
   };
 

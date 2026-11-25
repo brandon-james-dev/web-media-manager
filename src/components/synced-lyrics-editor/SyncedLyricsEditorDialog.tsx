@@ -90,6 +90,26 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
   const [previewMode, setPreviewMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The parent keys this component by song and open state, so a remount resets
+  // the form. Loading a result into the timed tab does not remount it, though:
+  // the dialog stays open and only the props change. Without this, the editor
+  // keeps the lines it parsed on mount and shows "no timed lines" for lyrics
+  // that were just loaded. Only an incoming value that differs from the current
+  // lines replaces them, so the editor's own save does not reset the form.
+  const lastIncomingRef = useRef(syncedLyrics ?? song.syncedLyrics ?? "");
+  useEffect(() => {
+    const incoming = syncedLyrics ?? song.syncedLyrics ?? "";
+    if (incoming === lastIncomingRef.current) return;
+    lastIncomingRef.current = incoming;
+    setLines((current) =>
+      serializeLrc(current) === incoming ? current : parseLrc(incoming)
+    );
+    setStaticText(lyrics && lyrics.trim() !== "" ? lyrics : (song.lyrics ?? ""));
+    setSelectedIndices([]);
+    setSelectedPlacementKeys([]);
+    setAddedTexts(new Set());
+  }, [syncedLyrics, song.syncedLyrics, lyrics, song.lyrics]);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const staticRef = useRef<HTMLDivElement>(null);
   const placementListRef = useRef<HTMLDivElement>(null);

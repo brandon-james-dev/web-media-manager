@@ -2,10 +2,8 @@ import { Maximize, Minimize, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "cn";
 
-import type {
-  PluginSettingsValues,
-  VisualizationApi,
-} from "@/core/visualizers";
+import type { PluginSettingsValues } from "@/core/plugins";
+import type { VisualizationApi } from "@/core/visualizers";
 import {
   useAnalysisFrameReader,
   useLoadedPlugin,

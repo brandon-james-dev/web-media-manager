@@ -1,5 +1,5 @@
 import type { AnalysisFrame } from "./AnalysisFrame";
-import type { PluginSettingsValues } from "./PluginManifest";
+import type { PluginSettingsValues } from "@/core/plugins/contracts/PluginManifest";
 
 export interface VisualizationSize {
   /** CSS pixels. */

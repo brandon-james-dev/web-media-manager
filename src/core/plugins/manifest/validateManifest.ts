@@ -5,10 +5,16 @@ import {
   type VisualizerPluginManifest,
 } from "../contracts/PluginManifest";
 import type {
+  PluginAlbumFieldMap,
+  PluginAlbumSearchDescriptor,
+  PluginAlbumTrackFieldMap,
   PluginLyricsFieldMap,
   PluginLyricsProviderDescriptor,
   PluginLyricsQueryField,
   PluginMetadataFieldMap,
+  PluginMetadataAuthDescriptor,
+  PluginMetadataDetailDescriptor,
+  PluginMetadataDetailFieldMap,
   PluginMetadataProviderDescriptor,
   PluginMetadataQueryField,
   PluginProviderDescriptor,
@@ -20,7 +26,7 @@ import {
   getRuntimeDescriptor,
   isVisualizerRuntime,
   type VisualizerRuntime,
-} from "../contracts/VisualizerRuntime";
+} from "@/core/visualizers/contracts/VisualizerRuntime";
 
 /**
  * Manifest validation.
@@ -133,6 +139,8 @@ const METADATA_FIELD_KEYS: readonly (keyof PluginMetadataFieldMap)[] = [
   "date",
   "track",
   "discNumber",
+  "totalTracks",
+  "totalDiscs",
   "duration",
   "isrc",
   "label",
@@ -144,6 +152,23 @@ const SOURCE_REQUIRED_FIELDS: readonly (keyof PluginSourceFieldMap)[] = [
   "id",
   "title",
   "artist",
+];
+
+const ALBUM_FIELD_KEYS: readonly (keyof PluginAlbumFieldMap)[] = [
+  "id",
+  "title",
+  "artist",
+  "albumArtist",
+  "year",
+  "genre",
+  "trackCount",
+  "coverArtUrl",
+];
+
+const ALBUM_TRACK_FIELD_KEYS: readonly (keyof PluginAlbumTrackFieldMap)[] = [
+  "title",
+  "track",
+  "discNumber",
 ];
 
 /** True when a URL is absolute https, or a template over `{baseUrl}`. */
@@ -859,6 +884,338 @@ function validateLyricsProvider(
   };
 }
 
+/** Validate the optional album-lookup block on a metadata provider. */
+function validateAlbumSearch(
+  raw: unknown,
+  issues: ManifestIssue[]
+): PluginAlbumSearchDescriptor | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!isRecord(raw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.albumSearch",
+      message: "`provider.albumSearch` must be an object.",
+    });
+    return undefined;
+  }
+
+  const url = readString(raw, "url");
+  if (!url || !url.startsWith("https://")) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.albumSearch.url",
+      message: "`provider.albumSearch.url` must be an absolute https:// URL.",
+    });
+  }
+
+  const params: Partial<Record<PluginMetadataQueryField, string>> = {};
+  if (raw.params !== undefined) {
+    if (!isRecord(raw.params)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.albumSearch.params",
+        message: "`provider.albumSearch.params` must be an object.",
+      });
+    } else {
+      for (const [field, value] of Object.entries(raw.params)) {
+        if (!METADATA_QUERY_FIELDS.includes(field as PluginMetadataQueryField)) {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.albumSearch.params.${field}`,
+            message: `Unknown query field "${field}"; expected ${METADATA_QUERY_FIELDS.join(", ")}.`,
+          });
+        } else if (typeof value !== "string" || !value.trim()) {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.albumSearch.params.${field}`,
+            message: "Each parameter name must be a non-empty string.",
+          });
+        } else {
+          params[field as PluginMetadataQueryField] = value.trim();
+        }
+      }
+    }
+  }
+
+  const query = readStringRecord(raw.query, "provider.albumSearch.query", issues);
+  const headers = readStringRecord(
+    raw.headers,
+    "provider.albumSearch.headers",
+    issues
+  );
+
+  let method: "GET" | "POST" | undefined;
+  if (raw.method !== undefined) {
+    if (raw.method !== "GET" && raw.method !== "POST") {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.albumSearch.method",
+        message: "`provider.albumSearch.method` must be GET or POST.",
+      });
+    } else {
+      method = raw.method;
+    }
+  }
+
+  const body = readString(raw, "body");
+  const resultsPath = readString(raw, "resultsPath");
+
+  const fieldsRaw = raw.fields;
+  if (!isRecord(fieldsRaw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.albumSearch.fields",
+      message: "`provider.albumSearch.fields` must be an object.",
+    });
+    return undefined;
+  }
+
+  const fields: Partial<PluginAlbumFieldMap> = {};
+  for (const key of ALBUM_FIELD_KEYS) {
+    const value = fieldsRaw[key];
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value !== "string" || !value.trim()) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: `provider.albumSearch.fields.${key}`,
+        message: "Each mapped field must be a non-empty JSON field name.",
+      });
+    } else {
+      fields[key] = value.trim();
+    }
+  }
+
+  if (!fields.title) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.albumSearch.fields.title",
+      message: "`provider.albumSearch.fields.title` is required.",
+    });
+  }
+  if (!fields.id) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.albumSearch.fields.id",
+      message: "`provider.albumSearch.fields.id` is required.",
+    });
+  }
+
+  let detail: PluginAlbumSearchDescriptor["detail"];
+  if (raw.detail !== undefined) {
+    if (!isRecord(raw.detail)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.albumSearch.detail",
+        message: "`provider.albumSearch.detail` must be an object.",
+      });
+    } else {
+      const detailUrl = readString(raw.detail, "url");
+      if (!detailUrl || !detailUrl.startsWith("https://")) {
+        issues.push({
+          code: "provider-invalid",
+          severity: "error",
+          field: "provider.albumSearch.detail.url",
+          message:
+            "`provider.albumSearch.detail.url` must be an absolute https:// URL.",
+        });
+      }
+      const detailFieldsRaw = raw.detail.fields;
+      if (!isRecord(detailFieldsRaw)) {
+        issues.push({
+          code: "provider-invalid",
+          severity: "error",
+          field: "provider.albumSearch.detail.fields",
+          message: "`provider.albumSearch.detail.fields` must be an object.",
+        });
+      } else {
+        const detailFields: Record<string, string> = {};
+        for (const [key, value] of Object.entries(detailFieldsRaw)) {
+          if (typeof value !== "string" || !value.trim()) {
+            issues.push({
+              code: "provider-invalid",
+              severity: "error",
+              field: `provider.albumSearch.detail.fields.${key}`,
+              message: `\`provider.albumSearch.detail.fields.${key}\` must be a non-empty string.`,
+            });
+            continue;
+          }
+          detailFields[key] = value.trim();
+        }
+        detail = {
+          url: detailUrl ?? "",
+          fields: detailFields as NonNullable<
+            PluginAlbumSearchDescriptor["detail"]
+          >["fields"],
+        };
+      }
+    }
+  }
+
+  let tracks: PluginAlbumSearchDescriptor["tracks"];  if (raw.tracks !== undefined) {
+    if (!isRecord(raw.tracks)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.albumSearch.tracks",
+        message: "`provider.albumSearch.tracks` must be an object.",
+      });
+    } else {
+      const trackUrl = readString(raw.tracks, "url");
+      if (!trackUrl || !trackUrl.startsWith("https://")) {
+        issues.push({
+          code: "provider-invalid",
+          severity: "error",
+          field: "provider.albumSearch.tracks.url",
+          message:
+            "`provider.albumSearch.tracks.url` must be an absolute https:// URL.",
+        });
+      }
+
+      const trackFieldsRaw = raw.tracks.fields;
+      const trackFields: Partial<PluginAlbumTrackFieldMap> = {};
+      if (!isRecord(trackFieldsRaw)) {
+        issues.push({
+          code: "provider-invalid",
+          severity: "error",
+          field: "provider.albumSearch.tracks.fields",
+          message: "`provider.albumSearch.tracks.fields` must be an object.",
+        });
+      } else {
+        for (const key of ALBUM_TRACK_FIELD_KEYS) {
+          const value = trackFieldsRaw[key];
+          if (value === undefined) {
+            continue;
+          }
+          if (typeof value !== "string" || !value.trim()) {
+            issues.push({
+              code: "provider-invalid",
+              severity: "error",
+              field: `provider.albumSearch.tracks.fields.${key}`,
+              message: "Each mapped field must be a non-empty JSON field name.",
+            });
+          } else {
+            trackFields[key] = value.trim();
+          }
+        }
+        if (!trackFields.title) {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: "provider.albumSearch.tracks.fields.title",
+            message: "`provider.albumSearch.tracks.fields.title` is required.",
+          });
+        }
+      }
+
+      if (trackUrl && trackFields.title) {
+        tracks = {
+          url: trackUrl,
+          ...(Object.keys(
+            readStringRecord(
+              raw.tracks.query,
+              "provider.albumSearch.tracks.query",
+              issues
+            )
+          ).length
+            ? {
+                query: readStringRecord(
+                  raw.tracks.query,
+                  "provider.albumSearch.tracks.query",
+                  issues
+                ),
+              }
+            : {}),
+          ...(Object.keys(
+            readStringRecord(
+              raw.tracks.headers,
+              "provider.albumSearch.tracks.headers",
+              issues
+            )
+          ).length
+            ? {
+                headers: readStringRecord(
+                  raw.tracks.headers,
+                  "provider.albumSearch.tracks.headers",
+                  issues
+                ),
+              }
+            : {}),
+          ...(readString(raw.tracks, "resultsPath")
+            ? { resultsPath: readString(raw.tracks, "resultsPath") as string }
+            : {}),
+          fields: trackFields as PluginAlbumTrackFieldMap,
+        };
+      }
+    }
+  }
+
+  if (!url || !fields.title || !fields.id) {
+    return undefined;
+  }
+
+  return {
+    url,
+    ...(Object.keys(params).length ? { params } : {}),
+    ...(Object.keys(query).length ? { query } : {}),
+    ...(method ? { method } : {}),
+    ...(body ? { body } : {}),
+    ...(Object.keys(headers).length ? { headers } : {}),
+    ...(resultsPath ? { resultsPath } : {}),
+    fields: fields as PluginAlbumFieldMap,
+    ...(detail ? { detail } : {}),
+    ...(tracks ? { tracks } : {}),
+  };
+}
+
+/** Read an optional `Record<string, string>` block, reporting bad values. */
+function readStringRecord(
+  raw: unknown,
+  field: string,
+  issues: ManifestIssue[]
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (raw === undefined) {
+    return result;
+  }
+  if (!isRecord(raw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field,
+      message: `\`${field}\` must be an object.`,
+    });
+    return result;
+  }
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value !== "string") {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: `${field}.${key}`,
+        message: "Each value must be a string.",
+      });
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 function validateMetadataProvider(
   raw: Record<string, unknown>,
   issues: ManifestIssue[]
@@ -939,6 +1296,47 @@ function validateMetadataProvider(
     }
   }
 
+  const query: Record<string, string> = {};
+  if (search.query !== undefined) {
+    if (!isRecord(search.query)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.search.query",
+        message: "`provider.search.query` must be an object.",
+      });
+    } else {
+      for (const [key, value] of Object.entries(search.query)) {
+        if (typeof value !== "string") {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.search.query.${key}`,
+            message: "Each literal query value must be a string.",
+          });
+        } else {
+          query[key] = value;
+        }
+      }
+    }
+  }
+
+  let searchMethod: "GET" | "POST" | undefined;
+  if (search.method !== undefined) {
+    if (search.method !== "GET" && search.method !== "POST") {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.search.method",
+        message: "`provider.search.method` must be GET or POST.",
+      });
+    } else {
+      searchMethod = search.method;
+    }
+  }
+
+  const searchBody = readString(search, "body");
+
   const headers: Record<string, string> = {};
   if (search.headers !== undefined) {
     if (!isRecord(search.headers)) {
@@ -1012,6 +1410,10 @@ function validateMetadataProvider(
     });
   }
 
+  const auth = validateMetadataAuth(raw.auth, issues);
+  const albumSearch = validateAlbumSearch(raw.albumSearch, issues);
+  const detail = validateMetadataDetail(search.detail, issues);
+
   if (!id || !name || !url || !fields.title || !fields.artist) {
     return undefined;
   }
@@ -1021,13 +1423,188 @@ function validateMetadataProvider(
     id,
     name,
     ...(description ? { description } : {}),
+    ...(albumSearch ? { albumSearch } : {}),
     search: {
       url,
       ...(Object.keys(params).length ? { params } : {}),
+      ...(Object.keys(query).length ? { query } : {}),
+      ...(searchMethod ? { method: searchMethod } : {}),
+      ...(searchBody ? { body: searchBody } : {}),
       ...(Object.keys(headers).length ? { headers } : {}),
       ...(resultsPath ? { resultsPath } : {}),
       fields: fields as PluginMetadataFieldMap,
+      ...(detail ? { detail } : {}),
     },
+    ...(auth ? { auth } : {}),
+  };
+}
+
+/** Validate the optional per-record detail request on a metadata provider. */
+function validateMetadataDetail(
+  raw: unknown,
+  issues: ManifestIssue[]
+): PluginMetadataDetailDescriptor | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!isRecord(raw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.detail",
+      message: "`provider.search.detail` must be an object.",
+    });
+    return undefined;
+  }
+
+  const url = readString(raw, "url");
+  if (!url || !url.startsWith("https://")) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.detail.url",
+      message: "`provider.search.detail.url` must be an absolute https:// URL.",
+    });
+  }
+
+  const headers: Record<string, string> = {};
+  if (raw.headers !== undefined) {
+    if (!isRecord(raw.headers)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.search.detail.headers",
+        message: "`provider.search.detail.headers` must be an object.",
+      });
+    } else {
+      for (const [header, value] of Object.entries(raw.headers)) {
+        if (typeof value !== "string") {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.search.detail.headers.${header}`,
+            message: "Each header value must be a string.",
+          });
+        } else {
+          headers[header] = value;
+        }
+      }
+    }
+  }
+
+  const fieldsRaw = raw.fields;
+  if (!isRecord(fieldsRaw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.detail.fields",
+      message: "`provider.search.detail.fields` must be an object.",
+    });
+    return undefined;
+  }
+
+  const fields: Partial<PluginMetadataDetailFieldMap> = {};
+  for (const key of METADATA_FIELD_KEYS) {
+    if (key === "title" || key === "artist") {
+      continue;
+    }
+    const value = fieldsRaw[key];
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value !== "string" || !value.trim()) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: `provider.search.detail.fields.${key}`,
+        message: "Each mapped field must be a non-empty JSON field name.",
+      });
+    } else {
+      fields[key] = value.trim();
+    }
+  }
+
+  if (!url) {
+    return undefined;
+  }
+
+  return {
+    url,
+    ...(Object.keys(headers).length ? { headers } : {}),
+    fields,
+  };
+}
+
+/** Validate the optional token-exchange block on a metadata provider. */
+function validateMetadataAuth(
+  raw: unknown,
+  issues: ManifestIssue[]
+): PluginMetadataAuthDescriptor | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!isRecord(raw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.auth",
+      message: "`provider.auth` must be an object.",
+    });
+    return undefined;
+  }
+
+  const url = readString(raw, "url");
+  if (!url || !url.startsWith("https://")) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.auth.url",
+      message: "`provider.auth.url` must be an absolute https:// URL.",
+    });
+  }
+
+  let method: "GET" | "POST" | undefined;
+  if (raw.method !== undefined) {
+    if (raw.method !== "GET" && raw.method !== "POST") {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.auth.method",
+        message: "`provider.auth.method` must be GET or POST.",
+      });
+    } else {
+      method = raw.method;
+    }
+  }
+
+  const headers = readHeaders(raw.headers, "provider.auth.headers", issues);
+  const body = readString(raw, "body");
+
+  const tokenPath = readString(raw, "tokenPath");
+  if (!tokenPath) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.auth.tokenPath",
+      message: "`provider.auth.tokenPath` is required.",
+    });
+  }
+
+  const header = readString(raw, "header");
+  const prefix = readString(raw, "prefix");
+
+  if (!url || !tokenPath) {
+    return undefined;
+  }
+
+  return {
+    url,
+    ...(method ? { method } : {}),
+    ...(headers ? { headers } : {}),
+    ...(body ? { body } : {}),
+    tokenPath,
+    ...(header ? { header } : {}),
+    ...(prefix !== undefined ? { prefix } : {}),
   };
 }
 

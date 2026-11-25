@@ -1,6 +1,6 @@
 import type { MusicSource } from "@/models";
 import type { RemoteSourceConfig } from "@/core/contracts";
-import type { PluginSourceProviderDescriptor } from "@/core/visualizers";
+import type { PluginSourceProviderDescriptor } from "@/core/plugins";
 import { allMusicSourceStrategies, musicSourceStrategies } from ".";
 import { getPluginSourceProvider } from "./plugin/pluginSourceRegistry";
 import { PluginSourceStrategy } from "./plugin/PluginSourceStrategy";

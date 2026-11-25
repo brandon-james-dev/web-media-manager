@@ -3,7 +3,7 @@ import type { VisualizerPluginStore } from "@/core/ports/visualizers";
 import type {
   InstalledPlugin,
   PluginSettingsRecord,
-} from "@/core/visualizers/contracts";
+} from "@/core/plugins/contracts";
 import { DexiePackageFileStore } from "./DexiePackageFileStore";
 import { getWmmMusicDb } from "./WmmMusicDb";
 

@@ -1,5 +1,5 @@
-import { isPluginSourceProvider } from "@/core/visualizers";
-import { getVisualizerPluginManager } from "../../visualizers/getPluginManager";
+import { isPluginSourceProvider } from "@/core/plugins";
+import { getPluginManager } from "@/lib/plugins/getPluginManager";
 import {
   setPluginSourceProviders,
   type RegisteredPluginSource,
@@ -17,7 +17,7 @@ import {
  * ```
  */
 export async function refreshPluginSourceStrategies(): Promise<void> {
-  const plugins = await getVisualizerPluginManager().list();
+  const plugins = await getPluginManager().list();
   const next: RegisteredPluginSource[] = [];
 
   for (const plugin of plugins) {

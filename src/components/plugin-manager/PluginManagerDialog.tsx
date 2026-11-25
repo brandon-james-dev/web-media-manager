@@ -11,11 +11,11 @@ import { cn } from "cn";
 
 import {
   PluginInstallError,
-  getRuntimeDescriptor,
   type InstallPluginResult,
   type ManifestIssue,
   type PluginKind,
-} from "@/core/visualizers";
+} from "@/core/plugins";
+import { getRuntimeDescriptor } from "@/core/visualizers";
 import {
   useInstallPlugin,
   useInstalledPlugins,
@@ -45,6 +45,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { VisualizerSelector } from "@/components/visualizer";
+import { PluginThumbnail } from "./PluginThumbnail";
 import type { PluginManagerDialogProps } from "./PluginManagerDialogProps";
 
 /** Dialog title, summary, submit and remove label per plugin kind. */
@@ -334,6 +335,7 @@ export function PluginManagerDialog({
                         )}
                         onClick={() => setSelectedId(plugin.id)}
                       >
+                        <PluginThumbnail pluginId={plugin.id} />
                         <span className="min-w-0 flex-1 truncate">
                           {plugin.name}
                         </span>

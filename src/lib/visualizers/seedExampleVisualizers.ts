@@ -1,6 +1,6 @@
 import { safeStorageGet, safeStorageSet } from "@/lib/persistence/browser/safeStorage";
 import { wmmBus } from "@/events";
-import { getVisualizerPluginManager } from "./getPluginManager";
+import { getPluginManager } from "@/lib/plugins";
 
 const SEEDED_KEY = "wmm.visualizer.exampleSeeded.aurora";
 const LEGACY_SEEDED_KEY = "wmm.visualizer.exampleSeeded";
@@ -21,7 +21,7 @@ const EXAMPLE_PLUGIN_VERSION = "0.1.1";
  * it is removed here when the legacy seed flag proves we installed it.
  */
 export async function ensureExampleVisualizers(): Promise<void> {
-  const manager = getVisualizerPluginManager();
+  const manager = getPluginManager();
 
   if (safeStorageGet(LEGACY_SEEDED_KEY)) {
     const installed = await manager.list();

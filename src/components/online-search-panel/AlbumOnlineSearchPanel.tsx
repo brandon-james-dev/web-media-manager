@@ -8,6 +8,8 @@ import type {
 } from "@/lib/metadata-providers/online/IOnlineAlbumMetadata";
 import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
 import { getMetadataProviderRegistry } from "@/core/ports";
+import { useMetadataProviderSelection, useMetadataProviders } from "@/hooks";
+import { buildMetadataSearchQuery } from "@/lib/metadata-providers/online/buildMetadataSearchQuery";
 import { useTranslation } from "@/i18n";
 import type { AlbumOnlineSearchPanelProps } from "./AlbumOnlineSearchPanelProps";
 import { OnlineSearchQueryForm } from "./OnlineSearchQueryForm";
@@ -43,7 +45,13 @@ export default function AlbumOnlineSearchPanel(
   const [titleQuery, setTitleQuery] = useState("");
   const [artistQuery, setArtistQuery] = useState(album.artist);
   const [albumQuery, setAlbumQuery] = useState(album.title);
-  const [selectedProvider, setSelectedProvider] = useState<MetadataProvider>(
+  // An album lookup needs a provider that can resolve a release, so a
+  // song-search-only plugin stays out of this picker.
+  const providers = useMetadataProviders().filter(
+    (entry) => entry.hasAlbumLookup
+  );
+  const [selectedProvider, setSelectedProvider] = useMetadataProviderSelection(
+    providers,
     MetadataProvider.iTunes
   );
   const [loading, setLoading] = useState(false);
@@ -59,7 +67,7 @@ export default function AlbumOnlineSearchPanel(
   //#endregion
 
   //#region Interactivity handlers
-  async function handleSearch(provider: MetadataProvider) {
+  async function handleSearch(provider: string) {
     setLoading(true);
     setError(null);
 
@@ -69,13 +77,11 @@ export default function AlbumOnlineSearchPanel(
       setLoading(false);
       return;
     }
-    // Same provider-specific query shape as the song lookup: MusicBrainz
-    // builds a scoped Lucene query from the structured fields, iTunes takes
-    // a plain full-text concatenation.
-    const searchQuery =
-      provider === MetadataProvider.MusicBrainz
-        ? [titleQuery, artistQuery, albumQuery].join("|")
-        : [titleQuery, artistQuery, albumQuery].filter(Boolean).join(" ");
+    const searchQuery = buildMetadataSearchQuery(provider, {
+      title: titleQuery,
+      artist: artistQuery,
+      album: albumQuery,
+    });
 
     try {
       const res = await service.searchAlbums(searchQuery);
@@ -166,6 +172,7 @@ export default function AlbumOnlineSearchPanel(
         onAlbumQueryChange={setAlbumQuery}
         provider={selectedProvider}
         onProviderChange={setSelectedProvider}
+        providers={providers}
         onSubmit={() => handleSearch(selectedProvider)}
         showTitle={false}
       />
@@ -220,7 +227,7 @@ export default function AlbumOnlineSearchPanel(
 
               {selected && (
                 <div className="pt-2">
-                  <div className="sticky top-0 z-raised flex items-center justify-between gap-3 py-1.5 border-b">
+                  <div className="flex items-center justify-between gap-3 py-1.5 border-b">
                     <div className="flex items-center gap-2 text-sm">
                       <Checkbox
                         checked={applyMetadata}

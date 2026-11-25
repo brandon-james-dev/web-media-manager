@@ -1,43 +1,21 @@
 import type { MetadataResult } from "@/core/contracts";
 import type {
+  PluginMetadataDetailFieldMap,
   PluginMetadataFieldMap,
   PluginMetadataProviderDescriptor,
   PluginMetadataQueryField,
-} from "@/core/visualizers";
-import { expandHeaders } from "@/lib/plugins";
-import { getPluginSettingSecret } from "@/lib/secrets/pluginSettingSecrets";
-import { getVisualizerPluginManager } from "../../visualizers/getPluginManager";
+} from "@/core/plugins";
+import { expandHeaders, expandTemplate } from "@/lib/plugins";
+import { notification$ } from "@/events/notification-events";
 import type { IOnlineMetadataService } from "../online/IOnlineMetadataService";
-
-/** Reads a dot path out of a parsed JSON value. */
-function readPath(record: unknown, path: string): unknown {
-  let current: unknown = record;
-  for (const segment of path.split(".")) {
-    if (typeof current !== "object" || current === null) {
-      return undefined;
-    }
-    current = (current as Record<string, unknown>)[segment];
-  }
-  return current;
-}
-
-function readString(
-  record: unknown,
-  key: string | undefined
-): string | undefined {
-  if (!key) return undefined;
-  const value = readPath(record, key);
-  return typeof value === "string" && value.trim() ? value : undefined;
-}
-
-function readNumber(
-  record: unknown,
-  key: string | undefined
-): number | undefined {
-  if (!key) return undefined;
-  const value = readPath(record, key);
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
+import {
+  pluginSettingValues,
+  readNumberField as readNumber,
+  readPath,
+  readStringField as readString,
+  readYearField,
+  resolvePluginAuthHeader,
+} from "./pluginRequest";
 
 /** Maps one response record through the manifest's field map. */
 function mapRecord(
@@ -58,10 +36,12 @@ function mapRecord(
   const album = readString(record, fields.album);
   const albumArtist = readString(record, fields.albumArtist);
   const genre = readString(record, fields.genre);
-  const year = readNumber(record, fields.year);
+  const year = readYearField(record, fields.year);
   const date = readString(record, fields.date);
   const track = readNumber(record, fields.track);
   const discNumber = readNumber(record, fields.discNumber);
+  const totalTracks = readNumber(record, fields.totalTracks);
+  const totalDiscs = readNumber(record, fields.totalDiscs);
   const duration = readNumber(record, fields.duration);
   const isrc = readString(record, fields.isrc);
   const label = readString(record, fields.label);
@@ -79,6 +59,8 @@ function mapRecord(
     ...(date ? { date } : {}),
     ...(track !== undefined ? { track } : {}),
     ...(discNumber !== undefined ? { discNumber } : {}),
+    ...(totalTracks !== undefined ? { totalTracks } : {}),
+    ...(totalDiscs !== undefined ? { totalDiscs } : {}),
     ...(duration !== undefined ? { duration } : {}),
     ...(isrc ? { isrc } : {}),
     ...(label ? { label } : {}),
@@ -96,6 +78,77 @@ function mapRecord(
         }
       : {}),
   };
+}
+
+/** Substitutes `{dot.path}` placeholders from a search record. */
+function expandRecordTemplate(template: string, record: unknown): string {
+  return template.replace(/\{([^{}]+)\}/g, (_match, path: string) => {
+    const value = readPath(record, path.trim());
+    return value === undefined || value === null ? "" : String(value);
+  });
+}
+
+/** Maps a detail record through the manifest's optional field map. */
+function mapDetailFields(
+  record: unknown,
+  fields: PluginMetadataDetailFieldMap
+): Partial<MetadataResult> {
+  if (typeof record !== "object" || record === null) {
+    return {};
+  }
+
+  const album = readString(record, fields.album);
+  const albumArtist = readString(record, fields.albumArtist);
+  const genre = readString(record, fields.genre);
+  const year = readYearField(record, fields.year);
+  const date = readString(record, fields.date);
+  const track = readNumber(record, fields.track);
+  const discNumber = readNumber(record, fields.discNumber);
+  const totalTracks = readNumber(record, fields.totalTracks);
+  const totalDiscs = readNumber(record, fields.totalDiscs);
+  const duration = readNumber(record, fields.duration);
+  const isrc = readString(record, fields.isrc);
+  const label = readString(record, fields.label);
+  const composer = readString(record, fields.composer);
+  const coverArtUrl = readString(record, fields.coverArtUrl);
+
+  return {
+    ...(album ? { album } : {}),
+    ...(albumArtist ? { albumArtist } : {}),
+    ...(genre ? { genre } : {}),
+    ...(year !== undefined ? { year } : {}),
+    ...(date ? { date } : {}),
+    ...(track !== undefined ? { track } : {}),
+    ...(discNumber !== undefined ? { discNumber } : {}),
+    ...(totalTracks !== undefined ? { totalTracks } : {}),
+    ...(totalDiscs !== undefined ? { totalDiscs } : {}),
+    ...(duration !== undefined ? { duration } : {}),
+    ...(isrc ? { isrc } : {}),
+    ...(label ? { label } : {}),
+    ...(composer ? { composer } : {}),
+    ...(coverArtUrl
+      ? {
+          pictures: [
+            {
+              mimeType: "image/jpeg",
+              url: coverArtUrl,
+              type: "FrontCover",
+              description: "Front Cover",
+            },
+          ],
+        }
+      : {}),
+  };
+}
+
+/** Copies only the keys the search left unset, so a search field always wins. */
+function fillGaps(result: MetadataResult, extra: Partial<MetadataResult>): void {
+  const target = result as unknown as Record<string, unknown>;
+  for (const [key, value] of Object.entries(extra)) {
+    if (value !== undefined && target[key] === undefined) {
+      target[key] = value;
+    }
+  }
 }
 
 /**
@@ -126,36 +179,6 @@ export class PluginMetadataService implements IOnlineMetadataService {
     this.provider = descriptor.id;
   }
 
-  /**
-   * Values a header template can reference: every declared setting, with a
-   * secret read from the encrypted store rather than the settings row.
-   */
-  private async settingValues(): Promise<Record<string, string | undefined>> {
-    const pluginId = this.pluginId;
-    if (!pluginId) {
-      return {};
-    }
-
-    const manager = getVisualizerPluginManager();
-    const plugin = await manager.get(pluginId);
-    const settings = await manager.getSettings(pluginId);
-    const values: Record<string, string | undefined> = {};
-
-    for (const descriptor of plugin?.manifest.settings ?? []) {
-      if (descriptor.type === "string" && descriptor.secret) {
-        values[descriptor.key] =
-          (await getPluginSettingSecret(pluginId, descriptor.key)) ?? undefined;
-        continue;
-      }
-      const value = settings[descriptor.key];
-      if (value !== undefined) {
-        values[descriptor.key] = String(value);
-      }
-    }
-
-    return values;
-  }
-
   async lookup(query: string): Promise<MetadataResult[] | null> {
     const { search } = this.descriptor;
     const params = new URLSearchParams();
@@ -181,9 +204,34 @@ export class PluginMetadataService implements IOnlineMetadataService {
     for (const [key, value] of params) {
       url.searchParams.set(key, value);
     }
+    // Literal parameters the provider requires on every search, e.g. Apple's
+    // `types=songs` or Spotify's `type=track`.
+    for (const [key, value] of Object.entries(search.query ?? {})) {
+      url.searchParams.set(key, value);
+    }
 
-    const headers = expandHeaders(search.headers, await this.settingValues());
-    const response = await fetch(url.toString(), { headers });
+    const values = await pluginSettingValues(this.pluginId);
+    const headers = expandHeaders(search.headers, values) ?? {};
+    const authHeader = await resolvePluginAuthHeader(
+      this.descriptor.auth,
+      this.descriptor.name,
+      values
+    );
+    if (authHeader) {
+      headers[authHeader.header] = authHeader.value;
+    }
+
+    const method = search.method ?? "GET";
+    const body =
+      method === "POST" && search.body
+        ? expandTemplate(search.body, values)
+        : undefined;
+
+    const response = await fetch(url.toString(), {
+      method,
+      headers,
+      ...(body !== undefined ? { body } : {}),
+    });
 
     if (response.status === 404) return null;
     if (!response.ok) {
@@ -192,19 +240,89 @@ export class PluginMetadataService implements IOnlineMetadataService {
       );
     }
 
-    const data: unknown = await response.json();
-    const records = search.resultsPath
-      ? readPath(data, search.resultsPath)
-      : data;
+    const maxPages = Math.max(1, search.maxPages ?? 1);
+    const nextPath = search.resultsPath
+      ? `${search.resultsPath.replace(/[^.]*$/, "")}next`
+      : undefined;
 
-    if (!Array.isArray(records)) {
+    const results: { record: unknown; result: MetadataResult }[] = [];
+    let pageUrl: string | undefined = url.toString();
+    let page = 0;
+
+    while (pageUrl && page < maxPages) {
+      const pageResponse =
+        page === 0 ? response : await fetch(pageUrl, { headers });
+      if (!pageResponse.ok) {
+        break;
+      }
+
+      const data: unknown = await pageResponse.json();
+      const records = search.resultsPath
+        ? readPath(data, search.resultsPath)
+        : data;
+      if (!Array.isArray(records)) {
+        break;
+      }
+
+      for (const record of records) {
+        const result = mapRecord(record, search.fields, this.provider);
+        if (result) {
+          results.push({ record, result });
+        }
+      }
+
+      page++;
+      const next = nextPath ? readPath(data, nextPath) : undefined;
+      pageUrl = typeof next === "string" && next ? next : undefined;
+    }
+
+    if (!results.length) {
       return null;
     }
 
-    const results = records
-      .map((record) => mapRecord(record, search.fields, this.provider))
-      .filter((result): result is MetadataResult => result !== null);
+    // A second request per record for fields the search omits, e.g. Spotify's
+    // artist genres. Failures leave the search result as it was rather than
+    // discarding a usable match.
+    if (search.detail) {
+      const detail = search.detail;
+      await Promise.all(
+        results.map(async (entry) => {
+          try {
+            const detailUrl = expandRecordTemplate(detail.url, entry.record);
+            if (!detailUrl) {
+              return;
+            }
+            const detailHeaders = {
+              ...headers,
+              ...expandHeaders(detail.headers, values),
+            };
+            const detailResponse = await fetch(detailUrl, {
+              headers: detailHeaders,
+            });
+            if (!detailResponse.ok) {
+              return;
+            }
+            const detailData: unknown = await detailResponse.json();
+            fillGaps(entry.result, mapDetailFields(detailData, detail.fields));
+          } catch (error) {
+            // Keep the search result; the detail request is an enrichment. The
+            // failure is surfaced rather than swallowed, because a silently
+            // failing enrichment looks identical to a provider with no data.
+            notification$.next({
+              id: `metadata-detail-${this.provider}`,
+              title: this.descriptor.name,
+              state: "error",
+              kind: "metadata",
+              detail:
+                error instanceof Error
+                  ? error.message
+                  : `Detail request failed for ${this.descriptor.name}.`,
+            });
+          }
+        })
+      );
+    }
 
-    return results.length ? results : null;
+    return results.map((entry) => entry.result);
   }
 }

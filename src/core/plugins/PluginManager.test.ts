@@ -100,11 +100,15 @@ const MANIFEST = {
   ],
 };
 
-function buildZip(manifest: unknown = MANIFEST): Uint8Array {
+function buildZip(
+  manifest: unknown = MANIFEST,
+  thumbnail: Uint8Array = new Uint8Array([137, 80, 78, 71]),
+  thumbnailPath = "thumbnail.png"
+): Uint8Array {
   return zipSync({
     "manifest.json": strToU8(JSON.stringify(manifest)),
     "fragment.glsl": strToU8("void main() { gl_FragColor = vec4(1.0); }"),
-    "thumbnail.png": new Uint8Array([137, 80, 78, 71]),
+    [thumbnailPath]: thumbnail,
   });
 }
 
@@ -259,5 +263,20 @@ describe("PluginManager", () => {
 
     expect(thumbnail?.type).toBe("image/png");
     expect(thumbnail?.size).toBe(4);
+  });
+
+  it("accepts an SVG thumbnail and types it as image/svg+xml", async () => {
+    const { manager } = createManager();
+    const svg = new TextEncoder().encode(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>'
+    );
+    await manager.installFromZip(
+      buildZip({ ...MANIFEST, thumbnail: "thumbnail.svg" }, svg, "thumbnail.svg")
+    );
+
+    const thumbnail = await manager.getThumbnail("alchemy");
+
+    expect(thumbnail?.type).toBe("image/svg+xml");
+    expect(thumbnail?.size).toBe(svg.byteLength);
   });
 });

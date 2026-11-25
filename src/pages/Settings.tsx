@@ -53,7 +53,10 @@ import {
   VisualizerSelector,
   VisualizerSettings,
 } from "@/components/visualizer";
-import { PluginManagerDialog } from "@/components/plugin-manager";
+import {
+  PluginManagerDialog,
+  PluginThumbnail,
+} from "@/components/plugin-manager";
 import { PluginSettingsDialog } from "@/components/plugin-settings";
 
 const THEME_OPTIONS = [
@@ -537,7 +540,13 @@ export function Settings() {
                   key={provider.id}
                   className="flex items-center justify-between gap-2 px-2 py-1.5"
                 >
-                  <span className="truncate">{provider.name}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <PluginThumbnail
+                      pluginId={provider.pluginId}
+                      className="size-6"
+                    />
+                    <span className="truncate">{provider.name}</span>
+                  </span>
                   <span className="flex shrink-0 items-center gap-1">
                     <Badge variant="outline">
                       {t(

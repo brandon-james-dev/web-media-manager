@@ -1,4 +1,4 @@
-import type { PluginKind } from "@/core/visualizers";
+import type { PluginKind } from "@/core/plugins";
 
 export interface PluginManagerDialogProps {
   /** Controlled open state; defaults to the visualizer context. */

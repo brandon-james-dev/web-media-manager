@@ -31,7 +31,7 @@ import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvi
 import { registerBrowserVisualizerStoreProvider } from "./lib/persistence/browser/visualizerStoreProvider";
 import { registerBrowserThemeStoreProvider } from "./lib/persistence/browser/themeStoreProvider";
 import { registerBrowserLyricsSettingsStoreProvider } from "./lib/persistence/browser/lyricsSettingsProvider";
-import { initializePlugins } from "./lib/visualizers";
+import { initializePlugins } from "./lib/plugins";
 import { resumeInterruptedJobs } from "./lib/background-jobs";
 import { ensureFavorites } from "./core/playlists";
 import { getThemeNavigationHandler } from "./core/themes";

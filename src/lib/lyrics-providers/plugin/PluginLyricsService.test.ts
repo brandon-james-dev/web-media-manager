@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { PluginLyricsProviderDescriptor } from "@/core/visualizers";
+import type { PluginLyricsProviderDescriptor } from "@/core/plugins";
 import { PluginLyricsService } from "./PluginLyricsService";
 
 const descriptor: PluginLyricsProviderDescriptor = {
