@@ -28,6 +28,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Textarea } from "../ui/textarea";
 import { useTranslation } from "@/i18n";
 import {
+  activePlacementAt,
   appendStaticLine,
   canPlaceAt,
   formatTimecode,
@@ -101,6 +102,30 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
     () => mapPlacementsToLines(staticText, lines),
     [staticText, lines]
   );
+
+  /**
+   * The placement being sung right now: the last one at or before the cursor.
+   * Only while playing, so a paused editor keeps whatever the user selected.
+   */
+  const activePlacementKey = useMemo(() => {
+    if (!playing || lines.length === 0) return null;
+    const active = activePlacementAt(lines, cursorMs);
+    return active ? placementKey(active) : null;
+  }, [playing, lines, cursorMs]);
+
+  /** The static lyric line that placement belongs to, or -1 when none. */
+  const activeLineIndex = useMemo(() => {
+    if (!playing) return -1;
+    let index = -1;
+    let time = -1;
+    timedByIndex.forEach((timed, lineIndex) => {
+      if (timed && timed.timeMs <= cursorMs && timed.timeMs > time) {
+        time = timed.timeMs;
+        index = lineIndex;
+      }
+    });
+    return index;
+  }, [playing, timedByIndex, cursorMs]);
 
   /** Brings the matching placement into view when a lyric line is clicked. */
   const scrollToPlacement = useCallback((timeMs: number) => {
@@ -588,16 +613,23 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
                     const picked = selectedPlacementKeys.includes(
                       placementKey(line)
                     );
+                    const active = activePlacementKey === placementKey(line);
 
                     return (
                       <div
                         key={`${line.timeMs}-${line.text}`}
                         data-placement-time={line.timeMs}
+                        data-active={active ? "true" : "false"}
                         role="button"
                         tabIndex={0}
                         aria-pressed={picked}
+                        aria-current={active ? "true" : undefined}
                         className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 ${
-                          picked ? "bg-accent/30" : "hover:bg-accent/20"
+                          active
+                            ? "bg-accent/60 ring-1 ring-accent"
+                            : picked
+                              ? "bg-accent/30"
+                              : "hover:bg-accent/20"
                         }`}
                         onClick={(event) =>
                           handlePlacementClick(line, event.shiftKey)
@@ -754,22 +786,27 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
                     const timed = timedByIndex[index];
                     const added = addedTexts.has(text);
                     const selected = selectedIndices.includes(index);
+                    const active = index === activeLineIndex;
 
                     return (
                       <span
                         key={`${index}-${text}`}
                         data-line-index={index}
                         data-added={added ? "true" : "false"}
+                        data-active={active ? "true" : "false"}
                         role="button"
                         tabIndex={added ? -1 : 0}
                         aria-pressed={selected}
+                        aria-current={active ? "true" : undefined}
                         aria-disabled={added}
                         className={`flex items-baseline gap-2 rounded-sm px-1 ${
-                          added
-                            ? "cursor-default select-none bg-accent/15 text-accent"
-                            : selected
-                              ? "cursor-pointer bg-accent/30"
-                              : "cursor-pointer hover:bg-accent/20"
+                          active
+                            ? "bg-accent/60 ring-1 ring-accent"
+                            : added
+                              ? "cursor-default select-none bg-accent/15 text-accent"
+                              : selected
+                                ? "cursor-pointer bg-accent/30"
+                                : "cursor-pointer hover:bg-accent/20"
                         }`}
                         onClick={(event) => {
                           if (added) return;

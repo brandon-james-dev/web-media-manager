@@ -1,4 +1,5 @@
 export {
+  activePlacementAt,
   appendStaticLine,
   canPlaceAt,
   placementWindow,

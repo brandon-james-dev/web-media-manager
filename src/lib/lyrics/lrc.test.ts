@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  activePlacementAt,
   appendStaticLine,
   formatTimecode,
   formatTimestamp,
@@ -585,5 +586,43 @@ describe("placementWindow", () => {
     ]);
 
     expect(window).toEqual({ minMs: null, maxMs: 169_180 });
+  });
+});
+
+describe("activePlacementAt", () => {
+  const lines = [
+    { timeMs: 5_000, text: "first" },
+    { timeMs: 10_000, text: "second" },
+    { timeMs: 20_000, text: "third" },
+  ];
+
+  it("returns null before the first placement", () => {
+    expect(activePlacementAt(lines, 0)).toBeNull();
+    expect(activePlacementAt(lines, 4_999)).toBeNull();
+  });
+
+  it("returns the placement whose time has been reached", () => {
+    expect(activePlacementAt(lines, 5_000)?.text).toBe("first");
+    expect(activePlacementAt(lines, 9_999)?.text).toBe("first");
+    expect(activePlacementAt(lines, 10_000)?.text).toBe("second");
+    expect(activePlacementAt(lines, 19_999)?.text).toBe("second");
+    expect(activePlacementAt(lines, 20_000)?.text).toBe("third");
+  });
+
+  it("keeps the last placement active past the end of the song", () => {
+    expect(activePlacementAt(lines, 600_000)?.text).toBe("third");
+  });
+
+  it("reads unsorted placements by time, not by list order", () => {
+    const shuffled = [
+      { timeMs: 20_000, text: "third" },
+      { timeMs: 5_000, text: "first" },
+      { timeMs: 10_000, text: "second" },
+    ];
+    expect(activePlacementAt(shuffled, 12_000)?.text).toBe("second");
+  });
+
+  it("returns null for an empty list", () => {
+    expect(activePlacementAt([], 1_000)).toBeNull();
   });
 });

@@ -259,6 +259,26 @@ export function canPlaceAt(timeMs: number, lines: ILyricLine[]): boolean {
 }
 
 /**
+ * The placement being sung at `cursorMs`: the last one at or before the cursor.
+ *
+ * Playback leaves the cursor a few milliseconds past the placement it started
+ * on, so the comparison is inclusive. Returns null before the first placement,
+ * which is the intro of the song rather than any line.
+ */
+export function activePlacementAt(
+  lines: ILyricLine[],
+  cursorMs: number
+): ILyricLine | null {
+  let active: ILyricLine | null = null;
+  for (const line of lines) {
+    if (line.timeMs <= cursorMs && (!active || line.timeMs > active.timeMs)) {
+      active = line;
+    }
+  }
+  return active;
+}
+
+/**
  * The window a placement is allowed to sit in, bounded by its neighbours.
  *
  * A lyric that is in the static text but carries no timing was either never
