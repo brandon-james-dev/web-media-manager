@@ -12,7 +12,7 @@ import { cn } from "cn";
 import { SidebarSyncedTracks, SidebarSyncQueue } from "@/components/library-sidebar";
 import { OfflineCell } from "@/components/song-table/OfflineCell";
 import { SongSearchPanel } from "@/components/song-search";
-import { formatBytes } from "@/lib/sync/helpers";
+import { formatBytes } from "@/lib/format";
 import { songIdentity, trackIdentity } from "@/lib/sync/helpers";
 import { hasConnectedDevice } from "@/lib/sync/helpers/markDeviceDisconnected";
 import { wmmBus } from "@/events";

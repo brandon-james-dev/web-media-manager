@@ -3,7 +3,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { system } from "@/core";
 import { useTranslation } from "@/i18n";
-import { APP_ICON_URL } from "@/lib/appIcon";
 import { ExternalLink, Heart } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -47,7 +46,7 @@ export function AboutTab() {
       <div className="mt-4 flex flex-col gap-4">
         <div className="flex items-start gap-3">
           <img
-            src={APP_ICON_URL}
+            src={`${import.meta.env.BASE_URL}pwa/icon.svg`}
             alt=""
             className="size-12 shrink-0 rounded-xl"
           />

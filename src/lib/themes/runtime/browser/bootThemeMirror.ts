@@ -1,5 +1,5 @@
 import { isSafeMode } from "@/core/themes";
-import { safeStorageGet } from "@/lib/safeStorage";
+import { safeStorageGet } from "@/lib/persistence/browser/safeStorage";
 import type { ColorScheme } from "../../package";
 import { mirrorTokens, readThemeMirror } from "../themeMirror";
 import { applyColorSchemeClass, getRootTokenApplier } from "./applyThemeTokens";

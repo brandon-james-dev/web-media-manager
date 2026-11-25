@@ -10,7 +10,7 @@ import { ThumbnailSize } from "@/lib";
 import { wmmBus } from "@/events";
 import { usePlayback } from "@/hooks/usePlayback";
 import { ShuffleState } from "@/hooks/usePlayback";
-import { useIsCompact, useIsPhoneLandscape } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsMobile, useIsPhoneLandscape } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n";
 import { cn } from "cn";
 import { albumGenre, albumPictureSong, albumYear, trackSorted } from "@/lib/albums/albumDisplay";
@@ -31,10 +31,15 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
   const { isPlaying, nowPlaying, shuffle } = usePlayback();
   const { t } = useTranslation();
   const isCompact = useIsCompact();
+  const isMobile = useIsMobile();
   // A phone on its side has no vertical room for the stacked drawer (art on
   // top, tracks below), so it uses the desktop arrangement instead: art and
   // actions in a left column, title and tracks on the right.
   const isPhoneLandscape = useIsPhoneLandscape();
+  // Phones get the bottom drawer; a tablet has the room for the dialog, so it
+  // uses the same modal as the desktop. A phone in landscape is tablet-width,
+  // so it is kept on the drawer explicitly.
+  const useDrawer = isMobile || isPhoneLandscape;
   // Manual exit animation: Base UI's `data-ending-style` doesn't run on a
   // programmatic close (its duration is `calc(--drawer-swipe-strength * 400ms)`
   // and the strength var stays 0 off-swipe), so the popup vanishes instantly.
@@ -160,7 +165,7 @@ export function AlbumDetailModal({ album, open, onOpenChange }: AlbumDetailModal
     </div>
   );
 
-  if (isCompact) {
+  if (useDrawer) {
     return (
       <Drawer
         open={open && !!album}

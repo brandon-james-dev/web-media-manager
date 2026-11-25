@@ -46,7 +46,7 @@ import { SONG_COLUMN_LABEL_KEYS, createSongColumns } from "./createSongColumns";
 import {
   loadSongTableColumns,
   saveSongTableColumns,
-} from "@/lib/songTableColumnState";
+} from "@/lib/song-table";
 
 const features = tableFeatures({
   rowSelectionFeature,

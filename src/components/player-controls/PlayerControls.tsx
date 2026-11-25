@@ -34,10 +34,10 @@ import { keyShortcut$ } from "@/events/keyboard-events";
 import { wmmBus } from "@/events";
 import { FavoriteButton } from "@/components/favorite-button";
 import { useTranslation } from "@/i18n";
-import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsTv } from "@/hooks/useIsMobile";
 import { useNowPlayingUi } from "@/hooks/useNowPlayingUi";
 import { isBackgroundClick } from "@/components/player-controls/backgroundClick";
-import { formatLength } from "@/lib/formatLength";
+import { formatTrackDuration } from "@/lib/format";
 import { cn } from "cn";
 import { NowPlayingView } from "./NowPlayingView";
 
@@ -490,7 +490,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                     left: `clamp(2.25rem, ${scrubPct}%, calc(100% - 2.25rem))`,
                   }}
                 >
-                  {formatLength(scrubSeconds ?? 0)}
+                  {formatTrackDuration(scrubSeconds ?? 0)}
                 </div>
               </>
             )}
@@ -578,7 +578,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                           controlsHidden && "opacity-0",
                         )}
                       >
-                        {formatLength(scrubSeconds ?? elapsedSeconds)}
+                        {formatTrackDuration(scrubSeconds ?? elapsedSeconds)}
                       </span>
                       <div
                         role="slider"
@@ -640,7 +640,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                           controlsHidden && "opacity-0",
                         )}
                       >
-                        {formatLength(nowPlaying.duration)}
+                        {formatTrackDuration(nowPlaying.duration)}
                       </span>
                     </div>
                   ) : null}
@@ -784,8 +784,8 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 )}
               >
                 <div className="flex min-w-0 flex-col overflow-hidden">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <span className="truncate">
+                  <span className="flex min-w-0 items-center gap-1.5 font-medium">
+                    <span className="min-w-0 truncate">
                       {nowPlaying?.title ?? t("playback.nothingPlaying")}
                     </span>
                     <ExplicitBadge song={nowPlaying} />
@@ -862,7 +862,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
 
               <div className="flex w-full max-w-lg items-center gap-3">
                 <span className="w-10 text-right text-xs">
-                  {elapsedSeconds > 0 ? formatLength(elapsedSeconds) : "--:--"}
+                  {elapsedSeconds > 0 ? formatTrackDuration(elapsedSeconds) : "--:--"}
                 </span>
 
                 <div className="relative flex-1">
@@ -892,7 +892,7 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
                 </div>
 
                 <span className="w-10 text-xs">
-                  {nowPlaying?.duration ? formatLength(nowPlaying.duration) : "--:--"}
+                  {nowPlaying?.duration ? formatTrackDuration(nowPlaying.duration) : "--:--"}
                 </span>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { attrString } from "@/core/themes";
 import { usePlayback } from "@/hooks";
-import { formatLength } from "@/lib/formatLength";
+import { formatTrackDuration } from "@/lib/format";
 import type { ElementProps } from "@/lib/themes/render/browser";
 import { usePlaybackClock } from "../../shared/usePlaybackClock";
 import { useThemeTextClass } from "../../shared/themeText";
@@ -64,14 +64,14 @@ export function formatTime(
   const known = duration > 0;
   switch (format) {
     case "total":
-      return known ? formatLength(duration) : "--:--";
+      return known ? formatTrackDuration(duration) : "--:--";
     case "remaining":
       return known
-        ? `-${formatLength(Math.max(0, duration - elapsed))}`
+        ? `-${formatTrackDuration(Math.max(0, duration - elapsed))}`
         : "--:--";
     case "elapsedAndTotal":
-      return `${formatLength(elapsed)} / ${known ? formatLength(duration) : "--:--"}`;
+      return `${formatTrackDuration(elapsed)} / ${known ? formatTrackDuration(duration) : "--:--"}`;
     default:
-      return known ? formatLength(elapsed) : "--:--";
+      return known ? formatTrackDuration(elapsed) : "--:--";
   }
 }

@@ -1,5 +1,5 @@
 import { getSourcesStore, getStore } from "@/core/ports";
-import { deleteHiddenTracksForSource } from "@/lib/hidden";
+import { deleteHiddenTracksForSource } from "@/lib/hidden-songs";
 import type { WorkerProgress } from "../WorkerJob";
 
 /** Thrown from the progress callback to stop a run that was cancelled. */

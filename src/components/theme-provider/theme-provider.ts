@@ -18,7 +18,7 @@ import {
   applyColorSchemeClass,
   getRootTokenApplier,
 } from "@/lib/themes/runtime/browser";
-import { safeStorageGet, safeStorageSet } from "@/lib/safeStorage";
+import { safeStorageGet, safeStorageSet } from "@/lib/persistence/browser/safeStorage";
 import {
   type ThemeProviderProps,
   type Theme,

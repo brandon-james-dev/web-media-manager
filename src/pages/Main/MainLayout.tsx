@@ -65,7 +65,7 @@ import {
   useNavigate,
 } from "react-router";
 import { Editor } from "@/components/editor";
-import { useIsMobile, useIsTablet, useIsTv } from "@/lib/hooks/useIsMobile";
+import { useIsMobile, useIsTablet, useIsTv } from "@/hooks/useIsMobile";
 import { cn } from "cn";
 
 type MainContext = {

@@ -21,7 +21,7 @@ import {
   type MotionValue,
 } from "motion/react";
 import { cn } from "@/lib/shadcn-utils/utils";
-import { useTickAudio } from "@/lib/cover-flow-audio";
+import { useTickAudio } from "@/hooks/useTickAudio";
 import { NoArtworkDisc } from "@/components/ui/no-artwork-disc";
 
 type Direction = "left" | "right";

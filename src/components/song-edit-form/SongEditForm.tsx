@@ -16,7 +16,7 @@ import type { LyricsDialogTab } from "../lyrics-dialog/LyricsDialog";
 import type { ILyricsResult } from "@/lib/lyrics-providers/ILyricsService";
 import { parseLrc, splitTimedLyrics, validateSync } from "@/lib/lyrics";
 import { notification$ } from "@/events/notification-events";
-import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
+import { useSourceEditable } from "@/hooks/useSourceEditable";
 import { useTranslation } from "@/i18n";
 
 /**

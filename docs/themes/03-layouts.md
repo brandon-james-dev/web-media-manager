@@ -258,7 +258,7 @@ on some pages). `Ctrl/Cmd+,` always opens Settings.
 There are four form factors: `desktop`, `tablet`, `mobile` and `tv`. The host picks one from
 two signals, viewport width and **primary pointer type** (CSS `pointer`: `fine` for a mouse or
 trackpad, `coarse` for touch, `none` for remote-only devices). These are the same signals the
-app already uses (`src/lib/hooks/useIsMobile.ts`, `src/lib/tv/detectTv.ts`). Themes never see
+app already uses (`src/hooks/useIsMobile.ts`, `src/lib/tv/detectTv.ts`). Themes never see
 the signals, only the resolved form factor.
 
 The user can pin a form factor in Settings (`Automatic` · `Desktop` · `Tablet` · `Mobile` · `TV`).

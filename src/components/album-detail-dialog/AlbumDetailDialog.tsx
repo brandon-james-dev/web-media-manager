@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ThumbnailSize } from "@/lib";
-import { formatLength } from "@/lib/formatLength";
+import { formatTrackDuration } from "@/lib/format";
 import { Input } from "../ui/input";
 import { useRef, useState } from "react";
 import { Label } from "../ui/label";
@@ -32,7 +32,7 @@ import type { IOnlineAlbumMetadata } from "@/lib/metadata-providers/online/IOnli
 import { fetchCoverBlob } from "@/lib/metadata-providers/online/fetchCoverBlob";
 import { matchAlbumTracks } from "./matchAlbumTracks";
 import { TrackInfoPopover } from "./TrackInfoPopover";
-import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
+import { useSourceEditable } from "@/hooks/useSourceEditable";
 import type { Song } from "@/models";
 
 /** Stable empty list so the editable hook does not re-run without an album. */
@@ -446,7 +446,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
                       />
 
                       <span className="w-full px-1 text-right">
-                        {formatLength(s.duration)}
+                        {formatTrackDuration(s.duration)}
                       </span>
 
                       <TrackInfoPopover song={s} />

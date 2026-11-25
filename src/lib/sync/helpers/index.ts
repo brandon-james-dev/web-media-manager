@@ -1,6 +1,4 @@
 export * from "./DirectoryPickerRequiredError";
-export * from "./formatBytes";
-export * from "./formatTrackDuration";
 export * from "./getDirectorySize";
 export * from "./hasDirectory";
 export * from "./hasFile";

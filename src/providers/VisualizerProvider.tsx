@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInstalledPlugins, visualizerKeys } from "@/hooks/useVisualizerPlugins";
 import { VisualizerContext } from "@/hooks/useVisualizer";
 import { wmmBus } from "@/events";
-import { safeStorageGet, safeStorageSet } from "@/lib/safeStorage";
+import { safeStorageGet, safeStorageSet } from "@/lib/persistence/browser/safeStorage";
 
 const ACTIVE_PLUGIN_STORAGE_KEY = "wmm.visualizer.activePluginId";
 

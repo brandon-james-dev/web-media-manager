@@ -29,7 +29,7 @@ import {
 import { cn } from "cn";
 
 import type { SyncDevice } from "@/models";
-import { formatBytes } from "@/lib/sync/helpers";
+import { formatBytes } from "@/lib/format";
 import { useSync } from "@/hooks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useCallback, useMemo, useState } from "react";

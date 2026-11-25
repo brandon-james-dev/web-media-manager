@@ -156,7 +156,8 @@ implementation used by tests. `CombinedMetadataStore` fans a query across
 sources and merges by source priority.
 
 Small preferences (volume, active visualizer, language, hidden-song flags,
-seeded-example flags) live in `localStorage` behind `src/lib/safeStorage.ts`.
+seeded-example flags) live in `localStorage` behind
+`src/lib/persistence/browser/safeStorage.ts`.
 Credentials never do: `lib/secrets/encryptedSecretStore.ts` gives each source
 kind its own namespace, and secrets are deleted with the source and on Clear DB.
 

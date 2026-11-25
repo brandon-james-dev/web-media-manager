@@ -9,7 +9,7 @@ vi.mock("@/core/ports", () => ({
   getPlayHistoryStore: () => ({ clearStore }),
 }));
 
-vi.mock("@/lib/hidden", () => ({ clearHiddenTracks }));
+vi.mock("@/lib/hidden-songs", () => ({ clearHiddenTracks }));
 
 const { clearLibrary } = await import("./clearLibrary");
 

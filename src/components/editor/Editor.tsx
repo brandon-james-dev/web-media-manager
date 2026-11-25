@@ -24,7 +24,7 @@ import { getJobService } from "@/core/jobs";
 import { commandDispatcher, wmmBus } from "@/events";
 import { useSongs, usePlayback } from "@/hooks";
 import { getCurrentNavSongs } from "./navContext";
-import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
+import { useSourceEditable } from "@/hooks/useSourceEditable";
 import type { Album, Song } from "@/models";
 import { AlbumDetailDialog } from "../album-detail-dialog";
 import { keyShortcut$ } from "@/events/keyboard-events";

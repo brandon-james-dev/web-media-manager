@@ -5,7 +5,7 @@
  * renders: the choice simply does not survive the session.
  */
 
-import { safeStorageGet, safeStorageSet } from "@/lib/safeStorage";
+import { safeStorageGet, safeStorageSet } from "@/lib/persistence/browser/safeStorage";
 import type { LanguagePreference, LanguagePreferenceStore } from "./types";
 
 export const LANGUAGE_STORAGE_KEY = "wmm.language";

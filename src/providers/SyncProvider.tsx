@@ -29,7 +29,7 @@ import {
 } from "@/lib/sync/deviceArtwork";
 import type { DeviceSyncResult } from "@/workers/shared/runDeviceSync";
 import type { DeviceRemoveResult } from "@/workers/shared/runDeviceRemove";
-import { runJobWithProgress } from "@/lib/jobs/runJobWithProgress";
+import { runJobWithProgress } from "@/lib/background-jobs/runJobWithProgress";
 import { notification$ } from "@/events/notification-events";
 import { i18n } from "@/i18n";
 import {

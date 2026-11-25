@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
-import { useIsCompact, useIsPhoneLandscape, useIsTv } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsPhoneLandscape, useIsTv } from "@/hooks/useIsMobile";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { ThumbnailSize } from "@/lib";
 import { useArtwork } from "@/hooks/useArtwork";
@@ -29,7 +29,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { formatLength } from "@/lib/formatLength";
+import { formatTrackDuration } from "@/lib/format";
 import { isBackgroundClick } from "@/components/player-controls/backgroundClick";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useTranslation, type WmmResourceKey } from "@/i18n";
@@ -380,7 +380,7 @@ export function NowPlayingView({
         <div
           className={cn(
             "flex shrink-0 justify-end",
-            large ? "w-8" : isCompact ? "w-5" : "w-6"
+            large ? "w-8" : "w-7"
           )}
         >
           <ExplicitBadge song={nowPlaying} />
@@ -395,7 +395,7 @@ export function NowPlayingView({
         <div
           className={cn(
             "flex shrink-0 justify-start",
-            large ? "w-8" : isCompact ? "w-5" : "w-6"
+            large ? "w-8" : "w-7"
           )}
         >
           {nowPlaying && (
@@ -826,7 +826,7 @@ export function NowPlayingView({
                                 </span>
                               </span>
                               <span className="shrink-0 tabular-nums text-white/75">
-                                {formatLength(song.duration)}
+                                {formatTrackDuration(song.duration)}
                               </span>
                             </button>
                           </li>
@@ -895,7 +895,7 @@ export function NowPlayingView({
                         </span>
                       </span>
                       <span className="shrink-0 text-sm tabular-nums text-white/75">
-                        {formatLength(upNext.duration)}
+                        {formatTrackDuration(upNext.duration)}
                       </span>
                     </button>
                   </div>

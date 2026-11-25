@@ -8,7 +8,7 @@ import { ThumbnailSize } from "@/lib";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { AlbumArtImage } from "../album-art-image";
-import { useSourceEditable } from "@/lib/hooks/useSourceEditable";
+import { useSourceEditable } from "@/hooks/useSourceEditable";
 import { useTranslation } from "@/i18n";
 
 export function QuickEditForm({ formId, songs, onApply, onDirtyChange }: QuickEditFormProps) {

@@ -37,7 +37,7 @@ import {
   isAlwaysOfflineKind,
   removeSongOffline,
 } from "@/lib/offline";
-import { hideTracks, unhideTracks } from "@/lib/hidden";
+import { hideTracks, unhideTracks } from "@/lib/hidden-songs";
 import { getStore } from "@/core/system";
 import { getPlaylistStore, getSourcesStore } from "@/core/ports";
 import {

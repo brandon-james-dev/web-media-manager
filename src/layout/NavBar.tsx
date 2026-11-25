@@ -6,8 +6,7 @@ import {
 } from "@/components/ui/tooltip";
 import { TvNowPlayingIndicator } from "@/components/tv";
 import { useTranslation } from "@/i18n";
-import { APP_ICON_URL } from "@/lib/appIcon";
-import { useIsTv } from "@/lib/hooks/useIsMobile";
+import { useIsTv } from "@/hooks/useIsMobile";
 import { CircleQuestionMark, Settings } from "lucide-react";
 import { useNavigate } from "react-router";
 import NotificationPopover from "./NotificationPopover";
@@ -25,7 +24,11 @@ export default function NavBar({ onOpenAbout }: { onOpenAbout: () => void }) {
             <div className="flex size-9 items-center justify-center rounded-lg" />
           }
         >
-          <img src={APP_ICON_URL} alt="" className="size-7 rounded-md" />
+          <img
+            src={`${import.meta.env.BASE_URL}pwa/icon.svg`}
+            alt=""
+            className="size-7 rounded-md"
+          />
         </TooltipTrigger>
         <TooltipContent>{t("app.title")}</TooltipContent>
       </Tooltip>

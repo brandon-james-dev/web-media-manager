@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/drawer";
 import type { Song } from "@/models";
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { useIsMobile, useIsPhoneLandscape } from "@/lib/hooks/useIsMobile";
+import { useIsMobile, useIsPhoneLandscape } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n";
 import { NewPlaylistDialog } from "@/components/new-playlist-dialog";
 import { useSongMenu, type SongMenuAction } from "./songMenuItems";

@@ -2,8 +2,8 @@ import { Info } from "lucide-react";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import type { Song } from "@/models";
-import { formatLength } from "@/lib/formatLength";
-import { formatBytes } from "@/lib/sync/helpers/formatBytes";
+import { formatTrackDuration } from "@/lib/format";
+import { formatBytes } from "@/lib/format";
 import { useTranslation } from "@/i18n";
 
 function Row({ label, value }: { label: string; value?: string | number }) {
@@ -48,7 +48,7 @@ export function TrackInfoPopover({ song }: { song: Song }) {
           />
           <Row
             label={t("metadata.duration")}
-            value={formatLength(song.duration)}
+            value={formatTrackDuration(song.duration)}
           />
           <Row
             label={t("metadata.bitrate")}

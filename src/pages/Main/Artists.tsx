@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "cn";
 import { useDetailPane } from "@/lib/router/useDetailPane";
-import { useIsCompact, useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsMobile } from "@/hooks/useIsMobile";
 import { ItemGroup } from "@/components/ui/item";
 import { SongContextMenu } from "@/components/song-context-menu";
 import { TrackItem } from "@/components/track-item";

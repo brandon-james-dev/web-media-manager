@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useIsTv } from "@/lib/hooks/useIsMobile";
+import { useIsTv } from "@/hooks/useIsMobile";
 import { isHostedShell } from "@/lib/tv/detectTv";
 
 const DISMISSED_KEY = "wmm.tv-fullscreen-dismissed";

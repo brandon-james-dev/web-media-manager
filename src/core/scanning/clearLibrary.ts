@@ -1,5 +1,5 @@
 import { getPlayHistoryStore, getPlaylistStore, getStore } from "@/core/ports";
-import { clearHiddenTracks } from "@/lib/hidden";
+import { clearHiddenTracks } from "@/lib/hidden-songs";
 
 /**
  * Wipe the library. Open Subsonic equivalent: n/a (destructive reset).

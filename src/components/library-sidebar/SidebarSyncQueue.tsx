@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TrackItem } from "@/components/track-item";
 import { SidebarDropZone } from "./SidebarDropZone";
 import { sidebarSyncDropId, songIdsFromDrag } from "./sidebarDrop";
-import { formatBytes } from "@/lib/sync/helpers/formatBytes";
+import { formatBytes } from "@/lib/format";
 import { useOfflineSongs, usePlayback, useSync, useSyncUiVisible } from "@/hooks";
 import { useDndContext } from "@dnd-kit/core";
 import { useTranslation } from "@/i18n";

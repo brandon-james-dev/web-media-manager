@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Search, Trash2 } from "lucide-react";
 import type { SyncDevice } from "@/models";
-import { formatTrackDuration } from "@/lib/sync/helpers";
+import { formatTrackDuration } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -198,7 +198,7 @@ export function DeviceLibraryDialog({
 
                         {track.durationMs ? (
                           <div className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                            {formatTrackDuration(track.durationMs)}
+                            {formatTrackDuration(track.durationMs, "ms")}
                           </div>
                         ) : null}
                       </label>

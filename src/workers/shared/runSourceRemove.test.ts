@@ -12,7 +12,7 @@ vi.mock("@/core/ports", () => ({
   getSourcesStore: () => ({ deleteSource }),
 }));
 
-vi.mock("@/lib/hidden", () => ({ deleteHiddenTracksForSource }));
+vi.mock("@/lib/hidden-songs", () => ({ deleteHiddenTracksForSource }));
 
 const { runSourceRemove } = await import("./runSourceRemove");
 

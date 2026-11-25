@@ -18,7 +18,7 @@ import { SongContextMenu } from "@/components/song-context-menu";
 import { ThumbnailSize } from "@/lib";
 import { MoreHorizontal, Pause, Play } from "lucide-react";
 import { cn } from "cn";
-import { formatLength } from "@/lib/formatLength";
+import { formatTrackDuration } from "@/lib/format";
 import type { TrackItemProps } from "./TrackItemProps";
 import { ExplicitBadge } from "@/components/explicit-badge";
 import { FavoriteButton } from "@/components/favorite-button";
@@ -162,7 +162,7 @@ export function TrackItem(props: TrackItemProps) {
         </ItemContent>
 
         <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
-          {trailing ?? formatLength(song.duration)}
+          {trailing ?? formatTrackDuration(song.duration)}
         </span>
 
         <ItemActions className="shrink-0">

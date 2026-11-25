@@ -17,8 +17,8 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import { ArrowDownAZ, ArrowUpAZ, GalleryHorizontal, Grid2x2, Volume2, X } from "lucide-react";
-import { useIsCompact, useIsPhoneLandscape } from "@/lib/hooks/useIsMobile";
-import { formatLength } from "@/lib/formatLength";
+import { useIsCompact, useIsPhoneLandscape } from "@/hooks/useIsMobile";
+import { formatTrackDuration } from "@/lib/format";
 import { AlphabetScrubber } from "@/components/alphabet-scrubber";
 import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
 import { wmmBus } from "@/events";
@@ -261,7 +261,7 @@ export function Albums() {
                         {song.title}
                       </span>
                       <span className="shrink-0 tabular-nums text-white/50">
-                        {formatLength(song.duration)}
+                        {formatTrackDuration(song.duration)}
                       </span>
                     </button>
                   </li>
@@ -280,10 +280,9 @@ export function Albums() {
           setFlippedIndex((current) => (current === index ? null : index));
           return;
         }
-        const opensPanel = isCompact || activeMode === "edit";
-        if (opensPanel && index === selectedAlbumIndex && albums[index]) {
-          handleAlbumCardClick(albums[index]);
-        }
+        // Cover flow only centres the tapped album; it never opens the album
+        // panel, which belongs to the grid card.
+        setSelectedAlbumIndex(index);
       }}
       renderImage={({ src, className }) => (
         <AlbumArtImage

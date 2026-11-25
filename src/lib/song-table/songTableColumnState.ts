@@ -1,4 +1,4 @@
-import { safeStorageGet, safeStorageSet } from "@/lib/safeStorage";
+import { safeStorageGet, safeStorageSet } from "@/lib/persistence/browser/safeStorage";
 
 const STORAGE_KEY = "wmm.songTable.columns";
 

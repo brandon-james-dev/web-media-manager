@@ -1,7 +1,7 @@
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "cn";
-import { formatLength } from "@/lib/formatLength";
+import { formatTrackDuration } from "@/lib/format";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useTranslation } from "@/i18n";
 import { wmmBus } from "@/events";
@@ -87,7 +87,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
       <div className="mx-auto flex w-4xl flex-col gap-3">
         <div className="flex items-center gap-4">
           <span className="w-12 text-right text-sm tabular-nums text-white/80">
-            {formatLength(shownSeconds)}
+            {formatTrackDuration(shownSeconds)}
           </span>
           {/* A native range input: it is focusable, exposes role="slider" with
               its value, and the arrow keys adjust it, which is what the remote
@@ -107,7 +107,7 @@ export function TvPlaybackControls({ hidden = false }: TvPlaybackControlsProps) 
             }}
           />
           <span className="w-12 text-sm tabular-nums text-white/80">
-            {duration > 0 ? formatLength(duration) : "--:--"}
+            {duration > 0 ? formatTrackDuration(duration) : "--:--"}
           </span>
         </div>
 

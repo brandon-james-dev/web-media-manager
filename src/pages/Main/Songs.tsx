@@ -10,7 +10,7 @@ import { DraggableTrack } from "@/components/library-sidebar";
 import { ItemGroup } from "@/components/ui/item";
 import { AlphabetScrubber } from "@/components/alphabet-scrubber";
 import { buildLetterIndex, scrollListToIndex } from "@/lib/alphabet";
-import { useIsCompact } from "@/lib/hooks/useIsMobile";
+import { useIsCompact } from "@/hooks/useIsMobile";
 import { getStore } from "@/core/system";
 import { wmmBus } from "@/events";
 import {

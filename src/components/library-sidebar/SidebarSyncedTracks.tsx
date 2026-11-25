@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ListChecks, RotateCw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatBytes } from "@/lib/sync/helpers/formatBytes";
+import { formatBytes } from "@/lib/format";
 import { useTranslation } from "@/i18n";
 import { wmmBus } from "@/events";
 import { cn } from "cn";

@@ -15,7 +15,7 @@ import { resolveSongBytesWithCache } from "@/lib/offline";
 import { ArtworkType } from "@/lib/contracts";
 import type { Song } from "@/models";
 import { restoreVolume, VOLUME_STORAGE_KEY } from "./volume";
-import { safeStorageGet, safeStorageSet } from "@/lib/safeStorage";
+import { safeStorageGet, safeStorageSet } from "@/lib/persistence/browser/safeStorage";
 
 export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   //#region State

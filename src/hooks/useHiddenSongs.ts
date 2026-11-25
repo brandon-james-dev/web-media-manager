@@ -3,13 +3,13 @@ import {
   getHiddenSongIdsSnapshot,
   onHiddenSongIdsChanged,
   reloadHiddenSongIds,
-} from "@/lib/hidden";
+} from "@/lib/hidden-songs";
 
 /**
  * The ids of songs hidden from the library, kept current as the hidden set
  * changes. A Set so a row or menu can test membership per song.
  *
- * The snapshot itself lives in `lib/hidden` so the song provider can compose
+ * The snapshot itself lives in `lib/hidden-songs` so the song provider can compose
  * it into its query filter; this hook only subscribes to it.
  */
 export function useHiddenSongs(): {

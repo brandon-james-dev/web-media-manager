@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 /**
  * Master/detail pane state for pages that collapse to one column on phones

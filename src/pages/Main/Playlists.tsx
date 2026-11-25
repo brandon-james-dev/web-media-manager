@@ -29,7 +29,7 @@ import {
   sidebarPlaylistDropId,
 } from "@/components/library-sidebar";
 import { setCurrentNavSongs } from "@/components/editor";
-import { useIsCompact, useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsMobile } from "@/hooks/useIsMobile";
 import { getPlaylistStore, getSourcesStore } from "@/core/ports";
 import {
   addSongsToPlaylist,
@@ -536,6 +536,41 @@ export function Playlists({
     setAddQuery("");
     setMobileShowingList(false);
   }
+
+  /**
+   * Enter or leave playlist edit mode from either header.
+   *
+   * Compact layouts keep the mode in `compactEditing`; wider ones use the
+   * `/playlists/edit` route. Leaving a route-level mode needs a navigation,
+   * and the open playlist lives in the location state, so it is carried over.
+   */
+  function toggleEditMode(): void {
+    // The button suppresses focus, so blur may not fire.
+    commitRename();
+
+    if (editMode) {
+      setCompactEditing(false);
+      if (activeMode === "edit" || pathname.endsWith("/edit")) {
+        navigate(
+          { pathname: "/playlists/playback", search: "" },
+          {
+            state: {
+              ...(location.state as object),
+              detailPane: true,
+            },
+          }
+        );
+      }
+      return;
+    }
+
+    if (isCompact) {
+      setCompactEditing(true);
+      return;
+    }
+
+    navigate("/playlists/edit");
+  }
   //#endregion
 
   if (compact) {
@@ -669,6 +704,19 @@ export function Playlists({
                 {t("playlist.count", [playlists.length])}
               </div>
             </div>
+            {isCompact && (
+              <Button
+                size="icon"
+                variant={compactEditing ? "default" : "ghost"}
+                className="shrink-0"
+                title={compactEditing ? t("common.done") : t("common.edit")}
+                aria-label={compactEditing ? t("common.done") : t("common.edit")}
+                aria-pressed={compactEditing}
+                onClick={toggleEditMode}
+              >
+                {compactEditing ? <Check /> : <Pen />}
+              </Button>
+            )}
             <Button
               size="icon"
               variant="ghost"
@@ -834,36 +882,7 @@ export function Playlists({
                     variant={editMode ? "default" : "outline"}
                     className="shrink-0"
                     aria-pressed={editMode}
-                    onClick={() => {
-                      // The button suppresses focus, so blur may not fire.
-                      commitRename();
-                      if (editMode) {
-                        setCompactEditing(false);
-                        // Route-level edit mode needs a route change to leave.
-                        if (
-                          activeMode === "edit" ||
-                          pathname.endsWith("/edit")
-                        ) {
-                          // Keep the open playlist: the detail pane lives in
-                          // the location state, which a plain push would drop.
-                          navigate(
-                            { pathname: "/playlists/playback", search: "" },
-                            {
-                              state: {
-                                ...(location.state as object),
-                                detailPane: true,
-                              },
-                            }
-                          );
-                        }
-                        return;
-                      }
-                      if (isCompact) {
-                        setCompactEditing(true);
-                        return;
-                      }
-                      navigate("/playlists/edit");
-                    }}
+                    onClick={toggleEditMode}
                   >
                     {editMode ? <Check /> : <Pen />}
                     {editMode ? t("common.done") : t("common.edit")}

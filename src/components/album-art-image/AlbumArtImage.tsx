@@ -99,6 +99,9 @@ export function AlbumArtImage(props: AlbumArtImageProps) {
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
+        // Drop the state too: leaving the revoked URL in `artwork` mounts an
+        // <img> whose blob no longer resolves (ERR_FILE_NOT_FOUND).
+        setArtwork(null);
       }
     };
   }, [songId, artworkType, thumbSize, inView]);

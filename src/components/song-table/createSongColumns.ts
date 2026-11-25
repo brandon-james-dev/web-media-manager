@@ -3,7 +3,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 
 import type { Song } from "@/models";
 import type { UseTranslationResult, WmmResourceKey } from "@/i18n";
-import { formatLength } from "@/lib/formatLength";
+import { formatTrackDuration } from "@/lib/format";
 import { isSongOffline } from "@/lib/offline";
 import { OfflineCell } from "./OfflineCell";
 
@@ -76,7 +76,7 @@ export function createSongColumns(
       minSize: 90,
       maxSize: 90,
 
-      cell: ({ getValue }) => formatLength(getValue<number>()),
+      cell: ({ getValue }) => formatTrackDuration(getValue<number>()),
     }),
 
     columnHelper.accessor("bitrate", {
