@@ -14,7 +14,6 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -24,8 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Item } from "@/components/ui/item";
-import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus } from "lucide-react";
-import { useTheme, useVisualizer } from "@/hooks";
+import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus, SlidersHorizontal } from "lucide-react";
+import { useTheme, useVisualizer, useLyricsProviders } from "@/hooks";
 import {
   AUTO_LANGUAGE,
   useTranslation,
@@ -33,16 +32,17 @@ import {
 } from "@/i18n";
 import { clearLibrary } from "@/core/scanning";
 import { clearSubsonicSecrets } from "@/lib/sources/subsonic/subsonicSecrets";
-import { runJobWithProgress } from "@/lib/jobs/runJobWithProgress";
+import { runJobWithProgress } from "@/lib/background-jobs/runJobWithProgress";
 import type { SourceRemoveResult } from "@/workers/shared/runSourceRemove";
-import { getSourcesStore, getLyricsSettingsStore } from "@/core/ports";
+import { getSourcesStore } from "@/core/ports";
 import { getJobService } from "@/core/jobs";
 import { wmmBus } from "@/events";
 import { AddMusicSource } from "@/components/add-source/AddMusicSource";
+import { LyricsSettings } from "@/components/lyrics-settings";
 import { Badge } from "@/components/ui/badge";
 import { musicSourceStrategies } from "@/lib/sources";
 import { runSourceRefresh } from "@/lib/sources/runSourceRefresh";
-import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsTv } from "@/hooks/useIsMobile";
 import { cn } from "cn"
 import { sourceKindBadge } from "@/lib/sources/source-ui";
 import type { MusicSource } from "@/models";
@@ -77,6 +77,9 @@ export function Settings() {
   const { t, preference, detectedLanguage, changeLanguage, languages } =
     useTranslation();
   const [settingsPluginId, setSettingsPluginId] = useState<string>();
+  const [lyricsManagerOpen, setLyricsManagerOpen] = useState(false);
+  const [lyricsSettingsOpen, setLyricsSettingsOpen] = useState(false);
+  const lyricsProviders = useLyricsProviders();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
   const [deleteDirDialogOpen, setDeleteDirDialogOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -87,8 +90,6 @@ export function Settings() {
   // Bulk imports currently running, so clearing the library can stop them
   // first instead of deleting rows a worker is still writing.
   const [runningImportIds, setRunningImportIds] = useState<string[]>([]);
-  const [lyricsApplicationId, setLyricsApplicationId] = useState("");
-  const [savedLyricsApplicationId, setSavedLyricsApplicationId] = useState("");
   const [settings, setSettings] = useState({
     theme: theme || "system",
     accentColor: accentColor || "#3b82f6",
@@ -125,15 +126,6 @@ export function Settings() {
       unsubSourceDeleted();
       unsubSourcesCleared();
     };
-  }, []);
-
-  useEffect(() => {
-    getLyricsSettingsStore()
-      .getSettings()
-      .then(({ applicationId }) => {
-        setLyricsApplicationId(applicationId ?? "");
-        setSavedLyricsApplicationId(applicationId ?? "");
-      });
   }, []);
 
   // Track running bulk imports so the clear action can cancel them.
@@ -225,16 +217,6 @@ export function Settings() {
     toast.add({
       type: "success",
       title: t("settings.saved"),
-    });
-  };
-
-  const handleSaveLyricsSettings = async () => {
-    await getLyricsSettingsStore().setApplicationId(lyricsApplicationId);
-    setSavedLyricsApplicationId(lyricsApplicationId.trim());
-
-    toast.add({
-      type: "success",
-      title: t("settings.lyricsSaved"),
     });
   };
 
@@ -465,40 +447,70 @@ export function Settings() {
             <PluginManagerDialog />
             <VisualizerSettings pluginId={settingsPluginId} />
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("settings.lyrics")}</CardTitle>
-          <CardDescription>{t("settings.lyricsDescription")}</CardDescription>
-        </CardHeader>
+          <Separator />
 
-        <CardContent className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="lyrics-application-id">
-              {t("settings.lyricsApplicationId")}
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              {t("settings.lyricsApplicationIdDescription")}
-            </p>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>{t("settings.lyricsProviders")}</Label>
+              <p className="text-sm text-muted-foreground">
+                {t("settings.lyricsProvidersDescription")}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1 rounded-sm border p-1">
+              {lyricsProviders.map((provider) => (
+                <Item
+                  key={provider.id}
+                  className="flex items-center justify-between gap-2 px-2 py-1.5"
+                >
+                  <span className="truncate">{provider.name}</span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <Badge variant="outline">
+                      {t(
+                        provider.origin === "plugin"
+                          ? "settings.lyricsProviderPlugin"
+                          : "settings.lyricsProviderBuiltin"
+                      )}
+                    </Badge>
+                    {provider.hasSettings && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        title={t("settings.lyricsSettings")}
+                        aria-label={t("settings.lyricsSettings")}
+                        onClick={() => setLyricsSettingsOpen(true)}
+                      >
+                        <SlidersHorizontal className="size-4" />
+                      </Button>
+                    )}
+                  </span>
+                </Item>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setLyricsManagerOpen(true)}
+              >
+                <PackagePlus />
+                {t("settings.installLyricsPlugins")}
+              </Button>
+            </div>
+
+            <PluginManagerDialog
+              kind="lyrics"
+              open={lyricsManagerOpen}
+              onOpenChange={setLyricsManagerOpen}
+            />
+
+            <LyricsSettings
+              open={lyricsSettingsOpen}
+              onOpenChange={setLyricsSettingsOpen}
+            />
           </div>
-
-          <Input
-            id="lyrics-application-id"
-            value={lyricsApplicationId}
-            autoComplete="off"
-            placeholder={t("settings.lyricsApplicationIdPlaceholder")}
-            onChange={(e) => setLyricsApplicationId(e.target.value)}
-          />
-
-          <Button
-            onClick={handleSaveLyricsSettings}
-            className="w-full"
-            disabled={lyricsApplicationId.trim() === savedLyricsApplicationId}
-          >
-            {t("settings.save")}
-          </Button>
         </CardContent>
       </Card>
 

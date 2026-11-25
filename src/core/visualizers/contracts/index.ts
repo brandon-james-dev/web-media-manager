@@ -23,6 +23,12 @@ export type {
   VisualizerPluginManifest,
 } from "./PluginManifest";
 export type {
+  PluginLyricsFieldMap,
+  PluginLyricsProviderDescriptor,
+  PluginLyricsQueryField,
+  PluginProviderDescriptor,
+} from "./PluginProvider";
+export type {
   VisualizationApi,
   VisualizationSize,
   VisualizerPalette,
@@ -30,7 +36,7 @@ export type {
   VisualizerPluginModule,
 } from "./VisualizerPlugin";
 export type {
-  InstalledVisualizerPlugin,
+  InstalledPlugin,
   LoadedVisualizerPlugin,
   PluginSettingsRecord,
 } from "./InstalledPlugin";

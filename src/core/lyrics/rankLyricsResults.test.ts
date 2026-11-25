@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ILyricsResult } from "./ILyricsService";
-import { LyricsProvider } from "./LyricsProvider";
+import type { LyricsResult } from "@/core/contracts";
+import { LyricsProvider } from "@/lib/lyrics-providers/LyricsProvider";
 import { rankLyricsResults } from "./rankLyricsResults";
 
-function result(overrides: Partial<ILyricsResult>): ILyricsResult {
+function result(overrides: Partial<LyricsResult>): LyricsResult {
   return {
     source: LyricsProvider.LrcLib,
     title: "Amarillo by Morning",

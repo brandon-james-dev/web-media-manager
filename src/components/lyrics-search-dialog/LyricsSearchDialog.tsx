@@ -25,16 +25,11 @@ import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import { SplitButton } from "../split-button/SplitButton";
 import { useTranslation } from "@/i18n";
-import { formatLength } from "@/lib/formatLength";
-import { LyricsProvider } from "@/lib/lyrics-providers/LyricsProvider";
-import { rankLyricsResults } from "@/lib/lyrics-providers/rankLyricsResults";
-import type { IRankedLyricsResult } from "@/lib/lyrics-providers/rankLyricsResults";
-import { searchLyrics } from "@/lib/lyrics-providers/searchLyrics";
+import { formatTrackDuration } from "@/lib/format";
+import { rankLyricsResults, searchLyrics } from "@/core/lyrics";
+import type { IRankedLyricsResult } from "@/core/lyrics";
+import { useLyricsProviders } from "@/hooks";
 import type { LyricsSearchDialogProps } from "./LyricsSearchDialogProps";
-
-const PROVIDER_NAME: Record<LyricsProvider, string> = {
-  [LyricsProvider.LrcLib]: "LRCLIB",
-};
 
 /** Splits an LRC line into its `[mm:ss.xx]` stamp and the text after it. */
 function splitLrcLine(line: string): { stamp: string; text: string } {
@@ -53,18 +48,23 @@ function countLines(result: IRankedLyricsResult): number {
 export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
   const { song, open, onOpenChange, onSelect, onLoadTimed, embedded } = props;
   const { t } = useTranslation();
+  const providers = useLyricsProviders();
   //#region State
   const [titleQuery, setTitleQuery] = useState(song.title ?? "");
   const [artistQuery, setArtistQuery] = useState(song.artist ?? "");
   const [albumQuery, setAlbumQuery] = useState(song.album ?? "");
-  const [selectedProvider, setSelectedProvider] = useState<LyricsProvider>(
-    LyricsProvider.LrcLib
-  );
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<IRankedLyricsResult[] | null>(null);
   const [selected, setSelected] = useState<IRankedLyricsResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   //#endregion
+
+  // A provider removed by a plugin uninstall falls back to the first one that
+  // is still registered.
+  const activeProvider =
+    providers.find((provider) => provider.id === selectedProvider) ??
+    providers[0];
 
   // Reopening the dialog starts from the song being edited, not from the
   // previous song's search.
@@ -79,7 +79,7 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
   }, [open, song.title, song.artist, song.album]);
 
   //#region Interactivity handlers
-  async function handleSearch(provider: LyricsProvider) {
+  async function handleSearch(provider: string) {
     setLoading(true);
     setError(null);
 
@@ -158,7 +158,7 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
             <div className="flex flex-wrap items-center gap-1.5">
               <Badge variant="secondary" className="gap-1 text-foreground">
                 <FileMusic className="size-3" />
-                {PROVIDER_NAME[selectedProvider]}
+                {activeProvider?.name ?? ""}
               </Badge>
             </div>
           </div>
@@ -170,7 +170,7 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
           className="flex flex-wrap gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            void handleSearch(selectedProvider);
+            if (activeProvider) void handleSearch(activeProvider.id);
           }}
         >
           <Input
@@ -202,17 +202,17 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
             // submit: a submit button fires onClick and onSubmit, which ran the
             // provider request twice per click. Enter still submits the form.
             buttonType="button"
-            onPrimaryClick={() => void handleSearch(selectedProvider)}
-            menuItems={(
-              Object.values(LyricsProvider) as LyricsProvider[]
-            ).map((provider) => ({
+            onPrimaryClick={() => {
+              if (activeProvider) void handleSearch(activeProvider.id);
+            }}
+            menuItems={providers.map((provider) => ({
               label: (
                 <div className="flex items-center gap-2">
                   <FileMusic className="h-4 w-4" />
-                  {PROVIDER_NAME[provider]}
+                  {provider.name}
                 </div>
               ),
-              onClick: () => setSelectedProvider(provider),
+              onClick: () => setSelectedProvider(provider.id),
             }))}
             dropdownTriggerContent={
               <>
@@ -301,7 +301,7 @@ export function LyricsSearchDialog(props: LyricsSearchDialogProps) {
                           >
                             <Clock className="size-3" />
                             {t("metadata.lyricsSyncedTiming", [
-                              formatLength(result.duration),
+                              formatTrackDuration(result.duration),
                             ])}
                           </Badge>
                         ) : (

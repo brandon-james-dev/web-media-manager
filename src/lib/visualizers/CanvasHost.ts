@@ -97,7 +97,7 @@ export class CanvasHost implements VisualizerRuntimeHost {
   async mount(): Promise<void> {
     const module = await importPluginModule(
       this.context.entrySource,
-      this.context.manifest.entry
+      this.context.manifest.entry ?? ""
     );
     const plugin = await resolvePlugin(module, this.context.api);
     this.plugin = plugin;

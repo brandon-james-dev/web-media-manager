@@ -9,7 +9,7 @@ import {
   Sync,
 } from "./pages";
 import { TvBrowse, TvDetail, TvHome } from "./pages/Tv";
-import { useIsTv } from "./lib/hooks/useIsMobile";
+import { useIsTv } from "./hooks/useIsMobile";
 import { NavBar } from "./layout";
 import { SongProvider, SyncProvider, VisualizerProvider } from "./providers";
 import { AddDeviceProvider } from "./components/sync";
@@ -31,11 +31,11 @@ import { registerBrowserJobService } from "./lib/background-jobs/jobServiceProvi
 import { registerBrowserVisualizerStoreProvider } from "./lib/persistence/browser/visualizerStoreProvider";
 import { registerBrowserThemeStoreProvider } from "./lib/persistence/browser/themeStoreProvider";
 import { registerBrowserLyricsSettingsStoreProvider } from "./lib/persistence/browser/lyricsSettingsProvider";
+import { initializePlugins } from "./lib/visualizers";
 import { resumeInterruptedJobs } from "./lib/background-jobs";
 import { ensureFavorites } from "./core/playlists";
 import { getThemeNavigationHandler } from "./core/themes";
 import { resyncAllSources } from "./lib/sources";
-import { ensureExampleVisualizers } from "./lib/visualizers";
 import { connectCommandDispatch, wmmBus } from "./events";
 import { installTvNavigation } from "./lib/tv";
 import {
@@ -66,9 +66,9 @@ void resumeInterruptedJobs()
   .catch(() => new Set<string>())
   .then((restored) => resyncAllSources(restored));
 
-// Seed the bundled particle visualizer on first run, after the plugin store
-// provider is registered.
-void ensureExampleVisualizers().catch(() => { });
+// Registers the lyrics provider registry, seeds the bundled example plugins,
+// then registers the lyrics providers of any installed lyrics plugin.
+void initializePlugins().catch(() => { });
 
 // Connect the bus to the command dispatcher: bus.invoke() -> registered
 // handlers (providers/UI register commands; this makes them reachable).
@@ -198,8 +198,8 @@ function App() {
     <ThemeProvider>
       {/* h-dvh: track the dynamic viewport height so the bottom app bar stays
           visible when mobile browsers collapse/expand their address bar
-          (100vh can exceed the visible viewport, hiding the player/editor). */}
-      {/* The providers wrap the header as well as the routes: the television
+          (100vh can exceed the visible viewport, hiding the player/editor).
+          The providers wrap the header as well as the routes: the television
           top bar shows the current track, which it reads from playback. */}
       <SongProvider>
         <PlaybackProvider>

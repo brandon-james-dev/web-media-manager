@@ -7,7 +7,7 @@ import type {
 } from "@/core/ports/packageFiles";
 import type { VisualizerPluginStore } from "@/core/ports/visualizers";
 import type {
-  InstalledVisualizerPlugin,
+  InstalledPlugin,
   PluginSettingsRecord,
 } from "./contracts";
 import { PluginInstallError, PluginManager } from "./PluginManager";
@@ -42,19 +42,19 @@ class MemoryPackageFileStore implements PackageFileStore {
 }
 
 class MemoryStore implements VisualizerPluginStore {
-  readonly plugins = new Map<string, InstalledVisualizerPlugin>();
+  readonly plugins = new Map<string, InstalledPlugin>();
   readonly files = new MemoryPackageFileStore();
   readonly settings = new Map<string, PluginSettingsRecord>();
 
-  async listPlugins(): Promise<InstalledVisualizerPlugin[]> {
+  async listPlugins(): Promise<InstalledPlugin[]> {
     return [...this.plugins.values()];
   }
 
-  async getPlugin(id: string): Promise<InstalledVisualizerPlugin | undefined> {
+  async getPlugin(id: string): Promise<InstalledPlugin | undefined> {
     return this.plugins.get(id);
   }
 
-  async putPlugin(plugin: InstalledVisualizerPlugin): Promise<void> {
+  async putPlugin(plugin: InstalledPlugin): Promise<void> {
     this.plugins.set(plugin.id, plugin);
   }
 

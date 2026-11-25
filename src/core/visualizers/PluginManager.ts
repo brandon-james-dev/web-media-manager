@@ -2,7 +2,7 @@ import type { PackageFileRecord } from "@/core/ports/packageFiles";
 import type { VisualizerPluginStore } from "@/core/ports/visualizers";
 import {
   PLUGIN_MANIFEST_FILE,
-  type InstalledVisualizerPlugin,
+  type InstalledPlugin,
   type LoadedVisualizerPlugin,
   type PluginSettingsValues,
   type VisualizerPluginManifest,
@@ -48,7 +48,7 @@ export interface InstallPluginOptions {
 }
 
 export interface InstallPluginResult {
-  plugin: InstalledVisualizerPlugin;
+  plugin: InstalledPlugin;
   replaced: boolean;
   issues: ManifestIssue[];
 }
@@ -180,11 +180,13 @@ export class PluginManager {
     }
 
     const timestamp = this.now();
-    const plugin: InstalledVisualizerPlugin = {
+    const plugin: InstalledPlugin = {
       id: inspected.manifest.id,
       name: inspected.manifest.name,
       version: inspected.manifest.version,
-      runtime: inspected.manifest.runtime,
+      ...(inspected.manifest.runtime
+        ? { runtime: inspected.manifest.runtime }
+        : {}),
       kind: inspected.manifest.kind ?? "visualizer",
       ...(inspected.manifest.author
         ? { author: inspected.manifest.author }
@@ -192,7 +194,9 @@ export class PluginManager {
       ...(inspected.manifest.description
         ? { description: inspected.manifest.description }
         : {}),
-      entryPath: inspected.manifest.entry,
+      ...(inspected.manifest.entry
+        ? { entryPath: inspected.manifest.entry }
+        : {}),
       ...(inspected.manifest.thumbnail
         ? { thumbnailPath: inspected.manifest.thumbnail }
         : {}),
@@ -234,12 +238,12 @@ export class PluginManager {
     };
   }
 
-  async list(): Promise<InstalledVisualizerPlugin[]> {
+  async list(): Promise<InstalledPlugin[]> {
     const plugins = await this.store.listPlugins();
     return plugins.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async get(id: string): Promise<InstalledVisualizerPlugin | undefined> {
+  async get(id: string): Promise<InstalledPlugin | undefined> {
     return this.store.getPlugin(id);
   }
 
@@ -256,6 +260,13 @@ export class PluginManager {
 
     const records = await this.store.files.listFiles(id);
     const files = new Map(records.map((record) => [record.path, record.bytes]));
+    if (!plugin.entryPath) {
+      throw new PluginLoadError(
+        id,
+        `Plugin "${plugin.name}" is declarative and has no entry file to load.`
+      );
+    }
+
     const entryBytes = files.get(plugin.entryPath);
     if (!entryBytes) {
       throw new PluginLoadError(

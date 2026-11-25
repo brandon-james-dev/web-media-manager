@@ -4,9 +4,15 @@ import {
   type PluginSettingDescriptor,
   type VisualizerPluginManifest,
 } from "../contracts/PluginManifest";
+import type {
+  PluginLyricsFieldMap,
+  PluginLyricsQueryField,
+  PluginProviderDescriptor,
+} from "../contracts/PluginProvider";
 import {
   getRuntimeDescriptor,
   isVisualizerRuntime,
+  type VisualizerRuntime,
 } from "../contracts/VisualizerRuntime";
 
 /**
@@ -34,6 +40,8 @@ export type ManifestIssueCode =
   | "vertex-not-in-archive"
   | "vertex-unused"
   | "kind-invalid"
+  | "provider-missing"
+  | "provider-invalid"
   | "settings-invalid"
   | "archive-invalid"
   | "already-installed";
@@ -55,7 +63,31 @@ const PLUGIN_ID_PATTERN = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 const SETTING_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
-const PLUGIN_KINDS: readonly PluginKind[] = ["visualizer", "theme", "layout"];
+const PLUGIN_KINDS: readonly PluginKind[] = [
+  "visualizer",
+  "theme",
+  "layout",
+  "lyrics",
+];
+
+const LYRICS_QUERY_FIELDS: readonly PluginLyricsQueryField[] = [
+  "title",
+  "artist",
+  "album",
+  "duration",
+];
+
+const LYRICS_FIELD_KEYS: readonly (keyof PluginLyricsFieldMap)[] = [
+  "id",
+  "title",
+  "artist",
+  "album",
+  "duration",
+  "plainLyrics",
+  "syncedLyrics",
+  "hasWordSync",
+  "instrumental",
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -276,6 +308,197 @@ function validateSettings(
   return descriptors;
 }
 
+function validateProvider(
+  raw: unknown,
+  kind: PluginKind,
+  issues: ManifestIssue[]
+): PluginProviderDescriptor | undefined {
+  if (raw === undefined) {
+    if (kind === "lyrics") {
+      issues.push({
+        code: "provider-missing",
+        severity: "error",
+        field: "provider",
+        message: "`provider` is required for lyrics plugins.",
+      });
+    }
+    return undefined;
+  }
+
+  if (!isRecord(raw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider",
+      message: "`provider` must be an object.",
+    });
+    return undefined;
+  }
+
+  const id = readString(raw, "id");
+  if (!id || !PLUGIN_ID_PATTERN.test(id)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.id",
+      message:
+        "`provider.id` must be a lowercase slug (letters, digits, dots, dashes, underscores).",
+    });
+  }
+
+  const name = readString(raw, "name");
+  if (!name) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.name",
+      message: "`provider.name` is required.",
+    });
+  }
+
+  const search = raw.search;
+  if (!isRecord(search)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search",
+      message: "`provider.search` must be an object.",
+    });
+    return undefined;
+  }
+
+  const url = readString(search, "url");
+  if (!url || !url.startsWith("https://")) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.url",
+      message: "`provider.search.url` must be an absolute https:// URL.",
+    });
+  }
+
+  const params: Partial<Record<PluginLyricsQueryField, string>> = {};
+  if (search.params !== undefined) {
+    if (!isRecord(search.params)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.search.params",
+        message: "`provider.search.params` must be an object.",
+      });
+    } else {
+      for (const [field, value] of Object.entries(search.params)) {
+        if (!LYRICS_QUERY_FIELDS.includes(field as PluginLyricsQueryField)) {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.search.params.${field}`,
+            message: `Unknown query field "${field}"; expected ${LYRICS_QUERY_FIELDS.join(", ")}.`,
+          });
+        } else if (typeof value !== "string" || !value.trim()) {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.search.params.${field}`,
+            message: "Each parameter name must be a non-empty string.",
+          });
+        } else {
+          params[field as PluginLyricsQueryField] = value.trim();
+        }
+      }
+    }
+  }
+
+  const headers: Record<string, string> = {};
+  if (search.headers !== undefined) {
+    if (!isRecord(search.headers)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.search.headers",
+        message: "`provider.search.headers` must be an object.",
+      });
+    } else {
+      for (const [header, value] of Object.entries(search.headers)) {
+        if (typeof value !== "string") {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.search.headers.${header}`,
+            message: "Each header value must be a string.",
+          });
+        } else {
+          headers[header] = value;
+        }
+      }
+    }
+  }
+
+  const resultsPath = readString(search, "resultsPath");
+
+  const fieldsRaw = search.fields;
+  if (!isRecord(fieldsRaw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.fields",
+      message: "`provider.search.fields` must be an object.",
+    });
+    return undefined;
+  }
+
+  const fields: Partial<PluginLyricsFieldMap> = {};
+  for (const key of LYRICS_FIELD_KEYS) {
+    const value = fieldsRaw[key];
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value !== "string" || !value.trim()) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: `provider.search.fields.${key}`,
+        message: "Each mapped field must be a non-empty JSON field name.",
+      });
+    } else {
+      fields[key] = value.trim();
+    }
+  }
+
+  if (!fields.title) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.fields.title",
+      message: "`provider.search.fields.title` is required.",
+    });
+  }
+  if (!fields.artist) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.fields.artist",
+      message: "`provider.search.fields.artist` is required.",
+    });
+  }
+
+  if (!id || !name || !url || !fields.title || !fields.artist) {
+    return undefined;
+  }
+
+  return {
+    id,
+    name,
+    search: {
+      url,
+      ...(Object.keys(params).length ? { params } : {}),
+      ...(Object.keys(headers).length ? { headers } : {}),
+      ...(resultsPath ? { resultsPath } : {}),
+      fields: fields as PluginLyricsFieldMap,
+    },
+  };
+}
+
 export function validatePluginManifest(
   raw: unknown,
   archivePaths: readonly string[]
@@ -326,36 +549,62 @@ export function validatePluginManifest(
     });
   }
 
+  const kindValue = readString(raw, "kind");
+  let kind: PluginKind = "visualizer";
+  if (kindValue) {
+    if (!PLUGIN_KINDS.includes(kindValue as PluginKind)) {
+      issues.push({
+        code: "kind-invalid",
+        severity: "error",
+        field: "kind",
+        message: "`kind` must be one of visualizer, theme, layout, lyrics.",
+      });
+    } else {
+      kind = kindValue as PluginKind;
+    }
+  }
+  const executable = kind === "visualizer";
+
   const runtimeValue = readString(raw, "runtime");
-  const runtime =
-    runtimeValue && isVisualizerRuntime(runtimeValue)
-      ? runtimeValue
-      : undefined;
-  if (!runtime) {
+  let runtime: VisualizerRuntime | undefined;
+  if (runtimeValue) {
+    if (!isVisualizerRuntime(runtimeValue)) {
+      issues.push({
+        code: "runtime-unknown",
+        severity: "error",
+        field: "runtime",
+        message:
+          "`runtime` must be one of webgl-shader, canvas2d-typescript, wasm.",
+      });
+    } else if (!getRuntimeDescriptor(runtimeValue)?.implemented) {
+      issues.push({
+        code: "runtime-unsupported",
+        severity: "error",
+        field: "runtime",
+        message: `The "${runtimeValue}" runtime is not available in this version of the app.`,
+      });
+    } else {
+      runtime = runtimeValue;
+    }
+  } else if (executable) {
     issues.push({
       code: "runtime-unknown",
       severity: "error",
       field: "runtime",
-      message:
-        "`runtime` must be one of webgl-shader, canvas2d-typescript, wasm.",
-    });
-  } else if (!getRuntimeDescriptor(runtime)?.implemented) {
-    issues.push({
-      code: "runtime-unsupported",
-      severity: "error",
-      field: "runtime",
-      message: `The "${runtime}" runtime is not available in this version of the app.`,
+      message: "`runtime` is required for visualizer plugins.",
     });
   }
 
   const entry = readString(raw, "entry");
   if (!entry) {
-    issues.push({
-      code: "entry-missing",
-      severity: "error",
-      field: "entry",
-      message: "`entry` is required.",
-    });
+    if (executable) {
+      issues.push({
+        code: "entry-missing",
+        severity: "error",
+        field: "entry",
+        message: "`entry` is required for visualizer plugins.",
+      });
+    }
   } else if (!archivePaths.includes(entry)) {
     issues.push({
       code: "entry-not-in-archive",
@@ -403,23 +652,15 @@ export function validatePluginManifest(
     });
   }
 
-  const kindValue = readString(raw, "kind");
-  if (
-    kindValue &&
-    !PLUGIN_KINDS.includes(kindValue as PluginKind)
-  ) {
-    issues.push({
-      code: "kind-invalid",
-      severity: "error",
-      field: "kind",
-      message: "`kind` must be one of visualizer, theme, layout.",
-    });
-  }
+  const provider = validateProvider(raw.provider, kind, issues);
 
   const settings = validateSettings(raw.settings, issues);
 
   const valid = !issues.some((issue) => issue.severity === "error");
-  if (!valid || !id || !name || !version || !runtime || !entry) {
+  if (!valid || !id || !name || !version) {
+    return { valid: false, issues };
+  }
+  if (executable && (!runtime || !entry)) {
     return { valid: false, issues };
   }
 
@@ -427,8 +668,8 @@ export function validatePluginManifest(
     id,
     name,
     version,
-    runtime,
-    entry,
+    ...(runtime ? { runtime } : {}),
+    ...(entry ? { entry } : {}),
     ...(thumbnail ? { thumbnail } : {}),
     ...(vertex ? { vertex } : {}),
     ...(readString(raw, "author") ? { author: readString(raw, "author") } : {}),
@@ -441,7 +682,8 @@ export function validatePluginManifest(
     ...(readString(raw, "license")
       ? { license: readString(raw, "license") }
       : {}),
-    ...(kindValue ? { kind: kindValue as PluginKind } : {}),
+    kind,
+    ...(provider ? { provider } : {}),
     ...(settings ? { settings } : {}),
   };
 

@@ -8,3 +8,5 @@ export type {
   ChildAggregatePayload,
 } from "./callbacks";
 export { resumeInterruptedJobs } from "./resumeJobs";
+export { runJobWithProgress } from "./runJobWithProgress";
+export type { JobRunOptions } from "./runJobWithProgress";

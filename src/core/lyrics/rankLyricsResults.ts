@@ -1,7 +1,7 @@
-import type { ILyricsQuery, ILyricsResult } from "./ILyricsService";
+import type { LyricsQuery, LyricsResult } from "@/core/contracts";
 
 /** A lyrics record with the score it earned against the query. */
-export interface IRankedLyricsResult extends ILyricsResult {
+export interface IRankedLyricsResult extends LyricsResult {
   /** 0..1 match score against the query; 1 is a perfect match. */
   matchScore: number;
 }
@@ -24,7 +24,7 @@ const WEIGHTS = {
 } as const;
 
 /** Small preference for a record that carries timestamps, used as a tiebreak. */
-function hasSynced(result: ILyricsResult): number {
+function hasSynced(result: LyricsResult): number {
   return result.syncedLyrics ? 1 : 0;
 }
 
@@ -72,7 +72,7 @@ function durationScore(
   return Math.max(0, 1 - (diff - DURATION_EXACT_SECONDS) / span);
 }
 
-function scoreResult(result: ILyricsResult, query: ILyricsQuery): number {
+function scoreResult(result: LyricsResult, query: LyricsQuery): number {
   const signals: Array<[score: number, weight: number]> = [];
 
   const duration = durationScore(query.duration, result.duration);
@@ -106,6 +106,9 @@ function scoreResult(result: ILyricsResult, query: ILyricsQuery): number {
  * renormalized, so a query without a duration still ranks sensibly. Records
  * that carry timestamps win ties.
  *
+ * The score reads only provider-neutral result fields, so results from
+ * different providers rank on the same scale.
+ *
  * @example
  * ```ts
  * const ranked = rankLyricsResults(results, { title, artist, duration });
@@ -113,8 +116,8 @@ function scoreResult(result: ILyricsResult, query: ILyricsQuery): number {
  * ```
  */
 export function rankLyricsResults(
-  results: ILyricsResult[],
-  query: ILyricsQuery
+  results: LyricsResult[],
+  query: LyricsQuery
 ): IRankedLyricsResult[] {
   return results
     .map((result) => ({ ...result, matchScore: scoreResult(result, query) }))

@@ -1,6 +1,6 @@
 import type { PackageFileStore } from "@/core/ports/packageFiles";
 import type {
-  InstalledVisualizerPlugin,
+  InstalledPlugin,
   PluginSettingsRecord,
 } from "@/core/visualizers/contracts";
 
@@ -15,9 +15,9 @@ import type {
  * same interface over SQLite or the filesystem without the manager changing.
  */
 export interface VisualizerPluginStore {
-  listPlugins(): Promise<InstalledVisualizerPlugin[]>;
-  getPlugin(id: string): Promise<InstalledVisualizerPlugin | undefined>;
-  putPlugin(plugin: InstalledVisualizerPlugin): Promise<void>;
+  listPlugins(): Promise<InstalledPlugin[]>;
+  getPlugin(id: string): Promise<InstalledPlugin | undefined>;
+  putPlugin(plugin: InstalledPlugin): Promise<void>;
   /** Removes the plugin row, its files and its settings. */
   deletePlugin(id: string): Promise<void>;
 

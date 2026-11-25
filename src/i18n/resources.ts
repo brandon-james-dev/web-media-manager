@@ -875,9 +875,35 @@ export const WMM_RESOURCES = {
     "Summary under the visualizer plugins heading."
   ),
   "settings.installPlugins": text("Opens the visualizer plugin manager."),
-  "settings.lyrics": text("Heading of the online lyrics card."),
-  "settings.lyricsDescription": text(
-    "Summary under the online lyrics heading."
+  "settings.lyricsProviders": text(
+    "Heading of the lyrics providers section."
+  ),
+  "settings.lyricsProvidersDescription": text(
+    "Summary under the lyrics providers heading."
+  ),
+  "settings.installLyricsPlugins": text(
+    "Opens the lyrics plugin manager."
+  ),
+  "settings.lyricsSettings": text(
+    "Opens the lyrics settings dialog."
+  ),
+  "settings.lyricsSettingsDescription": text(
+    "Summary under the lyrics settings dialog title."
+  ),
+  "settings.lyricsProviderBuiltin": text(
+    "Badge marking a lyrics provider that ships with the app."
+  ),
+  "settings.lyricsProviderPlugin": text(
+    "Badge marking a lyrics provider installed as a plugin."
+  ),
+  "settings.lyricsPluginsTitle": text(
+    "Title of the lyrics plugin manager dialog."
+  ),
+  "settings.lyricsPluginsDescription": text(
+    "Summary under the lyrics plugin manager title."
+  ),
+  "settings.noLyricsPluginsInstalled": text(
+    "Shown in the lyrics plugin manager when no lyrics plugin is installed."
   ),
   "settings.lyricsApplicationId": text(
     "Label of the lyrics provider application id field."

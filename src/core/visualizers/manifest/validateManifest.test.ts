@@ -1,0 +1,141 @@
+import { describe, expect, it } from "vitest";
+import { validatePluginManifest } from "./validateManifest";
+
+const visualizerManifest = {
+  id: "aurora",
+  name: "Aurora",
+  version: "0.1.1",
+  runtime: "webgl-shader",
+  entry: "shader.frag",
+};
+
+const lyricsManifest = {
+  id: "example-lyrics",
+  name: "Example Lyrics",
+  version: "1.0.0",
+  kind: "lyrics",
+  provider: {
+    id: "example-lyrics",
+    name: "Example Lyrics",
+    search: {
+      url: "https://lyrics.example.test/api/search",
+      params: { title: "track_name", artist: "artist_name" },
+      fields: { title: "trackName", artist: "artistName" },
+    },
+  },
+};
+
+function codes(result: ReturnType<typeof validatePluginManifest>): string[] {
+  return result.issues
+    .filter((issue) => issue.severity === "error")
+    .map((issue) => issue.code);
+}
+
+describe("validatePluginManifest", () => {
+  it("accepts a visualizer manifest with a runtime and entry", () => {
+    const result = validatePluginManifest(visualizerManifest, ["shader.frag"]);
+
+    expect(result.valid).toBe(true);
+    expect(result.manifest?.kind).toBe("visualizer");
+    expect(result.manifest?.runtime).toBe("webgl-shader");
+  });
+
+  it("still requires a runtime and entry for visualizer plugins", () => {
+    const result = validatePluginManifest(
+      { id: "aurora", name: "Aurora", version: "1.0.0" },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toEqual(
+      expect.arrayContaining(["runtime-unknown", "entry-missing"])
+    );
+  });
+
+  it("accepts a lyrics manifest without a runtime or entry", () => {
+    const result = validatePluginManifest(lyricsManifest, []);
+
+    expect(result.valid).toBe(true);
+    expect(result.manifest?.kind).toBe("lyrics");
+    expect(result.manifest?.runtime).toBeUndefined();
+    expect(result.manifest?.entry).toBeUndefined();
+    expect(result.manifest?.provider?.id).toBe("example-lyrics");
+  });
+
+  it("requires a provider for a lyrics plugin", () => {
+    const result = validatePluginManifest(
+      { id: "example", name: "Example", version: "1.0.0", kind: "lyrics" },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-missing");
+  });
+
+  it("rejects a provider endpoint that is not https", () => {
+    const result = validatePluginManifest(
+      {
+        ...lyricsManifest,
+        provider: {
+          ...lyricsManifest.provider,
+          search: {
+            ...lyricsManifest.provider.search,
+            url: "http://lyrics.example.test/api/search",
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
+
+  it("requires title and artist field mappings", () => {
+    const result = validatePluginManifest(
+      {
+        ...lyricsManifest,
+        provider: {
+          ...lyricsManifest.provider,
+          search: {
+            ...lyricsManifest.provider.search,
+            fields: { title: "trackName" },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
+
+  it("rejects an unknown query field in the parameter map", () => {
+    const result = validatePluginManifest(
+      {
+        ...lyricsManifest,
+        provider: {
+          ...lyricsManifest.provider,
+          search: {
+            ...lyricsManifest.provider.search,
+            params: { genre: "genre" },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
+
+  it("rejects an unknown plugin kind", () => {
+    const result = validatePluginManifest(
+      { ...visualizerManifest, kind: "widget" },
+      ["shader.frag"]
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("kind-invalid");
+  });
+});

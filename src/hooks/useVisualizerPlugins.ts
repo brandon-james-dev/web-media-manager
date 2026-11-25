@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import type { PluginSettingsValues } from "@/core/visualizers";
 import { getVisualizerPluginManager } from "@/lib/visualizers";
+import { refreshPluginLyricsProviders } from "@/lib/lyrics-providers/plugin/refreshPluginLyricsProviders";
 
 /**
  * TanStack Query bindings for the plugin manager.
@@ -57,6 +58,9 @@ export function useInstallPlugin() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: visualizerKeys.all });
+      // A lyrics plugin contributes a provider, so the registry follows the
+      // installed set.
+      void refreshPluginLyricsProviders().catch(() => {});
     },
   });
 }
@@ -69,6 +73,9 @@ export function useRemovePlugin() {
       getVisualizerPluginManager().remove(pluginId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: visualizerKeys.all });
+      // A lyrics plugin contributes a provider, so the registry follows the
+      // installed set.
+      void refreshPluginLyricsProviders().catch(() => {});
     },
   });
 }

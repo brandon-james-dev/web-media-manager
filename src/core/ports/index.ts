@@ -31,6 +31,14 @@ export {
   setLyricsSettingsStoreProvider,
 } from "./lyrics";
 export type { LyricsSettings, LyricsSettingsStore } from "./lyrics";
+export {
+  getLyricsProviderRegistry,
+  setLyricsProviderRegistryProvider,
+} from "./lyricsProviders";
+export type {
+  LyricsProviderRegistry,
+  LyricsServiceFactory,
+} from "./lyricsProviders";
 export { getThemeStore, setThemeStoreProvider } from "./themes";
 export type {
   InstalledTheme,

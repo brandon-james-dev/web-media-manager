@@ -118,7 +118,9 @@ export function VisualizerSelector({
           <ul className="flex flex-col gap-1">
             {(plugins ?? []).map((plugin) => {
               const isActive = plugin.id === activePluginId;
-              const runtime = getRuntimeDescriptor(plugin.runtime);
+              const runtime = plugin.runtime
+                ? getRuntimeDescriptor(plugin.runtime)
+                : undefined;
 
               return (
                 <li key={plugin.id}>

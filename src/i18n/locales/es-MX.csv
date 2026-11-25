@@ -415,12 +415,20 @@ settings.shortcutEdit,Abrir la edición avanzada
 settings.shortcutFullscreen,Alternar pantalla completa (reproduciendo ahora)
 settings.shortcutClose,Cerrar el editor
 settings.extensibility,Extensibilidad
-settings.extensibilityDescription,Temas personalizados y complementos de visualizador
+settings.extensibilityDescription,Temas personalizados
 settings.visualizers,Visualizadores
 settings.visualizersDescription,Instala complementos de visualizador y configura el activo
-settings.installPlugins,Instalar o administrar complementos
-settings.lyrics,Letra
-settings.lyricsDescription,Configura la búsqueda de letras en línea.
+settings.installPlugins,Instalar o administrar visualizadores
+settings.lyricsProviders,Proveedores de letras
+settings.lyricsProvidersDescription,Instala complementos de proveedor de letras y consulta qué proveedores puede usar una búsqueda
+settings.installLyricsPlugins,Instalar o administrar complementos de letras
+settings.lyricsSettings,Configuración de letras
+settings.lyricsSettingsDescription,Configura la búsqueda de letras en línea.
+settings.lyricsProviderBuiltin,Integrado
+settings.lyricsProviderPlugin,Complemento
+settings.lyricsPluginsTitle,Complementos de letras
+settings.lyricsPluginsDescription,Instala un archivo ZIP que añade un proveedor de letras.
+settings.noLyricsPluginsInstalled,Aún no hay complementos de letras instalados.
 settings.lyricsApplicationId,ID de aplicación de LRCLIB
 settings.lyricsApplicationIdDescription,Opcional. Un ID de aplicación registrado aumenta el límite de solicitudes de LRCLIB para buscar letras; la búsqueda funciona sin uno.
 settings.lyricsApplicationIdPlaceholder,ID de aplicación

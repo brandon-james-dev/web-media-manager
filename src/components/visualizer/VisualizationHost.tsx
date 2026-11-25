@@ -18,7 +18,7 @@ import {
   type VisualizerRuntimeHost,
 } from "@/lib/visualizers";
 import { Button } from "@/components/ui/button";
-import { useIsTv } from "@/lib/hooks/useIsMobile";
+import { useIsTv } from "@/hooks/useIsMobile";
 import { useTranslation } from "@/i18n";
 import type { VisualizationHostProps } from "./VisualizationHostProps";
 import {
@@ -90,6 +90,11 @@ export function VisualizationHost({
 
     setError(null);
 
+    const runtime = loaded.plugin.runtime;
+    if (!runtime) {
+      return;
+    }
+
     let disposed = false;
     let frameHandle = 0;
     const listeners = listenersRef.current;
@@ -129,7 +134,7 @@ export function VisualizationHost({
       },
     };
 
-    const host = createRuntimeHost(loaded.plugin.runtime, {
+    const host = createRuntimeHost(runtime, {
       canvas,
       api,
       manifest: loaded.plugin.manifest,

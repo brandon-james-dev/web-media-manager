@@ -1,3 +1,4 @@
+import type { PluginProviderDescriptor } from "./PluginProvider";
 import type { VisualizerRuntime } from "./VisualizerRuntime";
 
 /**
@@ -10,11 +11,11 @@ import type { VisualizerRuntime } from "./VisualizerRuntime";
 export const PLUGIN_MANIFEST_FILE = "manifest.json";
 
 /**
- * Plugin kinds share one install/validate/store pipeline. Only `visualizer`
- * is rendered today; `theme` and `layout` are declared so those plugins can be
- * installed by the same manager once their hosts exist.
+ * Plugin kinds share one install/validate/store pipeline. `visualizer` is
+ * executable and names a runtime plus an entry file; the other kinds are
+ * declarative and describe what they contribute through `provider`.
  */
-export type PluginKind = "visualizer" | "theme" | "layout";
+export type PluginKind = "visualizer" | "theme" | "layout" | "lyrics";
 
 export interface PluginSettingOption {
   value: string;
@@ -57,9 +58,10 @@ export interface VisualizerPluginManifest {
   id: string;
   name: string;
   version: string;
-  runtime: VisualizerRuntime;
-  /** Archive-relative path of the file the runtime executes. */
-  entry: string;
+  /** Executable plugins only: the runtime that mounts `entry`. */
+  runtime?: VisualizerRuntime;
+  /** Executable plugins only: archive-relative path of the file to execute. */
+  entry?: string;
   /** Archive-relative path of a preview image. */
   thumbnail?: string;
   /** Optional vertex shader for `webgl-shader` plugins. */
@@ -69,5 +71,7 @@ export interface VisualizerPluginManifest {
   homepage?: string;
   license?: string;
   kind?: PluginKind;
+  /** Declarative plugins only: what the plugin contributes to the host. */
+  provider?: PluginProviderDescriptor;
   settings?: PluginSettingDescriptor[];
 }

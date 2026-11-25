@@ -7,15 +7,17 @@ import type {
  * An installed plugin row. The manifest is denormalized onto the row so the
  * selector can render a full card from one table read.
  */
-export interface InstalledVisualizerPlugin {
+export interface InstalledPlugin {
   id: string;
   name: string;
   version: string;
-  runtime: VisualizerPluginManifest["runtime"];
+  /** Present for executable plugins; absent for declarative ones. */
+  runtime?: VisualizerPluginManifest["runtime"];
   kind: NonNullable<VisualizerPluginManifest["kind"]>;
   author?: string;
   description?: string;
-  entryPath: string;
+  /** Present for executable plugins; absent for declarative ones. */
+  entryPath?: string;
   thumbnailPath?: string;
   manifest: VisualizerPluginManifest;
   installedAt: number;
@@ -32,7 +34,7 @@ export interface PluginSettingsRecord {
 
 /** A plugin resolved from storage, ready for a runtime host to mount. */
 export interface LoadedVisualizerPlugin {
-  plugin: InstalledVisualizerPlugin;
+  plugin: InstalledPlugin;
   files: ReadonlyMap<string, Uint8Array>;
   entrySource: string;
   vertexSource?: string;

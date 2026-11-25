@@ -1,7 +1,7 @@
 import type { PackageFileStore } from "@/core/ports/packageFiles";
 import type { VisualizerPluginStore } from "@/core/ports/visualizers";
 import type {
-  InstalledVisualizerPlugin,
+  InstalledPlugin,
   PluginSettingsRecord,
 } from "@/core/visualizers/contracts";
 import { DexiePackageFileStore } from "./DexiePackageFileStore";
@@ -18,15 +18,15 @@ export class DexieVisualizerPluginStore implements VisualizerPluginStore {
     this.db.pluginFiles
   );
 
-  async listPlugins(): Promise<InstalledVisualizerPlugin[]> {
+  async listPlugins(): Promise<InstalledPlugin[]> {
     return this.db.plugins.toArray();
   }
 
-  async getPlugin(id: string): Promise<InstalledVisualizerPlugin | undefined> {
+  async getPlugin(id: string): Promise<InstalledPlugin | undefined> {
     return this.db.plugins.get(id);
   }
 
-  async putPlugin(plugin: InstalledVisualizerPlugin): Promise<void> {
+  async putPlugin(plugin: InstalledPlugin): Promise<void> {
     await this.db.plugins.put(plugin);
   }
 

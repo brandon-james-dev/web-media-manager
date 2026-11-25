@@ -26,6 +26,7 @@ export * as scanning from "./scanning";
 export * as media from "./media";
 export * as metadata from "./metadata";
 export * as playlists from "./playlists";
+export * as lyrics from "./lyrics";
 export * as jobs from "./jobs";
 export * as events from "../events";
 

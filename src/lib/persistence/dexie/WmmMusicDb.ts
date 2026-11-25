@@ -4,11 +4,11 @@ import type { PersistedJob } from "@/core/jobs";
 import type { PackageFileRecord } from "@/core/ports/packageFiles";
 import type { InstalledTheme } from "@/core/ports/themes";
 import type {
-  InstalledVisualizerPlugin,
+  InstalledPlugin,
   PluginSettingsRecord,
 } from "@/core/visualizers/contracts";
 import type { OfflineAudioRecord } from "@/lib/offline/offlineAudioStore";
-import type { HiddenTrackRecord } from "@/lib/hidden/hiddenTrackStore";
+import type { HiddenTrackRecord } from "@/lib/hidden-songs/hiddenTrackStore";
 import type {
   MusicSource,
   PlayHistoryEntry,
@@ -35,7 +35,7 @@ export class WmmMusicDb extends Dexie {
   playlists!: Table<Playlist, string>;
   jobs!: Table<PersistedJob, string>;
   playHistory!: Table<PlayHistoryEntry, string>;
-  plugins!: Table<InstalledVisualizerPlugin, string>;
+  plugins!: Table<InstalledPlugin, string>;
   pluginFiles!: Table<PackageFileRecord, number>;
   pluginSettings!: Table<PluginSettingsRecord, string>;
   offlineAudio!: Table<OfflineAudioRecord, string>;
