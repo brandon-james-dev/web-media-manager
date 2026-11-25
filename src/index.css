@@ -196,6 +196,10 @@
        refresh gesture is a page-root overscroll, so containing it here
        prevents the destructive reload. */
     overscroll-behavior-y: none;
+    /* Pinch zoom stays off on touch devices. The viewport meta covers most
+       browsers, but iOS Safari ignores `user-scalable=no`, so the gesture is
+       refused here too. Panning and scrolling are unaffected. */
+    touch-action: pan-x pan-y;
   }
 
   /* Television: the remote moves focus, so the focused control has to be

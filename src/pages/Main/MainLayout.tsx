@@ -213,6 +213,18 @@ function SidebarDndArea({
       activationConstraint: { delay: 180, tolerance: 8 },
     })
   );
+  // Same length as `sensors` on purpose: dnd-kit spreads the array into a
+  // `useEffect` dependency list, so swapping in a shorter array changes that
+  // list's size and React errors on every toggle. An unreachable distance
+  // keeps these inert instead.
+  const idleSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: Number.POSITIVE_INFINITY },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { distance: Number.POSITIVE_INFINITY },
+    })
+  );
 
   const settle = () => {
     if (settleTimer.current !== null) {
@@ -223,7 +235,7 @@ function SidebarDndArea({
 
   return (
     <DndContext
-      sensors={enabled ? sensors : []}
+      sensors={enabled ? sensors : idleSensors}
       collisionDetection={pointerOnlyCollision}
       onDragStart={(event: DragStartEvent) => {
         const data = event.active.data.current ?? {};
@@ -767,7 +779,7 @@ function MainLayout() {
           )}
         >
           {isMobileSearchOpen && (
-            <div className="absolute bottom-full left-0 right-0 z-popover mb-2 overflow-hidden rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg">
+            <div className="absolute bottom-full left-0 right-0 z-chrome-row mb-2 overflow-hidden rounded-xl border shadow-lg bg-secondary supports-backdrop-filter:bg-secondary/60 supports-backdrop-filter:backdrop-blur-lg">
               <InputGroup className="h-14 border-0">
                 <InputGroupInput
                   ref={mobileSearchRef}

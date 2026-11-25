@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/drawer";
 import type { Song } from "@/models";
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { useIsMobile } from "@/lib/hooks/useIsMobile";
+import { useIsMobile, useIsPhoneLandscape } from "@/lib/hooks/useIsMobile";
 import { useTranslation } from "@/i18n";
 import { NewPlaylistDialog } from "@/components/new-playlist-dialog";
 import { useSongMenu, type SongMenuAction } from "./songMenuItems";
@@ -48,26 +48,59 @@ export function SongContextMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // Both hooks run on every render: `a || b()` would skip the second hook's
+  // internals whenever the first is true, and rotation flips that, which
+  // changes the hook order and crashes the tree.
+  const isMobileViewport = useIsMobile();
+  const isPhoneLandscape = useIsPhoneLandscape();
+  // A phone in landscape is wider than the mobile breakpoint but has no room
+  // for a floating menu, so it keeps the drawer.
+  const isMobile = isMobileViewport || isPhoneLandscape;
 
   function handleOpenChange(next: boolean) {
+    if (next && !mounted) {
+      // Mount the surface closed and open it on the next frame. Mounting it
+      // already open gives the drawer no closed state to animate in from, so
+      // the first open would appear instantly while later ones animate.
+      setMounted(true);
+      requestAnimationFrame(() => setOpen(true));
+      return;
+    }
     setOpen(next);
-    if (next) setMounted(true);
   }
 
-  return (
-    <ContextMenu onOpenChange={handleOpenChange}>
-      <ContextMenuTrigger render={children} />
+  const surface = (
+    <SongMenuSurface
+      songs={songs}
+      playlistId={playlistId}
+      open={open}
+      isMobile={isMobile}
+      onOpenChange={handleOpenChange}
+      onClose={() => setOpen(false)}
+    />
+  );
 
-      {mounted && (
-        <SongMenuSurface
-          songs={songs}
-          playlistId={playlistId}
-          open={open}
-          onOpenChange={handleOpenChange}
-          onClose={() => setOpen(false)}
-        />
-      )}
-    </ContextMenu>
+  return (
+    <>
+      <ContextMenu
+        onOpenChange={(next) => {
+          // Only the open edge matters here. The drawer is a sibling, so the
+          // context menu's own outside-press close would otherwise tear the
+          // drawer down on any click inside it.
+          if (next) handleOpenChange(true);
+        }}
+      >
+        <ContextMenuTrigger render={children} />
+        {/* The floating menu must stay inside the root: its parts read
+            MenuRootContext and throw without it. */}
+        {mounted && !isMobile && surface}
+      </ContextMenu>
+
+      {/* The drawer sits outside the root on purpose: it is portalled to the
+          body, so nesting it there made every press inside it an "outside
+          press" for the context menu, which closed it on any click. */}
+      {mounted && isMobile && surface}
+    </>
   );
 }
 
@@ -76,17 +109,18 @@ function SongMenuSurface({
   songs,
   playlistId,
   open,
+  isMobile,
   onOpenChange,
   onClose,
 }: {
   songs: Song[];
   playlistId?: string;
   open: boolean;
+  isMobile: boolean;
   onOpenChange: (open: boolean) => void;
   onClose: () => void;
 }) {
   const menu = useSongMenu(songs, playlistId);
-  const isMobile = useIsMobile();
   const { t } = useTranslation();
 
   const song = songs[0];
@@ -168,10 +202,12 @@ function SongMenuSurface({
           showSwipeHandle
         >
           <DrawerContent
-            className="mx-auto w-full max-w-md select-none"
+            // About half the player bar, so the sheet reads as a compact menu
+            // rather than spanning the whole playback component.
+            className="mx-auto w-full max-w-90 select-none"
           >
-            <DrawerHeader className="pb-1">
-              <DrawerTitle className="truncate text-sm">
+            <DrawerHeader className="pb-1 select-none">
+              <DrawerTitle className="truncate text-sm select-none [-webkit-touch-callout:none]">
                 {menu.target.length > 1
                   ? t("library.songCount", [menu.target.length])
                   : (song?.title ?? t("library.song"))}

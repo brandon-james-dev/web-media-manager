@@ -191,7 +191,7 @@ export function Songs() {
           >
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 text-accent opacity-[0.12] bg-[radial-gradient(circle,currentColor_1px,transparent_1.5px)] bg-size-[18px_18px] mask-[radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
+              className="pointer-events-none absolute inset-0 text-accent opacity-[0.16] bg-[radial-gradient(circle,currentColor_1.25px,transparent_1.75px)] bg-size-[18px_18px] mask-[radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
             />
             <Card className="relative w-full max-w-md gap-0 py-0 text-center">
               <div className="relative flex flex-col items-center gap-3 overflow-hidden bg-accent px-10 py-10 text-accent-foreground">

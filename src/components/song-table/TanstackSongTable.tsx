@@ -305,20 +305,29 @@ export function TanstackSongTable(props: SongTableProps) {
 
           <ContextMenuContent className="w-48">
             <ContextMenuGroup>
-              {table.getAllLeafColumns().map((col) => (
-                <ContextMenuCheckboxItem
-                  key={col.id}
-                  checked={col.getIsVisible()}
-                  onCheckedChange={(checked) => col.toggleVisibility(!!checked)}
-                  className="capitalize"
-                >
-                  {t(
-                    SONG_COLUMN_LABEL_KEYS[
-                      col.id as keyof typeof SONG_COLUMN_LABEL_KEYS
-                    ]
-                  )}
-                </ContextMenuCheckboxItem>
-              ))}
+              {table.getAllLeafColumns().map((col) => {
+                // The title identifies the row, so it stays visible; the item
+                // is disabled rather than hidden so the menu keeps its shape.
+                const locked = col.id === "title";
+                return (
+                  <ContextMenuCheckboxItem
+                    key={col.id}
+                    checked={col.getIsVisible()}
+                    disabled={locked}
+                    onCheckedChange={(checked) => {
+                      if (locked) return;
+                      col.toggleVisibility(!!checked);
+                    }}
+                    className="capitalize"
+                  >
+                    {t(
+                      SONG_COLUMN_LABEL_KEYS[
+                        col.id as keyof typeof SONG_COLUMN_LABEL_KEYS
+                      ]
+                    )}
+                  </ContextMenuCheckboxItem>
+                );
+              })}
             </ContextMenuGroup>
 
             <ContextMenuSeparator />
