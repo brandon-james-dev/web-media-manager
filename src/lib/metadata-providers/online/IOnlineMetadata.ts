@@ -1,7 +1,10 @@
-import type { IAudioProperties, ITagData } from "../../contracts";
-import type { MetadataProvider } from "./MetadataProvider";
+import type { MetadataResult } from "@/core/contracts";
 
-export interface IOnlineMetadata
-  extends Partial<ITagData>, Partial<Pick<IAudioProperties, "duration">> {
-  source: MetadataProvider;
-}
+/**
+ * Song lookup result.
+ *
+ * The shape lives in core (`@/core/contracts`), because a provider is a public
+ * extension seam. This alias keeps the provider implementations and their
+ * callers reading the name they always have.
+ */
+export type IOnlineMetadata = MetadataResult;

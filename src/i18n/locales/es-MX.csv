@@ -434,6 +434,14 @@ settings.lyricsSettings,Configuración de letras
 settings.lyricsSettingsDescription,Configura la búsqueda de letras en línea.
 settings.lyricsProviderBuiltin,Integrado
 settings.lyricsProviderPlugin,Complemento
+settings.metadataProviders,Proveedores de metadatos en línea
+settings.metadataSettings,Configuración del proveedor de metadatos
+settings.metadataProvidersDescription,Instala plugins de proveedores de metadatos y consulta qué proveedores puede usar una búsqueda
+settings.installMetadataPlugins,Instalar o administrar plugins de metadatos
+settings.metadataPluginsTitle,Plugins de metadatos
+settings.metadataPluginsDescription,Instala un archivo ZIP que añade un proveedor de metadatos en línea.
+settings.installMetadataPlugin,Instalar plugin de metadatos
+settings.removeMetadataPlugin,Quitar plugin de metadatos
 settings.lyricsPluginsTitle,Complementos de letras
 settings.lyricsPluginsDescription,Instala un archivo ZIP que añade un proveedor de letras.
 settings.sourcePluginsTitle,Complementos de fuentes de música

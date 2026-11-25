@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Item } from "@/components/ui/item";
 import { Sun, Moon, Monitor, ArrowLeft, X, Cpu, RefreshCw, Loader2, Pencil, PackagePlus, SlidersHorizontal, Trash2 } from "lucide-react";
-import { useTheme, useVisualizer, useLyricsProviders, usePluginSourceStrategies, useRemovePlugin } from "@/hooks";
+import { useTheme, useVisualizer, useLyricsProviders, useMetadataProviders, usePluginSourceStrategies, useRemovePlugin } from "@/hooks";
 import {
   AUTO_LANGUAGE,
   useTranslation,
@@ -54,6 +54,7 @@ import {
   VisualizerSettings,
 } from "@/components/visualizer";
 import { PluginManagerDialog } from "@/components/plugin-manager";
+import { PluginSettingsDialog } from "@/components/plugin-settings";
 
 const THEME_OPTIONS = [
   { value: "light", labelKey: "settings.themeLight", icon: Sun },
@@ -78,9 +79,14 @@ export function Settings() {
     useTranslation();
   const [settingsPluginId, setSettingsPluginId] = useState<string>();
   const [lyricsManagerOpen, setLyricsManagerOpen] = useState(false);
+  const [metadataManagerOpen, setMetadataManagerOpen] = useState(false);
+  const [metadataSettingsPluginId, setMetadataSettingsPluginId] = useState<
+    string | null
+  >(null);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
   const [lyricsSettingsOpen, setLyricsSettingsOpen] = useState(false);
   const lyricsProviders = useLyricsProviders();
+  const metadataProviders = useMetadataProviders();
   const pluginSourceStrategies = usePluginSourceStrategies();
   const removePlugin = useRemovePlugin();
   const [clearSongsDialogOpen, setClearSongsDialogOpen] = useState(false);
@@ -512,6 +518,75 @@ export function Settings() {
             <LyricsSettings
               open={lyricsSettingsOpen}
               onOpenChange={setLyricsSettingsOpen}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>{t("settings.metadataProviders")}</Label>
+              <p className="text-sm text-muted-foreground">
+                {t("settings.metadataProvidersDescription")}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1 rounded-sm border p-1">
+              {metadataProviders.map((provider) => (
+                <Item
+                  key={provider.id}
+                  className="flex items-center justify-between gap-2 px-2 py-1.5"
+                >
+                  <span className="truncate">{provider.name}</span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <Badge variant="outline">
+                      {t(
+                        provider.origin === "plugin"
+                          ? "settings.lyricsProviderPlugin"
+                          : "settings.lyricsProviderBuiltin"
+                      )}
+                    </Badge>
+                    {provider.pluginId && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        title={t("settings.metadataSettings")}
+                        aria-label={t("settings.metadataSettings")}
+                        onClick={() =>
+                          setMetadataSettingsPluginId(provider.pluginId ?? null)
+                        }
+                      >
+                        <SlidersHorizontal className="size-4" />
+                      </Button>
+                    )}
+                  </span>
+                </Item>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setMetadataManagerOpen(true)}
+              >
+                <PackagePlus />
+                {t("settings.installMetadataPlugins")}
+              </Button>
+            </div>
+
+            <PluginManagerDialog
+              kind="metadata"
+              open={metadataManagerOpen}
+              onOpenChange={setMetadataManagerOpen}
+            />
+
+            <PluginSettingsDialog
+              pluginId={metadataSettingsPluginId}
+              open={metadataSettingsPluginId !== null}
+              onOpenChange={(open) => {
+                if (!open) setMetadataSettingsPluginId(null);
+              }}
             />
           </div>
 

@@ -239,18 +239,20 @@ Two shapes of plugin:
   `uWaveform[256]`) and `CanvasHost` (ES module from a Blob URL, TypeScript
   stripped with a lazily imported sucrase). `createRuntimeHost` is the only
   runtime switch.
-- **Declarative** — `kind: "lyrics"` and `kind: "source"` name no runtime and no
-  entry. They describe what they contribute through a `provider` descriptor and
-  the host drives the requests, so an installed plugin never runs third-party
-  code. `PluginLyricsService` (`src/lib/lyrics-providers/plugin`) and
-  `PluginSourceStrategy` (`src/lib/sources/plugin`) read those descriptors.
+- **Declarative** — `kind: "lyrics"`, `kind: "source"` and `kind: "metadata"`
+  name no runtime and no entry. They describe what they contribute through a
+  `provider` descriptor and the host drives the requests, so an installed plugin
+  never runs third-party code. `PluginLyricsService`
+  (`src/lib/lyrics-providers/plugin`), `PluginSourceStrategy`
+  (`src/lib/sources/plugin`) and `PluginMetadataService`
+  (`src/lib/metadata-providers/plugin`) read those descriptors.
 
-`initializePlugins()` runs at boot: it registers the lyrics provider registry
-and its built-ins synchronously, seeds the bundled examples, then reconciles
-every plugin registry with the installed set. Each later step is isolated.
-Installing or removing a plugin refreshes that kind's registry immediately, and
-a plugin provider id can never shadow a built-in one. The spec lives in
-`docs/plugins/`.
+`initializePlugins()` runs at boot: it registers the lyrics and metadata
+provider registries and their built-ins synchronously, seeds the bundled
+examples, then reconciles every plugin registry with the installed set. Each
+later step is isolated. Installing or removing a plugin refreshes that kind's
+registry immediately, and a plugin provider id can never shadow a built-in one.
+The spec lives in `docs/plugins/`.
 
 ## i18n
 

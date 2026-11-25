@@ -1,4 +1,5 @@
 import { ArtworkType, type IPicture } from "../../contracts";
+import type { MetadataLookupOptions } from "@/core/contracts";
 import type {
   IOnlineAlbumMetadata,
   IOnlineAlbumTrack,
@@ -33,7 +34,12 @@ function frontCoverPicture(url?: string): IPicture[] {
 export class ItunesMetadataService
   implements IOnlineMetadataService, IOnlineAlbumService
 {
-  async lookup(query: string): Promise<IOnlineMetadata[] | null> {
+  readonly provider = MetadataProvider.iTunes;
+
+  async lookup(
+    query: string,
+    _options?: MetadataLookupOptions
+  ): Promise<IOnlineMetadata[] | null> {
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song`;
     const res = await fetch(url);
     const data = await res.json();

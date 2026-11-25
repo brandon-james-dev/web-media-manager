@@ -46,7 +46,7 @@ error fails the build before Vite starts.
 | `src/workers/`                  | Worker pool, adapter, `metadata.worker.ts`, `shared/` job bodies                                                                                                                               |
 | `src/i18n/`                     | Resource registry, English pack, CSV language packs, service, hook                                                                                                                             |
 | `docs/`                         | Contract docs: `events-taxonomy.md`, `resources-i18n.md`, `themes/`, `plugins/`                                                                                                                |
-| `examples/`                     | Example plugins (`visualizers/`, `sources/`) and themes, packed by the build scripts                                                                                                           |
+| `examples/`                     | Example plugins (`visualizers/`, `sources/`, `metadata/`) and themes, packed by the build scripts                                                                                               |
 | `scripts/`                      | `i18n-sync.ts`, `build-example-plugins.mjs`, `build-example-themes.mjs`                                                                                                                        |
 
 ## Conventions

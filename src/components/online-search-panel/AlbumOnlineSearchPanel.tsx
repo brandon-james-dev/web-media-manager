@@ -7,7 +7,7 @@ import type {
   IOnlineAlbumTrack,
 } from "@/lib/metadata-providers/online/IOnlineAlbumMetadata";
 import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
-import { OnlineMetadataResolver } from "@/lib/metadata-providers/online/OnlineMetadataResolver";
+import { getMetadataProviderRegistry } from "@/core/ports";
 import { useTranslation } from "@/i18n";
 import type { AlbumOnlineSearchPanelProps } from "./AlbumOnlineSearchPanelProps";
 import { OnlineSearchQueryForm } from "./OnlineSearchQueryForm";
@@ -63,7 +63,12 @@ export default function AlbumOnlineSearchPanel(
     setLoading(true);
     setError(null);
 
-    const service = OnlineMetadataResolver.getAlbumService(provider);
+    const service = getMetadataProviderRegistry().getAlbumService(provider);
+    if (!service) {
+      setError(`Unknown album metadata provider "${provider}".`);
+      setLoading(false);
+      return;
+    }
     // Same provider-specific query shape as the song lookup: MusicBrainz
     // builds a scoped Lucene query from the structured fields, iTunes takes
     // a plain full-text concatenation.
@@ -99,7 +104,12 @@ export default function AlbumOnlineSearchPanel(
     setTracksLoading(true);
 
     try {
-      const service = OnlineMetadataResolver.getAlbumService(result.source);
+      const service = getMetadataProviderRegistry().getAlbumService(
+        result.source
+      );
+      if (!service) {
+        throw new Error(`Unknown album metadata provider "${result.source}".`);
+      }
       const full = await service.lookupAlbumTracks(result);
       setSelected(full ?? result);
       setSelectedTracks(full?.tracks ?? []);
@@ -124,7 +134,14 @@ export default function AlbumOnlineSearchPanel(
         ? { ...selected, tracks: selectedTracks }
         : selected;
       if (!selectedTracks) {
-        const service = OnlineMetadataResolver.getAlbumService(selected.source);
+        const service = getMetadataProviderRegistry().getAlbumService(
+          selected.source
+        );
+        if (!service) {
+          throw new Error(
+            `Unknown album metadata provider "${selected.source}".`
+          );
+        }
         full = (await service.lookupAlbumTracks(selected)) ?? selected;
       }
       onSelect(full, applyMetadata);

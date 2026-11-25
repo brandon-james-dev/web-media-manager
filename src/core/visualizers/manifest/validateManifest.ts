@@ -8,6 +8,9 @@ import type {
   PluginLyricsFieldMap,
   PluginLyricsProviderDescriptor,
   PluginLyricsQueryField,
+  PluginMetadataFieldMap,
+  PluginMetadataProviderDescriptor,
+  PluginMetadataQueryField,
   PluginProviderDescriptor,
   PluginSourceConfigField,
   PluginSourceFieldMap,
@@ -74,6 +77,7 @@ const PLUGIN_KINDS: readonly PluginKind[] = [
   "layout",
   "lyrics",
   "source",
+  "metadata",
 ];
 
 const LYRICS_QUERY_FIELDS: readonly PluginLyricsQueryField[] = [
@@ -110,6 +114,29 @@ const SOURCE_FIELD_KEYS: readonly (keyof PluginSourceFieldMap)[] = [
   "fileSize",
   "path",
   "streamUrl",
+  "coverArtUrl",
+];
+
+const METADATA_QUERY_FIELDS: readonly PluginMetadataQueryField[] = [
+  "title",
+  "artist",
+  "album",
+];
+
+const METADATA_FIELD_KEYS: readonly (keyof PluginMetadataFieldMap)[] = [
+  "title",
+  "artist",
+  "album",
+  "albumArtist",
+  "genre",
+  "year",
+  "date",
+  "track",
+  "discNumber",
+  "duration",
+  "isrc",
+  "label",
+  "composer",
   "coverArtUrl",
 ];
 
@@ -632,7 +659,7 @@ function validateProvider(
   issues: ManifestIssue[]
 ): PluginProviderDescriptor | undefined {
   if (raw === undefined) {
-    if (kind === "lyrics" || kind === "source") {
+    if (kind === "lyrics" || kind === "source" || kind === "metadata") {
       issues.push({
         code: "provider-missing",
         severity: "error",
@@ -655,6 +682,10 @@ function validateProvider(
 
   if (kind === "source") {
     return validateSourceProvider(raw, issues);
+  }
+
+  if (kind === "metadata") {
+    return validateMetadataProvider(raw, issues);
   }
 
   return validateLyricsProvider(raw, issues);
@@ -824,6 +855,178 @@ function validateLyricsProvider(
       ...(Object.keys(headers).length ? { headers } : {}),
       ...(resultsPath ? { resultsPath } : {}),
       fields: fields as PluginLyricsFieldMap,
+    },
+  };
+}
+
+function validateMetadataProvider(
+  raw: Record<string, unknown>,
+  issues: ManifestIssue[]
+): PluginMetadataProviderDescriptor | undefined {
+  const id = readString(raw, "id");
+  if (!id || !PLUGIN_ID_PATTERN.test(id)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.id",
+      message:
+        "`provider.id` must be a lowercase slug (letters, digits, dots, dashes, underscores).",
+    });
+  }
+
+  const name = readString(raw, "name");
+  if (!name) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.name",
+      message: "`provider.name` is required.",
+    });
+  }
+
+  const description = readString(raw, "description");
+
+  const search = raw.search;
+  if (!isRecord(search)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search",
+      message: "`provider.search` must be an object.",
+    });
+    return undefined;
+  }
+
+  const url = readString(search, "url");
+  if (!url || !url.startsWith("https://")) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.url",
+      message: "`provider.search.url` must be an absolute https:// URL.",
+    });
+  }
+
+  const params: Partial<Record<PluginMetadataQueryField, string>> = {};
+  if (search.params !== undefined) {
+    if (!isRecord(search.params)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.search.params",
+        message: "`provider.search.params` must be an object.",
+      });
+    } else {
+      for (const [field, value] of Object.entries(search.params)) {
+        if (!METADATA_QUERY_FIELDS.includes(field as PluginMetadataQueryField)) {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.search.params.${field}`,
+            message: `Unknown query field "${field}"; expected ${METADATA_QUERY_FIELDS.join(", ")}.`,
+          });
+        } else if (typeof value !== "string" || !value.trim()) {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.search.params.${field}`,
+            message: "Each parameter name must be a non-empty string.",
+          });
+        } else {
+          params[field as PluginMetadataQueryField] = value.trim();
+        }
+      }
+    }
+  }
+
+  const headers: Record<string, string> = {};
+  if (search.headers !== undefined) {
+    if (!isRecord(search.headers)) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: "provider.search.headers",
+        message: "`provider.search.headers` must be an object.",
+      });
+    } else {
+      for (const [header, value] of Object.entries(search.headers)) {
+        if (typeof value !== "string") {
+          issues.push({
+            code: "provider-invalid",
+            severity: "error",
+            field: `provider.search.headers.${header}`,
+            message: "Each header value must be a string.",
+          });
+        } else {
+          headers[header] = value;
+        }
+      }
+    }
+  }
+
+  const resultsPath = readString(search, "resultsPath");
+
+  const fieldsRaw = search.fields;
+  if (!isRecord(fieldsRaw)) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.fields",
+      message: "`provider.search.fields` must be an object.",
+    });
+    return undefined;
+  }
+
+  const fields: Partial<PluginMetadataFieldMap> = {};
+  for (const key of METADATA_FIELD_KEYS) {
+    const value = fieldsRaw[key];
+    if (value === undefined) {
+      continue;
+    }
+    if (typeof value !== "string" || !value.trim()) {
+      issues.push({
+        code: "provider-invalid",
+        severity: "error",
+        field: `provider.search.fields.${key}`,
+        message: "Each mapped field must be a non-empty JSON field name.",
+      });
+    } else {
+      fields[key] = value.trim();
+    }
+  }
+
+  if (!fields.title) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.fields.title",
+      message: "`provider.search.fields.title` is required.",
+    });
+  }
+  if (!fields.artist) {
+    issues.push({
+      code: "provider-invalid",
+      severity: "error",
+      field: "provider.search.fields.artist",
+      message: "`provider.search.fields.artist` is required.",
+    });
+  }
+
+  if (!id || !name || !url || !fields.title || !fields.artist) {
+    return undefined;
+  }
+
+  return {
+    role: "metadata",
+    id,
+    name,
+    ...(description ? { description } : {}),
+    search: {
+      url,
+      ...(Object.keys(params).length ? { params } : {}),
+      ...(Object.keys(headers).length ? { headers } : {}),
+      ...(resultsPath ? { resultsPath } : {}),
+      fields: fields as PluginMetadataFieldMap,
     },
   };
 }

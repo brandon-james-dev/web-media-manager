@@ -120,15 +120,73 @@ export interface PluginSourceProviderDescriptor {
   };
 }
 
+/** Query fields a plugin metadata provider can forward to its endpoint. */
+export type PluginMetadataQueryField = "title" | "artist" | "album";
+
+/**
+ * Result field → JSON field name on a response record. `title` and `artist`
+ * are required: a record without them cannot be shown or applied.
+ */
+export interface PluginMetadataFieldMap {
+  title: string;
+  artist: string;
+  album?: string;
+  albumArtist?: string;
+  genre?: string;
+  year?: string;
+  date?: string;
+  track?: string;
+  discNumber?: string;
+  duration?: string;
+  isrc?: string;
+  label?: string;
+  composer?: string;
+  coverArtUrl?: string;
+}
+
+/**
+ * How to search one metadata endpoint and read its response.
+ *
+ * `role` marks the descriptor as a metadata provider: a lyrics descriptor also
+ * carries a `search` block, so the union needs an explicit discriminator.
+ */
+export interface PluginMetadataProviderDescriptor {
+  role: "metadata";
+  /** Provider id, unique across built-in and plugin providers. */
+  id: string;
+  /** Display name, shown in the provider picker. */
+  name: string;
+  description?: string;
+  search: {
+    /** Absolute `https://` endpoint. */
+    url: string;
+    /** Query field → request parameter name. */
+    params?: Partial<Record<PluginMetadataQueryField, string>>;
+    /** Extra request headers, e.g. a client identifier. */
+    headers?: Record<string, string>;
+    /** Dot path to the record array; omit when the response is the array. */
+    resultsPath?: string;
+    fields: PluginMetadataFieldMap;
+  };
+}
+
 export type PluginProviderDescriptor =
   | PluginLyricsProviderDescriptor
-  | PluginSourceProviderDescriptor;
+  | PluginSourceProviderDescriptor
+  | PluginMetadataProviderDescriptor;
+
+/** True when the descriptor describes a metadata provider. */
+export function isPluginMetadataProvider(
+  provider: PluginProviderDescriptor
+): provider is PluginMetadataProviderDescriptor {
+  return (provider as { role?: string }).role === "metadata";
+}
 
 /** True when the descriptor describes a lyrics provider. */
 export function isPluginLyricsProvider(
   provider: PluginProviderDescriptor
 ): provider is PluginLyricsProviderDescriptor {
-  return "search" in provider;
+  return !isPluginMetadataProvider(provider) && "search" in provider;
 }
 
 /** True when the descriptor describes a music source. */

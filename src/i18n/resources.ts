@@ -918,6 +918,30 @@ export const WMM_RESOURCES = {
   "settings.lyricsProviderPlugin": text(
     "Badge marking a lyrics provider installed as a plugin."
   ),
+  "settings.metadataProviders": text(
+    "Section heading for the online metadata provider list."
+  ),
+  "settings.metadataSettings": text(
+    "Button that opens a metadata provider plugin's settings."
+  ),
+  "settings.metadataProvidersDescription": text(
+    "Section summary for the online metadata provider list."
+  ),
+  "settings.installMetadataPlugins": text(
+    "Button that opens the metadata plugin manager dialog."
+  ),
+  "settings.metadataPluginsTitle": text(
+    "Title of the metadata plugins dialog."
+  ),
+  "settings.metadataPluginsDescription": text(
+    "Summary under the metadata plugins dialog title."
+  ),
+  "settings.installMetadataPlugin": text(
+    "Submit button in the metadata plugins dialog."
+  ),
+  "settings.removeMetadataPlugin": text(
+    "Remove button in the metadata plugins dialog."
+  ),
   "settings.lyricsPluginsTitle": text(
     "Title of the lyrics plugin manager dialog."
   ),

@@ -1,7 +1,13 @@
 import { createLyricsProviderRegistry } from "@/core/lyrics";
-import { setLyricsProviderRegistryProvider } from "@/core/ports";
+import { createMetadataProviderRegistry } from "@/core/metadata";
+import {
+  setLyricsProviderRegistryProvider,
+  setMetadataProviderRegistryProvider,
+} from "@/core/ports";
 import { refreshPluginLyricsProviders } from "@/lib/lyrics-providers/plugin/refreshPluginLyricsProviders";
 import { registerBuiltinLyricsProviders } from "@/lib/lyrics-providers/registerBuiltinLyricsProviders";
+import { refreshPluginMetadataProviders } from "@/lib/metadata-providers/plugin/refreshPluginMetadataProviders";
+import { registerBuiltinMetadataProviders } from "@/lib/metadata-providers/registerBuiltinMetadataProviders";
 import { refreshPluginSourceStrategies } from "@/lib/sources";
 import { ensureExampleVisualizers } from "./seedExampleVisualizers";
 
@@ -26,6 +32,10 @@ export async function initializePlugins(): Promise<void> {
   registerBuiltinLyricsProviders(lyricsProviderRegistry);
   setLyricsProviderRegistryProvider(() => lyricsProviderRegistry);
 
+  const metadataProviderRegistry = createMetadataProviderRegistry();
+  registerBuiltinMetadataProviders(metadataProviderRegistry);
+  setMetadataProviderRegistryProvider(() => metadataProviderRegistry);
+
   try {
     await ensureExampleVisualizers();
   } catch {
@@ -34,6 +44,12 @@ export async function initializePlugins(): Promise<void> {
 
   try {
     await refreshPluginLyricsProviders();
+  } catch {
+    // A failed refresh leaves the built-in providers registered.
+  }
+
+  try {
+    await refreshPluginMetadataProviders();
   } catch {
     // A failed refresh leaves the built-in providers registered.
   }

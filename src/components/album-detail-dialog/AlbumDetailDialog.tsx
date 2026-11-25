@@ -27,7 +27,7 @@ import { AlbumArtImage } from "../album-art-image";
 import { useTranslation } from "@/i18n";
 import AlbumOnlineSearchPanel from "../online-search-panel/AlbumOnlineSearchPanel";
 import AlbumArtSearchPanel from "../online-search-panel/AlbumArtSearchPanel";
-import type { IPicture } from "@/lib/contracts";
+import type { MetadataPicture } from "@/core/contracts";
 import type { IOnlineAlbumMetadata } from "@/lib/metadata-providers/online/IOnlineAlbumMetadata";
 import { fetchCoverBlob } from "@/lib/metadata-providers/online/fetchCoverBlob";
 import { matchAlbumTracks } from "./matchAlbumTracks";
@@ -136,7 +136,7 @@ export function AlbumDetailDialog(props: AlbumDetailDialogProps) {
   }
 
   /** Pick a cover from the art grid: same effect as choosing a file. */
-  async function handleArtSelect(picture: IPicture) {
+  async function handleArtSelect(picture: MetadataPicture) {
     const cover = await fetchCoverBlob(picture);
     if (cover) {
       setUpdatedFrontCover(cover);

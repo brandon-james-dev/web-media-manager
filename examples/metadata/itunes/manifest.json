@@ -1,0 +1,31 @@
+{
+  "id": "itunes-metadata",
+  "name": "iTunes Metadata",
+  "version": "0.1.0",
+  "kind": "metadata",
+  "author": "Web Media Manager",
+  "description": "Look up song tags from the iTunes Search API.",
+  "provider": {
+    "role": "metadata",
+    "id": "itunes-metadata",
+    "name": "iTunes Metadata",
+    "description": "Look up song tags from the iTunes Search API.",
+    "search": {
+      "url": "https://itunes.apple.com/search?entity=song&limit=10",
+      "params": {
+        "title": "term"
+      },
+      "resultsPath": "results",
+      "fields": {
+        "title": "trackName",
+        "artist": "artistName",
+        "album": "collectionName",
+        "genre": "primaryGenreName",
+        "date": "releaseDate",
+        "track": "trackNumber",
+        "discNumber": "discNumber",
+        "coverArtUrl": "artworkUrl100"
+      }
+    }
+  }
+}

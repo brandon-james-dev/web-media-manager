@@ -1,9 +1,10 @@
-import type { IOnlineMetadata } from "./IOnlineMetadata";
+import type { MetadataService } from "@/core/contracts";
 
-export interface IOnlineMetadataService {
-  lookup(
-    query: string,
-    isCancelled?: () => boolean,
-    reportProgress?: (progress: any) => void
-  ): Promise<IOnlineMetadata[] | null>;
-}
+/**
+ * Song metadata provider contract.
+ *
+ * The contract lives in core (`@/core/contracts`), because a provider is a
+ * public extension seam. This alias keeps the implementations reading the name
+ * they always have.
+ */
+export type IOnlineMetadataService = MetadataService;

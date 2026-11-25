@@ -1,10 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
-import type { PluginKind, PluginSettingsValues } from "@/core/visualizers";
+import type {
+  PluginKind,
+  PluginSettingDescriptor,
+  PluginSettingsValues,
+} from "@/core/visualizers";
 import { getVisualizerPluginManager } from "@/lib/visualizers";
 import { refreshPluginLyricsProviders } from "@/lib/lyrics-providers/plugin/refreshPluginLyricsProviders";
+import { refreshPluginMetadataProviders } from "@/lib/metadata-providers/plugin/refreshPluginMetadataProviders";
 import { refreshPluginSourceStrategies, removeSourcesForPlugin } from "@/lib/sources";
+import {
+  clearPluginSettingSecrets,
+  setPluginSettingSecret,
+} from "@/lib/secrets/pluginSettingSecrets";
 import { toast } from "@/components/ui/toast";
 import { useTranslation } from "@/i18n";
 
@@ -25,6 +34,15 @@ export const visualizerKeys = {
   thumbnail: (pluginId: string) =>
     [...visualizerKeys.all, "thumbnail", pluginId] as const,
 };
+
+/** Keys a manifest marks as secret, so they never reach the settings row. */
+function secretSettingKeys(
+  descriptors: readonly PluginSettingDescriptor[] | undefined
+): string[] {
+  return (descriptors ?? [])
+    .filter((descriptor) => descriptor.type === "string" && descriptor.secret)
+    .map((descriptor) => descriptor.key);
+}
 
 export function useInstalledPlugins() {
   return useQuery({
@@ -69,6 +87,7 @@ export function useInstallPlugin() {
       // A lyrics plugin contributes a provider and a source plugin a source
       // kind, so both registries follow the installed set.
       void refreshPluginLyricsProviders().catch(() => {});
+      void refreshPluginMetadataProviders().catch(() => {});
       void refreshPluginSourceStrategies().catch(() => {});
     },
   });
@@ -80,7 +99,12 @@ export function useRemovePlugin() {
 
   return useMutation({
     mutationFn: async (pluginId: string) => {
-      await getVisualizerPluginManager().remove(pluginId);
+      const manager = getVisualizerPluginManager();
+      const plugin = await manager.get(pluginId);
+      const secretKeys = secretSettingKeys(plugin?.manifest.settings);
+      await manager.remove(pluginId);
+      // The plugin's stored secrets have no reader left, so they go with it.
+      await clearPluginSettingSecrets(pluginId, secretKeys);
       // A source plugin's sources have no provider left to serve them, so they
       // go with the plugin instead of lingering as unusable rows.
       await removeSourcesForPlugin(pluginId);
@@ -90,6 +114,7 @@ export function useRemovePlugin() {
       // A lyrics plugin contributes a provider and a source plugin a source
       // kind, so both registries follow the installed set.
       void refreshPluginLyricsProviders().catch(() => {});
+      void refreshPluginMetadataProviders().catch(() => {});
       void refreshPluginSourceStrategies().catch(() => {});
     },
     onError: (error: Error) => {
@@ -107,8 +132,24 @@ export function useSavePluginSettings(pluginId: string | null) {
   // completed write must not write them back: a slower earlier write would
   // otherwise overwrite a newer value.
   return useMutation({
-    mutationFn: (values: PluginSettingsValues) =>
-      getVisualizerPluginManager().saveSettings(pluginId as string, values),
+    mutationFn: async (values: PluginSettingsValues) => {
+      const manager = getVisualizerPluginManager();
+      const id = pluginId as string;
+      const plugin = await manager.get(id);
+      const plain: PluginSettingsValues = { ...values };
+
+      // A secret setting never reaches the settings row: it goes to the
+      // encrypted store, and the row keeps the empty default.
+      for (const key of secretSettingKeys(plugin?.manifest.settings)) {
+        const value = values[key];
+        delete plain[key];
+        if (typeof value === "string" && value) {
+          await setPluginSettingSecret(id, key, value);
+        }
+      }
+
+      return await manager.saveSettings(id, plain);
+    },
   });
 }
 
@@ -116,8 +157,13 @@ export function useResetPluginSettings(pluginId: string | null) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () =>
-      getVisualizerPluginManager().resetSettings(pluginId as string),
+    mutationFn: async () => {
+      const manager = getVisualizerPluginManager();
+      const id = pluginId as string;
+      const plugin = await manager.get(id);
+      await clearPluginSettingSecrets(id, secretSettingKeys(plugin?.manifest.settings));
+      return await manager.resetSettings(id);
+    },
     onSuccess: (values) => {
       queryClient.setQueryData(
         visualizerKeys.settings(pluginId ?? "none"),

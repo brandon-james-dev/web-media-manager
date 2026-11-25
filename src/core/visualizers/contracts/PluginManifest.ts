@@ -20,7 +20,8 @@ export type PluginKind =
   | "theme"
   | "layout"
   | "lyrics"
-  | "source";
+  | "source"
+  | "metadata";
 
 export interface PluginSettingOption {
   value: string;
@@ -52,6 +53,12 @@ export type PluginSettingDescriptor =
       type: "string";
       default: string;
       maxLength?: number;
+      /**
+       * Render as a password input and keep the value out of the settings row:
+       * the host stores it in the platform secret store, keyed by plugin id.
+       * A header template references it like any other setting.
+       */
+      secret?: boolean;
     });
 
 export type PluginSettingValue = number | boolean | string;

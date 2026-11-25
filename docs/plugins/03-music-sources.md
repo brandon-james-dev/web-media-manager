@@ -68,7 +68,7 @@ because workers cannot read IndexedDB secrets.
 | `url` | yes | Absolute `https://` endpoint, or a template using `{baseUrl}`. |
 | `method` | no | `GET` (default) or `PROPFIND`. |
 | `body` | no | Request body, e.g. a WebDAV propfind. |
-| `headers` | no | Extra request headers. |
+| `headers` | no | Extra request headers. Values may contain `{config}` placeholders. |
 | `resultsPath` | no | Dot path to the record array, for JSON responses. |
 | `recordTag` | no | XML record element name; switches the response to XML parsing. |
 | `fields` | yes | Record field → JSON path, or child element local name for XML. |
@@ -99,10 +99,38 @@ well-formed document.
 | Field | Required | Notes |
 |-------|----------|-------|
 | `url` | yes | Absolute `https://` URL, or a template. |
-| `headers` | no | Extra request headers. |
+| `headers` | no | Extra request headers. Values may contain `{config}` placeholders. |
 
 Templates may reference `{baseUrl}` in both `library.url` and `stream.url`, and
 `{id}` and `{path}` from the record being played in `stream.url`.
+
+A header value may also reference the source's config and its stored secret:
+
+| Template | Resolves to |
+|----------|-------------|
+| `{key}` | A non-secret config value, e.g. `{baseUrl}` or a username field. |
+| `{secret}` | The value stored for the field marked `secret: true`. |
+| `{base64:key}` | Any of the above, base64-encoded from its UTF-8 bytes. |
+
+That is what makes basic auth work without the credential entering the source
+record:
+
+```json
+{
+  "config": [
+    { "key": "baseUrl", "label": "Server URL", "required": true },
+    { "key": "password", "label": "Password", "secret": true }
+  ],
+  "library": {
+    "url": "{baseUrl}/library",
+    "headers": { "Authorization": "Basic {base64:secret}" },
+    "fields": { "id": "id", "title": "title", "artist": "artist" }
+  }
+}
+```
+
+The secret is read from the encrypted store at request time, so it never
+appears in the `MusicSource` record or in an exported config.
 
 ## 5. What a plugin source can do
 

@@ -69,6 +69,12 @@ const PLUGIN_DIALOG_COPY: Record<
     install: "settings.installLyricsPlugin",
     remove: "settings.removeLyricsPlugin",
   },
+  metadata: {
+    title: "settings.metadataPluginsTitle",
+    description: "settings.metadataPluginsDescription",
+    install: "settings.installMetadataPlugin",
+    remove: "settings.removeMetadataPlugin",
+  },
   source: {
     title: "settings.sourcePluginsTitle",
     description: "settings.sourcePluginsDescription",

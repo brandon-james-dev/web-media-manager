@@ -219,4 +219,93 @@ describe("validatePluginManifest", () => {
     expect(result.valid).toBe(false);
     expect(codes(result)).toContain("provider-invalid");
   });
+
+  it("accepts a metadata manifest with a search endpoint and field map", () => {
+    const result = validatePluginManifest(
+      {
+        id: "example-metadata",
+        name: "Example Metadata",
+        version: "1.0.0",
+        kind: "metadata",
+        provider: {
+          id: "example-metadata",
+          name: "Example Metadata",
+          search: {
+            url: "https://metadata.example.test/api/search",
+            params: { title: "track", artist: "artist" },
+            fields: { title: "trackName", artist: "artistName" },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.manifest?.kind).toBe("metadata");
+    expect(result.manifest?.provider).toMatchObject({
+      role: "metadata",
+      id: "example-metadata",
+    });
+  });
+
+  it("requires a provider for metadata plugins", () => {
+    const result = validatePluginManifest(
+      {
+        id: "example-metadata",
+        name: "Example Metadata",
+        version: "1.0.0",
+        kind: "metadata",
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-missing");
+  });
+
+  it("requires title and artist in a metadata field map", () => {
+    const result = validatePluginManifest(
+      {
+        id: "example-metadata",
+        name: "Example Metadata",
+        version: "1.0.0",
+        kind: "metadata",
+        provider: {
+          id: "example-metadata",
+          name: "Example Metadata",
+          search: {
+            url: "https://metadata.example.test/api/search",
+            fields: { title: "trackName" },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
+
+  it("rejects a metadata search URL that is not https", () => {
+    const result = validatePluginManifest(
+      {
+        id: "example-metadata",
+        name: "Example Metadata",
+        version: "1.0.0",
+        kind: "metadata",
+        provider: {
+          id: "example-metadata",
+          name: "Example Metadata",
+          search: {
+            url: "http://metadata.example.test/api/search",
+            fields: { title: "trackName", artist: "artistName" },
+          },
+        },
+      },
+      []
+    );
+
+    expect(result.valid).toBe(false);
+    expect(codes(result)).toContain("provider-invalid");
+  });
 });

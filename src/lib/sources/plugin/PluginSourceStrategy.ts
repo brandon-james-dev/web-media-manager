@@ -8,6 +8,7 @@ import type { PluginSourceProviderDescriptor } from "@/core/visualizers";
 import { getJobService, type WorkerProgress } from "@/core/jobs";
 import { getSourcesStore } from "@/core/ports";
 import { createEncryptedSecretStore } from "@/lib/secrets/encryptedSecretStore";
+import { expandHeaders } from "@/lib/plugins";
 import type {
   IJobHandle,
   IMusicSourceStrategy,
@@ -284,7 +285,9 @@ export class PluginSourceStrategy implements IMusicSourceStrategy {
     });
 
     try {
-      const response = await fetch(url, { headers: stream.headers });
+      const response = await fetch(url, {
+        headers: expandHeaders(stream.headers, await this.requestValues(source)),
+      });
       if (!response.ok) return null;
       return await response.arrayBuffer();
     } catch (error) {
@@ -295,6 +298,24 @@ export class PluginSourceStrategy implements IMusicSourceStrategy {
 
   async getSecret(source: MusicSource): Promise<string | undefined> {
     return (await getPluginSourceSecret(source.id)) ?? undefined;
+  }
+
+  /**
+   * Values a header template can reference: the source's non-secret config
+   * plus its stored secret, so `"Authorization": "Basic {base64:secret}"`
+   * works without the credential ever entering the source record.
+   */
+  private async requestValues(
+    source: MusicSource
+  ): Promise<Record<string, string | undefined>> {
+    const values: Record<string, string | undefined> = {
+      ...sourceConfig(source),
+    };
+    const secret = await getPluginSourceSecret(source.id);
+    if (secret) {
+      values.secret = secret;
+    }
+    return values;
   }
 
   sync(options: {
@@ -364,7 +385,7 @@ export class PluginSourceStrategy implements IMusicSourceStrategy {
     try {
       response = await fetch(url, {
         method: library.method ?? "GET",
-        headers: library.headers,
+        headers: expandHeaders(library.headers, await this.requestValues(source)),
         ...(library.body ? { body: library.body } : {}),
       });
     } catch {

@@ -1,4 +1,5 @@
 import { ArtworkType, type IPicture } from "../../contracts";
+import type { MetadataLookupOptions, MetadataPicture } from "@/core/contracts";
 import type {
   IOnlineAlbumMetadata,
   IOnlineAlbumTrack,
@@ -101,10 +102,11 @@ function joinCredits(
 export class MusicBrainzMetadataService
   implements IOnlineMetadataService, IOnlineAlbumService
 {
+  readonly provider = MetadataProvider.MusicBrainz;
+
   async lookup(
     query: string,
-    _isCancelled?: () => boolean,
-    _reportProgress?: (progress: any) => void
+    _options?: MetadataLookupOptions
   ): Promise<IOnlineMetadata[] | null> {
     // The panel passes "title|artist|album" (structured). Build a precise
     // scoped Lucene query — no split heuristic, exact fields per term.
@@ -321,12 +323,12 @@ export class MusicBrainzMetadataService
     // Cover art is resolved here, at Apply time, so the search itself stays
     // one request per provider.
     const thumbUrl = await resolveCoverArtThumb(release.id);
-    const pictures: IPicture[] = thumbUrl
+    const pictures: MetadataPicture[] = thumbUrl
       ? [
           {
             mimeType: "image/jpeg",
             url: thumbUrl,
-            type: ArtworkType.FrontCover,
+            type: "FrontCover",
             description: "Front Cover",
           },
         ]

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import type { IPicture } from "@/lib/contracts";
+import type { MetadataPicture } from "@/core/contracts";
 import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
-import { OnlineMetadataResolver } from "@/lib/metadata-providers/online/OnlineMetadataResolver";
+import { getMetadataProviderRegistry } from "@/core/ports";
 import { useTranslation } from "@/i18n";
 import type { AlbumArtSearchPanelProps } from "./AlbumArtSearchPanelProps";
 import { OnlineSearchQueryForm } from "./OnlineSearchQueryForm";
@@ -23,7 +23,7 @@ export default function AlbumArtSearchPanel(props: AlbumArtSearchPanelProps) {
     MetadataProvider.iTunes
   );
   const [loading, setLoading] = useState(false);
-  const [pictures, setPictures] = useState<IPicture[] | null>(null);
+  const [pictures, setPictures] = useState<MetadataPicture[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   //#endregion
 
@@ -32,7 +32,12 @@ export default function AlbumArtSearchPanel(props: AlbumArtSearchPanelProps) {
     setLoading(true);
     setError(null);
 
-    const service = OnlineMetadataResolver.getAlbumService(provider);
+    const service = getMetadataProviderRegistry().getAlbumService(provider);
+    if (!service) {
+      setError(`Unknown album metadata provider "${provider}".`);
+      setLoading(false);
+      return;
+    }
     const searchQuery =
       provider === MetadataProvider.MusicBrainz
         ? [titleQuery, artistQuery, albumQuery].join("|")

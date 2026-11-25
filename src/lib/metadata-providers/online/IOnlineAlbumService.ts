@@ -1,12 +1,10 @@
-import type { IPicture } from "../../contracts";
-import type { IOnlineAlbumMetadata } from "./IOnlineAlbumMetadata";
+import type { AlbumMetadataService } from "@/core/contracts";
 
-/** Album lookup: search returns albums, the track list is fetched on Apply. */
-export interface IOnlineAlbumService {
-  searchAlbums(query: string): Promise<IOnlineAlbumMetadata[] | null>;
-  lookupAlbumTracks(
-    album: IOnlineAlbumMetadata
-  ): Promise<IOnlineAlbumMetadata | null>;
-  /** Cover art only, for the album-art picker grid. */
-  searchAlbumArt(query: string): Promise<IPicture[] | null>;
-}
+/**
+ * Album metadata provider contract.
+ *
+ * The contract lives in core (`@/core/contracts`), because a provider is a
+ * public extension seam. This alias keeps the implementations reading the name
+ * they always have.
+ */
+export type IOnlineAlbumService = AlbumMetadataService;

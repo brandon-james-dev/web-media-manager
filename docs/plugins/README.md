@@ -14,6 +14,7 @@ the app engineers who add a new plugin kind.
 | 02 | [Lyrics providers](02-lyrics-providers.md) | `kind: "lyrics"`, the `provider.search` descriptor, ranking |
 | 03 | [Music sources](03-music-sources.md) | `kind: "source"`, the `provider.library`/`provider.stream` descriptor, the WebDAV example |
 | 04 | [Visualizers](04-visualizers.md) | `kind: "visualizer"`, runtimes, entry files, shader uniforms |
+| 05 | [Metadata providers](05-metadata-providers.md) | `kind: "metadata"`, the `provider.search` descriptor, the registry, the iTunes example |
 
 ## The contract in one page
 
@@ -25,10 +26,10 @@ the app engineers who add a new plugin kind.
 - There are two shapes of plugin:
   - **Executable** (`kind: "visualizer"`) names a `runtime` and an `entry`
     file, and the host mounts that code.
-  - **Declarative** (`kind: "lyrics"`, `kind: "source"`) names no runtime and no
-    entry. It describes what it contributes through a `provider` descriptor,
-    and the host drives the requests itself. An installed declarative plugin
-    never runs third-party code.
+  - **Declarative** (`kind: "lyrics"`, `kind: "source"`, `kind: "metadata"`)
+    names no runtime and no entry. It describes what it contributes through a
+    `provider` descriptor, and the host drives the requests itself. An
+    installed declarative plugin never runs third-party code.
 - One install, validate, store and remove pipeline serves every kind. The
   manager filters by `kind` for display; storage is shared.
 - A plugin can never shadow a built-in provider id. The registry refuses the
@@ -43,6 +44,7 @@ the app engineers who add a new plugin kind.
 | `visualizer` | yes | a rendering runtime | `src/lib/visualizers` |
 | `lyrics` | no | a lyrics provider | `src/lib/lyrics-providers/plugin` |
 | `source` | no | a music source kind | `src/lib/sources/plugin` |
+| `metadata` | no | an online metadata provider | `src/lib/metadata-providers/plugin` |
 | `theme` | no | a theme package | `src/lib/themes` |
 | `layout` | no | a theme layout | `src/lib/themes` |
 

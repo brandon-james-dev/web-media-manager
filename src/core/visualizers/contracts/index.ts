@@ -24,12 +24,16 @@ export type {
 } from "./PluginManifest";
 export {
   isPluginLyricsProvider,
+  isPluginMetadataProvider,
   isPluginSourceProvider,
 } from "./PluginProvider";
 export type {
   PluginLyricsFieldMap,
   PluginLyricsProviderDescriptor,
   PluginLyricsQueryField,
+  PluginMetadataFieldMap,
+  PluginMetadataProviderDescriptor,
+  PluginMetadataQueryField,
   PluginProviderDescriptor,
   PluginSourceConfigField,
   PluginSourceFieldMap,

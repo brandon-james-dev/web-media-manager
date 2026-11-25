@@ -3,8 +3,8 @@ import { Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import type { IOnlineMetadata } from "@/lib/metadata-providers/online/IOnlineMetadata";
 import { MetadataProvider } from "@/lib/metadata-providers/online/MetadataProvider";
-import { OnlineMetadataResolver } from "@/lib/metadata-providers/online/OnlineMetadataResolver";
-import type { IPicture } from "@/lib/contracts";
+import { getMetadataProviderRegistry } from "@/core/ports";
+import type { MetadataPicture } from "@/core/contracts";
 import { useTranslation } from "@/i18n";
 import type { OnlineSearchPanelProps } from "./OnlineSearchPanelProps";
 import { OnlineSearchQueryForm } from "./OnlineSearchQueryForm";
@@ -26,7 +26,7 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
   //#endregion
 
   //#region Helpers
-  function coverFront(songResult: IOnlineMetadata): IPicture | undefined {
+  function coverFront(songResult: IOnlineMetadata): MetadataPicture | undefined {
     return songResult.pictures?.find((p) => p.type == "FrontCover");
   }
   //#endregion
@@ -36,7 +36,12 @@ export default function OnlineSearchPanel(props: OnlineSearchPanelProps) {
     setLoading(true);
     setError(null);
 
-    const service = OnlineMetadataResolver.getService(provider);
+    const service = getMetadataProviderRegistry().getService(provider);
+    if (!service) {
+      setError(`Unknown metadata provider "${provider}".`);
+      setLoading(false);
+      return;
+    }
     // Build the provider-specific query. iTunes is fuzzy full-text — a plain
     // concatenation works best. MusicBrainz builds a scoped Lucene query from
     // the structured fields in the service itself.

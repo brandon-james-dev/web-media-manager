@@ -1,7 +1,7 @@
-import type { IPicture } from "@/lib/contracts";
+import type { MetadataPicture } from "@/core/contracts";
 import type { Album } from "@/models";
 
 export interface AlbumArtSearchPanelProps {
   album: Album;
-  onSelect: (picture: IPicture) => void;
+  onSelect: (picture: MetadataPicture) => void;
 }

@@ -39,6 +39,15 @@ export type {
   LyricsProviderRegistry,
   LyricsServiceFactory,
 } from "./lyricsProviders";
+export {
+  getMetadataProviderRegistry,
+  setMetadataProviderRegistryProvider,
+} from "./metadataProviders";
+export type {
+  AlbumMetadataServiceFactory,
+  MetadataProviderRegistry,
+  MetadataServiceFactory,
+} from "./metadataProviders";
 export { getThemeStore, setThemeStoreProvider } from "./themes";
 export type {
   InstalledTheme,

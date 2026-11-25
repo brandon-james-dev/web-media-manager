@@ -1,4 +1,4 @@
-import type { IPicture } from "../../contracts";
+import type { MetadataPicture } from "@/core/contracts";
 
 /**
  * Resolve a search result's cover picture into image bytes. Search results
@@ -6,7 +6,7 @@ import type { IPicture } from "../../contracts";
  * Apply time, never during search.
  */
 export async function fetchCoverBlob(
-  picture?: IPicture
+  picture?: MetadataPicture
 ): Promise<Blob | undefined> {
   if (!picture) return undefined;
 
