@@ -45,6 +45,72 @@ export interface SyncSummary {
   skipped: string[];
 }
 
+/**
+ * Handle a unit of work uses to persist a device's database.
+ *
+ * A device writer copies media first and records it in a database second, so
+ * an interrupted run can leave media on the device that nothing points at.
+ * Committing after each song keeps the two in step: a run that stops early
+ * leaves saved tracks, never orphaned media.
+ *
+ * Devices with no database of their own (plain MTP) have nothing to commit
+ * and do not use this.
+ */
+export interface DbSession {
+  /** Record that the database has unsaved changes. */
+  markDirty: () => void;
+  /** Save the database when there is anything to save. */
+  commit: () => Promise<void>;
+  /** Whether changes have been made since the last commit. */
+  isDirty: () => boolean;
+  /**
+   * Register an undo step for work already done, run newest first by
+   * {@link rollback}. A device writer registers one per written track so a
+   * failed run can take back what it wrote.
+   */
+  onRollback: (undo: () => Promise<void> | void) => void;
+  /** Run the registered undo steps, newest first. */
+  rollback: () => Promise<void>;
+}
+
+/**
+ * Build a {@link DbSession} around a strategy's save call.
+ *
+ * The dirty flag lives here so every device writer commits on the same terms:
+ * a commit with nothing pending does no work, which keeps a no-op sync from
+ * rewriting the database.
+ */
+export function createDbSession(save: () => Promise<void>): DbSession {
+  let dirty = false;
+  const undoSteps: (() => Promise<void> | void)[] = [];
+
+  return {
+    markDirty: () => {
+      dirty = true;
+    },
+    commit: async () => {
+      if (!dirty) return;
+      await save();
+      dirty = false;
+    },
+    isDirty: () => dirty,
+    onRollback: (undo) => {
+      undoSteps.push(undo);
+    },
+    rollback: async () => {
+      for (let index = undoSteps.length - 1; index >= 0; index -= 1) {
+        try {
+          await undoSteps[index]();
+        } catch {
+          // Keep undoing: one step that cannot be taken back must not strand
+          // the rest of the run's writes.
+        }
+      }
+      undoSteps.length = 0;
+    },
+  };
+}
+
 export interface ISyncStrategy {
   canHandle(device: SyncDevice): boolean;
   /**

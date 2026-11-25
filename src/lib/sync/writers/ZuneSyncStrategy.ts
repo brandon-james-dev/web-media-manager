@@ -4,6 +4,7 @@ import type {
   SyncProgressHandler,
   SyncSummary,
 } from "./ISyncStrategy";
+import { createDbSession } from "./ISyncStrategy";
 import { Zune, type ZuneTrackUpload } from "zunesync-ts";
 import { findUsbDevice, WebUsbMtpTransport } from "../zune";
 import { trackIdentity } from "../helpers";
@@ -232,29 +233,86 @@ export class ZuneSyncStrategy implements ISyncStrategy {
         const session = zune.createSession();
         await session.begin();
 
-        let handles: number[] = [];
+        // Commit the device database after every track, not once at the end.
+        // An upload writes the MTP object first and the ZMDB lists it second,
+        // so a run stopped part-way used to leave objects nothing recorded.
+        const db = createDbSession(() => session.commit());
+
+        const onWarning = (what: string, error: unknown) => {
+          // A rejected artist/album object is not fatal: the tracks are still
+          // transferred, they just are not filed under it.
+          console.warn(
+            `[ZuneSyncStrategy] The device rejected the ${what} object:`,
+            error
+          );
+        };
+
+        // Indexed by upload position, so the verification pass below can pair
+        // each handle with the song it belongs to.
+        const handles: number[] = Array.from<number>({
+          length: uploads.length,
+        });
+        let written = 0;
+
         try {
-          handles =
-            (await zune.uploadTracks(uploads, {
-            session,
-            onTrackUploaded: (completed) => {
-              // Report as each object lands, so the queue advances per track
-              // instead of jumping from zero to the total at the end.
-              onProgress?.(completed, songs.length, {
-                songId: uploaded[completed - 1]?.song.id ?? "",
+          // Group by album so each track is filed under an artist and album
+          // object, which is what `uploadTracks` does in a single call. The
+          // grouping key matches the library's.
+          const groups = new Map<string, number[]>();
+          for (const [index, upload] of uploads.entries()) {
+            const meta = upload.metadata ?? {};
+            const key = `${meta.albumArtist ?? meta.artist ?? ""}\u0000${meta.albumName ?? ""}`;
+            const group = groups.get(key);
+            if (group) group.push(index);
+            else groups.set(key, [index]);
+          }
+
+          for (const indices of groups.values()) {
+            const first = uploads[indices[0]].metadata ?? {};
+            const albumName = first.albumName;
+            let artistId: number | undefined;
+
+            if (albumName) {
+              const artistName = first.albumArtist ?? first.artist;
+              if (artistName) {
+                try {
+                  artistId = await zune.createArtist(artistName, { session });
+                } catch (error) {
+                  onWarning(`artist "${artistName}"`, error);
+                }
+              }
+              try {
+                await zune.createAlbum(
+                  { name: albumName, albumArtist: artistName, artistId },
+                  { session }
+                );
+              } catch (error) {
+                onWarning(`album "${albumName}"`, error);
+              }
+            }
+
+            for (const index of indices) {
+              const upload = uploads[index];
+              handles[index] = await zune.uploadTrack(
+                {
+                  ...upload,
+                  metadata: { ...upload.metadata, artistId, albumName },
+                },
+                { session, onWarning }
+              );
+
+              // Commit before reporting, so a run that stops here leaves a
+              // track the device lists rather than an unrecorded object.
+              db.markDirty();
+              await db.commit();
+
+              written += 1;
+              onProgress?.(written, songs.length, {
+                songId: uploaded[index]?.song.id ?? "",
                 status: "written",
               });
-            },
-            onWarning: (what, error) => {
-              // A rejected artist/album object is not fatal: the tracks are
-              // still transferred, they just are not filed under it.
-              console.warn(
-                `[ZuneSyncStrategy] The device rejected the ${what} object:`,
-                error
-              );
-            },
-          })) ?? [];
-          await session.commit();
+            }
+          }
         } catch (error) {
           await session.rollback();
           throw error;

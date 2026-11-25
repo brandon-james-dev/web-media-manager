@@ -62,7 +62,12 @@ export function SyncDeviceCard({
   // appear while editing, so the card reads as a library by default.
   const [isEditing, setIsEditing] = useState(false);
 
-  const { refreshDevices, removeTracksFromDevice, isSyncing } = useSync();
+  const {
+    refreshDevices,
+    removeTracksFromDevice,
+    isSyncing,
+    isReadingDevices,
+  } = useSync();
 
   const toggleIds = useCallback((ids: number[]) => {
     setSelected((current) => {
@@ -331,7 +336,7 @@ export function SyncDeviceCard({
                 className="size-10 shrink-0 rounded-lg p-0 @xl/card-header:hidden"
                 aria-pressed={isEditing}
                 aria-label={manageTitle}
-                disabled={isSyncing}
+                disabled={isSyncing || isReadingDevices}
                 title={manageTitle}
                 onClick={toggleManage}
               >
@@ -343,24 +348,33 @@ export function SyncDeviceCard({
               </Button>
               <Button
                 variant="outline"
-                className="size-10 shrink-0 rounded-lg p-0"
-                disabled={isSyncing}
+                className={cn(
+                  "size-10 shrink-0 rounded-lg p-0",
+                  isReadingDevices && "border-foreground/40 text-foreground"
+                )}
+                disabled={isSyncing || isReadingDevices}
                 title={
-                  isSyncing
-                    ? "Rescanning is unavailable while a sync is running"
-                    : "Rescan for connected devices"
+                  isReadingDevices
+                    ? "Reading the device library"
+                    : isSyncing
+                      ? "Rescanning is unavailable while a sync is running"
+                      : "Rescan for connected devices"
                 }
                 aria-label="Rescan for connected devices"
+                aria-busy={isReadingDevices}
                 onClick={() => void refreshDevices()}
               >
-                <RotateCw className="size-4" />
+                <RotateCw
+                  className={cn("size-4", isReadingDevices && "animate-spin")}
+                />
               </Button>
             </div>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+      {device.connected && (
+        <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
         {storage && (
           <div className="space-y-1.5">
             <div
@@ -449,7 +463,9 @@ export function SyncDeviceCard({
                   <Button
                     size="sm"
                     variant="destructive"
-                    disabled={!device.connected || isRemoving || isSyncing}
+                    disabled={
+                      !device.connected || isRemoving || isSyncing || isReadingDevices
+                    }
                     onClick={() =>
                       setPendingRemove({
                         label: `${selected.size} selected track${
@@ -474,7 +490,7 @@ export function SyncDeviceCard({
                 variant={isEditing ? "secondary" : "outline"}
                 className="hidden shrink-0 @xl/device-tabs:inline-flex"
                 aria-pressed={isEditing}
-                disabled={isSyncing}
+                disabled={isSyncing || isReadingDevices}
                 title={manageTitle}
                 onClick={toggleManage}
               >
@@ -491,7 +507,9 @@ export function SyncDeviceCard({
                     <Item className="p-0.5">
                       <Checkbox
                         checked={selected.has(track.id)}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         aria-label={`Select ${track.title ?? "Unknown Track"}`}
                         onCheckedChange={() => toggleIds([track.id])}
                       />
@@ -506,7 +524,9 @@ export function SyncDeviceCard({
                         className="flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent/15 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
                         title={`Remove ${track.title} from this device`}
                         aria-label={`Remove ${track.title} from this device`}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         onClick={() =>
                           setPendingRemove({
                             label: track.title ?? "Unknown Track",
@@ -532,7 +552,9 @@ export function SyncDeviceCard({
                     <Item className="p-0.5">
                       <Checkbox
                         checked={album.trackIds.every((id) => selected.has(id))}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         aria-label={`Select ${album.album || "Unknown Album"}`}
                         onCheckedChange={() => toggleIds(album.trackIds)}
                       />
@@ -553,7 +575,9 @@ export function SyncDeviceCard({
                         className="flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent/15 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
                         title={`Remove ${album.album || "Unknown Album"} from this device`}
                         aria-label={`Remove ${album.album || "Unknown Album"} from this device`}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         onClick={() =>
                           setPendingRemove({
                             label: album.album || "Unknown Album",
@@ -581,7 +605,9 @@ export function SyncDeviceCard({
                         checked={artist.trackIds.every((id) =>
                           selected.has(id)
                         )}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         aria-label={`Select ${artist.artist}`}
                         onCheckedChange={() => toggleIds(artist.trackIds)}
                       />
@@ -600,7 +626,9 @@ export function SyncDeviceCard({
                         className="flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent/15 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
                         title={`Remove ${artist.artist} from this device`}
                         aria-label={`Remove ${artist.artist} from this device`}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         onClick={() =>
                           setPendingRemove({
                             label: artist.artist,
@@ -626,7 +654,9 @@ export function SyncDeviceCard({
                     <Item className="p-0.5">
                       <Checkbox
                         checked={genre.trackIds.every((id) => selected.has(id))}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         aria-label={`Select ${genre.genre}`}
                         onCheckedChange={() => toggleIds(genre.trackIds)}
                       />
@@ -645,7 +675,9 @@ export function SyncDeviceCard({
                         className="flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent/15 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
                         title={`Remove ${genre.genre} from this device`}
                         aria-label={`Remove ${genre.genre} from this device`}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         onClick={() =>
                           setPendingRemove({
                             label: genre.genre,
@@ -676,7 +708,9 @@ export function SyncDeviceCard({
                         checked={playlist.trackIds.every((id) =>
                           selected.has(id)
                         )}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         aria-label={`Select ${playlist.name ?? "Unknown Playlist"}`}
                         onCheckedChange={() => toggleIds(playlist.trackIds)}
                       />
@@ -695,7 +729,9 @@ export function SyncDeviceCard({
                         className="flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent/15 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
                         title={`Remove ${playlist.name} from this device`}
                         aria-label={`Remove ${playlist.name} from this device`}
-                        disabled={!device.connected || isSyncing}
+                        disabled={
+                          !device.connected || isSyncing || isReadingDevices
+                        }
                         onClick={() =>
                           setPendingRemove({
                             label: playlist.name ?? "Unknown Playlist",
@@ -715,6 +751,7 @@ export function SyncDeviceCard({
           </TabsContent>
         </Tabs>
       </CardContent>
+      )}
 
       <Dialog
         open={pendingRemove !== null}
@@ -752,15 +789,17 @@ export function SyncDeviceCard({
               disabled={isRemoving}
               onClick={() => {
                 if (!pendingRemove) return;
+                const trackIds = pendingRemove.trackIds;
+
+                // Close on the click, not on the job: the run reports through
+                // a notification, and a dialog that waits for a worker job can
+                // outlive it and never disappear.
+                setPendingRemove(null);
+                clearSelection();
                 setIsRemoving(true);
 
-                void removeTracksFromDevice(
-                  device,
-                  pendingRemove.trackIds
-                ).finally(() => {
+                void removeTracksFromDevice(device, trackIds).finally(() => {
                   setIsRemoving(false);
-                  setPendingRemove(null);
-                  clearSelection();
                 });
               }}
             >

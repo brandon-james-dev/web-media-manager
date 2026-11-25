@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
+  Loader2,
   MonitorSmartphone,
   Plus,
   Usb,
@@ -27,6 +28,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
   //#region State
   const { devices, queuedSongs, syncedSongIds, syncCompleted } = useSync();
   const { refreshDevices } = useSync();
+  const { isReadingDevices, readingDeviceName, readingProgress } = useSync();
   const { songs } = useSongs();
   const { hiddenSongIds } = useHiddenSongs();
   const { offlineSongIds } = useOfflineSongs();
@@ -366,7 +368,7 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
               </div>
             </div>
 
-            {devices.length === 0 && (
+            {!hasConnectedDevice(devices) && !isReadingDevices && (
               <Card>
                 <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
                   <div
@@ -377,10 +379,16 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
                   </div>
 
                   <div className="space-y-1">
-                    <div className="font-medium">No devices configured</div>
+                    <div className="font-medium">
+                      {devices.length > 0
+                        ? "No device connected"
+                        : "No devices configured"}
+                    </div>
 
                     <div className="text-sm text-muted-foreground">
-                      Connect an iPod, Zune, or supported device to begin.
+                      {devices.length > 0
+                        ? "Reconnect a saved device, or add another one."
+                        : "Connect an iPod, Zune, or supported device to begin."}
                     </div>
                   </div>
 
@@ -397,6 +405,78 @@ export function Sync({ compact = false }: { compact?: boolean } = {}) {
                     <Plus className="h-4 w-4" />
                     Add Device
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {isReadingDevices && !hasConnectedDevice(devices) && (
+              <Card className="relative overflow-hidden">
+                {/* A long read on a full device can take a while, so the panel
+                    carries a soft radial wash and a faint grid rather than a
+                    flat empty card. Both are decorative and non-interactive. */}
+                <div
+                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-accent)_0%,transparent_65%)] opacity-[0.07]"
+                  aria-hidden="true"
+                />
+
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] [background-size:28px_28px]"
+                  aria-hidden="true"
+                />
+
+                <CardContent className="relative flex flex-col items-center gap-4 py-14 text-center">
+                  <div className="relative flex size-16 items-center justify-center">
+                    {/* The ring spins; the icon inside stays still so the
+                        device mark does not rotate with it. */}
+                    <Loader2
+                      className="absolute inset-0 size-16 animate-spin text-accent/40"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+
+                    <div className="flex size-11 items-center justify-center rounded-full border bg-background/60 text-accent">
+                      <MonitorSmartphone className="size-5" />
+                    </div>
+                  </div>
+
+                  <div
+                    className="max-w-sm space-y-1"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <div className="text-sm font-medium">
+                      {readingDeviceName
+                        ? t("sync.readingDevice", [readingDeviceName])
+                        : t("sync.readingDevices")}
+                    </div>
+
+                    <div className="text-xs text-muted-foreground tabular-nums">
+                      {readingProgress
+                        ? t("sync.readingDeviceTracks", [
+                            String(readingProgress.completed),
+                            String(readingProgress.total),
+                          ])
+                        : t("sync.readingDeviceHint")}
+                    </div>
+                  </div>
+
+                  {readingProgress && readingProgress.total > 0 && (
+                    <div className="h-1 w-56 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-accent transition-[width] duration-300"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.round(
+                              (readingProgress.completed /
+                                readingProgress.total) *
+                                100
+                            )
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

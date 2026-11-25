@@ -453,7 +453,28 @@ export const WMM_RESOURCES = {
   "sync.cancel": text("Cancels a running sync."),
   "sync.addToQueue": text("Queues the selected songs for the next device sync."),
   "sync.removeFromQueue": text("Takes the selected songs out of the sync queue."),
+  "sync.removeFromDevice": text(
+    "Deletes the selected tracks from the connected device."
+  ),
   "sync.syncing": text("Shown in the sync queue header while a sync is running."),
+  "sync.readingDevices": text(
+    "Shown while a connected device's library is being read."
+  ),
+  "sync.readingDevice": template(
+    "Shown while a named device's library is being read.",
+    ["device"]
+  ),
+  "sync.readingDeviceProgress": template(
+    "Shown while a named device's library is being read, with the tracks read so far.",
+    ["device", "completed", "total"]
+  ),
+  "sync.readingDeviceTracks": template(
+    "Track counter under the device reading message.",
+    ["completed", "total"]
+  ),
+  "sync.readingDeviceHint": text(
+    "Shown under the device reading message before the track count is known."
+  ),
   "sync.completed": text("Shown in the sync queue header once a sync has finished."),
   "sync.progressCancel": text(
     "Accessible name of the sync progress bar, which cancels the run."

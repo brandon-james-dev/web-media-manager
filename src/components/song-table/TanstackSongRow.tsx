@@ -3,7 +3,7 @@ import { memo } from "react";
 import type { TanstackSongRowProps } from "./TanstackSongRowProps";
 import { SongContextMenu } from "../song-context-menu/SongContextMenu";
 import type { Cell, RowSelectionState } from "@tanstack/react-table";
-import { usePlayback } from "@/hooks";
+import { useDeviceSourceIds, usePlayback } from "@/hooks";
 import type { Song } from "@/models";
 import { Play } from "lucide-react";
 import { FavoriteButton } from "../favorite-button";
@@ -23,6 +23,7 @@ export const SongRow = memo(function SongRow({
 }: TanstackSongRowProps) {
   const isSelected = row.getIsSelected();
   const { nowPlaying, isPlaying } = usePlayback();
+  const deviceSourceIds = useDeviceSourceIds();
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     if (e.detail === 2) {
@@ -142,14 +143,15 @@ export const SongRow = memo(function SongRow({
                 <table.FlexRender cell={cell} />
               </div>
               {cell.column.id === "title" && <ExplicitBadge song={song} />}
-              {cell.column.id === "title" && (
-                <FavoriteButton
-                  songId={song.id}
-                  alwaysVisible={false}
-                  className="h-5 w-5"
-                  iconSize={12}
-                />
-              )}
+              {cell.column.id === "title" &&
+                !deviceSourceIds.has(song.sourceId) && (
+                  <FavoriteButton
+                    songId={song.id}
+                    alwaysVisible={false}
+                    className="h-5 w-5"
+                    iconSize={12}
+                  />
+                )}
             </div>
           </div>
         ))}

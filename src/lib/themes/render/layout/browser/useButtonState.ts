@@ -26,7 +26,7 @@ export function useButtonState(
   const snapshot = useThemeLayoutSnapshot();
   const { analysis } = useThemeRender();
   const { isPlaying, shuffle, repeat, muted } = usePlayback();
-  const { queuedSongs, isSyncing } = useSync();
+  const { queuedSongs, isSyncing, isReadingDevices } = useSync();
   const { nowPlayingOpen, fullscreen, darkRoom } = useNowPlayingUi();
 
   const overlayPage = snapshot.overlayOpen
@@ -45,6 +45,7 @@ export function useButtonState(
     muted,
     queuedCount: queuedSongs.length,
     syncing: isSyncing,
+    readingDevices: isReadingDevices,
     nowPlayingOpen,
     nowPlayingPage,
     fullscreen,

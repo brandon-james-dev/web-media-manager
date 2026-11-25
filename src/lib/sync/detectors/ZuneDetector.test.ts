@@ -241,7 +241,7 @@ describe("ZuneDetector", () => {
 
     expect(device?.type).toBe("zune");
     expect(device?.model).toBe("Zune HD 32");
-    expect(device?.media.tracks).toEqual([
+    expect(device?.media.tracks).toMatchObject([
       {
         id: 7,
         title: "Song",
@@ -261,6 +261,10 @@ describe("ZuneDetector", () => {
         path: "Song.mp3",
       },
     ]);
+
+    // Artwork is deferred, so the track carries a loader rather than bytes.
+    expect(device?.media.tracks[0].artwork).toBeUndefined();
+    expect(typeof device?.media.tracks[0].artworkLoader).toBe("function");
     expect(device?.media.playlists).toEqual([
       { id: 3n, name: "Mix", trackIds: [7] },
     ]);
@@ -525,11 +529,11 @@ describe("ZuneDetector", () => {
   });
 
   /**
-   * Cover art lives on the album object, so a device scan must read it and
-   * attach it to the album's tracks — otherwise the app renders blank tiles
-   * for tracks whose artwork the Zune itself displays.
+   * Cover art lives on the album object. Reading it during the scan is what
+   * made a large library slow to appear, so the scan attaches a loader and the
+   * bytes are read only when a view renders the tile.
    */
-  it("attaches album artwork read from the device to its tracks", async () => {
+  it("defers album artwork to a loader on its tracks", async () => {
     h.state.library = {
       ...h.state.library,
       albums: {
@@ -560,8 +564,13 @@ describe("ZuneDetector", () => {
     h.state.albumArtwork = { 5: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]) };
 
     const device = await new ZuneDetector().detect(undefined, zuneUsb);
+    const track = device?.media.tracks[0];
 
-    const artwork = device?.media.tracks[0].artwork;
+    // Nothing was read during the scan.
+    expect(track?.artwork).toBeUndefined();
+    expect(typeof track?.artworkLoader).toBe("function");
+
+    const artwork = await track?.artworkLoader?.();
     expect(artwork).toBeInstanceOf(Blob);
     expect(artwork?.size).toBe(4);
   });
@@ -609,8 +618,10 @@ describe("ZuneDetector", () => {
     h.state.objectInfoHandles = [];
 
     const device = await new ZuneDetector().detect(undefined, zuneUsb);
+    const track = device?.media.tracks[0];
 
-    expect(device?.media.tracks[0].artwork).toBeUndefined();
+    expect(track?.artwork).toBeUndefined();
+    expect(await track?.artworkLoader?.()).toBeUndefined();
     expect(h.state.objectInfoHandles).not.toContain(5);
   });
 

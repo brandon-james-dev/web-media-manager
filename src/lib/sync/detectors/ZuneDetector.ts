@@ -11,7 +11,7 @@ import type {
   SyncPlaylist,
   SyncTrack,
 } from "@/models";
-import type { DeviceDetector } from "./DeviceDetector";
+import type { DeviceDetector, DeviceReadProgress } from "./DeviceDetector";
 import type { UsbDeviceInfo } from "../usb";
 import { findUsbDevice, WebUsbMtpTransport } from "../zune";
 
@@ -25,7 +25,8 @@ import { findUsbDevice, WebUsbMtpTransport } from "../zune";
 export class ZuneDetector implements DeviceDetector {
   async detect(
     _root?: FileSystemDirectoryHandle,
-    usb?: UsbDeviceInfo
+    usb?: UsbDeviceInfo,
+    onProgress?: DeviceReadProgress
   ): Promise<SyncDevice | undefined> {
     if (!usb || usb.vendorId !== ZUNE_VENDOR_ID) return undefined;
     if (!isZuneProductId(usb.productId)) return undefined;
@@ -189,8 +190,14 @@ export class ZuneDetector implements DeviceDetector {
         }
       }
 
+      const trackTotal = library.tracks.length;
+      let trackRead = 0;
+
       const media: SyncLibrary = {
         tracks: library.tracks.map((track) => {
+          trackRead += 1;
+          onProgress?.(trackRead, trackTotal);
+
           const fixed = resolved.get(track.atomId);
           // The album record carries the release year; the track record does
           // not, so it is resolved through the track's album reference.
@@ -223,18 +230,16 @@ export class ZuneDetector implements DeviceDetector {
         artworks: [],
       };
 
-      // Cover art lives on the album object, so read it once per album and
-      // attach it to every track filed under that album. Without this the
-      // device's tracks render blank tiles in the app even though the Zune
-      // itself shows the artwork.
-      const artworkByAlbum = await readAlbumArtwork(zune, library.albums);
-      if (artworkByAlbum.size > 0) {
-        for (const track of media.tracks) {
-          const blob = track.album
-            ? artworkByAlbum.get(track.album)
-            : undefined;
-          if (blob) track.artwork = blob;
-        }
+      // Cover art lives on the album object, so it is read once per album and
+      // shared by every track filed under that album. Reading it here made a
+      // Zune with a large library take minutes to appear — each album's art is
+      // an MTP round trip — so each track gets a loader instead, and the read
+      // happens only when a view renders that track's tile.
+      const artworkLoader = createAlbumArtworkLoader(usb, library.albums);
+      for (const track of media.tracks) {
+        const album = track.album;
+        if (!album) continue;
+        track.artworkLoader = () => artworkLoader(album);
       }
 
       const storage = zune.storageInfo;
@@ -361,49 +366,70 @@ async function readSizesByFilename(zune: {
 }
 
 /**
- * Cover art for each album on the device, keyed by album title.
+ * Build a loader that reads one album's cover art on demand.
  *
- * Artwork is stored on the album object as `RepresentativeSampleData`. The
- * album's ZMDB atom id is tried first; when that is not a valid MTP handle the
- * album objects are enumerated and matched by their `<artist>--<album>.alb`
- * filename, the same fallback the reference implementation uses for tracks.
+ * The scan used to read every album's art up front, which is an MTP round trip
+ * per album and dominated the time a large Zune took to appear. Each read now
+ * opens a short session, fetches the one album, and closes it, so the cost is
+ * paid only for the tiles a view actually renders. Results are cached per
+ * album title, so scrolling back over the same album is free.
  */
-async function readAlbumArtwork(
-  zune: {
-    readAlbumArtwork: (handle: number) => Promise<Uint8Array | undefined>;
-    listObjects: (formatCode?: number, parentHandle?: number) => Promise<number[]>;
-    getObjectInfo: (handle: number) => Promise<{ filename: string }>;
-  },
+function createAlbumArtworkLoader(
+  usb: UsbDeviceInfo,
   albums: Record<string, { atomId: number; title: string; artistName: string }>
-): Promise<Map<string, Blob>> {
-  const byAlbum = new Map<string, Blob>();
-  const unresolved: { title: string; filename: string }[] = [];
+): (albumTitle: string) => Promise<Blob | undefined> {
+  const atomIdByTitle = new Map<string, number>();
+  for (const album of Object.values(albums)) {
+    atomIdByTitle.set(album.title, album.atomId);
+  }
 
-  await Promise.all(
-    Object.values(albums).map(async (album) => {
-      const data = await zune.readAlbumArtwork(album.atomId);
-      if (data) {
-        byAlbum.set(album.title, new Blob([new Uint8Array(data)], { type: "image/jpeg" }));
-        return;
+  const cache = new Map<string, Blob | undefined>();
+
+  return async (albumTitle) => {
+    if (cache.has(albumTitle)) return cache.get(albumTitle);
+
+    const atomId = atomIdByTitle.get(albumTitle);
+    if (atomId === undefined) {
+      cache.set(albumTitle, undefined);
+      return undefined;
+    }
+
+    let blob: Blob | undefined;
+
+    try {
+      const device = await findUsbDevice(usb);
+      if (!device) {
+        cache.set(albumTitle, undefined);
+        return undefined;
       }
-      unresolved.push({
-        title: album.title,
-        filename: `${album.artistName}--${album.title}.alb`,
-      });
-    })
-  );
 
-  if (unresolved.length === 0) return byAlbum;
+      const transport = new WebUsbMtpTransport(device);
+      await transport.open();
 
-  // No fallback by filename. Resolving an unresolved album meant calling
-  // `GetObjectInfo` on every album handle from `listObjects(0xba03, 0)`, and a
-  // Zune 120 does not answer that for album objects: each call burned the full
-  // 15 s timeout and then wedged the session, so the remaining calls failed
-  // with GenericFailure. Measured on hardware with 14 tracks and 12 albums:
-  // 70453 ms for a full scan, of which 68 s was four timed-out album reads.
-  // The primary pass above already reads artwork from every album's own
-  // handle, so an album missing there simply has no artwork on the device.
-  return byAlbum;
+      let zune: Zune;
+      try {
+        zune = await Zune.open({ transport, productId: usb.productId });
+      } catch (error) {
+        await transport.close();
+        throw error;
+      }
+
+      try {
+        const data = await zune.readAlbumArtwork(atomId);
+        if (data) {
+          blob = new Blob([new Uint8Array(data)], { type: "image/jpeg" });
+        }
+      } finally {
+        await zune.disconnect();
+      }
+    } catch {
+      // A cover that cannot be read is a blank tile, not a broken view.
+      blob = undefined;
+    }
+
+    cache.set(albumTitle, blob);
+    return blob;
+  };
 }
 
 /**

@@ -12,6 +12,7 @@ function snapshot(
     muted: false,
     queuedCount: 0,
     syncing: false,
+    readingDevices: false,
     nowPlayingOpen: false,
     nowPlayingPage: false,
     fullscreen: false,

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import type { Song, SyncDevice } from "@/models";
 import type { UsbDeviceInfo } from "@/lib/sync";
 
@@ -13,6 +13,19 @@ export interface SyncContextValue {
   ) => Promise<SyncDevice>;
   refreshDevices(): Promise<void>;
   isSyncing: boolean;
+  /**
+   * True while a device library is being read. Reading an iTunesDB or a ZMDB
+   * can take seconds on a large device, and the scan used to run with no
+   * indication at all, so the page looked idle.
+   */
+  isReadingDevices: boolean;
+  /** Name of the device being read, or null when nothing is being read. */
+  readingDeviceName: string | null;
+  /**
+   * How far the device read has got, or null when the count is unknown.
+   * Reading several devices reports one step per device.
+   */
+  readingProgress: { completed: number; total: number } | null;
   /** How far the running sync has got, or null when nothing is syncing. */
   syncProgress: { completed: number; total: number } | null;
   /** Stop the running sync; the queue is left in place for a retry. */
@@ -50,6 +63,18 @@ export function useSync() {
   }
 
   return context;
+}
+
+/**
+ * Source ids that belong to a sync device.
+ *
+ * A device track is read from the device and never imported into the library,
+ * so library-only affordances (favorite, hide, edit) are withheld for it.
+ */
+export function useDeviceSourceIds(): ReadonlySet<string> {
+  const { devices } = useSync();
+
+  return useMemo(() => new Set(devices.map((device) => device.id)), [devices]);
 }
 
 /**

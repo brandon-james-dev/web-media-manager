@@ -8,6 +8,13 @@ export class MtpSyncStrategy implements ISyncStrategy {
     return device.type === "mtp";
   }
 
+  /**
+   * Copy songs into the device's music folder.
+   *
+   * Plain MTP has no library database of its own — the device indexes the
+   * files it finds — so there is nothing to commit per song and no
+   * {@link DbSession} here. Each file is complete once `close()` returns.
+   */
   async sync(device: SyncDevice, songs: Song[]): Promise<SyncSummary> {
     const musicFolder = await this.getMusicFolder(device);
 

@@ -1,9 +1,11 @@
 import type { Playlist, SyncDevice, Song } from "@/models";
 import type {
+  DbSession,
   ISyncStrategy,
   SyncProgressHandler,
   SyncSummary,
 } from "./ISyncStrategy";
+import { createDbSession } from "./ISyncStrategy";
 import type { CombinedMetadataStore } from "@/lib/persistence/browser/CombinedMetadataStore";
 import { getMetadataStore } from "@/lib/persistence/initMetadataStore";
 import {
@@ -102,9 +104,7 @@ export class IpodSyncStrategy implements ISyncStrategy {
       skipped: [],
     };
 
-    await this.withDatabase(device, async (itdb, fs) => {
-      let changed = false;
-
+    await this.withDatabase(device, async (itdb, fs, session) => {
       // -- Songs -----------------------------------------------------------
       const existing = new Map<string, (typeof itdb.tracks)[number]>();
       for (const track of itdb.tracks) {
@@ -131,7 +131,7 @@ export class IpodSyncStrategy implements ISyncStrategy {
               const art = await this.resolveArtwork(song);
               if (art) {
                 await itdb.setArtwork(present.trackId, art);
-                changed = true;
+                session.markDirty();
               }
             } catch (err) {
               console.warn(
@@ -189,10 +189,24 @@ export class IpodSyncStrategy implements ISyncStrategy {
           artwork
         );
 
+        // Commit this song before reporting it. `addTrack` writes the audio
+        // file immediately but only adds the record to the in-memory database,
+        // so a run interrupted before the final save used to leave orphaned
+        // audio on the device with no track pointing at it.
+        session.markDirty();
+        await session.commit();
+
+        // Take this track back if a later song fails, so a failed run leaves
+        // the device as it found it. `removeTrack` also deletes the audio file
+        // on save, so the copy is undone too.
+        session.onRollback(() => {
+          itdb.removeTrack(track.trackId);
+        });
+
         // Confirm the write landed on the device before calling it done: the
-        // record has to be in the database that gets saved, and its audio file
-        // has to exist on the device. A write that silently did neither used
-        // to be reported as synced.
+        // record has to be in the saved database, and its audio file has to
+        // exist on the device. A write that silently did neither used to be
+        // reported as synced.
         const recorded = itdb.tracks.some((t) => t.trackId === track.trackId);
         // `track.path` is an iPod location (`:iPod_Control:Music:F03:x.mp3`),
         // but the filesystem port takes `/`-separated paths. Passing the
@@ -205,7 +219,6 @@ export class IpodSyncStrategy implements ISyncStrategy {
         const verified = recorded && onDisk;
 
         existing.set(key, track);
-        changed = true;
         written += 1;
 
         if (verified) {
@@ -231,7 +244,7 @@ export class IpodSyncStrategy implements ISyncStrategy {
         (p) => !p.isMaster && !p.name && (p.mhsdIndex ?? 2) === 2
       )) {
         itdb.removePlaylist(leftover.playlistId);
-        changed = true;
+        session.markDirty();
       }
 
       if (playlists.length > 0) {
@@ -255,12 +268,12 @@ export class IpodSyncStrategy implements ISyncStrategy {
 
           if (!target) {
             target = itdb.addPlaylist(name);
-            changed = true;
+            session.markDirty();
           }
 
           if (!target.dataObjects.some((o) => o.type === 1 && o.stringValue)) {
             target.dataObjects.push({ type: 1, stringValue: name });
-            changed = true;
+            session.markDirty();
           }
 
           // Resolve each entry to an on-device track id (skip if absent).
@@ -281,13 +294,13 @@ export class IpodSyncStrategy implements ISyncStrategy {
           }
           for (const id of items) {
             itdb.addTrackToPlaylist(id, target.playlistId);
-            changed = true;
+            session.markDirty();
           }
         }
       }
 
       // Nothing new: leave the databases untouched rather than rewriting them.
-      return changed;
+      return session.isDirty();
     });
 
     return summary;
@@ -345,15 +358,18 @@ export class IpodSyncStrategy implements ISyncStrategy {
   }
 
   /**
-   * Open the device database, run a unit of work, and persist it only when
-   * the work reports a change. `using` disposes the handle (closing any open
-   * file adapters) even when the work throws.
+   * Open the device database, run a unit of work, and persist whatever it
+   * leaves unsaved. The work may commit partway through — a song sync commits
+   * after every track — and the final commit covers anything after the last
+   * one. `using` disposes the handle (closing any open file adapters) even
+   * when the work throws.
    */
   private async withDatabase(
     device: SyncDevice,
     work: (
       itdb: Itdb,
-      fs: ItdbFileSystem
+      fs: ItdbFileSystem,
+      session: DbSession
     ) => boolean | void | Promise<boolean | void>
   ): Promise<void> {
     const root = device.rootHandle;
@@ -380,27 +396,44 @@ export class IpodSyncStrategy implements ISyncStrategy {
 
     const itdb = await Itdb.open(fs, { device: iPod });
 
+    const session = createDbSession(async () => {
+      this.lastSteps = "save()";
+      await itdb.save();
+    });
+
     try {
-      const changed = await work(itdb, fs);
+      const changed = await work(itdb, fs, session);
 
       if (changed === false) return;
 
-      this.lastSteps = "save()";
-      await itdb.save();
+      await session.commit();
     } catch (err) {
-      const name = err instanceof Error ? err.name : typeof err;
-      const message = err instanceof Error ? err.message : String(err);
-      const stack = err instanceof Error ? (err.stack ?? "") : "";
-
       console.error(`[IpodSyncStrategy] failed at ${this.lastSteps}`, err);
 
-      const enriched = new Error(
-        `[IpodSyncStrategy] ${name}: ${message} (step: ${this.lastSteps})`
-      );
-      enriched.name = name;
-      enriched.stack = stack;
+      // Undo what this run wrote, then persist the undo. A device left with
+      // half a sync is worse than one left untouched.
+      try {
+        await session.rollback();
+        session.markDirty();
+        await session.commit();
+      } catch (rollbackError) {
+        console.error(
+          `[IpodSyncStrategy] rollback failed at ${this.lastSteps}`,
+          rollbackError
+        );
+      }
 
-      throw enriched;
+      // Rethrow the original error rather than a copy: a cancelled run is
+      // detected by `instanceof` in the worker, and wrapping it in a plain
+      // Error turned a cancel into a reported failure.
+      if (err instanceof Error) {
+        err.message = `[IpodSyncStrategy] ${err.name}: ${err.message} (step: ${this.lastSteps})`;
+        throw err;
+      }
+
+      throw new Error(
+        `[IpodSyncStrategy] ${String(err)} (step: ${this.lastSteps})`
+      );
     } finally {
       itdb[Symbol.dispose]();
     }

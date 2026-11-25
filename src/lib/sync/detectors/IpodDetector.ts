@@ -12,7 +12,7 @@ import type {
   SyncPlaylist,
   SyncTrack,
 } from "@/models";
-import type { DeviceDetector } from "./DeviceDetector";
+import type { DeviceDetector, DeviceReadProgress } from "./DeviceDetector";
 import { uuidv7 } from "uuidv7";
 import { mapUsbDevice, USB_DEVICE_FILTERS } from "../usb";
 import type { UsbDeviceInfo } from "../usb";
@@ -54,7 +54,8 @@ async function rgbaToPngBlob(image: {
 export class IpodDetector implements DeviceDetector {
   async detect(
     root?: FileSystemDirectoryHandle,
-    usb?: UsbDeviceInfo
+    usb?: UsbDeviceInfo,
+    onProgress?: DeviceReadProgress
   ): Promise<SyncDevice | undefined> {
     // An iPod is a mass-storage device, so it is only detectable once its
     // storage root has been picked. Returning undefined lets the scan move on
@@ -159,7 +160,12 @@ export class IpodDetector implements DeviceDetector {
         };
       });
 
+      const trackTotal = itdb.tracks.length;
+      let trackRead = 0;
       tracks = itdb.tracks.map((track) => {
+        trackRead += 1;
+        onProgress?.(trackRead, trackTotal);
+
         return {
           id: track.trackId,
           title: track.title,

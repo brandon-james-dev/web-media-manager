@@ -22,6 +22,7 @@ import { formatTrackDuration } from "@/lib/format";
 import type { TrackItemProps } from "./TrackItemProps";
 import { ExplicitBadge } from "@/components/explicit-badge";
 import { FavoriteButton } from "@/components/favorite-button";
+import { useDeviceSourceIds } from "@/hooks";
 import { useTranslation } from "@/i18n";
 
 /**
@@ -59,6 +60,7 @@ export function TrackItem(props: TrackItemProps) {
     className,
   } = props;
   const { t } = useTranslation();
+  const deviceSourceIds = useDeviceSourceIds();
 
   const trackNumber = hideNumber
     ? undefined
@@ -166,7 +168,7 @@ export function TrackItem(props: TrackItemProps) {
         </span>
 
         <ItemActions className="shrink-0">
-          {showFavorite && (
+          {showFavorite && !deviceSourceIds.has(song.sourceId) && (
             <FavoriteButton
               songId={song.id}
               alwaysVisible={alwaysShowActions ?? false}

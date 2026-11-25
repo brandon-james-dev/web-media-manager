@@ -22,6 +22,7 @@ import {
   PencilRuler,
   Play,
   PlusCircle,
+  Trash2,
 } from "lucide-react";
 import {
   useFavorites,
@@ -50,7 +51,7 @@ import type { MusicSource, Playlist, Song } from "@/models";
 import { FAVORITES_PLAYLIST_ID } from "@/models";
 import { toast } from "@/components/ui/toast";
 import { useTranslation } from "@/i18n";
-import { getCurrentSelection, setCurrentSelection } from "./selection";
+import { getCurrentSelection } from "./selection";
 
 /** One actionable entry, rendered as a menu item or a drawer row. */
 export interface SongMenuAction {
@@ -105,7 +106,7 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
   const { mode } = useParams();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { queuedSongs, devices } = useSync();
+  const { queuedSongs, devices, removeTracksFromDevice } = useSync();
   const { nowPlaying, isPlaying } = usePlayback();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { offlineSongIds } = useOfflineSongs();
@@ -129,7 +130,6 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
   useEffect(() => {
     let cancelled = false;
     const resolve = (ids: string[]) => {
-      setCurrentSelection(ids);
       if (ids.length === 0) {
         setSelectedSongs([]);
         return;
@@ -329,6 +329,45 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
     const deviceIds = new Set(devices.map((device) => device.id));
     return target.every((s) => deviceIds.has(s.sourceId));
   }, [devices, target]);
+
+  /**
+   * The device tracks behind the selection, grouped by device.
+   *
+   * A device track is identified on the device by its numeric `SyncTrack.id`,
+   * which the song row does not carry: the row keeps the device path in
+   * `relativePath`, so the track is resolved by matching that path. A song
+   * whose device is unplugged, or whose path no longer exists, is skipped
+   * rather than failing the whole removal.
+   */
+  const deviceRemoval = useMemo(() => {
+    const byDevice = new Map<
+      string,
+      { device: (typeof devices)[number]; trackIds: number[] }
+    >();
+
+    for (const s of target) {
+      const device = devices.find((candidate) => candidate.id === s.sourceId);
+      if (!device?.connected) continue;
+
+      const track = (device.media?.tracks ?? []).find(
+        (candidate) => candidate.path === s.relativePath
+      );
+      if (!track) continue;
+
+      const entry = byDevice.get(device.id) ?? { device, trackIds: [] };
+      entry.trackIds.push(track.id);
+      byDevice.set(device.id, entry);
+    }
+
+    return byDevice;
+  }, [devices, target]);
+
+  /** Delete the selection from the device it lives on. */
+  const removeFromDevice = useCallback(async () => {
+    for (const { device, trackIds } of deviceRemoval.values()) {
+      await removeTracksFromDevice(device, trackIds);
+    }
+  }, [deviceRemoval, removeTracksFromDevice]);
 
   /** Add every selected song to an existing playlist. */
   const addToPlaylist = useCallback(
@@ -662,11 +701,38 @@ export function useSongMenu(songs: Song[], playlistId?: string): SongMenu {
           },
         ],
       },
-    ];
+      {
+        id: "device",
+        label: t("sync.title"),
+        hidden: !isDeviceTrack,
+        actions: [
+          {
+            id: "remove-from-device",
+            label:
+              target.length === 1
+                ? t("sync.removeFromDevice")
+                : t("sync.removeSelectedFromDevice", [target.length]),
+            icon: <Trash2 />,
+            disabled: deviceRemoval.size === 0,
+            onSelect: () => void removeFromDevice(),
+          },
+        ],
+      },
+    ].map((group) => ({
+      // A device track is read from the device, never imported into the
+      // library, so the library actions do not apply to it: favoriting,
+      // playlists, editing, offline caching, queueing and hiding all write
+      // rows the device would never see. Only the device group survives, so
+      // the menu offers the one action that does something.
+      ...group,
+      hidden: isDeviceTrack ? group.id !== "device" : group.hidden,
+    }));
   }, [
     editablePlaylists,
     hasConnectedDevices,
     isDeviceTrack,
+    deviceRemoval,
+    removeFromDevice,
     isEditHidden,
     isFavorite,
     isNowPlaying,

@@ -1,15 +1,17 @@
 import type { SyncDevice } from "@/models";
 import { getDetectors } from "./detectors";
+import type { DeviceReadProgress } from "./detectors/DeviceDetector";
 import { mapUsbDevice, USB_DEVICE_FILTERS } from "./usb";
 import type { UsbDeviceInfo } from "./usb/UsbDeviceInfo";
 
 export class DeviceScanner {
   async scan(
     root: FileSystemDirectoryHandle | undefined,
-    usb?: UsbDeviceInfo
+    usb?: UsbDeviceInfo,
+    onProgress?: DeviceReadProgress
   ): Promise<SyncDevice> {
     for (const detector of await getDetectors()) {
-      const device = await detector.detect(root, usb);
+      const device = await detector.detect(root, usb, onProgress);
 
       if (!device) {
         continue;

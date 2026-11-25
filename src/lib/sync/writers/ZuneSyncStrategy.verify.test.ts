@@ -62,13 +62,18 @@ vi.mock("zunesync-ts", () => {
       };
     }
 
-    async uploadTracks(tracks: unknown[], options?: { onTrackUploaded?: (c: number, t: number) => void }) {
-      h.state.uploads.push(...tracks);
-      // Drive the per-track callback the way the real uploader does.
-      for (let i = 1; i <= tracks.length; i++) {
-        options?.onTrackUploaded?.(i, tracks.length);
-        h.state.progressDuringUpload.push(i);
-      }
+    async uploadTrack(track: unknown) {
+      h.state.uploads.push(track);
+      h.state.progressDuringUpload.push(h.state.uploads.length);
+      return h.state.uploads.length;
+    }
+
+    async createArtist() {
+      return 1;
+    }
+
+    async createAlbum() {
+      return 2;
     }
 
     async syncDeviceDB() {

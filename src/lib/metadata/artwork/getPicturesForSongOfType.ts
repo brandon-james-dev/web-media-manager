@@ -1,5 +1,5 @@
 import { getSongArtworkStore } from "@/lib/persistence/songArtworkStore";
-import { getDeviceArtwork } from "@/lib/sync/deviceArtwork";
+import { resolveDeviceArtwork } from "@/lib/sync/deviceArtwork";
 import { ArtworkType, type IPicture } from "../../contracts";
 import { ThumbnailSize } from "./resizeBitmap";
 
@@ -14,7 +14,8 @@ export async function getPicturesForSongOfType(
     // A sync device's tracks have no row in the artwork table: their covers
     // live in the device's own ArtworkDB and are held in memory while it is
     // connected. Without this fallback every device track showed a blank tile.
-    const deviceArtwork = getDeviceArtwork(songId);
+    // Resolving may read the cover off the device on first use.
+    const deviceArtwork = await resolveDeviceArtwork(songId);
     if (!deviceArtwork) return undefined;
 
     return {

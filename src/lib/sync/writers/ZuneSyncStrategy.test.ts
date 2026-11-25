@@ -15,6 +15,8 @@ const h = vi.hoisted(() => ({
     committed: false,
     rolledBack: false,
     synced: 0,
+    commits: 0,
+    order: [] as string[],
   },
 }));
 
@@ -34,6 +36,8 @@ vi.mock("zunesync-ts", () => {
         track: () => undefined,
         commit: async () => {
           h.state.committed = true;
+          h.state.commits += 1;
+          h.state.order.push("commit");
         },
         rollback: async () => {
           h.state.rolledBack = true;
@@ -41,8 +45,17 @@ vi.mock("zunesync-ts", () => {
       };
     }
 
-    async uploadTracks(tracks: unknown[]) {
-      h.state.uploads.push(...tracks);
+    async uploadTrack(track: unknown) {
+      h.state.uploads.push(track);
+      return h.state.uploads.length;
+    }
+
+    async createArtist() {
+      return 1;
+    }
+
+    async createAlbum() {
+      return 2;
     }
 
     async deleteObject(id: number) {
@@ -159,6 +172,29 @@ describe("ZuneSyncStrategy", () => {
     h.state.committed = false;
     h.state.rolledBack = false;
     h.state.synced = 0;
+    h.state.commits = 0;
+    h.state.order = [];
+  });
+
+  it("commits the device database after every track, before reporting it", async () => {
+    h.state.reads = [emptyLibrary(), libraryWith("One", "Two")];
+
+    await new ZuneSyncStrategy(bytes).sync(
+      device,
+      [song("s1", "One"), song("s2", "Two")],
+      [],
+      (completed) => h.state.order.push(`progress:${completed}`)
+    );
+
+    // Each track is committed before its progress is reported, so a run that
+    // stops early leaves objects the device database lists.
+    expect(h.state.order.slice(0, 4)).toEqual([
+      "commit",
+      "progress:1",
+      "commit",
+      "progress:2",
+    ]);
+    expect(h.state.commits).toBe(2);
   });
 
   it("uploads a missing song and verifies it on the re-read", async () => {

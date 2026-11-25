@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Song, SyncDevice } from "@/models";
+import type { Song, SyncDevice, SyncTrack } from "@/models";
 import { SyncContext } from "@/hooks";
 import { commandDispatcher, wmmBus } from "@/events";
 import { getStore } from "@/core/system";
@@ -20,12 +20,14 @@ import {
   type UsbDeviceInfo,
 } from "@/lib/sync";
 import { isOnDevice, type SyncSongOutcome } from "@/lib/sync/writers/ISyncStrategy";
+import { trackIdentity } from "@/lib/sync/helpers/trackIdentity";
 import { markDeviceDisconnected } from "@/lib/sync/helpers/markDeviceDisconnected";
 import { createDeviceListSync } from "@/lib/sync/helpers/deviceListSync";
 import { startDeviceSync } from "@/lib/sync/helpers/startDeviceSync";
 import {
   clearDeviceArtwork,
   setDeviceArtwork,
+  setDeviceArtworkLoader,
 } from "@/lib/sync/deviceArtwork";
 import type { DeviceSyncResult } from "@/workers/shared/runDeviceSync";
 import type { DeviceRemoveResult } from "@/workers/shared/runDeviceRemove";
@@ -59,6 +61,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   // The worker job currently writing to a device, so progress and completion
   // events from other jobs are ignored.
   const activeSyncJobId = useRef<string | null>(null);
+  /** Device the running sync writes to, so progress can update its listing. */
+  const activeSyncDeviceId = useRef<string | null>(null);
+  /** Ids handed to tracks mirrored into a listing before the rescan assigns real ones. */
+  const placeholderTrackId = useRef(-1);
 
   // Mirror of `queuedSongs` read synchronously by `queueSongs`. Two drops in
   // the same tick would both see the pre-render state and queue the same song
@@ -70,6 +76,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     createDeviceListSync((next) => setDevices(next))
   );
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Reading a device library (iTunesDB / ZMDB) takes seconds on a large
+  // device. The scan used to run with no indication, so the page looked idle
+  // while it was working.
+  const [isReadingDevices, setIsReadingDevices] = useState(false);
+  const [readingDeviceName, setReadingDeviceName] = useState<string | null>(
+    null
+  );
+  const [readingProgress, setReadingProgress] = useState<{
+    completed: number;
+    total: number;
+  } | null>(null);
 
   // Queued songs now on the device (written, or already there), filled in as
   // the worker reports each one. The queue shows them ticked and disabled.
@@ -92,8 +110,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     for (const device of devices) {
       for (const track of device.media?.tracks ?? []) {
+        const songId = `${device.id}:${track.id}`;
+
         if (track.artwork) {
-          setDeviceArtwork(`${device.id}:${track.id}`, track.artwork);
+          setDeviceArtwork(songId, track.artwork);
+        } else if (track.artworkLoader) {
+          // Registered, not read: the cover is fetched the first time a view
+          // renders this track's tile, so a scan does not wait on artwork.
+          setDeviceArtworkLoader(songId, track.artworkLoader);
         }
       }
     }
@@ -217,10 +241,76 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     // The result is applied through the revision guard: a scan that started
     // before `addDevice` appended the picked device must not replace the list
     // with its pre-add snapshot, which made a just-added device disappear.
-    await deviceListSync.current.refresh(() =>
-      syncService.loadPersistedDevices()
-    );
+    setIsReadingDevices(true);
+    setReadingDeviceName(null);
+    setReadingProgress(null);
+
+    try {
+      await deviceListSync.current.refresh(() =>
+        syncService.loadPersistedDevices((name, progress) => {
+          setReadingDeviceName(name);
+          setReadingProgress(progress);
+        })
+      );
+    } finally {
+      setIsReadingDevices(false);
+      setReadingDeviceName(null);
+      setReadingProgress(null);
+    }
   }, [syncService]);
+
+  /**
+   * Mirror a just-written song into a device's listing.
+   *
+   * The run reports each song as it lands, so the listing can show it without
+   * re-reading the device — a rescan costs seconds and can block on a
+   * permission prompt. The placeholder id is replaced by the real one when the
+   * run finishes and the device is rescanned.
+   */
+  const appendDeviceTrack = useCallback((deviceId: string, song: Song) => {
+    placeholderTrackId.current -= 1;
+    const placeholderId = placeholderTrackId.current;
+
+    setDevices((current) =>
+      current.map((device) => {
+        if (device.id !== deviceId || !device.media) return device;
+
+        const tracks = device.media.tracks;
+        const identity = trackIdentity(song.title, song.album, song.artist);
+
+        if (
+          tracks.some(
+            (track) =>
+              trackIdentity(track.title, track.album, track.artist) === identity
+          )
+        ) {
+          return device;
+        }
+
+        const track: SyncTrack = {
+          id: placeholderId,
+          title: song.title,
+          artist: song.artist,
+          album: song.album,
+          albumArtist: song.albumArtist,
+          durationMs: song.duration,
+          genre: song.genre,
+          year: song.year,
+          trackNumber: song.track,
+          trackTotal: song.totalTracks,
+          discNumber: song.discNumber,
+          discTotal: song.totalDiscs,
+          bitrate: song.bitrate,
+          fileSize: song.filesize,
+        };
+
+        return {
+          ...device,
+          media: { ...device.media, tracks: [...tracks, track] },
+        };
+      })
+    );
+  }, []);
 
   const syncQueue = useCallback(
     async (syncDevice: SyncDevice) => {
@@ -254,6 +344,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       // the main thread stays responsive while tracks are copied.
       const jobId = uuidv7();
       activeSyncJobId.current = jobId;
+      activeSyncDeviceId.current = syncDevice.id;
 
       getJobService().enqueue(
         {
@@ -421,6 +512,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             ? current
             : [...current, outcome.songId]
         );
+
+        // Mirror the song into the device listing as it lands, so the contents
+        // grow with the run instead of appearing only after the final rescan.
+        const deviceId = activeSyncDeviceId.current;
+        const song = queuedSongsRef.current.find(
+          (entry) => entry.id === outcome.songId
+        );
+        if (deviceId && song) appendDeviceTrack(deviceId, song);
       }
     });
 
@@ -436,7 +535,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       offProgress();
       offCompleted();
     };
-  }, [finishSync]);
+  }, [finishSync, appendDeviceTrack]);
 
   /**
    * Stop the running sync. The worker notices on its next progress report and
@@ -467,6 +566,29 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           kind: "Device Remove",
           title: i18n.t("notification.removingTracks"),
           bulk: trackIds.length > 1,
+          // Drop each track from the listing as the run deletes it, so the
+          // contents shrink with the removal instead of waiting for a rescan.
+          onProgress: ({ index }) => {
+            if (typeof index !== "number") return;
+            const removedId = trackIds[index - 1];
+            if (removedId == null) return;
+
+            setDevices((current) =>
+              current.map((device) =>
+                device.id === syncDevice.id && device.media
+                  ? {
+                      ...device,
+                      media: {
+                        ...device.media,
+                        tracks: device.media.tracks.filter(
+                          (track) => track.id !== removedId
+                        ),
+                      },
+                    }
+                  : device
+              )
+            );
+          },
           readResult: (raw) => {
             const value = raw as Partial<DeviceRemoveResult> | undefined;
 
@@ -489,7 +611,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      await refreshDevices();
+      // The listing was updated per track as the run deleted them, so no
+      // rescan is needed here: a device read costs seconds and can block on a
+      // permission prompt.
 
       notification$.next({
         id: uuidv7(),
@@ -502,7 +626,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         ]),
       });
     },
-    [refreshDevices]
+    []
   );
 
   const addDevice = useCallback(
@@ -513,7 +637,21 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (!usbDevice && !rootDirectory)
         throw new Error("The device cannot be synced");
 
-      const device = await syncService.addDevice(rootDirectory, usbDevice);
+      // Reading a new device's library takes as long as a refresh, so raise
+      // the same flag: the sync page shows the reading card and the manage and
+      // sync actions stay disabled until it lands.
+      setIsReadingDevices(true);
+      setReadingDeviceName(usbDevice?.productName ?? null);
+      setReadingProgress(null);
+
+      let device: SyncDevice;
+      try {
+        device = await syncService.addDevice(rootDirectory, usbDevice);
+      } finally {
+        setIsReadingDevices(false);
+        setReadingDeviceName(null);
+        setReadingProgress(null);
+      }
 
       // Bump the revision so an in-flight refresh cannot overwrite this add,
       // and merge through the functional form so a stale `devices` closure
@@ -537,6 +675,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     };
 
     refresh();
+  }, [refreshDevices]);
+
+  useEffect(() => {
+    // A device is a sync source, so removing it drops the source row while the
+    // sync page still holds the device in state. Refresh so the card goes away
+    // instead of lingering with a listing for a device that no longer exists.
+    const off = wmmBus.on("wmm.library.source.deleted", () => {
+      void refreshDevices();
+    });
+
+    return off;
   }, [refreshDevices]);
 
   useEffect(() => {
@@ -676,6 +825,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       refreshDevices,
       devices,
       isSyncing,
+      isReadingDevices,
+      readingDeviceName,
+      readingProgress,
       syncProgress,
       cancelSync,
       syncedSongIds,
@@ -688,6 +840,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       devices,
       queuedSongs,
       isSyncing,
+      isReadingDevices,
+      readingDeviceName,
+      readingProgress,
       syncProgress,
       cancelSync,
       syncedSongIds,

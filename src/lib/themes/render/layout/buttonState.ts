@@ -41,6 +41,8 @@ export interface ButtonStateSnapshot {
   readonly queuedCount: number;
   /** Whether a device sync is running. */
   readonly syncing: boolean;
+  /** True while a device library is being read; syncing waits for it. */
+  readonly readingDevices: boolean;
   /** Whether the Now Playing page is visible. */
   readonly nowPlayingOpen: boolean;
   /** Whether the page the layout is showing is the Now Playing page. */
@@ -205,7 +207,7 @@ export function computeButtonState(
         disabled: !snapshot.nowPlayingPage && !snapshot.fullscreen,
       });
     case "wmm.sync.start":
-      return state({ disabled: snapshot.syncing });
+      return state({ disabled: snapshot.syncing || snapshot.readingDevices });
     case "wmm.ui.toggleDarkRoom":
       return state({ active: snapshot.darkRoom });
     case "wmm.ui.toggleEditMode":

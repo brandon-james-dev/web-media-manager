@@ -33,4 +33,10 @@ export interface SyncTrack {
    * Held in memory only — it belongs to the device and is not persisted.
    */
   artwork?: Blob;
+  /**
+   * Reads this track's cover art on demand, for a device whose artwork is too
+   * slow to read during a scan. Called at most once per track, when a view
+   * first renders its tile.
+   */
+  artworkLoader?: () => Promise<Blob | undefined>;
 }

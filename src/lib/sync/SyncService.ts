@@ -32,7 +32,12 @@ export class SyncService {
     return options.find((x) => x.canHandle(device));
   }
 
-  async loadPersistedDevices() {
+  async loadPersistedDevices(
+    onReading?: (
+      name: string,
+      progress: { completed: number; total: number }
+    ) => void
+  ) {
     const records = await this.deviceStore.getAll();
 
     // Show only devices physically connected right now: match persisted
@@ -72,7 +77,9 @@ export class SyncService {
     const devices = await Promise.all(
       connectedRecords.map(async (record) => {
         try {
-          return await restoreSyncDevice(record);
+          return await restoreSyncDevice(record, (completed, total) =>
+            onReading?.(record.name, { completed, total })
+          );
         } catch (error) {
           console.warn(`[SyncService] Unable to read "${record.name}":`, error);
           return null;

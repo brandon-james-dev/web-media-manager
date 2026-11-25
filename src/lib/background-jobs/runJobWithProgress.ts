@@ -17,6 +17,15 @@ export interface JobRunOptions<T> {
    * item; a single removal is quick enough that a bar would flash.
    */
   bulk: boolean;
+  /**
+   * Called for each progress report the job emits, so a caller can mirror the
+   * run into its own state without waiting for the job to finish.
+   */
+  onProgress?: (payload: {
+    index?: number;
+    total?: number;
+    data?: unknown;
+  }) => void;
 }
 
 /**
@@ -34,6 +43,7 @@ export async function runJobWithProgress<T>({
   title,
   readResult,
   bulk,
+  onProgress,
 }: JobRunOptions<T>): Promise<T> {
   const jobId = uuidv7();
   const service = getJobService();
@@ -66,6 +76,9 @@ export async function runJobWithProgress<T>({
 
     const offProgress = service.onJobProgress((event) => {
       if (event.jobId !== jobId) return;
+
+      onProgress?.(event.payload ?? {});
+
       if (!bulk) return;
 
       notification$.next({

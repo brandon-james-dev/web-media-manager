@@ -47,6 +47,10 @@ const { fakeItdb, fakeStore, fakeFs } = vi.hoisted(() => {
       );
     }),
     removeTrackFromPlaylist: vi.fn(),
+    // Rollback removes the records a failed run wrote.
+    removeTrack: vi.fn((id: number) => {
+      fakeItdb.tracks = fakeItdb.tracks.filter((t) => t.trackId !== id);
+    }),
     addTrackToPlaylist: vi.fn(),
     // The device's cover-art formats. Empty means it cannot store artwork, so
     // the strategy must not pass any.
@@ -465,5 +469,69 @@ describe("IpodSyncStrategy playlists", () => {
     );
 
     expect(fakeItdb.addPlaylist).not.toHaveBeenCalled();
+  });
+});
+
+describe("IpodSyncStrategy database writes", () => {
+  it("saves after every song write, before reporting it", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.save.mockClear();
+
+    const order: string[] = [];
+    fakeItdb.save.mockImplementation(async () => {
+      order.push("save");
+    });
+
+    try {
+      await new IpodSyncStrategy().sync(
+        device,
+        [song("a", "One"), song("b", "Two")],
+        [],
+        (completed) => order.push(`progress:${completed}`)
+      );
+    } finally {
+      fakeItdb.save.mockImplementation(async () => undefined);
+    }
+
+    // Each song is committed before its progress is reported, so a run that
+    // stops early cannot leave audio on the device with no track record.
+    expect(order).toEqual(["save", "progress:1", "save", "progress:2"]);
+    expect(fakeItdb.save).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves the databases untouched when nothing changed", async () => {
+    fakeItdb.tracks = [
+      { trackId: 1, title: "One", album: "Album", artist: "Artist" },
+    ];
+    fakeItdb.save.mockClear();
+
+    await new IpodSyncStrategy().sync(device, [song("a", "One")], []);
+
+    expect(fakeItdb.save).not.toHaveBeenCalled();
+  });
+});
+
+describe("IpodSyncStrategy cancellation", () => {
+  it("rolls back the songs written before a cancel", async () => {
+    fakeItdb.tracks = [];
+    fakeItdb.save.mockClear();
+
+    class Canceled extends Error {}
+
+    await expect(
+      new IpodSyncStrategy().sync(
+        device,
+        [song("a", "One"), song("b", "Two")],
+        [],
+        (completed) => {
+          if (completed === 1) throw new Canceled();
+        }
+      )
+    ).rejects.toThrow(Canceled);
+
+    // The first song was committed before its progress fired, then taken back
+    // when the run failed: the device is left as it was found.
+    expect(fakeItdb.save).toHaveBeenCalledTimes(2);
+    expect(fakeItdb.tracks).toHaveLength(0);
   });
 });

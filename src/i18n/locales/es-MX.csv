@@ -228,7 +228,13 @@ sync.start,Iniciar sincronización
 sync.cancel,Cancelar sincronización
 sync.addToQueue,Agregar a la cola de sincronización
 sync.removeFromQueue,Quitar de la cola
+sync.removeFromDevice,Quitar del dispositivo
 sync.syncing,Sincronizando
+sync.readingDevices,Leyendo la biblioteca del dispositivo…
+sync.readingDevice,Leyendo {0}…
+sync.readingDeviceProgress,Leyendo {0} ({1}/{2} pistas)...
+sync.readingDeviceTracks,{0}/{1} pistas
+sync.readingDeviceHint,Las bibliotecas grandes tardan más. Mantén el dispositivo conectado.
 sync.completed,Sincronización completada
 sync.progressCancel,"Progreso de sincronización, haz clic para cancelar"
 sync.clearQueueAction,Borrar cola
