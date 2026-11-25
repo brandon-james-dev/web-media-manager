@@ -36,6 +36,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { useTranslation } from "@/i18n";
 import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
 import { useNowPlayingUi } from "@/hooks/useNowPlayingUi";
+import { isBackgroundClick } from "@/components/player-controls/backgroundClick";
 import { formatLength } from "@/lib/formatLength";
 import { cn } from "cn";
 import { NowPlayingView } from "./NowPlayingView";
@@ -560,7 +561,15 @@ export function PlayerControls({ hideBar = false }: { hideBar?: boolean }) {
             <div style={{ height: compactBarHeight }} />
             {createPortal(
               <div className="pointer-events-none fixed inset-x-0 bottom-0 z-chrome mx-auto max-w-3xl px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-                <div className="pointer-events-auto flex flex-col select-none">
+                <div
+                  className="pointer-events-auto flex flex-col select-none"
+                  onClick={(event) => {
+                    // The bar sits above the now-playing overlay, so a tap on
+                    // its empty space would otherwise never reach the overlay.
+                    if (!isBackgroundClick(event.target)) return;
+                    setControlsHiddenFlag((hidden) => !hidden);
+                  }}
+                >
                   {nowPlaying?.duration ? (
                     <div className="flex items-center gap-3 px-6 pt-2 transition-opacity duration-300">
                       <span

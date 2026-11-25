@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "cn";
-import { useIsCompact, useIsTv } from "@/lib/hooks/useIsMobile";
+import { useIsCompact, useIsPhoneLandscape, useIsTv } from "@/lib/hooks/useIsMobile";
 import { AlbumArtImage } from "@/components/album-art-image";
 import { ThumbnailSize } from "@/lib";
 import { useArtwork } from "@/hooks/useArtwork";
@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { formatLength } from "@/lib/formatLength";
+import { isBackgroundClick } from "@/components/player-controls/backgroundClick";
 import { usePlayback } from "@/hooks/usePlayback";
 import { useTranslation, type WmmResourceKey } from "@/i18n";
 import {
@@ -269,6 +270,7 @@ export function NowPlayingView({
         (playlist[0].albumArtist ?? playlist[0].artist)
     );
   const isCompact = useIsCompact();
+  const isPhoneLandscape = useIsPhoneLandscape();
   const isTv = useIsTv();
   const canFullscreen =
     !isCompact && typeof document !== "undefined" && document.fullscreenEnabled;
@@ -361,24 +363,41 @@ export function NowPlayingView({
         darkRoom && "opacity-30",
         large
           ? "w-full max-w-2xl px-4 md:h-auto"
-          : cn(
-            "md:h-26 md:w-full md:max-w-none md:px-4",
-            lyricsOpen ? "min-w-0 flex-1 px-2" : "w-full max-w-md px-4"
-          )
+          : lyricsOpen
+            ? // Beside the lyrics the column is as wide as the cover, so the
+              // details centre under it instead of spilling past its edges.
+              "min-w-0 flex-1 px-2 md:h-auto md:w-full md:max-w-none md:shrink-0 md:gap-0.5 md:px-4 md:py-0"
+            : isCompact && isPhoneLandscape
+              ? // Side by side with the cover, the details take the rest of
+                // the row.
+                "w-full max-w-md px-4 md:h-26 md:w-auto md:max-w-none md:flex-1 md:px-0"
+              : isCompact
+                ? "w-full max-w-md px-4 md:h-26 md:w-full md:max-w-none md:px-2"
+                : "w-full max-w-md px-4 md:h-26 md:w-full md:max-w-none md:px-4"
       )}
     >
-      <div className="grid w-full min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-1">
-        <div className="flex justify-end">
+      <div className="flex w-full min-w-0 items-center justify-center gap-1">
+        <div
+          className={cn(
+            "flex shrink-0 justify-end",
+            large ? "w-8" : isCompact ? "w-5" : "w-6"
+          )}
+        >
           <ExplicitBadge song={nowPlaying} />
         </div>
         <FitText
-          maxPx={large ? 40 : 24}
-          minPx={large ? 16 : 12}
+          maxPx={large ? 40 : isCompact ? 18 : 24}
+          minPx={large ? 16 : isCompact ? 9 : 12}
           className="font-semibold text-white"
         >
           {nowPlaying?.title ?? t("playback.nothingPlaying")}
         </FitText>
-        <div className="flex justify-start">
+        <div
+          className={cn(
+            "flex shrink-0 justify-start",
+            large ? "w-8" : isCompact ? "w-5" : "w-6"
+          )}
+        >
           {nowPlaying && (
             <FavoriteButton
               songId={nowPlaying.id}
@@ -388,15 +407,15 @@ export function NowPlayingView({
         </div>
       </div>
       <FitText
-        maxPx={large ? 20 : 14}
-        minPx={large ? 12 : 10}
+        maxPx={large ? 20 : isCompact ? 13 : 14}
+        minPx={large ? 12 : isCompact ? 9 : 10}
         className="w-full font-medium text-[color-mix(in_oklab,var(--accent)_30%,white)]"
       >
         {nowPlaying?.artist ?? ""}
       </FitText>
       <FitText
-        maxPx={large ? 20 : 14}
-        minPx={large ? 12 : 10}
+        maxPx={large ? 20 : isCompact ? 13 : 14}
+        minPx={large ? 12 : isCompact ? 9 : 10}
         className="w-full font-medium text-[color-mix(in_oklab,var(--accent)_30%,white)]"
       >
         {nowPlaying?.album ?? ""}
@@ -424,10 +443,13 @@ export function NowPlayingView({
     (timedLines.length > 0
       ? SYNCED_LYRICS_SIZES.length
       : PLAIN_LYRICS_SIZES.length) - 1;
-  const lyricsWidthClass =
-    LYRICS_WIDTH_CLASSES[
-      Math.min(lyricsSizeStep, LYRICS_WIDTH_CLASSES.length - 1)
-    ];
+  // Compact layouts have no art column to match, so the lyrics take the whole
+  // row instead of being capped to the cover's width.
+  const lyricsWidthClass = isCompact
+    ? "md:max-w-none"
+    : LYRICS_WIDTH_CLASSES[
+        Math.min(lyricsSizeStep, LYRICS_WIDTH_CLASSES.length - 1)
+      ];
   const hasLyrics = timedLines.length > 0 || !!nowPlaying?.lyrics?.trim();
   /** Panels that add their own controls after the view buttons. */
   const hasPanelConfig = panel === "visualizer" || (panel === "lyrics" && hasLyrics);
@@ -475,13 +497,7 @@ export function NowPlayingView({
           exit={{ opacity: 0, y: 24 }}
           transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
           onClick={(e) => {
-            if (
-              (e.target as HTMLElement).closest(
-                "button, a, li, [role='slider'], [data-no-bg-click]"
-              )
-            ) {
-              return;
-            }
+            if (!isBackgroundClick(e.target)) return;
             onBackgroundClick?.();
           }}
         >
@@ -673,16 +689,37 @@ export function NowPlayingView({
                   "flex min-h-full flex-col items-center gap-6 px-4 pb-6 md:h-full md:flex-row md:items-center md:justify-center md:gap-8 md:p-0",
                   lyricsOpen ? "justify-start pt-2" : "justify-center",
                   stackInfoOverQueue && "md:flex-col",
-                  hasPanel
-                    ? "md:[--art:min(calc(100cqh-7.5rem),calc((100cqw-2rem)/2))]"
-                    : "md:[--art:min(calc(100cqh-7.5rem),100cqw)]"
+                  isCompact
+                    ? // Landscape phones have little height, so the height-based
+                      // size collapses to a thumbnail; the floor keeps the cover
+                      // and the track details beside it readable.
+                      "md:[--art:max(10rem,min(calc(100cqh-7.5rem),calc((100cqw-2rem)/2)))]"
+                    : hasPanel
+                      ? "md:[--art:min(calc(100cqh-7.5rem),calc((100cqw-2rem)/2))]"
+                      : "md:[--art:min(calc(100cqh-7.5rem),100cqw)]"
                 )}
               >
                 {!(artHidden && lyricsOpen) && !stackInfoOverQueue && (
                   <div
                     className={cn(
-                      "flex w-full gap-4 md:flex-col md:items-center",
-                      artHidden ? "md:w-auto" : "md:w-(--art)",
+                      "flex w-full gap-4 md:items-center",
+                      // A phone in landscape has no height to stack the cover
+                      // over the details, so they sit side by side instead.
+                      isCompact && isPhoneLandscape && !lyricsOpen
+                        ? "md:flex-row"
+                        : "md:flex-col",
+                      artHidden || (isCompact && isPhoneLandscape && !lyricsOpen)
+                        ? "md:w-auto"
+                        : "md:w-(--art)",
+                      // Beside the lyrics the column takes the row's height and
+                      // centres its contents, so the cover shrinks to fit
+                      // instead of overflowing and being clipped.
+                      lyricsOpen &&
+                        isCompact &&
+                        "md:h-full md:min-h-0 md:justify-center",
+                      // Without this the column grows to the details' intrinsic
+                      // width and the text spills past the cover.
+                      lyricsOpen && "md:min-w-0",
                       lyricsOpen
                         ? "flex-row items-center"
                         : "flex-col items-center"
@@ -690,7 +727,10 @@ export function NowPlayingView({
                   >
                     <div
                       className={cn(
-                        "relative aspect-square transition-opacity duration-300 md:size-(--art)",
+                        "relative aspect-square transition-opacity duration-300",
+                        lyricsOpen && isCompact
+                          ? "md:min-h-0 md:max-h-full md:w-auto md:flex-1"
+                          : "md:size-(--art)",
                         darkRoom && "invisible opacity-0",
                         artHidden && "hidden",
                         lyricsOpen

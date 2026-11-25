@@ -38,7 +38,7 @@ function PreviewLine(props: {
       className={`flex items-center justify-center overflow-hidden text-center leading-snug ${
         dimmed ? "text-white/60" : "text-white"
       } ${className}`}
-      style={{ height }}
+      style={{ minHeight: height }}
     >
       {text ? (
         <p className="whitespace-pre-wrap">{text}</p>
@@ -102,7 +102,7 @@ export function SyncedLyricsView(props: SyncedLyricsViewProps) {
   return (
     <div
       className={`flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-md ${className ?? ""}`}
-      style={{ height: lineHeight * 2 }}
+      style={{ minHeight: lineHeight * 2 }}
     >
       <AnimatePresence initial={false} mode="popLayout">
         <motion.div
