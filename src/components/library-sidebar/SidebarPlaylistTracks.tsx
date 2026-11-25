@@ -93,10 +93,14 @@ export function SidebarPlaylistTracks({
   const { active } = useDndContext();
   const draggingFromHere = active?.data.current?.fromPlaylistId === playlistId;
 
-  // A different playlist starts with nothing selected.
-  useEffect(() => {
+  // A different playlist starts with nothing selected. Adjusted during render
+  // against the id the selection belongs to, so the reset lands in the same
+  // pass as the new playlist instead of a follow-up render from an effect.
+  const [selectionPlaylistId, setSelectionPlaylistId] = useState(playlistId);
+  if (selectionPlaylistId !== playlistId) {
+    setSelectionPlaylistId(playlistId);
     setSelectedIds([]);
-  }, [playlistId]);
+  }
 
   // Whether this playlist can be edited at all: a playlist from a source that
   // cannot write playlists offers no selection or removal UI.

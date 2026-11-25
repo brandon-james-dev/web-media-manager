@@ -3,7 +3,6 @@ import { cn } from "cn";
 import type { ReactNode } from "react";
 import { useSongs } from "@/hooks";
 import { useTranslation } from "@/i18n";
-import { useTrackDragEnabled } from "./SidebarDragContext";
 import { trackDragId } from "./sidebarDrop";
 
 interface DraggableTrackProps {
@@ -29,7 +28,6 @@ export function DraggableTrack({
   fromPlaylistId,
   children,
 }: DraggableTrackProps) {
-  const enabled = useTrackDragEnabled();
   const { songs } = useSongs();
   const { t } = useTranslation();
   const song = songs.find((candidate) => candidate.id === songId);
@@ -44,14 +42,7 @@ export function DraggableTrack({
       artist: song?.artist ?? "",
       fromPlaylistId,
     },
-    disabled: !enabled,
   });
-
-  // Nothing to drop onto while the sidebar is closed, so the row renders
-  // exactly as it would without a drag wrapper.
-  if (!enabled) {
-    return <>{children}</>;
-  }
 
   return (
     <div
@@ -60,7 +51,7 @@ export function DraggableTrack({
       {...listeners}
       data-dnd-id={trackDragId(songId)}
       className={cn(
-        "min-w-0 cursor-grab rounded-md",
+        "min-w-0 rounded-md",
         // The wrapper is the list child, so it owns the stripe: the row inside
         // is always its first child and would otherwise stripe every row.
         "odd:bg-muted/15",

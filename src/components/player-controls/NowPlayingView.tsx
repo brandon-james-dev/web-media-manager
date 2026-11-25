@@ -89,17 +89,17 @@ const LYRICS_WIDTH_CLASSES = [
 
 function NowPlayingArt({ songId }: { songId: string | undefined }) {
   const picture = useArtwork(songId ?? "", ArtworkType.FrontCover);
-  const [url, setUrl] = useState<string | null>(null);
+  // Derived during render: the object URL is a pure function of the artwork
+  // bytes, so an effect only has to revoke it, never write it into state.
+  const url = useMemo(() => {
+    if (!picture?.data) return null;
+    return URL.createObjectURL(new Blob([picture.data.slice()]));
+  }, [picture]);
 
   useEffect(() => {
-    if (!picture?.data) {
-      setUrl(null);
-      return;
-    }
-    const objectUrl = URL.createObjectURL(new Blob([picture.data.slice()]));
-    setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [picture]);
+    if (!url) return;
+    return () => URL.revokeObjectURL(url);
+  }, [url]);
 
   if (!songId || !url) {
     return (
@@ -206,7 +206,6 @@ export function NowPlayingView({
   const { t } = useTranslation();
   const { setSettingsOpen, settingsOpen } = useVisualizer();
   const palette = useArtworkPalette(nowPlaying?.id, open);
-  const [upNext, setUpNext] = useState<Song | undefined>();
 
   // Share the backdrop's palette with visualizer plugins so they paint in the
   // same colors as the rest of the screen.
@@ -230,21 +229,33 @@ export function NowPlayingView({
     return repeat === RepeatState.All ? coll[0] : undefined;
   })();
 
+  // The fetched song is stored with the id it belongs to, so a stale fetch for
+  // the previous track never shows as the next one. Deriving `upNext` from the
+  // current id keeps the empty case out of the effect.
+  const [nextSong, setNextSong] = useState<{
+    id: string;
+    song: Song | undefined;
+  } | null>(null);
+
   useEffect(() => {
-    if (!collectionNextId) {
-      setUpNext(undefined);
-      return;
-    }
+    if (!collectionNextId) return;
     let cancelled = false;
     void getStore()
       .get(collectionNextId)
       .then((song) => {
-        if (!cancelled) setUpNext(song ?? undefined);
+        if (!cancelled) {
+          setNextSong({ id: collectionNextId, song: song ?? undefined });
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [collectionNextId]);
+
+  const upNext =
+    collectionNextId && nextSong?.id === collectionNextId
+      ? nextSong.song
+      : undefined;
 
   const showQueuePanel = panel === "queue" && hasUpcoming;
   const showUpNext = panel === "queue" && !hasUpcoming && !!upNext;

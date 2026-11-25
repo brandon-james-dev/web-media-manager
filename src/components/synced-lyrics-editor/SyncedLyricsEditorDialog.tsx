@@ -62,14 +62,23 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
   const { t } = useTranslation();
 
   //#region State
-  const [staticText, setStaticText] = useState("");
-  const [lines, setLines] = useState<ILyricLine[]>([]);
+  // Seeded from the song being edited. The parent keys this component by song
+  // and open state, so a remount is what resets the form: no effect has to
+  // write the props back into state on open.
+  const [staticText, setStaticText] = useState(() =>
+    lyrics && lyrics.trim() !== "" ? lyrics : (song.lyrics ?? "")
+  );
+  const [lines, setLines] = useState<ILyricLine[]>(() =>
+    parseLrc(syncedLyrics ?? song.syncedLyrics)
+  );
   const [cursorMs, setCursorMs] = useState(0);
-  const [durationMs, setDurationMs] = useState(0);
+  const [durationMs, setDurationMs] = useState(
+    () => song.durationMs ?? (song.duration ?? 0) * 1000
+  );
   const [peaks, setPeaks] = useState<Float32Array | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | undefined>();
   const [playing, setPlaying] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(open);
   const [draftText, setDraftText] = useState("");
   const [addedTexts, setAddedTexts] = useState<Set<string>>(new Set());
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
@@ -176,40 +185,12 @@ export function SyncedLyricsEditorDialog(props: SyncedLyricsEditorDialogProps) {
   );
 
   //#region Effects
-  // Reopening starts from the song being edited, never the previous song.
-  useEffect(() => {
-    if (!open) return;
-
-    // The form's live value wins only when it has content; an empty field must
-    // not hide the lyrics already saved on the song.
-    setStaticText(
-      lyrics && lyrics.trim() !== "" ? lyrics : (song.lyrics ?? "")
-    );
-    setLines(parseLrc(syncedLyrics ?? song.syncedLyrics));
-    setCursorMs(0);
-    setDurationMs(song.durationMs ?? (song.duration ?? 0) * 1000);
-    setDraftText("");
-    setAddedTexts(new Set());
-    setSelectedIndices([]);
-    setSelectedPlacementKeys([]);
-    setShiftMs(0);
-    placementAnchorRef.current = null;
-    setEditingLyrics(false);
-    setPreviewMode(false);
-    setError(null);
-    setPeaks(null);
-    setAudioUrl(undefined);
-    setPlaying(false);
-  }, [open, song.id, lyrics, song.lyrics, syncedLyrics, song.syncedLyrics, song.duration, song.durationMs]);
-
   // Decode the audio once per open so the waveform and playback share it.
   useEffect(() => {
     if (!open) return;
 
     let cancelled = false;
     let objectUrl: string | undefined;
-
-    setLoading(true);
 
     void (async () => {
       try {

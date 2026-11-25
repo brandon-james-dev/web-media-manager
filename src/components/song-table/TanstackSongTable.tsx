@@ -27,7 +27,6 @@ import {
 import {
   DraggableTrack,
   useRegisterDragEnd,
-  useTrackDragEnabled,
 } from "@/components/library-sidebar";
 import {
   ContextMenu,
@@ -135,7 +134,6 @@ export function TanstackSongTable(props: SongTableProps) {
     });
   }
 
-  const dragEnabled = useTrackDragEnabled();
   const table = useTable(
     {
       key: "song-table",
@@ -379,8 +377,7 @@ export function TanstackSongTable(props: SongTableProps) {
                       table={table}
                       rowSelection={rowSelection}
                       isEditMultiple={isEditMultiple}
-                      striped={!dragEnabled}
-                        onSongDoubleClicked={onSongDoubleClicked}
+                      onSongDoubleClicked={onSongDoubleClicked}
                         registerRowRef={registerRowRef}
                         orderedSongIds={orderedSongIds}
                         selectionAnchor={selectionAnchor}
@@ -414,7 +411,6 @@ export function TanstackSongTable(props: SongTableProps) {
                     table={table}
                     rowSelection={rowSelection}
                     isEditMultiple={isEditMultiple}
-                    striped={!dragEnabled}
                     onSongDoubleClicked={onSongDoubleClicked}
                     registerRowRef={registerRowRef}
                     orderedSongIds={orderedSongIds}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ListChecks, RotateCw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,7 +25,7 @@ export function SidebarSyncedTracks({
   deviceId,
   tracks,
 }: SidebarSyncedTracksProps) {
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [pickedIds, setPickedIds] = useState<number[]>([]);
   const { t } = useTranslation();
 
   // Total size of what is on the device, shown beside the count so the panel
@@ -36,17 +36,19 @@ export function SidebarSyncedTracks({
   );
 
   // A track that leaves the device must not stay selected, or the remove
-  // button would count rows that are no longer there.
-  useEffect(() => {
-    const present = new Set(tracks.map((track) => track.id));
-    setSelectedIds((current) => {
-      const next = current.filter((id) => present.has(id));
-      return next.length === current.length ? current : next;
-    });
-  }, [tracks]);
+  // button would count rows that are no longer there. Derived during render
+  // rather than pruned in an effect, so the count and the rows always agree.
+  const presentIds = useMemo(
+    () => new Set(tracks.map((track) => track.id)),
+    [tracks]
+  );
+  const selectedIds = useMemo(
+    () => pickedIds.filter((id) => presentIds.has(id)),
+    [pickedIds, presentIds]
+  );
 
   function toggleSelected(trackId: number): void {
-    setSelectedIds((current) =>
+    setPickedIds((current) =>
       current.includes(trackId)
         ? current.filter((id) => id !== trackId)
         : [...current, trackId]
@@ -58,7 +60,7 @@ export function SidebarSyncedTracks({
       return;
     }
     const removing = selectedIds;
-    setSelectedIds([]);
+    setPickedIds([]);
     wmmBus.invoke("wmm.sync.removeTracks", {
       deviceId,
       trackIds: removing,
@@ -86,7 +88,7 @@ export function SidebarSyncedTracks({
             className="shrink-0"
             title={t("common.selectAll")}
             aria-label={t("sync.selectAllSynced")}
-            onClick={() => setSelectedIds(tracks.map((track) => track.id))}
+            onClick={() => setPickedIds(tracks.map((track) => track.id))}
           >
             <ListChecks />
           </Button>
@@ -98,7 +100,7 @@ export function SidebarSyncedTracks({
             className="shrink-0"
             title={t("common.clearSelection")}
             aria-label={t("common.clearSelection")}
-            onClick={() => setSelectedIds([])}
+            onClick={() => setPickedIds([])}
           >
             <X />
           </Button>

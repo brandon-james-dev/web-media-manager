@@ -6,12 +6,8 @@ export { SidebarDropZone } from "./SidebarDropZone";
 export { SidebarSyncQueue } from "./SidebarSyncQueue";
 export { SidebarSyncedTracks } from "./SidebarSyncedTracks";
 export { SidebarRemoveZone } from "./SidebarRemoveZone";
-export {
-  SidebarDragProvider,
-  useRegisterDragEnd,
-  useSidebarDrag,
-  useTrackDragEnabled,
-} from "./SidebarDragContext";
+export { SidebarDragProvider } from "./SidebarDragContext";
+export { useRegisterDragEnd, useSidebarDrag } from "./useSidebarDrag";
 export {
   parseSidebarDropId,
   sidebarPlaylistDropId,

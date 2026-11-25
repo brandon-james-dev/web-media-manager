@@ -484,7 +484,7 @@ export function Editor({
       unregisterEdit();
       unregisterAlbumEdit();
     };
-  }, [filteredSongs, albums, mode]);
+  }, [filteredSongs, albums, mode, t]);
 
   useEffect(() => {
     const sub = keyShortcut$.subscribe((shortcut) => {

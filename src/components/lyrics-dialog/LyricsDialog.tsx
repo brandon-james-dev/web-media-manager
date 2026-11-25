@@ -143,6 +143,7 @@ export function LyricsDialog(props: LyricsDialogProps) {
             }
           >
             <SyncedLyricsEditorDialog
+              key={`${song.id}-${open ? "open" : "closed"}`}
               song={song}
               lyrics={lyrics}
               syncedLyrics={syncedLyrics}

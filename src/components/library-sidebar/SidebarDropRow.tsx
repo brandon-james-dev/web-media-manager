@@ -31,7 +31,7 @@ export function SidebarDropRow({
       data-sidebar-drop={id}
       data-drop-disabled={disabled ? "" : undefined}
       className={cn(
-        "flex items-center gap-1 rounded-md py-1.5 pl-2 pr-0.5 text-sm transition-colors",
+        "flex items-center gap-1 rounded-md py-1.5 pl-2 pr-2 text-sm transition-colors",
         // A read-only target greys out only while something is being dragged,
         // so it reads as unavailable at the moment it matters.
         disabled && active !== null && "opacity-40",

@@ -61,7 +61,7 @@ export function SidebarSyncQueue({
   const { isSyncing, syncProgress, cancelSync, syncedSongIds, syncCompleted } =
     useSync();
   useSyncUiVisible();
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [clearOpen, setClearOpen] = useState(false);
 
   // Only downloaded audio can be written to a device, so a drag carrying a
@@ -90,11 +90,15 @@ export function SidebarSyncQueue({
   >([]);
 
   // Read through refs: the effect keys off the synced ids, and a changing
-  // callback identity must not re-run it.
+  // callback identity must not re-run it. Written after render rather than
+  // during it, and before the effect that reads them, so they are current by
+  // the time a flight is measured.
   const flightTargetRef = useRef(flightTarget);
-  flightTargetRef.current = flightTarget;
   const onFlightArriveRef = useRef(onFlightArrive);
-  onFlightArriveRef.current = onFlightArrive;
+  useEffect(() => {
+    flightTargetRef.current = flightTarget;
+    onFlightArriveRef.current = onFlightArrive;
+  });
 
   useEffect(() => {
     const arrived = syncedSongIds.filter((id) => !seenSynced.current.has(id));
@@ -127,7 +131,7 @@ export function SidebarSyncQueue({
         to,
       })),
     ]);
-  }, [syncedSongIds, songs]);
+  }, [syncedSongIds, songs, t]);
 
   // Total size of the queued tracks, shown beside the count so the panel says
   // how much will be written to the device.
@@ -138,16 +142,19 @@ export function SidebarSyncQueue({
 
   // A song that leaves the queue (synced, or removed elsewhere) must not stay
   // selected, or the remove button would count rows that are no longer there.
-  useEffect(() => {
-    const present = new Set(songs.map((song) => song.id));
-    setSelectedIds((current) => {
-      const next = current.filter((id) => present.has(id));
-      return next.length === current.length ? current : next;
-    });
-  }, [songs]);
+  // Derived during render rather than pruned in an effect, so the count and the
+  // rows can never disagree for a frame.
+  const presentIds = useMemo(
+    () => new Set(songs.map((song) => song.id)),
+    [songs]
+  );
+  const selectedIds = useMemo(
+    () => pickedIds.filter((id) => presentIds.has(id)),
+    [pickedIds, presentIds]
+  );
 
   function toggleSelected(songId: string): void {
-    setSelectedIds((current) =>
+    setPickedIds((current) =>
       current.includes(songId)
         ? current.filter((id) => id !== songId)
         : [...current, songId]
@@ -159,7 +166,7 @@ export function SidebarSyncQueue({
       return;
     }
     const removing = selectedIds;
-    setSelectedIds([]);
+    setPickedIds([]);
     wmmBus.invoke("wmm.sync.dequeueSongs", { songIds: removing });
   }
 
@@ -239,7 +246,7 @@ export function SidebarSyncQueue({
             className="shrink-0"
             title={t("common.selectAll")}
             aria-label={t("sync.selectAllQueued")}
-            onClick={() => setSelectedIds(songs.map((song) => song.id))}
+            onClick={() => setPickedIds(songs.map((song) => song.id))}
           >
             <ListChecks />
           </Button>
@@ -251,7 +258,7 @@ export function SidebarSyncQueue({
             className="shrink-0"
             title={t("common.clearSelection")}
             aria-label={t("common.clearSelection")}
-            onClick={() => setSelectedIds([])}
+            onClick={() => setPickedIds([])}
           >
             <X />
           </Button>

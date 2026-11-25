@@ -114,6 +114,8 @@ export const SongRow = memo(function SongRow({
           registerRowRef(row.id, el);
         }}
         onClick={handleClick}
+        data-song-row=""
+        data-selected={isSelected ? "true" : undefined}
         className={
           isSelected
             ? "group/track flex h-7 bg-accent/25 odd:bg-accent/35 hover:bg-accent/45"

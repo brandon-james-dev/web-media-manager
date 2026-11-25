@@ -1,25 +1,9 @@
-import type { DragEndEvent } from "@dnd-kit/core";
+import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react";
-
-type DragEndHandler = (event: DragEndEvent) => void;
-
-interface SidebarDragValue {
-  /** True while the sidebar is open, i.e. while there is anywhere to drop. */
-  enabled: boolean;
-  /** Let a nested view handle its own drag end (e.g. column reordering). */
-  registerDragEnd: (handler: DragEndHandler) => () => void;
-  runDragEnd: (event: DragEndEvent) => void;
-}
-
-const SidebarDragContext = createContext<SidebarDragValue | null>(null);
+  SidebarDragContext,
+  type DragEndHandler,
+  type SidebarDragValue,
+} from "./sidebarDrag";
 
 /**
  * Shares one drag context with the views inside the layout.
@@ -29,14 +13,13 @@ const SidebarDragContext = createContext<SidebarDragValue | null>(null);
  * started inside a nested context never reports the sidebar row underneath the
  * pointer. The layout therefore owns the only context, and a nested view hands
  * its drag-end work here instead of wrapping itself in another one.
+ *
+ * Whether a drag may start is not part of this value: it is layout state, and
+ * putting it here would re-render every draggable row — a song table of
+ * thousands of rows — on each sidebar toggle. The layout gates dragging
+ * through the sensors and the `data-drag-enabled` attribute instead.
  */
-export function SidebarDragProvider({
-  enabled,
-  children,
-}: {
-  enabled: boolean;
-  children: ReactNode;
-}) {
+export function SidebarDragProvider({ children }: { children: ReactNode }) {
   const handlers = useRef(new Set<DragEndHandler>());
 
   const registerDragEnd = useCallback((handler: DragEndHandler) => {
@@ -46,15 +29,15 @@ export function SidebarDragProvider({
     };
   }, []);
 
-  const runDragEnd = useCallback((event: DragEndEvent) => {
+  const runDragEnd = useCallback((event: Parameters<DragEndHandler>[0]) => {
     for (const handler of handlers.current) {
       handler(event);
     }
   }, []);
 
-  const value = useMemo(
-    () => ({ enabled, registerDragEnd, runDragEnd }),
-    [enabled, registerDragEnd, runDragEnd]
+  const value = useMemo<SidebarDragValue>(
+    () => ({ registerDragEnd, runDragEnd }),
+    [registerDragEnd, runDragEnd]
   );
 
   return (
@@ -62,32 +45,4 @@ export function SidebarDragProvider({
       {children}
     </SidebarDragContext.Provider>
   );
-}
-
-/** The drag context, or null outside a layout that provides one. */
-export function useSidebarDrag(): SidebarDragValue | null {
-  return useContext(SidebarDragContext);
-}
-
-/** Whether tracks can be dragged right now. False outside such a layout. */
-export function useTrackDragEnabled(): boolean {
-  return useContext(SidebarDragContext)?.enabled ?? false;
-}
-
-/**
- * Route this view's drag-end work through the layout's context, so a view
- * that used to own a `DndContext` keeps its behaviour without hiding the
- * sidebar's drop targets. A no-op outside such a layout.
- */
-export function useRegisterDragEnd(handler: DragEndHandler): void {
-  const register = useContext(SidebarDragContext)?.registerDragEnd;
-  const latest = useRef(handler);
-  latest.current = handler;
-
-  useEffect(() => {
-    if (!register) {
-      return;
-    }
-    return register((event) => latest.current(event));
-  }, [register]);
 }

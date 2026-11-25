@@ -294,3 +294,19 @@
     transform: scaleY(0.7);
   }
 }
+
+/* A drag source only promises a drag while the sidebar is open. With it closed
+   there is nowhere to drop, so the row keeps the default cursor instead of a
+   grab hand that leads nowhere. Set by the layout, read here so the cursor
+   follows the gate without every row subscribing to it. */
+[data-drag-enabled="true"] [data-dnd-id] {
+  cursor: grab;
+}
+
+/* Striping is a reading aid for a static list; while a drag is possible the
+   rows stay flat so the drop targets read clearly. Driven from the same
+   attribute, so the table never re-renders to drop the stripes. Selected rows
+   keep their own highlight. */
+[data-drag-enabled="true"] [data-song-row]:not([data-selected]):nth-child(odd) {
+  background-color: transparent;
+}

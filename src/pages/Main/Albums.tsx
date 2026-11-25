@@ -35,7 +35,7 @@ import { useTranslation } from "@/i18n";
 
 export function Albums() {
   //#region State
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const isCompact = useIsCompact();
   const isPhoneLandscape = useIsPhoneLandscape();
   const [flippedIndex, setFlippedIndex] = useState<number | null>(null);
@@ -113,7 +113,7 @@ export function Albums() {
     }
 
     return Array.from(map.values());
-  }, [visibleSongs, t, language]);
+  }, [visibleSongs, t]);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const letterIndex = useMemo(

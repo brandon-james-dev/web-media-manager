@@ -48,7 +48,10 @@ import {
   PanelRight,
 } from "lucide-react";
 import {
+  memo,
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -161,11 +164,31 @@ async function removeFromPlaylist(
  */
 const pointerOnlyCollision: CollisionDetection = (args) => pointerWithin(args);
 
+/**
+ * The routed page, behind a memo boundary.
+ *
+ * Opening the sidebar is layout state, not page state, but it re-renders this
+ * layout and with it `Outlet` and the whole route subtree. A song table of
+ * thousands of rows takes seconds to re-render, so the page is held behind a
+ * memo keyed on the outlet context: an unrelated re-render of the layout stops
+ * here instead of reaching the table.
+ */
+const PageHost = memo(function PageHost({
+  context,
+}: {
+  context: MainContext;
+}) {
+  return <Outlet context={context} />;
+});
+
 function SidebarDndArea({
   onSidebarDrop,
+  enabled,
   children,
 }: {
   onSidebarDrop: (event: DragEndEvent) => void;
+  /** No drop targets while the sidebar is closed, so no drag may start. */
+  enabled: boolean;
   children: ReactNode;
 }) {
   const drag = useSidebarDrag();
@@ -200,7 +223,7 @@ function SidebarDndArea({
 
   return (
     <DndContext
-      sensors={sensors}
+      sensors={enabled ? sensors : []}
       collisionDetection={pointerOnlyCollision}
       onDragStart={(event: DragStartEvent) => {
         const data = event.active.data.current ?? {};
@@ -319,7 +342,13 @@ function MainLayout() {
     (isSyncPage && sidebarView === "sync");
   const sidebarVisible = sidebarOpen && !sidebarBlocked;
 
-  function handleSidebarDrop(event: DragEndEvent): void {
+  /**
+   * Stable across renders: the outlet context is a dependency of every page
+   * below this layout, so a fresh object here re-renders the whole library —
+   * including a song table of thousands of rows — on any unrelated state
+   * change such as opening the sidebar.
+   */
+  const handleSidebarDrop = useCallback((event: DragEndEvent): void => {
     const data = event.active.data.current;
     const songIds = songIdsFromDrag(data);
     const target = parseSidebarDropId(event.over?.id);
@@ -352,7 +381,7 @@ function MainLayout() {
     }
 
     wmmBus.invoke("wmm.sync.queueSongs", { songIds });
-  }
+  }, []);
 
   const activeTab = isSyncPage ? "sync" : tabFromPathname(pathname);
   // `useParams()` here only sees this layout route's params, never the child
@@ -361,6 +390,9 @@ function MainLayout() {
   const activeMode = isSyncPage ? undefined : modeFromParam(modeFromPath(pathname));
 
   const routeMode = activeMode ?? "playback";
+
+  /** Tracks can only be dragged while there is somewhere to drop them. */
+  const dragEnabled = sidebarVisible && activeMode !== "edit";
 
   const { query, setQuery, total, filteredTotal, showHidden, setShowHidden, hiddenCount } =
     useSongs();
@@ -471,16 +503,37 @@ function MainLayout() {
     };
   }, [showBottomNav]);
 
-  const outletContext: MainContext = {
-    queryText,
-    activeMode,
-    selectedSourceIds,
-    setSelectedSourceIds,
-    sort,
-    setSort,
-    onTrackDrop: handleSidebarDrop,
-  };
+  const outletContext: MainContext = useMemo(
+    () => ({
+      queryText,
+      activeMode,
+      selectedSourceIds,
+      setSelectedSourceIds,
+      sort,
+      setSort,
+      onTrackDrop: handleSidebarDrop,
+    }),
+    [
+      queryText,
+      activeMode,
+      selectedSourceIds,
+      setSelectedSourceIds,
+      sort,
+      setSort,
+      handleSidebarDrop,
+    ]
+  );
 
+  /**
+   * The page element is memoized so a sidebar toggle cannot re-render it.
+   * `Outlet` re-renders with this layout, and with it the whole route subtree —
+   * a song table of thousands of rows costs seconds per toggle. Holding the
+   * element lets React bail out on the identical reference instead.
+   */
+  const page = useMemo(
+    () => <PageHost context={outletContext} />,
+    [outletContext]
+  );
   return (
     <div className="flex flex-col h-full select-none">
       {!isTv && (
@@ -667,14 +720,16 @@ function MainLayout() {
         </div>
       )}
 
-      <SidebarDragProvider
-        enabled={sidebarVisible && activeMode !== "edit"}
-      >
-        <SidebarDndArea onSidebarDrop={handleSidebarDrop}>
-          <div className="relative flex min-h-0 flex-1 overflow-hidden">
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <Outlet context={outletContext} />
-            </div>
+      <SidebarDragProvider>
+        <SidebarDndArea
+          onSidebarDrop={handleSidebarDrop}
+          enabled={dragEnabled}
+        >
+          <div
+            className="relative flex min-h-0 flex-1 overflow-hidden"
+            data-drag-enabled={dragEnabled ? "true" : undefined}
+          >
+            <div className="min-w-0 flex-1 overflow-hidden">{page}</div>
 
             {sidebarVisible && (
               // Narrow and overlaid on small screens so the track list stays
